@@ -1,3 +1,6 @@
+
+'use client';
+
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -13,8 +16,18 @@ import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, S
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardHeader() {
+  const { toast } = useToast();
+
+  const handleMenuClick = (action: string) => {
+    toast({
+      title: 'Funcionalidade em Desenvolvimento',
+      description: `A ação "${action}" será implementada em breve.`,
+    });
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -74,10 +87,16 @@ export default function DashboardHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
-            <DropdownMenuItem>Suporte</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleMenuClick('Configurações')}>
+              Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleMenuClick('Suporte')}>
+              Suporte
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Sair</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => handleMenuClick('Sair')}>
+              Sair
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
