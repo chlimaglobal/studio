@@ -47,43 +47,53 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Descrição</TableHead>
-            <TableHead className="hidden sm:table-cell">Categoria</TableHead>
-            <TableHead className="hidden sm:table-cell">Data</TableHead>
-            <TableHead className="text-right">Valor</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.map((transaction) => (
-            <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
-              <TableCell>
-                <div className="font-medium">{transaction.description}</div>
-                {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
-                    <div className="text-xs text-muted-foreground">{transaction.creditCard}</div>
-                )}
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                <Badge variant="outline">{transaction.category}</Badge>
-              </TableCell>
-              <TableCell className="hidden sm:table-cell">
-                {format(transaction.date, 'd MMM, yyyy', { locale: ptBR })}
-              </TableCell>
-              <TableCell
-                className={cn(
-                  'text-right font-medium',
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                )}
-              >
-                {transaction.type === 'income' ? '+' : '-'}
-                {formatCurrency(transaction.amount)}
-              </TableCell>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="hidden text-center sm:table-cell">Categoria</TableHead>
+              <TableHead className="hidden text-center sm:table-cell">Data</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {transactions.length > 0 ? (
+              transactions.map((transaction) => (
+                <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
+                  <TableCell>
+                    <div className="font-medium">{transaction.description}</div>
+                    {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
+                        <div className="text-xs text-muted-foreground">{transaction.creditCard}</div>
+                    )}
+                  </TableCell>
+                  <TableCell className="hidden text-center sm:table-cell">
+                    <Badge variant="outline">{transaction.category}</Badge>
+                  </TableCell>
+                  <TableCell className="hidden text-center sm:table-cell">
+                    {format(transaction.date, 'd MMM, yyyy', { locale: ptBR })}
+                  </TableCell>
+                  <TableCell
+                    className={cn(
+                      'text-right font-medium',
+                      transaction.type === 'income' ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
+                    )}
+                  >
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {formatCurrency(transaction.amount)}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">
+                        Nenhuma transação encontrada.
+                    </TableCell>
+                </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <Dialog open={!!selectedTransaction} onOpenChange={(open) => !open && handleCloseDialog()}>
         <DialogContent>
@@ -94,35 +104,35 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
             </DialogDescription>
           </DialogHeader>
           {selectedTransaction && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 items-center gap-4">
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
                 <p className="text-sm text-muted-foreground">Valor</p>
                 <p className={cn(
-                    'text-right font-semibold text-lg',
-                    selectedTransaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    'font-semibold text-lg',
+                    selectedTransaction.type === 'income' ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'
                   )}>
-                  {formatCurrency(selectedTransaction.amount)}
+                  {selectedTransaction.type === 'income' ? '+' : '-'} {formatCurrency(selectedTransaction.amount)}
                 </p>
               </div>
-              <div className="grid grid-cols-2 items-center gap-4">
+               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Tipo</p>
-                <p className="text-right font-medium">{selectedTransaction.type === 'income' ? 'Receita' : 'Despesa'}</p>
+                <p className="font-medium">{selectedTransaction.type === 'income' ? 'Receita' : 'Despesa'}</p>
               </div>
-              <div className="grid grid-cols-2 items-center gap-4">
+              <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Categoria</p>
                 <div className="text-right">
                     <Badge variant="outline">{selectedTransaction.category}</Badge>
                 </div>
               </div>
               {selectedTransaction.category === 'Cartão de Crédito' && selectedTransaction.creditCard && (
-                <div className="grid grid-cols-2 items-center gap-4">
+                <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Cartão</p>
-                    <p className="text-right font-medium">{selectedTransaction.creditCard}</p>
+                    <p className="font-medium">{selectedTransaction.creditCard}</p>
                 </div>
               )}
-              <div className="grid grid-cols-2 items-center gap-4">
+              <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Data</p>
-                <p className="text-right font-medium">{format(selectedTransaction.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                <p className="font-medium">{format(selectedTransaction.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
               </div>
             </div>
           )}

@@ -31,20 +31,32 @@ const prompt = ai.definePrompt({
   name: 'categorizeTransactionPrompt',
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
-  prompt: `Você é um especialista em finanças pessoais. Você está ajudando a categorizar transações com base em sua descrição.
+  prompt: `Você é um especialista em finanças pessoais. Sua tarefa é categorizar transações com base na descrição fornecida, escolhendo a categoria mais apropriada da lista abaixo.
 
-  As categorias possíveis são:
+  **Categorias Disponíveis:**
   {{#each categories}}
   - {{this}}
   {{/each}}
 
-  Dada a seguinte descrição da transação, determine a categoria mais apropriada. Você DEVE escolher uma das categorias listadas acima. Se a descrição for "Netflix" ou "Spotify", a categoria deve ser "Assinaturas". Se for relacionado a comida em casa, "Supermercado". Se for comida fora, "Restaurante". Se for relacionado a um veículo, "Gasolina" ou "Transporte". Contas de casa como internet, luz, água, devem ser categorizadas como tal.
+  **Instruções de Categorização:**
+  - **Alimentação:** Compras de comida em geral, não em restaurantes. Se for "mercado" ou "supermercado", use "Supermercado".
+  - **Assinaturas:** Serviços recorrentes como Netflix, Spotify, Amazon Prime, etc.
+  - **Contas:** Contas gerais da casa. Use categorias mais específicas se possível.
+  - **Luz, Água, Internet, Telefone:** Use estas categorias para as respectivas contas de utilidades.
+  - **Restaurante:** Comida fora de casa, iFood, Uber Eats, lanches.
+  - **Transporte:** Uber, 99, ônibus, metrô. Se for relacionado a carro próprio, use "Gasolina" ou "Manutenção Veicular".
+  - **Saúde:** Farmácia, médico, plano de saúde.
+  - **Lazer/Entretenimento:** Cinema, shows, passeios.
+  - **Educação:** Cursos, livros, material escolar.
+  - **Salário, Bônus, Comissão:** Para diferentes tipos de renda.
 
-  Descrição: {{{description}}}
-  Categoria:`,
+  Analise a descrição a seguir e retorne **apenas uma** das categorias da lista.
+
+  **Descrição da Transação:** {{{description}}}
+  **Categoria Prevista:**`,
   templateOptions: {
     // @ts-ignore
-    categories: transactionCategories.join(', '),
+    categories: transactionCategories,
   },
 });
 
