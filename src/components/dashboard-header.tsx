@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Plus, Mic } from 'lucide-react';
+import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
@@ -73,7 +73,7 @@ export default function DashboardHeader() {
 
       <div className="flex w-full items-center gap-4">
         <h1 className="text-xl font-semibold sm:text-2xl flex-1">Painel</h1>
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <AudioTransactionDialog />
           <QrScannerDialog />
           <AddTransactionDialog />

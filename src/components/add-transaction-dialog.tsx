@@ -40,9 +40,10 @@ type AddTransactionDialogProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   initialData?: Partial<React.ComponentProps<typeof Form>['data-type']>;
+  children?: React.ReactNode;
 };
 
-export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setControlledOpen, initialData }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setControlledOpen, initialData, children }: AddTransactionDialogProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const [isSubmitting, startSubmittingTransition] = React.useTransition();
@@ -147,12 +148,14 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {controlledOpen === undefined && (
+      {children ? (
+        <DialogTrigger asChild>{children}</DialogTrigger>
+      ) : (
         <DialogTrigger asChild>
-            <Button size="sm" className="gap-1">
+          <Button size="sm" className="gap-1">
             <Plus className="h-4 w-4" />
             Adicionar Transação
-            </Button>
+          </Button>
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-[480px]">

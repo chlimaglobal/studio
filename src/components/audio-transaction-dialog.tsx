@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -19,7 +20,7 @@ import { z } from 'zod';
 import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 
-export function AudioTransactionDialog() {
+export function AudioTransactionDialog({ asChild }: { asChild?: boolean }) {
   const [open, setOpen] = useState(false);
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
   const [initialTransactionData, setInitialTransactionData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
@@ -98,15 +99,74 @@ export function AudioTransactionDialog() {
           recognitionRef.current?.stop();
       }
   }
+  
+  const TriggerButton = asChild ? Button : (props) => (
+    <Button variant="outline" size="sm" {...props}>
+      <Mic className="mr-2 h-4 w-4" />
+      Usar Voz
+    </Button>
+  );
+
+  if (asChild) {
+     return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                 <Button variant="outline" size="icon" className="h-12 w-12 rounded-full">
+                    <Mic className="h-5 w-5" />
+                    <span className="sr-only">Usar Voz</span>
+                </Button>
+            </DialogTrigger>
+            {/* Rest of the dialog content */}
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Transação por Voz</DialogTitle>
+                    <DialogDescription>
+                    {statusText}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center gap-4 py-8">
+                    <Button
+                    size="lg"
+                    className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
+                    onClick={handleToggleRecording}
+                    disabled={isProcessing || !!error}
+                    >
+                    {isProcessing ? (
+                        <Loader2 className="h-10 w-10 animate-spin" />
+                    ) : isRecording ? (
+                        <Square className="h-8 w-8 fill-white" />
+                    ) : (
+                        <Mic className="h-10 w-10" />
+                    )}
+                    </Button>
+                    {error && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Erro</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                    Fechar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+            <AddTransactionDialog
+                open={addTransactionOpen}
+                onOpenChange={setAddTransactionOpen}
+                initialData={initialTransactionData || undefined}
+            />
+        </Dialog>
+     )
+  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm">
-            <Mic className="mr-2 h-4 w-4" />
-            Usar Voz
-          </Button>
+          <TriggerButton />
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>

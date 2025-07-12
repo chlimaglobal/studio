@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -19,7 +20,7 @@ import { AddTransactionDialog } from './add-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 
-export function QrScannerDialog() {
+export function QrScannerDialog({ asChild }: { asChild?: boolean }) {
   const [open, setOpen] = useState(false);
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
   const [scannedData, setScannedData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
@@ -129,14 +130,71 @@ export function QrScannerDialog() {
     }
   }
 
+  const TriggerButton = asChild ? Button : (props) => (
+    <Button variant="outline" size="sm" {...props}>
+      <QrCode className="mr-2 h-4 w-4" />
+      Escanear Nota
+    </Button>
+  );
+
+  if (asChild) {
+    return (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="icon" className="h-12 w-12 rounded-full">
+                    <QrCode className="h-5 w-5" />
+                    <span className="sr-only">Escanear Nota</span>
+                </Button>
+            </DialogTrigger>
+            {/* Rest of the dialog content */}
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Escanear QR Code da Nota Fiscal</DialogTitle>
+                    <DialogDescription>
+                    Aponte a câmera para o QR code da sua nota fiscal.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="relative mt-4 flex items-center justify-center">
+                    {hasCameraPermission === null && <Loader2 className="h-10 w-10 animate-spin" />}
+                    
+                    <video ref={videoRef} className="w-full aspect-square rounded-md bg-muted" autoPlay playsInline muted />
+                    <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+                    {hasCameraPermission === false && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                        <Alert variant="destructive" className="w-auto">
+                            <AlertTitle>Câmera Necessária</AlertTitle>
+                            <AlertDescription>Habilite a permissão da câmera.</AlertDescription>
+                        </Alert>
+                    </div>
+                    )}
+                    
+                    {hasCameraPermission === true && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-3/4 h-3/4 border-4 border-dashed border-primary/50 rounded-lg"/>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                    Cancelar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+            <AddTransactionDialog
+                open={addTransactionOpen}
+                onOpenChange={setAddTransactionOpen}
+                initialData={scannedData || undefined}
+            />
+        </Dialog>
+    )
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="sm">
-            <QrCode className="mr-2 h-4 w-4" />
-            Escanear Nota
-          </Button>
+          <TriggerButton />
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
