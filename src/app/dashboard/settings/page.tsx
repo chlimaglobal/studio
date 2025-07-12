@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 type FabPosition = 'left' | 'right';
@@ -20,6 +20,7 @@ export default function SettingsPage() {
   
   // State for FAB position
   const [fabPosition, setFabPosition] = useState<FabPosition>('right');
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -27,6 +28,8 @@ export default function SettingsPage() {
     if (storedFabPosition) {
       setFabPosition(storedFabPosition);
     }
+    const storedPushEnabled = localStorage.getItem('pushNotificationsEnabled') === 'true';
+    setPushNotificationsEnabled(storedPushEnabled);
   }, []);
 
   const handleFabPositionChange = (value: FabPosition) => {
@@ -35,6 +38,11 @@ export default function SettingsPage() {
     // This is a bit of a hack to notify other components.
     // In a real app, you'd use a state management library (Context, Redux, etc.)
     window.dispatchEvent(new Event('storage'));
+  };
+
+  const handlePushNotificationsChange = (enabled: boolean) => {
+    setPushNotificationsEnabled(enabled);
+    localStorage.setItem('pushNotificationsEnabled', String(enabled));
   };
   
   const handleSave = () => {
@@ -107,7 +115,7 @@ export default function SettingsPage() {
       
        <Card>
         <CardHeader>
-          <CardTitle>Notificações</CardTitle>
+          <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notificações</CardTitle>
           <CardDescription>Gerencie suas preferências de notificação.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -116,7 +124,10 @@ export default function SettingsPage() {
               <p className="font-medium">Notificações Push</p>
               <p className="text-sm text-muted-foreground">Receba alertas sobre seus gastos e receitas.</p>
             </div>
-             <Switch disabled />
+             <Switch
+                checked={pushNotificationsEnabled}
+                onCheckedChange={handlePushNotificationsChange}
+             />
           </div>
           <div className="flex items-center justify-between rounded-md border p-4">
              <div>
