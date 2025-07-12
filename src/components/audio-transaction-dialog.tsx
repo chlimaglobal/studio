@@ -14,7 +14,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2, AlertTriangle, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AddTransactionDialog } from './add-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 import { extractTransactionInfoFromText } from '@/app/actions';
@@ -36,77 +35,114 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!open) return;
+  const processTranscript = useCallback(async (transcript: string) => {
+    setStatusText('Processando seu comando...');
+    setIsProcessing(true);
+    setError(null);
 
-    if (!('webkitSpeechRecognition' in window)) {
+    try {
+      const result = await extractTransactionInfoFromText(transcript);
+      if ('error' in result) {
+        toast({ variant: 'destructive', title: 'Não foi possível entender', description: `${result.error} Por favor, tente novamente.` });
+        setError(result.error);
+        setStatusText('Tente novamente. Fale de forma clara, por exemplo: "gastei 50 reais no supermercado".');
+      } else {
+        onTransactionExtracted(result);
+        onOpenChange(false); // Fecha o diálogo de áudio
+      }
+    } catch (e) {
+      const errorMessage = 'Ocorreu um erro ao falar com a IA. Tente novamente.';
+      toast({ variant: 'destructive', title: 'Erro de Processamento', description: errorMessage });
+      setError(errorMessage);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [toast, onOpenChange, onTransactionExtracted]);
+
+  useEffect(() => {
+    if (!open) {
+        setIsRecording(false);
+        setIsProcessing(false);
+        setError(null);
+        setStatusText('Pressione o botão e comece a falar.');
+        if (recognitionRef.current) {
+            recognitionRef.current.onresult = null;
+            recognitionRef.current.onerror = null;
+            recognitionRef.current.onstart = null;
+            recognitionRef.current.onend = null;
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+        }
+        return;
+    };
+
+    if ('webkitSpeechRecognition' in window) {
+      if (!recognitionRef.current) {
+        const SpeechRecognition = window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        
+        recognition.onstart = () => {
+            setIsRecording(true);
+            setStatusText('Ouvindo...');
+            setError(null);
+        };
+
+        recognition.onend = () => {
+            setIsRecording(false);
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error);
+            if (event.error !== 'no-speech') {
+              setStatusText('Ocorreu um erro. Tente novamente.');
+              setError(`Erro: ${event.error}`);
+            }
+            setIsRecording(false);
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            processTranscript(transcript);
+        };
+        
+        recognitionRef.current = recognition;
+      }
+
+    } else {
       setError('O reconhecimento de voz não é suportado neste navegador. Tente usar o Chrome.');
-      return;
+    }
+    
+    return () => {
+        if(recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
     }
 
-    const SpeechRecognition = window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.lang = 'pt-BR';
-    recognition.interimResults = false;
-
-    recognition.onstart = () => {
-      setIsRecording(true);
-      setStatusText('Ouvindo...');
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-      if (!isProcessing) {
-        setStatusText('Pressione o botão e comece a falar.');
-      }
-    };
-
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error', event.error);
-      setStatusText('Ocorreu um erro. Tente novamente.');
-      setError(`Erro: ${event.error}`);
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setStatusText('Processando seu comando...');
-      setIsProcessing(true);
-      
-      extractTransactionInfoFromText(transcript)
-        .then(result => {
-          if ('error' in result) {
-            toast({ variant: 'destructive', title: 'Erro ao Processar', description: result.error });
-            setError(result.error);
-          } else {
-            onTransactionExtracted(result);
-            onOpenChange(false); // Close audio dialog
-          }
-        })
-        .finally(() => {
-          setIsProcessing(false);
-          setStatusText('Pressione o botão e comece a falar.');
-        });
-    };
-
-    recognitionRef.current = recognition;
-
-  }, [isProcessing, toast, open, onOpenChange, onTransactionExtracted]);
+  }, [open, processTranscript]);
 
   const handleToggleRecording = () => {
+    if (!recognitionRef.current) {
+        setError('O reconhecimento de voz não está disponível.');
+        return;
+    }
     if (isRecording) {
       recognitionRef.current?.stop();
     } else {
       setError(null);
-      recognitionRef.current?.start();
+      try {
+        recognitionRef.current?.start();
+      } catch(e) {
+        console.error("Error starting recognition", e);
+        // This can happen if it's already started
+      }
     }
   };
 
   const handleOpenChange = (isOpen: boolean) => {
       onOpenChange(isOpen);
-      if (!isOpen && isRecording) {
-          recognitionRef.current?.stop();
-      }
   }
 
   return (
@@ -116,7 +152,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         <DialogHeader>
           <DialogTitle>Adicionar Transação por Voz</DialogTitle>
           <DialogDescription>
-            {statusText}
+            {isProcessing ? "Processando..." : (isRecording ? "Ouvindo..." : "Pressione o microfone e fale. Ex: 'Gastei 50 reais no almoço'.")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center gap-4 py-8">
@@ -124,7 +160,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
             size="lg"
             className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
             onClick={handleToggleRecording}
-            disabled={isProcessing || !!error}
+            disabled={isProcessing || !recognitionRef.current}
           >
             {isProcessing ? (
               <Loader2 className="h-10 w-10 animate-spin" />
@@ -137,7 +173,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Erro</AlertTitle>
+              <AlertTitle>Erro ao processar</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}

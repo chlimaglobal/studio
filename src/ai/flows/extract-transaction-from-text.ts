@@ -39,8 +39,8 @@ const prompt = ai.definePrompt({
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
   O valor deve ser um número.
 
-  - Se o usuário disser "gastei", "comprei", "paguei", "despesa", etc., o tipo é 'expense'.
-  - Se o usuário disser "recebi", "ganhei", "vendi", "receita", etc., o tipo é 'income'.
+  - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
+  - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
 
   **Exemplos:**
 
@@ -56,6 +56,9 @@ const prompt = ai.definePrompt({
   4.  **Texto do Usuário:** "pagamento da fatura do cartão 1200"
       **Saída Esperada:** { "description": "Pagamento da fatura do cartão", "amount": 1200, "type": "expense", "category": "Cartão de Crédito" }
 
+  5.  **Texto do Usuário:** "conta de luz 85 reais"
+      **Saída Esperada:** { "description": "Conta de luz", "amount": 85, "type": "expense", "category": "Luz" }
+
   **Texto do usuário para análise:**
   {{{text}}}
   `,
@@ -69,8 +72,8 @@ const extractTransactionFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('A IA não conseguiu processar a solicitação.');
+    if (!output || !output.amount || !output.description || !output.type) {
+      throw new Error('A IA não conseguiu processar a solicitação ou os dados estão incompletos.');
     }
     return output;
   }
