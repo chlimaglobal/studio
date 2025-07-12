@@ -1,6 +1,6 @@
 import type { Transaction, TransactionCategory } from '@/lib/types';
 
-function_getCategories(): TransactionCategory[] {
+export function getCategories(): TransactionCategory[] {
   return [
     'Food',
     'Shopping',
