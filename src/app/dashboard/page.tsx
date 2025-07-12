@@ -3,9 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import TransactionsTable from '@/components/transactions-table';
-import { AddTransactionDialog } from '@/components/add-transaction-dialog';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRightLeft } from 'lucide-react';
 
