@@ -9,18 +9,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Wallet } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   email: z.string().email({
-    message: 'Invalid email address.',
+    message: 'Endereço de e-mail inválido.',
   }),
   password: z.string().min(6, {
-    message: 'Password must be at least 6 characters.',
+    message: 'A senha deve ter pelo menos 6 caracteres.',
   }),
 });
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -30,10 +32,17 @@ export default function LoginPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you'd perform authentication here.
-    // For this UI-only example, we'll just navigate to the dashboard.
-    console.log('Login values:', values);
-    router.push('/dashboard');
+    if (values.email.toLowerCase() === 'chlimaglobal@gmail.com') {
+      console.log('Login successful for:', values.email);
+      router.push('/dashboard');
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Falha no login',
+        description: 'E-mail ou senha inválidos.',
+      });
+      console.log('Login failed for:', values.email);
+    }
   }
 
   return (
@@ -44,7 +53,7 @@ export default function LoginPage() {
             <Wallet className="h-8 w-8" />
           </div>
           <CardTitle className="text-3xl font-bold">FinanceFlow</CardTitle>
-          <CardDescription>Welcome back! Please sign in to your account.</CardDescription>
+          <CardDescription>Bem-vindo de volta! Faça login em sua conta.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -56,7 +65,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="name@example.com" {...field} />
+                      <Input placeholder="nome@exemplo.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -67,7 +76,7 @@ export default function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Senha</FormLabel>
                     <FormControl>
                       <Input type="password" placeholder="••••••••" {...field} />
                     </FormControl>
@@ -76,16 +85,16 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full text-lg" size="lg">
-                Sign In
+                Entrar
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{' '}
+        Não tem uma conta?{' '}
         <a href="#" className="font-semibold text-primary underline-offset-4 hover:underline">
-          Sign up
+          Cadastre-se
         </a>
       </p>
     </main>
