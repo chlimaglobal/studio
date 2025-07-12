@@ -59,85 +59,76 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     }
   }, [toast, onOpenChange, onTransactionExtracted]);
 
+  
   useEffect(() => {
+    // Limpeza quando o diálogo fecha
     if (!open) {
-        setIsRecording(false);
-        setIsProcessing(false);
-        setError(null);
-        setStatusText('Pressione o botão e comece a falar.');
-        if (recognitionRef.current) {
-            recognitionRef.current.onresult = null;
-            recognitionRef.current.onerror = null;
-            recognitionRef.current.onstart = null;
-            recognitionRef.current.onend = null;
-            recognitionRef.current.stop();
-            recognitionRef.current = null;
-        }
-        return;
-    };
-
-    if ('webkitSpeechRecognition' in window) {
-      if (!recognitionRef.current) {
-        const SpeechRecognition = window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
-        
-        recognition.onstart = () => {
-            setIsRecording(true);
-            setStatusText('Ouvindo...');
-            setError(null);
-        };
-
-        recognition.onend = () => {
-            setIsRecording(false);
-        };
-
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error);
-            if (event.error !== 'no-speech') {
-              setStatusText('Ocorreu um erro. Tente novamente.');
-              setError(`Erro: ${event.error}`);
-            }
-            setIsRecording(false);
-        };
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            processTranscript(transcript);
-        };
-        
-        recognitionRef.current = recognition;
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
       }
-
-    } else {
-      setError('O reconhecimento de voz não é suportado neste navegador. Tente usar o Chrome.');
+      setIsRecording(false);
+      setIsProcessing(false);
+      setError(null);
+      setStatusText('Pressione o botão e comece a falar.');
     }
-    
-    return () => {
-        if(recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-    }
-
-  }, [open, processTranscript]);
+  }, [open]);
 
   const handleToggleRecording = () => {
-    if (!recognitionRef.current) {
-        setError('O reconhecimento de voz não está disponível.');
-        return;
-    }
     if (isRecording) {
       recognitionRef.current?.stop();
-    } else {
-      setError(null);
-      try {
-        recognitionRef.current?.start();
-      } catch(e) {
-        console.error("Error starting recognition", e);
-        // This can happen if it's already started
-      }
+      setIsRecording(false);
+      return;
+    }
+    
+    if (!('webkitSpeechRecognition' in window)) {
+      setError('O reconhecimento de voz não é suportado neste navegador. Tente usar o Chrome.');
+      return;
+    }
+    
+    setError(null);
+
+    try {
+      const SpeechRecognition = window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = 'pt-BR';
+      recognition.interimResults = false;
+      
+      recognition.onstart = () => {
+          setIsRecording(true);
+          setStatusText('Ouvindo...');
+          setError(null);
+      };
+
+      recognition.onend = () => {
+          setIsRecording(false);
+          // Não redefina o texto aqui para manter mensagens de erro
+      };
+
+      recognition.onerror = (event) => {
+          console.error('Speech recognition error', event.error);
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            setStatusText('Ocorreu um erro. Tente novamente.');
+            setError(`Erro: ${event.error}. Verifique a permissão do microfone.`);
+          }
+          setIsRecording(false);
+      };
+
+      recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript) {
+            processTranscript(transcript);
+          }
+      };
+      
+      recognition.start();
+      recognitionRef.current = recognition;
+
+    } catch(e) {
+      console.error("Error starting recognition", e);
+      setError('Não foi possível iniciar o reconhecimento de voz.');
+      setIsRecording(false);
     }
   };
 
@@ -160,7 +151,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
             size="lg"
             className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
             onClick={handleToggleRecording}
-            disabled={isProcessing || !recognitionRef.current}
+            disabled={isProcessing}
           >
             {isProcessing ? (
               <Loader2 className="h-10 w-10 animate-spin" />
@@ -173,7 +164,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Erro ao processar</AlertTitle>
+              <AlertTitle>Erro</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
