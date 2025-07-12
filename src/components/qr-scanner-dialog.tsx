@@ -20,50 +20,17 @@ import { AddTransactionDialog } from './add-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 
-export function QrScannerDialog({ asChild }: { asChild?: boolean }) {
+export function QrScannerDialog({ asChild, children }: { asChild?: boolean, children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
   const [scannedData, setScannedData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameId = useRef<number>();
   const { toast } = useToast();
 
-  const getCameraPermission = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setHasCameraPermission(true);
-      return stream;
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setHasCameraPermission(false);
-      toast({
-        variant: 'destructive',
-        title: 'Acesso à Câmera Negado',
-        description: 'Por favor, habilite a permissão da câmera nas configurações do seu navegador.',
-      });
-      return null;
-    }
-  }, [toast]);
-
-  const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    if (animationFrameId.current) {
-      cancelAnimationFrame(animationFrameId.current);
-    }
-    setIsScanning(false);
-  };
-  
-  const tick = useCallback(() => {
+  const scan = useCallback(() => {
     if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
@@ -98,103 +65,77 @@ export function QrScannerDialog({ asChild }: { asChild?: boolean }) {
                     title: 'QR Code Inválido',
                     description: 'Não foi possível ler os dados da nota fiscal no QR Code.',
                   });
+                   setTimeout(() => startCamera(), 2000); // Try again
                 }
+            } else {
+                 animationFrameId.current = requestAnimationFrame(scan);
             }
         } catch (error) {
             console.error('jsQR error:', error)
+            animationFrameId.current = requestAnimationFrame(scan);
         }
+      } else {
+         animationFrameId.current = requestAnimationFrame(scan);
       }
+    } else {
+        animationFrameId.current = requestAnimationFrame(scan);
     }
-    animationFrameId.current = requestAnimationFrame(tick);
   }, [toast]);
 
-  useEffect(() => {
-    if (open && isScanning) {
-      getCameraPermission().then(stream => {
-        if (stream) {
-          animationFrameId.current = requestAnimationFrame(tick);
-        }
-      });
-    } else {
-      stopCamera();
+  const stopCamera = () => {
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
     }
-    return () => stopCamera();
-  }, [open, isScanning, getCameraPermission, tick]);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const startCamera = useCallback(async () => {
+    stopCamera();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setHasCameraPermission(true);
+      animationFrameId.current = requestAnimationFrame(scan);
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      setHasCameraPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Acesso à Câmera Negado',
+        description: 'Por favor, habilite a permissão da câmera nas configurações do seu navegador.',
+      });
+    }
+  }, [scan, toast]);
+
   
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen) {
-        setIsScanning(true);
+      startCamera();
     } else {
-        stopCamera();
+      stopCamera();
     }
   }
 
-  const TriggerButton = asChild ? Button : (props) => (
-    <Button variant="outline" size="sm" {...props}>
+  const DefaultTriggerButton = (
+    <Button variant="outline" size="sm">
       <QrCode className="mr-2 h-4 w-4" />
       Escanear Nota
     </Button>
   );
 
-  if (asChild) {
-    return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-12 w-12 rounded-full">
-                    <QrCode className="h-5 w-5" />
-                    <span className="sr-only">Escanear Nota</span>
-                </Button>
-            </DialogTrigger>
-            {/* Rest of the dialog content */}
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Escanear QR Code da Nota Fiscal</DialogTitle>
-                    <DialogDescription>
-                    Aponte a câmera para o QR code da sua nota fiscal.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="relative mt-4 flex items-center justify-center">
-                    {hasCameraPermission === null && <Loader2 className="h-10 w-10 animate-spin" />}
-                    
-                    <video ref={videoRef} className="w-full aspect-square rounded-md bg-muted" autoPlay playsInline muted />
-                    <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-                    {hasCameraPermission === false && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
-                        <Alert variant="destructive" className="w-auto">
-                            <AlertTitle>Câmera Necessária</AlertTitle>
-                            <AlertDescription>Habilite a permissão da câmera.</AlertDescription>
-                        </Alert>
-                    </div>
-                    )}
-                    
-                    {hasCameraPermission === true && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-3/4 h-3/4 border-4 border-dashed border-primary/50 rounded-lg"/>
-                        </div>
-                    )}
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => handleOpenChange(false)}>
-                    Cancelar
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-            <AddTransactionDialog
-                open={addTransactionOpen}
-                onOpenChange={setAddTransactionOpen}
-                initialData={scannedData || undefined}
-            />
-        </Dialog>
-    )
-  }
-
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          <TriggerButton />
+          {asChild ? children : DefaultTriggerButton}
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

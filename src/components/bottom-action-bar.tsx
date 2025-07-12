@@ -1,6 +1,7 @@
 
 'use client';
 
+import React from 'react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { AudioTransactionDialog } from './audio-transaction-dialog';
 import { QrScannerDialog } from './qr-scanner-dialog';
@@ -12,7 +13,7 @@ export default function BottomActionBar() {
     <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-center p-4 sm:hidden">
       <div className="flex items-center gap-4 rounded-full border bg-card/90 p-2 shadow-lg backdrop-blur-sm">
         <DialogTrigger asChild>
-          <AudioTransactionDialog />
+          <AudioTransactionDialog asChild />
         </DialogTrigger>
         <DialogTrigger asChild>
           <AddTransactionDialog>
@@ -23,7 +24,7 @@ export default function BottomActionBar() {
           </AddTransactionDialog>
         </DialogTrigger>
         <DialogTrigger asChild>
-          <QrScannerDialog />
+          <QrScannerDialog asChild />
         </DialogTrigger>
       </div>
     </div>
