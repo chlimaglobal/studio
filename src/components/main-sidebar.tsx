@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Wallet } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Wallet, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
+  { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
   { href: '#', icon: ArrowRightLeft, label: 'Transações', disabled: true },
   { href: '#', icon: BarChart3, label: 'Relatórios', disabled: true },
   { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
@@ -45,7 +46,7 @@ export default function MainSidebar() {
                   onClick={(e) => item.disabled && handleDisabledClick(e, item.label)}
                   className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-                    pathname === item.href && 'bg-accent text-accent-foreground',
+                    pathname.startsWith(item.href) && item.href !== '#' && 'bg-accent text-accent-foreground',
                     item.disabled && 'cursor-not-allowed opacity-50'
                   )}
                 >

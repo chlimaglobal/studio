@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -12,27 +11,43 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus } from 'lucide-react';
+import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus, CreditCard } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AudioTransactionDialog } from './audio-transaction-dialog';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { z } from 'zod';
+import { TransactionFormSchema } from '@/lib/types';
+import { extractTransactionInfoFromText } from '@/app/actions';
 
 export default function DashboardHeader() {
   const { toast } = useToast();
   const router = useRouter();
+  
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
+  const [initialData, setInitialData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | undefined>(undefined);
+
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
+    setInitialData(data);
+    setAddTransactionOpen(true);
+  };
+  
+  const handleOpenAddTransaction = () => {
+    setInitialData(undefined);
+    setAddTransactionOpen(true);
+  }
 
   const handleLogout = () => {
     toast({
       title: 'Logout Realizado',
       description: 'Você saiu da sua conta. Redirecionando...',
     });
-    // In a real app, you would redirect to a login page.
-    // For now, we just show a toast.
     router.push('/');
   };
 
@@ -69,6 +84,10 @@ export default function DashboardHeader() {
               <LayoutDashboard className="h-5 w-5" />
               Painel
             </Link>
+             <Link href="/dashboard/cards" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+              <CreditCard className="h-5 w-5" />
+              Cartões
+            </Link>
             <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" onClick={() => toast({ title: 'Em breve!', description: 'A página de Transações será implementada.'})}>
               <ArrowRightLeft className="h-5 w-5" />
               Transações
@@ -88,23 +107,19 @@ export default function DashboardHeader() {
       <div className="flex w-full items-center gap-4">
         <h1 className="text-xl font-semibold sm:text-2xl flex-1">Painel</h1>
         <div className="hidden sm:flex items-center gap-2">
-          <AudioTransactionDialog>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setAudioOpen(true)}>
               <Mic className="mr-2 h-4 w-4" />
               Usar Voz
             </Button>
-          </AudioTransactionDialog>
-          <QrScannerDialog>
-             <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setQrOpen(true)}>
               <QrCode className="mr-2 h-4 w-4" />
               Escanear Nota
             </Button>
-          </QrScannerDialog>
-          <Button size="sm" className="gap-1" onClick={() => setAddTransactionOpen(true)}>
+          <Button size="sm" className="gap-1" onClick={handleOpenAddTransaction}>
             <Plus className="h-4 w-4" />
             Adicionar Transação
           </Button>
-          <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} />
+
         </div>
         <ThemeToggle />
         <DropdownMenu>
@@ -130,6 +145,10 @@ export default function DashboardHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} initialData={initialData} />
+      <AudioTransactionDialog open={audioOpen} onOpenChange={setAudioOpen} onTransactionExtracted={handleTransactionExtracted} />
+      <QrScannerDialog open={qrOpen} onOpenChange={setQrOpen} onTransactionExtracted={handleTransactionExtracted} />
     </header>
   );
 }
