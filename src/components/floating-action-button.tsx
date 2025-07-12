@@ -17,6 +17,8 @@ export default function FloatingActionButton() {
   const [position, setPosition] = useState<FabPosition>('right');
   const [isMounted, setIsMounted] = useState(false);
 
+  const [addTransactionOpen, setAddTransactionOpen] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
     const storedPosition = localStorage.getItem('fabPosition') as FabPosition;
@@ -46,6 +48,7 @@ export default function FloatingActionButton() {
 
   return (
     <div className={cn("fixed bottom-6 z-50 sm:hidden", position === 'right' ? 'right-6' : 'left-6')}>
+      <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} />
       <TooltipProvider>
         <div className="relative flex flex-col items-center gap-3">
           {/* Action Buttons */}
@@ -79,18 +82,16 @@ export default function FloatingActionButton() {
                 </TooltipContent>
               </Tooltip>
             </QrScannerDialog>
-             <AddTransactionDialog>
-               <Tooltip>
-                <TooltipTrigger asChild>
-                     <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg">
-                      <Plus className="h-6 w-6" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent side={position === 'right' ? 'left' : 'right'}>
-                  <p>Adicionar Manualmente</p>
-                </TooltipContent>
-              </Tooltip>
-            </AddTransactionDialog>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                  <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setAddTransactionOpen(true)}>
+                    <Plus className="h-6 w-6" />
+                  </Button>
+              </TooltipTrigger>
+              <TooltipContent side={position === 'right' ? 'left' : 'right'}>
+                <p>Adicionar Manualmente</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Main FAB */}
@@ -111,4 +112,3 @@ export default function FloatingActionButton() {
     </div>
   );
 }
-

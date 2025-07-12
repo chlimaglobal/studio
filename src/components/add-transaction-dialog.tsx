@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Loader2, Plus, Sparkles } from 'lucide-react';
+import { CalendarIcon, Loader2, Sparkles } from 'lucide-react';
 import { transactionCategories, TransactionFormSchema, TransactionCategory } from '@/lib/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -37,20 +37,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type AddTransactionDialogProps = {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   initialData?: Partial<React.ComponentProps<typeof Form>['data-type']>;
   children?: React.ReactNode;
 };
 
-export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setControlledOpen, initialData, children }: AddTransactionDialogProps) {
-  const [internalOpen, setInternalOpen] = React.useState(false);
+export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const [isSubmitting, startSubmittingTransition] = React.useTransition();
   
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = setControlledOpen ?? setInternalOpen;
-
   const { toast } = useToast();
 
   const form = useForm<React.ComponentProps<typeof Form>['data-type']>({
@@ -134,7 +130,7 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
                 }
             }
             
-            setOpen(false);
+            onOpenChange(false);
             form.reset();
         } else {
             toast({
@@ -147,17 +143,8 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {children ? (
-        <DialogTrigger asChild>{children}</DialogTrigger>
-      ) : (
-        <DialogTrigger asChild>
-          <Button size="sm" className="gap-1">
-            <Plus className="h-4 w-4" />
-            Adicionar Transação
-          </Button>
-        </DialogTrigger>
-      )}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Adicionar Nova Transação</DialogTitle>
@@ -324,7 +311,7 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
                 />
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Transação

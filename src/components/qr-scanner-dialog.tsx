@@ -13,14 +13,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { QrCode, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 
-export function QrScannerDialog({ asChild, children }: { asChild?: boolean, children?: React.ReactNode }) {
+export function QrScannerDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
   const [scannedData, setScannedData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
@@ -124,18 +124,11 @@ export function QrScannerDialog({ asChild, children }: { asChild?: boolean, chil
     }
   }
 
-  const DefaultTriggerButton = (
-    <Button variant="outline" size="sm">
-      <QrCode className="mr-2 h-4 w-4" />
-      Escanear Nota
-    </Button>
-  );
-
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          {asChild ? children : DefaultTriggerButton}
+          {children}
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

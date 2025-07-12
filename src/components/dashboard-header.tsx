@@ -12,17 +12,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode } from 'lucide-react';
+import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { AudioTransactionDialog } from './audio-transaction-dialog';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function DashboardHeader() {
   const { toast } = useToast();
   const router = useRouter();
+  const [addTransactionOpen, setAddTransactionOpen] = useState(false);
 
   const handleLogout = () => {
     toast({
@@ -98,7 +100,11 @@ export default function DashboardHeader() {
               Escanear Nota
             </Button>
           </QrScannerDialog>
-          <AddTransactionDialog />
+          <Button size="sm" className="gap-1" onClick={() => setAddTransactionOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Adicionar Transação
+          </Button>
+          <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} />
         </div>
         <ThemeToggle />
         <DropdownMenu>

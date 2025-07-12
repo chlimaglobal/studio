@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 
-export function AudioTransactionDialog({ asChild, children }: { asChild?: boolean, children?: React.ReactNode }) {
+export function AudioTransactionDialog({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [addTransactionOpen, setAddTransactionOpen] = useState(false);
   const [initialTransactionData, setInitialTransactionData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
@@ -103,19 +103,12 @@ export function AudioTransactionDialog({ asChild, children }: { asChild?: boolea
           recognitionRef.current?.stop();
       }
   }
-  
-  const DefaultTriggerButton = (
-    <Button variant="outline" size="sm">
-      <Mic className="mr-2 h-4 w-4" />
-      Usar Voz
-    </Button>
-  );
 
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>
-          {asChild ? children : DefaultTriggerButton}
+          {children}
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
