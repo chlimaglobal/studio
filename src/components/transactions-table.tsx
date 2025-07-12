@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface TransactionsTableProps {
   transactions: Transaction[];
@@ -17,9 +18,9 @@ interface TransactionsTableProps {
 
 export default function TransactionsTable({ transactions }: TransactionsTableProps) {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'BRL',
     }).format(amount);
   };
 
@@ -27,10 +28,10 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Description</TableHead>
-          <TableHead className="hidden sm:table-cell">Category</TableHead>
-          <TableHead className="hidden sm:table-cell">Date</TableHead>
-          <TableHead className="text-right">Amount</TableHead>
+          <TableHead>Descrição</TableHead>
+          <TableHead className="hidden sm:table-cell">Categoria</TableHead>
+          <TableHead className="hidden sm:table-cell">Data</TableHead>
+          <TableHead className="text-right">Valor</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -43,7 +44,7 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
               <Badge variant="outline">{transaction.category}</Badge>
             </TableCell>
             <TableCell className="hidden sm:table-cell">
-              {format(transaction.date, 'MMM d, yyyy')}
+              {format(transaction.date, 'd MMM, yyyy', { locale: ptBR })}
             </TableCell>
             <TableCell
               className={cn(

@@ -1,27 +1,27 @@
 import { z } from "zod";
 
 export const transactionCategories = [
-  'Food',
-  'Shopping',
-  'Entertainment',
-  'Utilities',
-  'Transportation',
-  'Salary',
-  'Investments',
-  'Other',
+  'Alimentação',
+  'Compras',
+  'Entretenimento',
+  'Contas',
+  'Transporte',
+  'Salário',
+  'Investimentos',
+  'Outros',
 ] as const;
 
 export type TransactionCategory = (typeof transactionCategories)[number];
 
 export const TransactionFormSchema = z.object({
   description: z.string().min(3, {
-    message: "Description must be at least 3 characters.",
+    message: "A descrição deve ter pelo menos 3 caracteres.",
   }),
-  amount: z.coerce.number({invalid_type_error: "Please enter a valid amount."}).positive({ message: "Amount must be a positive number." }),
+  amount: z.coerce.number({invalid_type_error: "Por favor, insira um valor válido."}).positive({ message: "O valor deve ser um número positivo." }),
   date: z.date(),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories, {
-    errorMap: () => ({ message: "Please select a category." }),
+    errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
   }),
 });
 

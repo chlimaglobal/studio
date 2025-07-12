@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 import { LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Wallet } from 'lucide-react';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transactions' },
-  { href: '/dashboard/reports', icon: BarChart3, label: 'Reports' },
-  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
+  { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
+  { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 
 export default function MainSidebar() {

@@ -5,7 +5,7 @@ import { transactionCategories, TransactionCategory } from "@/lib/types";
 
 export async function getCategorySuggestion(description: string): Promise<{ category: TransactionCategory | null, error: string | null }> {
   if (!description) {
-    return { category: null, error: 'Description cannot be empty.' };
+    return { category: null, error: 'A descrição não pode estar vazia.' };
   }
 
   try {
@@ -13,9 +13,9 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
     if (result.category && transactionCategories.includes(result.category)) {
       return { category: result.category, error: null };
     }
-    return { category: null, error: 'Could not determine a valid category.' };
+    return { category: null, error: 'Não foi possível determinar uma categoria válida.' };
   } catch (e) {
     console.error(e);
-    return { category: null, error: 'Failed to get suggestion from AI.' };
+    return { category: null, error: 'Falha ao obter sugestão da IA.' };
   }
 }

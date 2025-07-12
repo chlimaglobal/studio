@@ -19,7 +19,7 @@ export default function DashboardHeader() {
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Menu</span>
+            <span className="sr-only">Alternar Menu</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="sm:max-w-xs">
@@ -33,41 +33,41 @@ export default function DashboardHeader() {
             </Link>
             <Link href="/dashboard" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <LayoutDashboard className="h-5 w-5" />
-              Dashboard
+              Painel
             </Link>
             <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <ArrowRightLeft className="h-5 w-5" />
-              Transactions
+              Transações
             </Link>
             <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <BarChart3 className="h-5 w-5" />
-              Reports
+              Relatórios
             </Link>
             <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <Settings className="h-5 w-5" />
-              Settings
+              Configurações
             </Link>
           </nav>
         </SheetContent>
       </Sheet>
 
       <div className="flex w-full items-center gap-4">
-        <h1 className="text-xl font-semibold sm:text-2xl flex-1">Dashboard</h1>
+        <h1 className="text-xl font-semibold sm:text-2xl flex-1">Painel</h1>
         <AddTransactionDialog />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="secondary" size="icon" className="rounded-full">
               <CircleUser className="h-5 w-5" />
-              <span className="sr-only">Toggle user menu</span>
+              <span className="sr-only">Alternar menu do usuário</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem>Configurações</DropdownMenuItem>
+            <DropdownMenuItem>Suporte</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem>Sair</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

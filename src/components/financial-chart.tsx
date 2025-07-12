@@ -9,10 +9,10 @@ interface FinancialChartProps {
 
 export default function FinancialChart({ data }: FinancialChartProps) {
     const formatCurrency = (value: number) => {
-        if (value === 0) return '$0';
-        return new Intl.NumberFormat('en-US', {
+        if (value === 0) return 'R$0';
+        return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'BRL',
             notation: 'compact',
             compactDisplay: 'short',
         }).format(value);
@@ -34,8 +34,8 @@ export default function FinancialChart({ data }: FinancialChartProps) {
             formatter={(value: number) => formatCurrency(value)}
           />
           <Legend iconType="circle" wrapperStyle={{paddingTop: '20px'}} />
-          <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Income" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Expense" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Receita" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Despesa" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

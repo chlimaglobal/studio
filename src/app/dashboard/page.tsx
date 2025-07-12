@@ -16,16 +16,16 @@ export default function DashboardPage() {
   const balance = totalIncome - totalExpenses;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'BRL',
     }).format(amount);
   };
 
   const chartData = mockTransactions
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .reduce((acc, t) => {
-      const month = t.date.toLocaleString('default', { month: 'short' });
+      const month = t.date.toLocaleString('pt-BR', { month: 'short' });
       const existing = acc.find((item) => item.month === month);
       if (existing) {
         if (t.type === 'income') {
@@ -49,32 +49,32 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalIncome)}</div>
-            <p className="text-xs text-muted-foreground">in the last 30 days</p>
+            <p className="text-xs text-muted-foreground">nos últimos 30 dias</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Despesas Totais</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground">in the last 30 days</p>
+            <p className="text-xs text-muted-foreground">nos últimos 30 dias</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo</CardTitle>
             <Scale className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(balance)}</div>
-            <p className="text-xs text-muted-foreground">Current account balance</p>
+            <p className="text-xs text-muted-foreground">Saldo atual da conta</p>
           </CardContent>
         </Card>
       </div>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="col-span-1 lg:col-span-3">
           <CardHeader>
-            <CardTitle>Income vs. Expenses</CardTitle>
+            <CardTitle>Receitas vs. Despesas</CardTitle>
           </CardHeader>
           <CardContent>
             <FinancialChart data={chartData} />
@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
         <Card className="col-span-1 lg:col-span-2">
             <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <CardTitle>Transações Recentes</CardTitle>
             </CardHeader>
             <CardContent>
                 <TransactionsTable transactions={mockTransactions.slice(0, 5)} />

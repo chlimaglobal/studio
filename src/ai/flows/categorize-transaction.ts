@@ -10,17 +10,8 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { transactionCategories } from '@/lib/types';
 
-const Categories = [
-  'Food',
-  'Shopping',
-  'Entertainment',
-  'Utilities',
-  'Transportation',
-  'Salary',
-  'Investments',
-  'Other',
-] as const;
 
 const CategorizeTransactionInputSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
@@ -28,7 +19,7 @@ const CategorizeTransactionInputSchema = z.object({
 export type CategorizeTransactionInput = z.infer<typeof CategorizeTransactionInputSchema>;
 
 const CategorizeTransactionOutputSchema = z.object({
-  category: z.enum(Categories).describe('The predicted category of the transaction.'),
+  category: z.enum(transactionCategories).describe('The predicted category of the transaction.'),
 });
 export type CategorizeTransactionOutput = z.infer<typeof CategorizeTransactionOutputSchema>;
 
@@ -40,19 +31,19 @@ const prompt = ai.definePrompt({
   name: 'categorizeTransactionPrompt',
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
-  prompt: `You are a personal finance expert. You are helping categorize transactions based on their description.
+  prompt: `Você é um especialista em finanças pessoais. Você está ajudando a categorizar transações com base em sua descrição.
 
-  The possible categories are:
+  As categorias possíveis são:
   {{#each categories}}
   - {{this}}
   {{/each}}
 
-  Given the following transaction description, determine the most appropriate category. You MUST pick one of the categories listed above.
+  Dada a seguinte descrição da transação, determine a categoria mais apropriada. Você DEVE escolher uma das categorias listadas acima.
 
-  Description: {{{description}}}
-  Category:`,
+  Descrição: {{{description}}}
+  Categoria:`,
   templateOptions: {
-    categories: Categories,
+    categories: transactionCategories,
   },
 });
 
