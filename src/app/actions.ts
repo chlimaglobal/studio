@@ -16,6 +16,22 @@ const mockTransactions: Transaction[] = [
       category: 'Salário',
     },
     {
+      id: 'txn_bonus_1',
+      date: new Date('2024-07-20'),
+      description: 'Bônus de Performance',
+      amount: 1200,
+      type: 'income',
+      category: 'Bônus',
+    },
+     {
+      id: 'txn_commission_1',
+      date: new Date('2024-07-25'),
+      description: 'Comissão de Vendas',
+      amount: 850,
+      type: 'income',
+      category: 'Comissão',
+    },
+    {
       id: 'txn_2',
       date: new Date('2024-07-16'),
       description: 'Compras de supermercado no Pão de Açúcar',

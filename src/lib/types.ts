@@ -3,6 +3,8 @@ import { z } from "zod";
 export const transactionCategories = [
   'Alimentação',
   'Assinaturas',
+  'Bônus',
+  'Comissão',
   'Compras',
   'Contas',
   'Entretenimento',
