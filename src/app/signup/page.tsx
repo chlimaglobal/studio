@@ -9,10 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Wallet } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
+  name: z.string().min(2, {
+    message: "O nome deve ter pelo menos 2 caracteres.",
+  }),
   email: z.string().email({
     message: 'Endereço de e-mail inválido.',
   }),
@@ -21,29 +24,25 @@ const formSchema = z.object({
   }),
 });
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (values.email.toLowerCase() === 'chlimaglobal@gmail.com') {
-      console.log('Login successful for:', values.email);
-      router.push('/dashboard');
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Falha no login',
-        description: 'E-mail ou senha inválidos.',
-      });
-      console.log('Login failed for:', values.email);
-    }
+    console.log('Registration successful for:', values.email);
+    toast({
+      title: 'Cadastro realizado com sucesso!',
+      description: 'Você será redirecionado para o painel.',
+    });
+    router.push('/dashboard');
   }
 
   return (
@@ -53,12 +52,25 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Wallet className="h-8 w-8" />
           </div>
-          <CardTitle className="text-3xl font-bold">FinanceFlow</CardTitle>
-          <CardDescription>Bem-vindo de volta! Faça login em sua conta.</CardDescription>
+          <CardTitle className="text-3xl font-bold">Crie sua Conta</CardTitle>
+          <CardDescription>Insira seus dados para começar a usar o FinanceFlow.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Seu nome completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="email"
@@ -86,16 +98,16 @@ export default function LoginPage() {
                 )}
               />
               <Button type="submit" className="w-full text-lg" size="lg">
-                Entrar
+                Cadastrar
               </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        Não tem uma conta?{' '}
-        <Link href="/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
-          Cadastre-se
+        Já tem uma conta?{' '}
+        <Link href="/" className="font-semibold text-primary underline-offset-4 hover:underline">
+          Faça login
         </Link>
       </p>
     </main>
