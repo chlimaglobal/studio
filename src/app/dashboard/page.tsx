@@ -1,15 +1,18 @@
-import { mockTransactions } from '@/lib/data';
+import { getTransactions } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import TransactionsTable from '@/components/transactions-table';
 
-export default function DashboardPage() {
-  const totalIncome = mockTransactions
+export default async function DashboardPage() {
+
+  const transactions = await getTransactions();
+
+  const totalIncome = transactions
     .filter((t) => t.type === 'income')
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalExpenses = mockTransactions
+  const totalExpenses = transactions
     .filter((t) => t.type === 'expense')
     .reduce((acc, t) => acc + t.amount, 0);
 
@@ -22,7 +25,7 @@ export default function DashboardPage() {
     }).format(amount);
   };
 
-  const chartData = mockTransactions
+  const chartData = transactions
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .reduce((acc, t) => {
       const month = t.date.toLocaleString('pt-BR', { month: 'short' });
@@ -94,7 +97,7 @@ export default function DashboardPage() {
                 <CardTitle>Transações Recentes</CardTitle>
             </CardHeader>
             <CardContent>
-                <TransactionsTable transactions={mockTransactions.slice(0, 5)} />
+                <TransactionsTable transactions={transactions.slice(0, 5)} />
             </CardContent>
         </Card>
       </div>

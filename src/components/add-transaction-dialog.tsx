@@ -31,13 +31,15 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from './ui/calendar';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { getCategorySuggestion } from '@/app/actions';
+import { getCategorySuggestion, addTransaction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 export function AddTransactionDialog() {
   const [open, setOpen] = React.useState(false);
-  const [isPending, startTransition] = React.useTransition();
+  const [isSuggesting, startSuggestionTransition] = React.useTransition();
+  const [isSubmitting, startSubmittingTransition] = React.useTransition();
+
   const { toast } = useToast();
 
   const form = useForm<React.ComponentProps<typeof Form>['data-type']>({
@@ -60,7 +62,7 @@ export function AddTransactionDialog() {
       return;
     }
     
-    startTransition(async () => {
+    startSuggestionTransition(async () => {
       const { category, error } = await getCategorySuggestion(description);
       if (error) {
         toast({
@@ -79,14 +81,23 @@ export function AddTransactionDialog() {
   };
 
   function onSubmit(values: React.ComponentProps<typeof Form>['data-type']) {
-    console.log(values);
-    // In a real app, you'd save the transaction here.
-    toast({
-        title: 'Transação Adicionada',
-        description: `"${values.description}" adicionado com sucesso.`
-    })
-    setOpen(false);
-    form.reset();
+    startSubmittingTransition(async () => {
+        const result = await addTransaction(values);
+        if (result.success) {
+            toast({
+                title: 'Transação Adicionada',
+                description: `"${values.description}" adicionado com sucesso.`
+            });
+            setOpen(false);
+            form.reset();
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao Adicionar Transação',
+                description: result.message
+            });
+        }
+    });
   }
 
   return (
@@ -222,8 +233,8 @@ export function AddTransactionDialog() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="outline" size="icon" type="button" onClick={handleAiCategorize} disabled={isPending}>
-                                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                              <Button variant="outline" size="icon" type="button" onClick={handleAiCategorize} disabled={isSuggesting}>
+                                {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -239,7 +250,10 @@ export function AddTransactionDialog() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit">Salvar Transação</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Transação
+              </Button>
             </DialogFooter>
           </form>
         </Form>
