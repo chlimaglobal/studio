@@ -123,7 +123,7 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {!controlledOpen && (
+      {controlledOpen === undefined && (
         <DialogTrigger asChild>
             <Button size="sm" className="gap-1">
             <Plus className="h-4 w-4" />
