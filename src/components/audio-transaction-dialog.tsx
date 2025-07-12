@@ -20,10 +20,14 @@ import { z } from 'zod';
 import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 
-export function AudioTransactionDialog({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
-  const [addTransactionOpen, setAddTransactionOpen] = useState(false);
-  const [initialTransactionData, setInitialTransactionData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
+type AudioTransactionDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onTransactionExtracted: (data: Partial<z.infer<typeof TransactionFormSchema>>) => void;
+  children?: React.ReactNode;
+}
+
+export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtracted, children }: AudioTransactionDialogProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusText, setStatusText] = useState('Pressione o botão e comece a falar.');
@@ -33,6 +37,8 @@ export function AudioTransactionDialog({ children }: { children: React.ReactNode
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!open) return;
+
     if (!('webkitSpeechRecognition' in window)) {
       setError('O reconhecimento de voz não é suportado neste navegador. Tente usar o Chrome.');
       return;
@@ -73,9 +79,8 @@ export function AudioTransactionDialog({ children }: { children: React.ReactNode
             toast({ variant: 'destructive', title: 'Erro ao Processar', description: result.error });
             setError(result.error);
           } else {
-            setInitialTransactionData(result);
-            setAddTransactionOpen(true);
-            setOpen(false); // Close audio dialog
+            onTransactionExtracted(result);
+            onOpenChange(false); // Close audio dialog
           }
         })
         .finally(() => {
@@ -86,7 +91,7 @@ export function AudioTransactionDialog({ children }: { children: React.ReactNode
 
     recognitionRef.current = recognition;
 
-  }, [isProcessing, toast]);
+  }, [isProcessing, toast, open, onOpenChange, onTransactionExtracted]);
 
   const handleToggleRecording = () => {
     if (isRecording) {
@@ -98,60 +103,51 @@ export function AudioTransactionDialog({ children }: { children: React.ReactNode
   };
 
   const handleOpenChange = (isOpen: boolean) => {
-      setOpen(isOpen);
+      onOpenChange(isOpen);
       if (!isOpen && isRecording) {
           recognitionRef.current?.stop();
       }
   }
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          {children}
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Adicionar Transação por Voz</DialogTitle>
-            <DialogDescription>
-              {statusText}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center gap-4 py-8">
-            <Button
-              size="lg"
-              className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
-              onClick={handleToggleRecording}
-              disabled={isProcessing || !!error}
-            >
-              {isProcessing ? (
-                <Loader2 className="h-10 w-10 animate-spin" />
-              ) : isRecording ? (
-                <Square className="h-8 w-8 fill-white" />
-              ) : (
-                <Mic className="h-10 w-10" />
-              )}
-            </Button>
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar Transação por Voz</DialogTitle>
+          <DialogDescription>
+            {statusText}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <Button
+            size="lg"
+            className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
+            onClick={handleToggleRecording}
+            disabled={isProcessing || !!error}
+          >
+            {isProcessing ? (
+              <Loader2 className="h-10 w-10 animate-spin" />
+            ) : isRecording ? (
+              <Square className="h-8 w-8 fill-white" />
+            ) : (
+              <Mic className="h-10 w-10" />
             )}
-          </div>
-           <DialogFooter>
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <AddTransactionDialog
-        open={addTransactionOpen}
-        onOpenChange={setAddTransactionOpen}
-        initialData={initialTransactionData || undefined}
-      />
-    </>
+          </Button>
+          {error && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Erro</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+         <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
