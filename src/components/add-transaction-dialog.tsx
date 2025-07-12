@@ -35,10 +35,19 @@ import { getCategorySuggestion, addTransaction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
-export function AddTransactionDialog() {
-  const [open, setOpen] = React.useState(false);
+type AddTransactionDialogProps = {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialData?: Partial<React.ComponentProps<typeof Form>['data-type']>;
+};
+
+export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setControlledOpen, initialData }: AddTransactionDialogProps) {
+  const [internalOpen, setInternalOpen] = React.useState(false);
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const [isSubmitting, startSubmittingTransition] = React.useTransition();
+  
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = setControlledOpen ?? setInternalOpen;
 
   const { toast } = useToast();
 
@@ -52,8 +61,20 @@ export function AddTransactionDialog() {
     },
   });
 
-  const handleAiCategorize = () => {
-    const description = form.getValues('description');
+  React.useEffect(() => {
+    if (initialData) {
+      if (initialData.description) form.setValue('description', initialData.description);
+      if (initialData.amount) form.setValue('amount', initialData.amount);
+      if (initialData.date) form.setValue('date', new Date(initialData.date));
+      if (initialData.type) form.setValue('type', initialData.type);
+    }
+     if (initialData?.description) {
+        handleAiCategorize(initialData.description);
+    }
+  }, [initialData, form, open]);
+
+
+  const handleAiCategorize = (description: string) => {
     if (!description) {
       form.setError('description', {
         type: 'manual',
@@ -102,12 +123,14 @@ export function AddTransactionDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-1">
-          <Plus className="h-4 w-4" />
-          Adicionar Transação
-        </Button>
-      </DialogTrigger>
+      {!controlledOpen && (
+        <DialogTrigger asChild>
+            <Button size="sm" className="gap-1">
+            <Plus className="h-4 w-4" />
+            Adicionar Transação
+            </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Adicionar Nova Transação</DialogTitle>
@@ -233,7 +256,7 @@ export function AddTransactionDialog() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button variant="outline" size="icon" type="button" onClick={handleAiCategorize} disabled={isSuggesting}>
+                              <Button variant="outline" size="icon" type="button" onClick={() => handleAiCategorize(form.getValues('description'))} disabled={isSuggesting}>
                                 {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                               </Button>
                             </TooltipTrigger>

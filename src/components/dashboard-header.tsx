@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
+import { QrScannerDialog } from './qr-scanner-dialog';
 
 export default function DashboardHeader() {
   return (
@@ -58,7 +59,10 @@ export default function DashboardHeader() {
 
       <div className="flex w-full items-center gap-4">
         <h1 className="text-xl font-semibold sm:text-2xl flex-1">Painel</h1>
-        <AddTransactionDialog />
+        <div className="flex items-center gap-2">
+          <QrScannerDialog />
+          <AddTransactionDialog />
+        </div>
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
