@@ -58,18 +58,25 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
       amount: 0,
       date: new Date(),
       type: 'expense',
+      creditCard: '',
     },
   });
 
+  const watchedCategory = form.watch('category');
+
   React.useEffect(() => {
-    if (initialData) {
-      if (initialData.description) form.setValue('description', initialData.description);
-      if (initialData.amount) form.setValue('amount', initialData.amount);
-      if (initialData.date) form.setValue('date', new Date(initialData.date));
-      if (initialData.type) form.setValue('type', initialData.type);
-    }
-     if (initialData?.description) {
-        handleAiCategorize(initialData.description);
+    if (open) {
+      form.reset({
+        description: initialData?.description || '',
+        amount: initialData?.amount || 0,
+        date: initialData?.date ? new Date(initialData.date) : new Date(),
+        type: initialData?.type || 'expense',
+        category: initialData?.category,
+        creditCard: initialData?.creditCard || '',
+      });
+      if (initialData?.description && !initialData.category) {
+          handleAiCategorize(initialData.description);
+      }
     }
   }, [initialData, form, open]);
 
@@ -105,10 +112,26 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
     startSubmittingTransition(async () => {
         const result = await addTransaction(values);
         if (result.success) {
-            toast({
-                title: 'Transação Adicionada',
-                description: `"${values.description}" adicionado com sucesso.`
-            });
+            if (result.notification?.type === 'income') {
+                 toast({
+                    title: '🎉 Receita Adicionada!',
+                    description: "Ótimo trabalho! Continue investindo no seu futuro."
+                });
+            } else if (result.notification?.type === 'expense') {
+                if (result.notification.isExcessive) {
+                     toast({
+                        variant: 'destructive',
+                        title: '🚨 Cuidado: Gasto Elevado!',
+                        description: `Você adicionou uma despesa de valor alto. Monitore seus gastos.`
+                    });
+                } else {
+                     toast({
+                        title: '💸 Despesa Adicionada',
+                        description: `"${values.description}" adicionado. Lembre-se de manter o controle.`
+                    });
+                }
+            }
+            
             setOpen(false);
             form.reset();
         } else {
@@ -182,57 +205,58 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="0,00" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField
                 control={form.control}
-                name="date"
+                name="amount"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Data da Transação</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                          initialFocus
-                          locale={ptBR}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                        <Input type="number" step="0.01" placeholder="0,00" {...field} onChange={e => field.onChange(parseFloat(e.target.value))}/>
+                    </FormControl>
                     <FormMessage />
-                  </FormItem>
+                    </FormItem>
                 )}
+                />
+                <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col pt-2">
+                        <FormLabel>Data da Transação</FormLabel>
+                        <Popover>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                            <Button
+                                variant={'outline'}
+                                className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                                )}
+                            >
+                                {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                            initialFocus
+                            locale={ptBR}
+                            />
+                        </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                    )}
               />
-              <FormField
+            </div>
+             <FormField
                 control={form.control}
                 name="category"
                 render={({ field }) => (
@@ -270,7 +294,21 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
                   </FormItem>
                 )}
               />
-            </div>
+            {watchedCategory === 'Cartão de Crédito' && (
+                <FormField
+                control={form.control}
+                name="creditCard"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Nome do Cartão de Crédito</FormLabel>
+                    <FormControl>
+                        <Input placeholder="ex: Nubank, Inter, etc." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>

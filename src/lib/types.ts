@@ -4,6 +4,7 @@ export const transactionCategories = [
   'Alimentação',
   'Assinaturas',
   'Bônus',
+  'Cartão de Crédito',
   'Comissão',
   'Compras',
   'Contas',
@@ -33,7 +34,17 @@ export const TransactionFormSchema = z.object({
   category: z.enum(transactionCategories, {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
   }),
+  creditCard: z.string().optional(),
+}).refine(data => {
+    if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
+        return false;
+    }
+    return true;
+}, {
+    message: "O nome do cartão é obrigatório para esta categoria.",
+    path: ["creditCard"],
 });
+
 
 export type Transaction = {
   id: string;
@@ -42,4 +53,5 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   category: TransactionCategory;
+  creditCard?: string;
 };

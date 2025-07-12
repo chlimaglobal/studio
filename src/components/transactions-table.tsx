@@ -61,6 +61,9 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
             <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
               <TableCell>
                 <div className="font-medium">{transaction.description}</div>
+                {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
+                    <div className="text-xs text-muted-foreground">{transaction.creditCard}</div>
+                )}
               </TableCell>
               <TableCell className="hidden sm:table-cell">
                 <Badge variant="outline">{transaction.category}</Badge>
@@ -111,6 +114,12 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                     <Badge variant="outline">{selectedTransaction.category}</Badge>
                 </div>
               </div>
+              {selectedTransaction.category === 'Cartão de Crédito' && selectedTransaction.creditCard && (
+                <div className="grid grid-cols-2 items-center gap-4">
+                    <p className="text-sm text-muted-foreground">Cartão</p>
+                    <p className="text-right font-medium">{selectedTransaction.creditCard}</p>
+                </div>
+              )}
               <div className="grid grid-cols-2 items-center gap-4">
                 <p className="text-sm text-muted-foreground">Data</p>
                 <p className="text-right font-medium">{format(selectedTransaction.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
@@ -122,4 +131,3 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
     </>
   );
 }
-
