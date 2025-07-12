@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -213,7 +214,17 @@ export function AddTransactionDialog({ open: controlledOpen, onOpenChange: setCo
                     <FormItem>
                     <FormLabel>Valor (R$)</FormLabel>
                     <FormControl>
-                        <Input type="number" step="0.01" placeholder="0,00" {...field} onChange={e => field.onChange(parseFloat(e.target.value))}/>
+                        <Input 
+                            type="number" 
+                            step="0.01" 
+                            placeholder="0,00" 
+                            {...field} 
+                            value={field.value === 0 ? '' : field.value}
+                            onChange={e => {
+                                const value = parseFloat(e.target.value);
+                                field.onChange(isNaN(value) ? '' : value);
+                            }}
+                        />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
