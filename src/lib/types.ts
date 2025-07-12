@@ -2,13 +2,21 @@ import { z } from "zod";
 
 export const transactionCategories = [
   'Alimentação',
+  'Assinaturas',
   'Compras',
-  'Entretenimento',
   'Contas',
-  'Transporte',
-  'Salário',
+  'Entretenimento',
+  'Gasolina',
+  'Internet',
   'Investimentos',
+  'Luz',
   'Outros',
+  'Restaurante',
+  'Salário',
+  'Supermercado',
+  'Telefone',
+  'Transporte',
+  'Água',
 ] as const;
 
 export type TransactionCategory = (typeof transactionCategories)[number];

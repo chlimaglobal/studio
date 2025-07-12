@@ -19,9 +19,9 @@ const mockTransactions: Transaction[] = [
       id: 'txn_2',
       date: new Date('2024-07-16'),
       description: 'Compras de supermercado no Pão de Açúcar',
-      amount: 150.75,
+      amount: 350.75,
       type: 'expense',
-      category: 'Alimentação',
+      category: 'Supermercado',
     },
     {
       id: 'txn_3',
@@ -34,26 +34,26 @@ const mockTransactions: Transaction[] = [
     {
       id: 'txn_4',
       date: new Date('2024-07-18'),
-      description: 'Tênis novo da Nike',
+      description: 'Jantar no restaurante italiano',
       amount: 120,
       type: 'expense',
-      category: 'Compras',
+      category: 'Restaurante',
     },
     {
       id: 'txn_5',
       date: new Date('2024-07-20'),
-      description: 'Ingressos para o cinema',
-      amount: 45,
+      description: 'Mensalidade Netflix',
+      amount: 45.9,
       type: 'expense',
-      category: 'Entretenimento',
+      category: 'Assinaturas',
     },
     {
       id: 'txn_6',
       date: new Date('2024-07-22'),
       description: 'Gasolina para o carro',
-      amount: 55.2,
+      amount: 155.2,
       type: 'expense',
-      category: 'Transporte',
+      category: 'Gasolina',
     },
       {
       id: 'txn_7',
@@ -75,9 +75,25 @@ const mockTransactions: Transaction[] = [
       id: 'txn_9',
       date: new Date('2024-06-25'),
       description: 'Conta de Internet',
-      amount: 80,
+      amount: 99.9,
       type: 'expense',
-      category: 'Contas',
+      category: 'Internet',
+    },
+    {
+      id: 'txn_10',
+      date: new Date('2024-07-01'),
+      description: 'Conta de Luz',
+      amount: 150.0,
+      type: 'expense',
+      category: 'Luz',
+    },
+    {
+      id: 'txn_11',
+      date: new Date('2024-07-05'),
+      description: 'Conta de Água',
+      amount: 80.5,
+      type: 'expense',
+      category: 'Água',
     },
   ];
 
@@ -89,7 +105,9 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
 
   try {
     const result = await categorizeTransaction({ description });
+    // @ts-ignore
     if (result.category && transactionCategories.includes(result.category)) {
+      // @ts-ignore
       return { category: result.category, error: null };
     }
     return { category: null, error: 'Não foi possível determinar uma categoria válida.' };

@@ -1,4 +1,4 @@
-// use server'
+'use server';
 
 /**
  * @fileOverview An AI agent to categorize financial transactions based on their descriptions.
@@ -38,12 +38,13 @@ const prompt = ai.definePrompt({
   - {{this}}
   {{/each}}
 
-  Dada a seguinte descrição da transação, determine a categoria mais apropriada. Você DEVE escolher uma das categorias listadas acima.
+  Dada a seguinte descrição da transação, determine a categoria mais apropriada. Você DEVE escolher uma das categorias listadas acima. Se a descrição for "Netflix" ou "Spotify", a categoria deve ser "Assinaturas". Se for relacionado a comida em casa, "Supermercado". Se for comida fora, "Restaurante". Se for relacionado a um veículo, "Gasolina" ou "Transporte". Contas de casa como internet, luz, água, devem ser categorizadas como tal.
 
   Descrição: {{{description}}}
   Categoria:`,
   templateOptions: {
-    categories: transactionCategories,
+    // @ts-ignore
+    categories: transactionCategories.join(', '),
   },
 });
 
