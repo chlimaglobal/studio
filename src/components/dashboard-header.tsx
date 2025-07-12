@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings } from 'lucide-react';
+import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Plus } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
