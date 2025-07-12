@@ -1,6 +1,6 @@
 import MainSidebar from '@/components/main-sidebar';
 import DashboardHeader from '@/components/dashboard-header';
-import BottomActionBar from '@/components/bottom-action-bar';
+import FloatingActionButton from '@/components/floating-action-button';
 
 export default function DashboardLayout({
   children,
@@ -13,7 +13,7 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col sm:pl-14">
         <DashboardHeader />
         <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">{children}</main>
-        <BottomActionBar />
+        <FloatingActionButton />
       </div>
     </div>
   );
