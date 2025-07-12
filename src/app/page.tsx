@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Wallet } from 'lucide-react';
+import { ShieldAlert, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -48,6 +49,13 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <Alert variant="destructive" className="mb-4 max-w-sm">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Ambiente de Demonstração</AlertTitle>
+        <AlertDescription>
+          Esta é uma aplicação de protótipo. Não insira informações pessoais ou financeiras reais.
+        </AlertDescription>
+      </Alert>
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
