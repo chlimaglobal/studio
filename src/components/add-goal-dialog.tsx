@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { icons } from 'lucide-react';
+import { CalendarIcon, icons } from 'lucide-react';
 import React from 'react';
 import { AddGoalFormSchema, iconNames } from '@/lib/goal-types';
 import { useToast } from '@/hooks/use-toast';
@@ -31,6 +31,11 @@ import { z } from 'zod';
 import { ScrollArea } from './ui/scroll-area';
 import Icon from './icon';
 import { addStoredGoal } from '@/lib/storage';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 type AddGoalDialogProps = {
   children: React.ReactNode;
@@ -46,6 +51,7 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
       name: '',
       targetAmount: 0,
       currentAmount: 0,
+      deadline: undefined,
     },
   });
 
@@ -170,6 +176,42 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+               <FormField
+                    control={form.control}
+                    name="deadline"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Prazo</FormLabel>
+                        <Popover>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                            <Button
+                                variant={'outline'}
+                                className={cn(
+                                'w-full pl-3 text-left font-normal',
+                                !field.value && 'text-muted-foreground'
+                                )}
+                            >
+                                {field.value ? format(new Date(field.value), 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                            mode="single"
+                            selected={field.value ? new Date(field.value) : undefined}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            locale={ptBR}
+                            />
+                        </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                    )}
               />
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>

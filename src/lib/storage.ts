@@ -3,6 +3,7 @@ import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
+import { addDays, subMonths } from 'date-fns';
 
 // Utility to safely parse JSON from localStorage
 function safeJSONParse<T>(key: string, defaultValue: T): T {
@@ -68,12 +69,16 @@ export function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
 
 const GOALS_KEY = 'financeflow_goals';
 
+const defaultGoals: Goal[] = [
+    { id: 'goal_1', name: 'Viagem para o Japão', icon: 'Plane', targetAmount: 20000, currentAmount: 7500, deadline: addDays(new Date(), 180) },
+    { id: 'goal_2', name: 'Carro Novo', icon: 'Car', targetAmount: 80000, currentAmount: 35000, deadline: addDays(new Date(), 365) },
+    { id: 'goal_3', name: 'Reserva de Emergência', icon: 'ShieldCheck', targetAmount: 15000, currentAmount: 15000, deadline: subMonths(new Date(), 1) },
+].map(g => ({...g, deadline: g.deadline.toISOString() as any as Date}));
+
+
 export function getStoredGoals(): Goal[] {
-    return safeJSONParse<Goal[]>(GOALS_KEY, [
-        { id: 'goal_1', name: 'Viagem para o Japão', icon: 'Plane', targetAmount: 20000, currentAmount: 7500 },
-        { id: 'goal_2', name: 'Carro Novo', icon: 'Car', targetAmount: 80000, currentAmount: 35000 },
-        { id: 'goal_3', name: 'Reserva de Emergência', icon: 'ShieldCheck', targetAmount: 15000, currentAmount: 15000 },
-    ]);
+    const goals = safeJSONParse<any[]>(GOALS_KEY, defaultGoals);
+    return goals.map(goal => ({...goal, deadline: new Date(goal.deadline)}));
 }
 
 export function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
@@ -82,7 +87,16 @@ export function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
     id: `goal_${Date.now()}`,
     ...data,
   };
-  goals.push(newGoal);
-  localStorage.setItem(GOALS_KEY, JSON.stringify(goals));
+  
+  // Convert date to ISO string for storage
+  const storableGoal = {
+    ...newGoal,
+    deadline: newGoal.deadline.toISOString(),
+  };
+
+  const storableGoals = goals.map(g => ({...g, deadline: new Date(g.deadline).toISOString()}));
+  storableGoals.push(storableGoal);
+
+  localStorage.setItem(GOALS_KEY, JSON.stringify(storableGoals));
   window.dispatchEvent(new Event('storage'));
 }

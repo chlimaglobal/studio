@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, Target } from 'lucide-react';
+import { Calendar, PlusCircle, Target } from 'lucide-react';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/icon';
@@ -11,6 +11,7 @@ import { icons } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Goal } from '@/lib/goal-types';
 import { getStoredGoals } from '@/lib/storage';
+import { format, differenceInDays } from 'date-fns';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -41,6 +42,14 @@ export default function GoalsPage() {
     return (current / target) * 100;
   };
 
+  const getDaysRemaining = (deadline: Date | string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const deadlineDate = new Date(deadline);
+    deadlineDate.setHours(0,0,0,0);
+    return differenceInDays(deadlineDate, today);
+  };
+
   if (!isMounted) {
     return null; // Or a loading skeleton
   }
@@ -67,25 +76,35 @@ export default function GoalsPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {goals.map((goal) => {
             const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
+            const daysRemaining = getDaysRemaining(goal.deadline);
             return (
                 <Card key={goal.id} className="flex flex-col">
                 <CardHeader>
-                    <div className="flex items-center gap-3">
-                        <Icon name={goal.icon as keyof typeof icons} className="h-8 w-8 text-primary" />
-                        <div>
-                            <CardTitle>{goal.name}</CardTitle>
-                            <CardDescription>
-                                {formatCurrency(goal.currentAmount)} de {formatCurrency(goal.targetAmount)}
-                            </CardDescription>
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                            <Icon name={goal.icon as keyof typeof icons} className="h-8 w-8 text-primary" />
+                            <div>
+                                <CardTitle>{goal.name}</CardTitle>
+                                <CardDescription>
+                                    {formatCurrency(goal.targetAmount)}
+                                </CardDescription>
+                            </div>
+                        </div>
+                        <div className="text-right text-sm text-muted-foreground flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                                {daysRemaining >= 0 ? `${daysRemaining} dias` : 'Prazo finalizado'}
+                            </span>
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-grow">
+                <CardContent className="flex-grow space-y-2">
                      <Progress value={progress} aria-label={`${progress.toFixed(0)}% concluído`}/>
+                     <div className="text-sm text-muted-foreground flex justify-between">
+                        <span>{formatCurrency(goal.currentAmount)}</span>
+                        <span className="font-medium">{progress.toFixed(0)}%</span>
+                     </div>
                 </CardContent>
-                <CardFooter className="text-sm text-muted-foreground">
-                    <p>{progress.toFixed(0)}% concluído</p>
-                </CardFooter>
                 </Card>
             )
         })}
