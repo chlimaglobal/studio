@@ -2,46 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 231 60% 94%;
+    --background: 228 56% 96%; /* Light Grayish-Blue */
     --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
+    --card: 228 50% 99%;
     --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
+    --popover: 228 50% 99%;
     --popover-foreground: 222 47% 11%;
-    --primary: 231 48% 48%;
+    --primary: 231 48% 48%; /* Deep Indigo */
     --primary-foreground: 0 0% 98%;
-    --secondary: 230 50% 90%;
+    --secondary: 228 45% 90%;
     --secondary-foreground: 231 48% 30%;
-    --muted: 230 50% 90%;
+    --muted: 228 45% 90%;
     --muted-foreground: 224 41% 45%;
-    --accent: 174 100% 29%;
+    --accent: 174 100% 29%; /* Teal */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 231 35% 85%;
-    --input: 231 35% 88%;
-    --ring: 231 48% 48%;
+    --border: 228 35% 88%;
+    --input: 228 35% 90%;
+    --ring: 231 48% 48%; /* Deep Indigo */
+    --radius: 0.5rem;
     --chart-1: 231 48% 48%;
     --chart-2: 174 100% 29%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 231 48% 48%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 230 50% 90%;
-    --sidebar-accent-foreground: 231 48% 30%;
-    --sidebar-border: 231 35% 85%;
-    --sidebar-ring: 231 48% 48%;
   }
+
   .dark {
     --background: 230 17% 10%;
     --foreground: 0 0% 98%;
@@ -49,32 +35,21 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 230 17% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 231 48% 58%;
+    --primary: 231 48% 58%; /* Lighter Indigo for dark mode */
     --primary-foreground: 0 0% 98%;
     --secondary: 230 17% 20%;
     --secondary-foreground: 0 0% 98%;
     --muted: 230 17% 20%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 174 80% 49%;
+    --accent: 174 80% 49%; /* Lighter Teal for dark mode */
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 230 17% 25%;
     --input: 230 17% 25%;
-    --ring: 231 48% 58%;
+    --ring: 231 48% 58%; /* Lighter Indigo for dark mode */
     --chart-1: 231 48% 58%;
     --chart-2: 174 80% 49%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 230 17% 10%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 231 48% 58%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 230 17% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 230 17% 25%;
-    --sidebar-ring: 231 48% 58%;
   }
 }
 
@@ -84,5 +59,6 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
