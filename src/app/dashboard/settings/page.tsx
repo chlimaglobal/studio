@@ -71,19 +71,29 @@ export default function SettingsPage() {
   };
   
   const playPreviewSound = (soundFile: string) => {
-    if (!soundFile || soundFile === 'none') return;
+    if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
+
     try {
       const audio = new Audio(`/${soundFile}`);
-      audio.play().catch(e => {
-        console.error("Error playing preview audio:", e);
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao Tocar Som',
-          description: 'Não foi possível reproduzir o áudio.',
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Error playing preview audio:", error);
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao Tocar Som',
+            description: 'Não foi possível reproduzir o áudio.',
+          });
         });
-      });
+      }
     } catch (e) {
-      console.error("Failed to play preview sound:", e);
+      console.error("Failed to create or play audio object:", e);
+      toast({
+        variant: 'destructive',
+        title: 'Erro de Áudio',
+        description: 'Não foi possível carregar o arquivo de áudio.',
+      });
     }
   };
 
@@ -230,7 +240,7 @@ export default function SettingsPage() {
                         ))}
                         </SelectContent>
                     </Select>
-                    <Button variant="ghost" size="icon" onClick={() => playPreviewSound(incomeSound)}>
+                    <Button variant="outline" size="icon" onClick={() => playPreviewSound(incomeSound)}>
                       <Play className="h-4 w-4" />
                     </Button>
                   </div>
@@ -248,7 +258,7 @@ export default function SettingsPage() {
                         ))}
                         </SelectContent>
                     </Select>
-                     <Button variant="ghost" size="icon" onClick={() => playPreviewSound(expenseSound)}>
+                     <Button variant="outline" size="icon" onClick={() => playPreviewSound(expenseSound)}>
                       <Play className="h-4 w-4" />
                     </Button>
                   </div>
