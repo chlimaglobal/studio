@@ -83,7 +83,7 @@ export default function SettingsPage() {
           toast({
             variant: 'destructive',
             title: 'Erro ao Tocar Som',
-            description: 'Não foi possível reproduzir o áudio.',
+            description: 'Não foi possível reproduzir o áudio. Verifique as permissões do navegador.',
           });
         });
       }
@@ -92,7 +92,7 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Erro de Áudio',
-        description: 'Não foi possível carregar o arquivo de áudio.',
+        description: 'O formato de áudio pode não ser suportado ou o arquivo está ausente.',
       });
     }
   };
