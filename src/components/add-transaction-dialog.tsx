@@ -59,14 +59,19 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     },
   });
 
-  const playNotificationSound = (soundFile: string | null) => {
-    if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
+  const playNotificationSound = (type: 'income' | 'expense') => {
+    if (typeof window === 'undefined') return;
 
-    try {
-      const audio = new Audio(`/${soundFile}`);
-      audio.play().catch(e => console.error("Error playing audio:", e));
-    } catch (e) {
-      console.error("Failed to play notification sound:", e);
+    const soundKey = type === 'income' ? 'incomeSound' : 'expenseSound';
+    const soundFile = localStorage.getItem(soundKey);
+    
+    if (soundFile && soundFile !== 'none') {
+        try {
+            const audio = new Audio(`/${soundFile}`);
+            audio.play().catch(e => console.error("Error playing sound:", e));
+        } catch (e) {
+            console.error("Failed to play notification sound:", e);
+        }
     }
   };
 
@@ -133,17 +138,14 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
   function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
         addStoredTransaction(values);
+        playNotificationSound(values.type);
 
         if (values.type === 'income') {
-             const sound = localStorage.getItem('incomeSound');
-             playNotificationSound(sound);
              toast({
                 title: '🎉 Receita Adicionada!',
                 description: "Ótimo trabalho! Continue investindo no seu futuro."
             });
         } else if (values.type === 'expense') {
-            const sound = localStorage.getItem('expenseSound');
-            playNotificationSound(sound);
             if (isUnusualSpending(values.amount, values.category)) {
                  toast({
                     variant: 'destructive',

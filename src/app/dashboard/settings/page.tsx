@@ -73,27 +73,19 @@ export default function SettingsPage() {
   const playPreviewSound = (soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
 
-    try {
-      const audio = new Audio(`/${soundFile}`);
-      const playPromise = audio.play();
+    const audio = new Audio(`/${soundFile}`);
+    const playPromise = audio.play();
 
-      if (playPromise !== undefined) {
+    if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.error("Error playing preview audio:", error);
-          toast({
-            variant: 'destructive',
-            title: 'Erro ao Tocar Som',
-            description: 'Não foi possível reproduzir o áudio. Verifique as permissões do navegador.',
-          });
+            console.error("Audio playback error:", error);
+            // This toast is for debugging and for the user to know about browser settings.
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao Tocar Som',
+                description: 'Não foi possível reproduzir o áudio. Verifique as permissões de autoplay do seu navegador para este site.',
+            });
         });
-      }
-    } catch (e) {
-      console.error("Failed to create or play audio object:", e);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Áudio',
-        description: 'O formato de áudio pode não ser suportado ou o arquivo está ausente.',
-      });
     }
   };
 
