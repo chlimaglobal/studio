@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,14 +23,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, icons } from 'lucide-react';
+import { icons } from 'lucide-react';
 import React from 'react';
-import { addGoal } from '@/app/dashboard/goals/actions';
 import { AddGoalFormSchema, iconNames } from '@/lib/goal-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { ScrollArea } from './ui/scroll-area';
 import Icon from './icon';
+import { addStoredGoal } from '@/lib/storage';
 
 type AddGoalDialogProps = {
   children: React.ReactNode;
@@ -37,8 +38,6 @@ type AddGoalDialogProps = {
 
 export function AddGoalDialog({ children }: AddGoalDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [isSubmitting, startSubmittingTransition] = React.useTransition();
-  
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof AddGoalFormSchema>>({
@@ -51,23 +50,22 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
   });
 
   function onSubmit(values: z.infer<typeof AddGoalFormSchema>) {
-    startSubmittingTransition(async () => {
-        const result = await addGoal(values);
-        if (result.success) {
-            toast({
-                title: 'Sucesso!',
-                description: result.message
-            });
-            setOpen(false);
-            form.reset();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Adicionar Meta',
-                description: result.message
-            });
-        }
-    });
+    try {
+      addStoredGoal(values);
+      toast({
+          title: 'Sucesso!',
+          description: "Meta adicionada com sucesso!",
+      });
+      setOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error("Failed to add goal:", error);
+      toast({
+          variant: 'destructive',
+          title: 'Erro ao Adicionar Meta',
+          description: 'Ocorreu um erro. Tente novamente.',
+      });
+    }
   }
 
   return (
@@ -175,8 +173,7 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
               />
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit">
                 Salvar Meta
               </Button>
             </DialogFooter>

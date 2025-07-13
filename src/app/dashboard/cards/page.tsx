@@ -1,15 +1,36 @@
 
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, CreditCard, Calendar, AlertCircle } from 'lucide-react';
-import { getCards } from './actions';
 import type { Card as CardType } from '@/lib/card-types';
 import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
+import { useEffect, useState } from 'react';
+import { getStoredCards } from '@/lib/storage';
 
 
-export default async function CardsPage() {
-  const cards = await getCards();
+export default function CardsPage() {
+  const [cards, setCards] = useState<CardType[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
+
+  const fetchCards = () => {
+    const storedCards = getStoredCards();
+    setCards(storedCards);
+  };
+
+  useEffect(() => {
+    setIsMounted(true);
+    fetchCards();
+
+    window.addEventListener('storage', fetchCards);
+    return () => window.removeEventListener('storage', fetchCards);
+  }, []);
+
+  if (!isMounted) {
+      return null; // Or a loading skeleton
+  }
 
   return (
     <div className="space-y-6">

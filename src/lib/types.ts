@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const transactionCategories = [
@@ -39,7 +40,7 @@ export const TransactionFormSchema = z.object({
     message: "A descrição deve ter pelo menos 3 caracteres.",
   }),
   amount: z.coerce.number({invalid_type_error: "Por favor, insira um valor válido."}).positive({ message: "O valor deve ser um número positivo." }),
-  date: z.date(),
+  date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories, {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
@@ -58,7 +59,7 @@ export const TransactionFormSchema = z.object({
 
 export type Transaction = {
   id: string;
-  date: Date;
+  date: string; // Store as ISO string for serialization
   description: string;
   amount: number;
   type: 'income' | 'expense';

@@ -71,7 +71,7 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                     <Badge variant="outline">{transaction.category}</Badge>
                   </TableCell>
                   <TableCell className="hidden text-center sm:table-cell">
-                    {format(transaction.date, 'd MMM, yyyy', { locale: ptBR })}
+                    {format(new Date(transaction.date), 'd MMM, yyyy', { locale: ptBR })}
                   </TableCell>
                   <TableCell
                     className={cn(
@@ -132,7 +132,7 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
               )}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">Data</p>
-                <p className="font-medium">{format(selectedTransaction.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                <p className="font-medium">{format(new Date(selectedTransaction.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
               </div>
             </div>
           )}

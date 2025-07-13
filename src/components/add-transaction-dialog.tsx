@@ -32,28 +32,28 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from './ui/calendar';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { getCategorySuggestion, addTransaction } from '@/app/actions';
+import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { addStoredTransaction } from '@/lib/storage';
+import { z } from 'zod';
 
 type AddTransactionDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialData?: Partial<React.ComponentProps<typeof Form>['data-type']>;
+  initialData?: Partial<z.infer<typeof TransactionFormSchema>>;
   children?: React.ReactNode;
 };
 
 export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
-  const [isSubmitting, startSubmittingTransition] = React.useTransition();
-  
   const { toast } = useToast();
 
-  const form = useForm<React.ComponentProps<typeof Form>['data-type']>({
+  const form = useForm<z.infer<typeof TransactionFormSchema>>({
     resolver: zodResolver(TransactionFormSchema),
     defaultValues: {
       description: '',
-      amount: 0,
+      amount: undefined, // Use undefined for placeholder to show
       date: new Date(),
       type: 'expense',
       creditCard: '',
@@ -66,7 +66,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     if (open) {
       form.reset({
         description: initialData?.description || '',
-        amount: initialData?.amount || 0,
+        amount: initialData?.amount || undefined,
         date: initialData?.date ? new Date(initialData.date) : new Date(),
         type: initialData?.type || 'expense',
         category: initialData?.category,
@@ -106,40 +106,41 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     });
   };
 
-  function onSubmit(values: React.ComponentProps<typeof Form>['data-type']) {
-    startSubmittingTransition(async () => {
-        const result = await addTransaction(values);
-        if (result.success) {
-            if (result.notification?.type === 'income') {
-                 toast({
-                    title: '🎉 Receita Adicionada!',
-                    description: "Ótimo trabalho! Continue investindo no seu futuro."
-                });
-            } else if (result.notification?.type === 'expense') {
-                if (result.notification.isExcessive) {
-                     toast({
-                        variant: 'destructive',
-                        title: '🚨 Cuidado: Gasto Elevado!',
-                        description: `Você adicionou uma despesa de valor alto. Monitore seus gastos.`
-                    });
-                } else {
-                     toast({
-                        title: '💸 Despesa Adicionada',
-                        description: `"${values.description}" adicionado. Lembre-se de manter o controle.`
-                    });
-                }
-            }
-            
-            onOpenChange(false);
-            form.reset();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Adicionar Transação',
-                description: result.message
+  function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
+    try {
+        addStoredTransaction(values);
+        const isExcessiveExpense = values.type === 'expense' && values.amount > 1000;
+
+        if (values.type === 'income') {
+             toast({
+                title: '🎉 Receita Adicionada!',
+                description: "Ótimo trabalho! Continue investindo no seu futuro."
             });
+        } else if (values.type === 'expense') {
+            if (isExcessiveExpense) {
+                 toast({
+                    variant: 'destructive',
+                    title: '🚨 Cuidado: Gasto Elevado!',
+                    description: `Você adicionou uma despesa de valor alto. Monitore seus gastos.`
+                });
+            } else {
+                 toast({
+                    title: '💸 Despesa Adicionada',
+                    description: `"${values.description}" adicionado. Lembre-se de manter o controle.`
+                });
+            }
         }
-    });
+        
+        onOpenChange(false);
+        form.reset();
+    } catch (error) {
+        console.error("Failed to add transaction:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Adicionar Transação',
+            description: "Ocorreu um erro. Tente novamente."
+        });
+    }
   }
 
   return (
@@ -207,13 +208,8 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                         <Input 
                             type="number" 
                             step="0.01" 
-                            placeholder="0,00" 
-                            {...field} 
-                            value={field.value === 0 ? '' : field.value}
-                            onChange={e => {
-                                const value = parseFloat(e.target.value);
-                                field.onChange(isNaN(value) ? '' : value);
-                            }}
+                            placeholder="0.00" 
+                            {...field}
                         />
                     </FormControl>
                     <FormMessage />
@@ -236,7 +232,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                                 !field.value && 'text-muted-foreground'
                                 )}
                             >
-                                {field.value ? format(field.value, 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
+                                {field.value ? format(new Date(field.value), 'PPP', { locale: ptBR }) : <span>Escolha uma data</span>}
                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                             </FormControl>
@@ -244,7 +240,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                         <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                             mode="single"
-                            selected={field.value}
+                            selected={field.value ? new Date(field.value) : undefined}
                             onSelect={field.onChange}
                             disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
                             initialFocus
@@ -312,8 +308,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit">
                 Salvar Transação
               </Button>
             </DialogFooter>

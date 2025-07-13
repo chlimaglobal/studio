@@ -14,10 +14,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2, AlertTriangle, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { TransactionFormSchema } from '@/lib/types';
-import { z } from 'zod';
 import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import type { TransactionFormSchema } from '@/lib/types';
+import { z } from 'zod';
 
 type AudioTransactionDialogProps = {
   open: boolean;
@@ -46,7 +46,9 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         toast({ variant: 'destructive', title: 'Não foi possível entender', description: `${result.error} Por favor, tente novamente.` });
         setError(result.error);
         setStatusText('Tente novamente. Fale de forma clara, por exemplo: "gastei 50 reais no supermercado".');
+        setIsProcessing(false); // Permite nova tentativa
       } else {
+        // @ts-ignore
         onTransactionExtracted(result);
         onOpenChange(false); // Fecha o diálogo de áudio
       }
@@ -54,8 +56,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
       const errorMessage = 'Ocorreu um erro ao falar com a IA. Tente novamente.';
       toast({ variant: 'destructive', title: 'Erro de Processamento', description: errorMessage });
       setError(errorMessage);
-    } finally {
-      setIsProcessing(false);
+      setIsProcessing(false); // Permite nova tentativa
     }
   }, [toast, onOpenChange, onTransactionExtracted]);
 
@@ -77,7 +78,6 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   const handleToggleRecording = () => {
     if (isRecording) {
       recognitionRef.current?.stop();
-      setIsRecording(false);
       return;
     }
     
@@ -87,49 +87,44 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     }
     
     setError(null);
+    setIsProcessing(false); // Reset processing state on new attempt
 
-    try {
-      const SpeechRecognition = window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.lang = 'pt-BR';
-      recognition.interimResults = false;
-      
-      recognition.onstart = () => {
-          setIsRecording(true);
-          setStatusText('Ouvindo...');
-          setError(null);
-      };
+    const SpeechRecognition = window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    const recognition = recognitionRef.current;
+    
+    recognition.continuous = false;
+    recognition.lang = 'pt-BR';
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+        setIsRecording(true);
+        setStatusText('Ouvindo...');
+        setError(null);
+    };
 
-      recognition.onend = () => {
-          setIsRecording(false);
-          // Não redefina o texto aqui para manter mensagens de erro
-      };
+    recognition.onend = () => {
+        setIsRecording(false);
+        // Não redefina o texto aqui para manter mensagens de erro
+    };
 
-      recognition.onerror = (event) => {
-          console.error('Speech recognition error', event.error);
-          if (event.error !== 'no-speech' && event.error !== 'aborted') {
-            setStatusText('Ocorreu um erro. Tente novamente.');
-            setError(`Erro: ${event.error}. Verifique a permissão do microfone.`);
-          }
-          setIsRecording(false);
-      };
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          setStatusText('Ocorreu um erro. Tente novamente.');
+          setError(`Erro: ${event.error}. Verifique a permissão do microfone.`);
+        }
+        setIsRecording(false);
+    };
 
-      recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          if (transcript) {
-            processTranscript(transcript);
-          }
-      };
-      
-      recognition.start();
-      recognitionRef.current = recognition;
-
-    } catch(e) {
-      console.error("Error starting recognition", e);
-      setError('Não foi possível iniciar o reconhecimento de voz.');
-      setIsRecording(false);
-    }
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        if (transcript) {
+          processTranscript(transcript);
+        }
+    };
+    
+    recognition.start();
   };
 
   const handleOpenChange = (isOpen: boolean) => {

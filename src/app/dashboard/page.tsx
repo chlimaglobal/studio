@@ -1,7 +1,6 @@
 
 'use client';
 
-import { getTransactions } from '@/app/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scale, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
@@ -12,6 +11,7 @@ import { ArrowRightLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Transaction } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
+import { getStoredTransactions } from '@/lib/storage';
 
 interface FinancialSummary {
   totalIncome: number;
@@ -31,15 +31,18 @@ export default function DashboardPage() {
   const [dailyBalance, setDailyBalance] = useState<DailyBalance>({ dailyBudget: null, daysUntilPayday: null, paydayProgress: null });
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = async () => {
-    const fetchedTransactions = await getTransactions();
-    setTransactions(fetchedTransactions);
+  const fetchData = () => {
+    const fetchedTransactions = getStoredTransactions();
 
-    const totalIncome = fetchedTransactions
+    // Ensure dates are Date objects
+    const transactionsWithDates = fetchedTransactions.map(t => ({...t, date: new Date(t.date)}));
+    setTransactions(transactionsWithDates);
+
+    const totalIncome = transactionsWithDates
       .filter((t) => t.type === 'income')
       .reduce((acc, t) => acc + t.amount, 0);
 
-    const totalExpenses = fetchedTransactions
+    const totalExpenses = transactionsWithDates
       .filter((t) => t.type === 'expense')
       .reduce((acc, t) => acc + t.amount, 0);
     
@@ -54,7 +57,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Listener para atualizar os dados quando as configurações mudarem
+    // Listener para atualizar os dados quando as configurações ou transações mudarem
     window.addEventListener('storage', fetchData);
     return () => window.removeEventListener('storage', fetchData);
 

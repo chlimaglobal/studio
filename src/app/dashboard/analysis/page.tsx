@@ -1,11 +1,62 @@
-import { getTransactions } from '@/app/actions';
+
+'use client';
+
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2 } from 'lucide-react';
+import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+import { useEffect, useState } from 'react';
+import { getStoredTransactions } from '@/lib/storage';
 
-export default async function AnalysisPage() {
-  const transactions = await getTransactions();
-  const analysis = await generateFinancialAnalysis({ transactions });
+export default function AnalysisPage() {
+  const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const runAnalysis = async () => {
+      setIsLoading(true);
+      const transactions = getStoredTransactions();
+      if (transactions.length > 0) {
+        const result = await generateFinancialAnalysis({ transactions });
+        setAnalysis(result);
+      } else {
+        // Set a default state if there are no transactions
+        setAnalysis({
+          diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
+          isSurvivalMode: false,
+          suggestions: []
+        });
+      }
+      setIsLoading(false);
+    };
+
+    runAnalysis();
+    
+    // Optional: re-run analysis if transactions change
+    const handleStorageChange = () => runAnalysis();
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+
+  }, []);
+
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-full">
+            <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Gerando análise com IA...</span>
+            </div>
+        </div>
+    );
+  }
+
+  if (!analysis) {
+     return (
+        <div className="text-center text-muted-foreground">
+            <p>Não foi possível gerar a análise.</p>
+        </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

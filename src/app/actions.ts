@@ -1,15 +1,11 @@
+
 'use server';
 
 import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
-import { transactionCategories, Transaction, TransactionCategory, TransactionFormSchema } from "@/lib/types";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
+import { TransactionCategory, transactionCategories } from "@/lib/types";
 
-// Simulating a database in memory
-const mockTransactions: Transaction[] = [];
-
-export async function extractTransactionInfoFromText(text: string): Promise<Partial<z.infer<typeof TransactionFormSchema>> | { error: string }> {
+export async function extractTransactionInfoFromText(text: string) {
   if (!text) {
     return { error: 'O texto não pode estar vazio.' };
   }
@@ -17,18 +13,14 @@ export async function extractTransactionInfoFromText(text: string): Promise<Part
   try {
     const result = await extractTransactionFromText({ text });
     if (result && result.amount && result.description && result.type) {
-      const transactionData: Partial<z.infer<typeof TransactionFormSchema>> = {
+      const transactionData = {
         description: result.description,
         amount: result.amount,
         type: result.type,
         date: new Date(),
+        category: result.category,
       };
       
-      // Se a IA já sugeriu uma categoria, use-a.
-      if (result.category) {
-        transactionData.category = result.category;
-      }
-
       return transactionData;
     }
     return { error: 'Não foi possível extrair os detalhes da transação.' };
@@ -37,7 +29,6 @@ export async function extractTransactionInfoFromText(text: string): Promise<Part
     return { error: 'Falha ao processar o comando de voz com a IA.' };
   }
 }
-
 
 export async function getCategorySuggestion(description: string): Promise<{ category: TransactionCategory | null, error: string | null }> {
   if (!description) {
@@ -56,37 +47,4 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
     console.error(e);
     return { category: null, error: 'Falha ao obter sugestão da IA.' };
   }
-}
-
-export async function getTransactions(): Promise<Transaction[]> {
-    // In a real app, you'd fetch this from a database.
-    return Promise.resolve(mockTransactions.sort((a, b) => b.date.getTime() - a.date.getTime()));
-}
-
-export async function addTransaction(data: z.infer<typeof TransactionFormSchema>) {
-    try {
-        const newTransaction: Transaction = {
-            id: `txn_${Date.now()}`,
-            ...data
-        };
-        mockTransactions.unshift(newTransaction);
-        revalidatePath('/dashboard'); // This tells Next.js to refresh the data on the dashboard page
-        
-        const isExcessiveExpense = data.type === 'expense' && data.amount > 1000;
-
-        return { 
-            success: true, 
-            message: "Transação adicionada com sucesso!",
-            notification: {
-                type: data.type,
-                isExcessive: isExcessiveExpense
-            }
-        };
-    } catch(error) {
-        console.error("Failed to add transaction:", error);
-        return { 
-            success: false, 
-            message: "Falha ao adicionar transação."
-        };
-    }
 }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,10 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-import { addCard } from '@/app/dashboard/cards/actions';
 import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { addStoredCard } from '@/lib/storage';
 
 type AddCardDialogProps = {
   children: React.ReactNode;
@@ -46,8 +47,6 @@ const brandNames: Record<typeof cardBrands[number], string> = {
 
 export function AddCardDialog({ children }: AddCardDialogProps) {
   const [open, setOpen] = React.useState(false);
-  const [isSubmitting, startSubmittingTransition] = React.useTransition();
-  
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof AddCardFormSchema>>({
@@ -60,23 +59,22 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
   });
 
   function onSubmit(values: z.infer<typeof AddCardFormSchema>) {
-    startSubmittingTransition(async () => {
-        const result = await addCard(values);
-        if (result.success) {
-            toast({
-                title: 'Sucesso!',
-                description: result.message
-            });
-            setOpen(false);
-            form.reset();
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Adicionar Cartão',
-                description: result.message
-            });
-        }
-    });
+    try {
+        addStoredCard(values);
+        toast({
+            title: 'Sucesso!',
+            description: "Cartão adicionado com sucesso!",
+        });
+        setOpen(false);
+        form.reset();
+    } catch (error) {
+        console.error("Failed to add card:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Adicionar Cartão',
+            description: "Ocorreu um erro. Tente novamente."
+        });
+    }
   }
 
   return (
@@ -158,8 +156,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit">
                 Salvar Cartão
               </Button>
             </DialogFooter>
