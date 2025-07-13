@@ -33,7 +33,7 @@ import { Calendar } from './ui/calendar';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { addStoredTransaction, getStoredTransactions } from '@/lib/storage';
 import { z } from 'zod';
 
@@ -44,35 +44,35 @@ type AddTransactionDialogProps = {
   children?: React.ReactNode;
 };
 
+const incomeSounds = ['cash-register.mp3', 'coin.mp3'];
+const expenseSounds = ['swoosh.mp3'];
+
 export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const { toast } = useToast();
   
-  // Use refs to hold Audio instances
   const audioRefs = React.useRef<{ [key: string]: HTMLAudioElement }>({});
 
   const form = useForm<z.infer<typeof TransactionFormSchema>>({
     resolver: zodResolver(TransactionFormSchema),
     defaultValues: {
       description: '',
-      amount: '' as any, // Use empty string to avoid uncontrolled component error
+      amount: '' as any, 
       date: new Date(),
       type: 'expense',
       creditCard: '',
     },
   });
   
-  // Pre-load audio files when component mounts or is used
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
-      const sounds = ['cash-register.mp3', 'coin.mp3', 'swoosh.mp3'];
-      sounds.forEach(sound => {
-        if (!audioRefs.current[sound]) {
-            const audio = new Audio(`/${sound}`);
-            audio.load();
-            audioRefs.current[sound] = audio;
-        }
-      });
+        [...incomeSounds, ...expenseSounds].forEach(sound => {
+            if (!audioRefs.current[sound]) {
+                const audio = new Audio(`/${sound}`);
+                audio.load();
+                audioRefs.current[sound] = audio;
+            }
+        });
     }
   }, []);
 
@@ -142,7 +142,6 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     const total = historicalTransactions.reduce((acc, t) => acc + t.amount, 0);
     const average = total / historicalTransactions.length;
 
-    // Gasto é incomum se for 30% maior que a média e a média for maior que R$50 (para evitar falsos positivos em categorias de baixo valor)
     return newAmount > average * 1.3 && average > 50;
   }
 
@@ -362,5 +361,3 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     </Dialog>
   );
 }
-
-    
