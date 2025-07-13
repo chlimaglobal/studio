@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,6 +70,24 @@ export default function SettingsPage() {
     setPushNotificationsEnabled(enabled);
   };
   
+  const playPreviewSound = (soundFile: string) => {
+    if (!soundFile || soundFile === 'none') return;
+    try {
+      const audio = new Audio(`/${soundFile}`);
+      audio.play().catch(e => {
+        console.error("Error playing preview audio:", e);
+        toast({
+          variant: 'destructive',
+          title: 'Erro ao Tocar Som',
+          description: 'Não foi possível reproduzir o áudio.',
+        });
+      });
+    } catch (e) {
+      console.error("Failed to play preview sound:", e);
+    }
+  };
+
+
   const handleSave = () => {
     localStorage.setItem('fabPosition', fabPosition);
     localStorage.setItem('pushNotificationsEnabled', String(pushNotificationsEnabled));
@@ -201,29 +219,39 @@ export default function SettingsPage() {
              <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="income-sound">Som de Receita</Label>
-                  <Select value={incomeSound} onValueChange={setIncomeSound}>
-                    <SelectTrigger id="income-sound">
-                      <SelectValue placeholder="Selecione um som" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {incomeSounds.map(sound => (
-                        <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select value={incomeSound} onValueChange={setIncomeSound}>
+                        <SelectTrigger id="income-sound">
+                        <SelectValue placeholder="Selecione um som" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {incomeSounds.map(sound => (
+                            <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                    <Button variant="ghost" size="icon" onClick={() => playPreviewSound(incomeSound)}>
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                  <div>
                   <Label htmlFor="expense-sound">Som de Despesa</Label>
-                  <Select value={expenseSound} onValueChange={setExpenseSound}>
-                    <SelectTrigger id="expense-sound">
-                      <SelectValue placeholder="Selecione um som" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {expenseSounds.map(sound => (
-                        <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    <Select value={expenseSound} onValueChange={setExpenseSound}>
+                        <SelectTrigger id="expense-sound">
+                        <SelectValue placeholder="Selecione um som" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {expenseSounds.map(sound => (
+                            <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                     <Button variant="ghost" size="icon" onClick={() => playPreviewSound(expenseSound)}>
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
              </div>
           </div>
