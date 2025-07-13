@@ -8,8 +8,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { Input } from '@/components/ui/input';
 
 type FabPosition = 'left' | 'right';
 
@@ -18,34 +19,45 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   
-  // State for FAB position
   const [fabPosition, setFabPosition] = useState<FabPosition>('right');
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
+  const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [payday, setPayday] = useState('');
+
 
   useEffect(() => {
     setIsMounted(true);
     const storedFabPosition = localStorage.getItem('fabPosition') as FabPosition;
-    if (storedFabPosition) {
-      setFabPosition(storedFabPosition);
-    }
+    if (storedFabPosition) setFabPosition(storedFabPosition);
+    
     const storedPushEnabled = localStorage.getItem('pushNotificationsEnabled') === 'true';
     setPushNotificationsEnabled(storedPushEnabled);
+
+    const storedIncome = localStorage.getItem('monthlyIncome');
+    if (storedIncome) setMonthlyIncome(storedIncome);
+
+    const storedPayday = localStorage.getItem('payday');
+    if (storedPayday) setPayday(storedPayday);
+
   }, []);
 
   const handleFabPositionChange = (value: FabPosition) => {
     setFabPosition(value);
-    localStorage.setItem('fabPosition', value);
-    // This is a bit of a hack to notify other components.
-    // In a real app, you'd use a state management library (Context, Redux, etc.)
-    window.dispatchEvent(new Event('storage'));
   };
 
   const handlePushNotificationsChange = (enabled: boolean) => {
     setPushNotificationsEnabled(enabled);
-    localStorage.setItem('pushNotificationsEnabled', String(enabled));
   };
   
   const handleSave = () => {
+    localStorage.setItem('fabPosition', fabPosition);
+    localStorage.setItem('pushNotificationsEnabled', String(pushNotificationsEnabled));
+    localStorage.setItem('monthlyIncome', monthlyIncome);
+    localStorage.setItem('payday', payday);
+    
+    // Dispara um evento para notificar outros componentes (como o dashboard) das mudanças.
+    window.dispatchEvent(new Event('storage'));
+
     toast({
       title: 'Configurações Salvas!',
       description: 'Suas preferências foram atualizadas com sucesso.',
@@ -65,6 +77,38 @@ export default function SettingsPage() {
         </div>
         <Button onClick={handleSave}>Salvar Alterações</Button>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Configuração Financeira</CardTitle>
+          <CardDescription>Informe sua renda para um melhor planejamento e cálculo do fluxo diário.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <Label htmlFor="monthly-income">Renda Mensal (R$)</Label>
+                    <Input 
+                        id="monthly-income" 
+                        type="number" 
+                        placeholder="ex: 3500.00" 
+                        value={monthlyIncome}
+                        onChange={(e) => setMonthlyIncome(e.target.value)}
+                    />
+                </div>
+                 <div>
+                    <Label htmlFor="payday">Dia do Recebimento</Label>
+                    <Input 
+                        id="payday" 
+                        type="number" 
+                        min="1" max="31" 
+                        placeholder="ex: 5" 
+                        value={payday}
+                        onChange={(e) => setPayday(e.target.value)}
+                    />
+                </div>
+            </div>
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader>
