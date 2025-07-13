@@ -19,12 +19,11 @@ const VisaIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const MastercardIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" {...props}>
-        <circle cx="24" cy="24" r="24" fill="#ff5f00"></circle>
-        <path d="M12 24c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.627-5.373-12-12-12s-12 5.373-12 12z" fill="#eb001b"></path>
-        <path d="M24 12c-3.79 0-7.14 1.74-9.445 4.545a12.003 12.003 0 0118.89 0C31.14 13.74 27.79 12 24 12z" fill="#f79e1b"></path>
+        <circle cx="18" cy="24" r="14" fill="#EA001B"></circle>
+        <circle cx="30" cy="24" r="14" fill="#F79E1B"></circle>
+        <path d="M24 24a14 14 0 0 1-6-11.45a14 14 0 0 1 12 0A14 14 0 0 1 24 24z" fill="#FF5F00"></path>
     </svg>
 );
-
 
 const AmexIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 20" {...props}>
@@ -32,7 +31,6 @@ const AmexIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <path fill="#fff" d="M13.2 5.3h5.6v1.2h-4.4v2h3.8v1.2h-3.8v2.2h4.5v1.2h-5.7zM20.2 5.3h3.4l2.2 6.8h.1l2.2-6.8h3.3v8.8h-1.3V7.2h-.1l-2.6 6.9h-1.3l-2.6-6.9h-.1v6.9h-1.2zM5.3 5.3h1.8l3 4.4v-4.4h1.2v8.8h-1.7L6.6 9.7v4.4H5.3z"/>
   </svg>
 );
-
 
 const EloIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 72" {...props}>
