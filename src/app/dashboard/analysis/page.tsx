@@ -15,7 +15,8 @@ export default function AnalysisPage() {
   const [lastAnalysisHash, setLastAnalysisHash] = useState<string | null>(null);
 
   const getTransactionsHash = (transactions: any[]): string => {
-    return JSON.stringify(transactions.map(t => t.id));
+    // Cria um "hash" simples baseado nos IDs das transações para verificar se houve mudança.
+    return JSON.stringify(transactions.map(t => t.id).sort());
   };
   
   const runAnalysis = useCallback(async (force = false) => {
@@ -28,13 +29,11 @@ export default function AnalysisPage() {
     
     if (cachedAnalysis && cachedHash === currentHash && !force) {
         setAnalysis(JSON.parse(cachedAnalysis));
-        setLastAnalysisHash(cachedHash);
     } else if (transactions.length > 0) {
         const result = await generateFinancialAnalysis({ transactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', currentHash);
-        setLastAnalysisHash(currentHash);
     } else {
         const defaultState = {
           diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
@@ -44,7 +43,6 @@ export default function AnalysisPage() {
         setAnalysis(defaultState);
         localStorage.removeItem('financialAnalysis');
         localStorage.removeItem('financialAnalysisHash');
-        setLastAnalysisHash(null);
     }
     setIsLoading(false);
   }, []);
