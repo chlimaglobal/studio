@@ -3,7 +3,7 @@
 
 import { getTransactions } from '@/app/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, TrendingDown, TrendingUp, CalendarDays, Wallet } from 'lucide-react';
+import { Scale, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import TransactionsTable from '@/components/transactions-table';
 import { Button } from '@/components/ui/button';
@@ -31,27 +31,27 @@ export default function DashboardPage() {
   const [dailyBalance, setDailyBalance] = useState<DailyBalance>({ dailyBudget: null, daysUntilPayday: null, paydayProgress: null });
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      const fetchedTransactions = await getTransactions();
-      setTransactions(fetchedTransactions);
+  const fetchData = async () => {
+    const fetchedTransactions = await getTransactions();
+    setTransactions(fetchedTransactions);
 
-      const totalIncome = fetchedTransactions
-        .filter((t) => t.type === 'income')
-        .reduce((acc, t) => acc + t.amount, 0);
+    const totalIncome = fetchedTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0);
 
-      const totalExpenses = fetchedTransactions
-        .filter((t) => t.type === 'expense')
-        .reduce((acc, t) => acc + t.amount, 0);
-      
-      const balance = totalIncome - totalExpenses;
-      setSummary({ totalIncome, totalExpenses, balance });
-      
-      calculateDailyBalance(balance);
-
-      setIsLoading(false);
-    }
+    const totalExpenses = fetchedTransactions
+      .filter((t) => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0);
     
+    const balance = totalIncome - totalExpenses;
+    setSummary({ totalIncome, totalExpenses, balance });
+    
+    calculateDailyBalance(balance);
+
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
     fetchData();
 
     // Listener para atualizar os dados quando as configurações mudarem
@@ -68,28 +68,30 @@ export default function DashboardPage() {
     }
 
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normaliza para o início do dia
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
     let nextPaydayDate = new Date(currentYear, currentMonth, payday);
-    if (today > nextPaydayDate) {
+    if (currentDay > payday) {
       // Se já passou o dia do pagamento neste mês, calcule para o próximo mês
       nextPaydayDate = new Date(currentYear, currentMonth + 1, payday);
     }
 
-    const lastPaydayDate = new Date(currentYear, currentMonth, payday);
-     if (today < lastPaydayDate) {
+    let lastPaydayDate = new Date(currentYear, currentMonth, payday);
+     if (currentDay <= payday) {
+        // Se ainda não chegou o dia do pagamento neste mês, o último foi no mês anterior
         lastPaydayDate.setMonth(lastPaydayDate.getMonth() - 1);
     }
 
 
     const timeDiff = nextPaydayDate.getTime() - today.getTime();
-    const daysUntilPayday = Math.ceil(timeDiff / (1000 * 3600 * 24));
+    const daysUntilPayday = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
     
     const totalDaysInCycle = (nextPaydayDate.getTime() - lastPaydayDate.getTime()) / (1000 * 3600 * 24);
     const daysPassedInCycle = totalDaysInCycle - daysUntilPayday;
-    const paydayProgress = (daysPassedInCycle / totalDaysInCycle) * 100;
+    const paydayProgress = totalDaysInCycle > 0 ? (daysPassedInCycle / totalDaysInCycle) * 100 : 0;
 
     const dailyBudget = daysUntilPayday > 0 ? currentBalance / daysUntilPayday : currentBalance;
 
