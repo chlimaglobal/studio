@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus, CreditCard, Activity } from 'lucide-react';
+import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus, CreditCard, Activity, Target } from 'lucide-react';
 import { AddTransactionDialog } from './add-transaction-dialog';
 import { ThemeToggle } from './theme-toggle';
 import { QrScannerDialog } from './qr-scanner-dialog';
@@ -87,6 +87,10 @@ export default function DashboardHeader() {
              <Link href="/dashboard/cards" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <CreditCard className="h-5 w-5" />
               Cartões
+            </Link>
+            <Link href="/dashboard/goals" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+              <Target className="h-5 w-5" />
+              Metas
             </Link>
             <Link href="/dashboard/analysis" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
               <Activity className="h-5 w-5" />

@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Wallet, CreditCard, Activity } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Wallet, CreditCard, Activity, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
+  { href: '/dashboard/goals', icon: Target, label: 'Metas' },
   { href: '/dashboard/analysis', icon: Activity, label: 'Análise' },
   { href: '#', icon: ArrowRightLeft, label: 'Transações', disabled: true },
   { href: '#', icon: BarChart3, label: 'Relatórios', disabled: true },
