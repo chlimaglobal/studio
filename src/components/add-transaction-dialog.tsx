@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Loader2, Sparkles } from 'lucide-react';
+import { CalendarIcon, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { transactionCategories, TransactionFormSchema, TransactionCategory } from '@/lib/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -35,7 +35,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { addStoredTransaction } from '@/lib/storage';
+import { addStoredTransaction, getStoredTransactions } from '@/lib/storage';
 import { z } from 'zod';
 
 type AddTransactionDialogProps = {
@@ -105,11 +105,24 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
       }
     });
   };
+  
+  const isUnusualSpending = (newAmount: number, category: TransactionCategory): boolean => {
+    const historicalTransactions = getStoredTransactions().filter(
+      t => t.category === category && t.type === 'expense'
+    );
+    
+    if (historicalTransactions.length < 3) return false;
+
+    const total = historicalTransactions.reduce((acc, t) => acc + t.amount, 0);
+    const average = total / historicalTransactions.length;
+
+    // Gasto é incomum se for 30% maior que a média e a média for maior que R$50 (para evitar falsos positivos em categorias de baixo valor)
+    return newAmount > average * 1.3 && average > 50;
+  }
 
   function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
         addStoredTransaction(values);
-        const isExcessiveExpense = values.type === 'expense' && values.amount > 1000;
 
         if (values.type === 'income') {
              toast({
@@ -117,11 +130,12 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 description: "Ótimo trabalho! Continue investindo no seu futuro."
             });
         } else if (values.type === 'expense') {
-            if (isExcessiveExpense) {
+            if (isUnusualSpending(values.amount, values.category)) {
                  toast({
                     variant: 'destructive',
-                    title: '🚨 Cuidado: Gasto Elevado!',
-                    description: `Você adicionou uma despesa de valor alto. Monitore seus gastos.`
+                    title: '🚨 Gasto Incomum Detectado!',
+                    description: `Seu gasto em "${values.category}" está acima da sua média.`,
+                    action: <AlertTriangle className="h-5 w-5" />,
                 });
             } else {
                  toast({
