@@ -14,6 +14,9 @@ export default function DashboardLayout({
         <DashboardHeader />
         <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">{children}</main>
         <FloatingActionButton />
+        <footer className="text-center p-4 text-xs text-muted-foreground">
+          Marc Incorporação TEC - 2025 - ©™
+        </footer>
       </div>
     </div>
   );
