@@ -3,3 +3,4 @@ config();
 
 import '@/ai/flows/categorize-transaction.ts';
 import '@/ai/flows/extract-transaction-from-text.ts';
+import '@/ai/flows/generate-financial-analysis.ts';
