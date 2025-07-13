@@ -3,48 +3,67 @@
 
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2 } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getStoredTransactions } from '@/lib/storage';
+import { Button } from '@/components/ui/button';
 
 export default function AnalysisPage() {
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastAnalysisHash, setLastAnalysisHash] = useState<string | null>(null);
 
-  useEffect(() => {
-    const runAnalysis = async () => {
-      setIsLoading(true);
-      const transactions = getStoredTransactions();
-      if (transactions.length > 0) {
+  const getTransactionsHash = (transactions: any[]): string => {
+    return JSON.stringify(transactions.map(t => t.id));
+  };
+  
+  const runAnalysis = useCallback(async (force = false) => {
+    setIsLoading(true);
+    const transactions = getStoredTransactions();
+    const currentHash = getTransactionsHash(transactions);
+
+    const cachedAnalysis = localStorage.getItem('financialAnalysis');
+    const cachedHash = localStorage.getItem('financialAnalysisHash');
+    
+    if (cachedAnalysis && cachedHash === currentHash && !force) {
+        setAnalysis(JSON.parse(cachedAnalysis));
+        setLastAnalysisHash(cachedHash);
+    } else if (transactions.length > 0) {
         const result = await generateFinancialAnalysis({ transactions });
         setAnalysis(result);
-      } else {
-        // Set a default state if there are no transactions
-        setAnalysis({
+        localStorage.setItem('financialAnalysis', JSON.stringify(result));
+        localStorage.setItem('financialAnalysisHash', currentHash);
+        setLastAnalysisHash(currentHash);
+    } else {
+        const defaultState = {
           diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
           isSurvivalMode: false,
           suggestions: []
-        });
-      }
-      setIsLoading(false);
-    };
+        };
+        setAnalysis(defaultState);
+        localStorage.removeItem('financialAnalysis');
+        localStorage.removeItem('financialAnalysisHash');
+        setLastAnalysisHash(null);
+    }
+    setIsLoading(false);
+  }, []);
 
+  useEffect(() => {
     runAnalysis();
     
-    // Optional: re-run analysis if transactions change
     const handleStorageChange = () => runAnalysis();
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
 
-  }, []);
+  }, [runAnalysis]);
 
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-full">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Gerando análise com IA...</span>
+                <span>Analisando suas finanças com IA...</span>
             </div>
         </div>
     );
@@ -53,7 +72,7 @@ export default function AnalysisPage() {
   if (!analysis) {
      return (
         <div className="text-center text-muted-foreground">
-            <p>Não foi possível gerar a análise.</p>
+            <p>Não foi possível gerar a análise. Tente novamente.</p>
         </div>
     );
   }
@@ -70,6 +89,10 @@ export default function AnalysisPage() {
             Sua saúde financeira e dicas personalizadas pela nossa IA.
           </p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => runAnalysis(true)} disabled={isLoading}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Rerrodar Análise
+        </Button>
       </div>
 
       <Card className="bg-gradient-to-br from-primary/10 to-transparent">
@@ -88,13 +111,13 @@ export default function AnalysisPage() {
       </Card>
       
       {analysis.isSurvivalMode && (
-         <Card className="border-destructive/50">
+         <Card className="border-destructive/50 bg-destructive/5">
             <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
                 <AlertCircle />
                 Modo Sobrevivência Ativado
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-destructive/90">
                 Seus gastos estão superando suas receitas. Aqui estão algumas sugestões emergenciais para reverter a situação.
             </CardDescription>
             </CardHeader>
