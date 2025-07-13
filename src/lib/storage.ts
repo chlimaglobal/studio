@@ -1,4 +1,5 @@
 
+
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -34,6 +35,7 @@ export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>
   const newTransaction: Transaction = {
     id: `txn_${Date.now()}`,
     ...data,
+    amount: Number(data.amount),
     date: data.date.toISOString(), // Store date as ISO string
   };
   transactions.unshift(newTransaction);
@@ -42,15 +44,13 @@ export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>
   window.dispatchEvent(new Event('storage'));
 }
 
+
 // ======== CARDS ========
 
 const CARDS_KEY = 'financeflow_cards';
 
 export function getStoredCards(): Card[] {
-  return safeJSONParse<Card[]>(CARDS_KEY, [
-    { id: 'card_1', name: 'Nubank', brand: 'mastercard', closingDay: 20, dueDay: 27 },
-    { id: 'card_2', name: 'Inter', brand: 'mastercard', closingDay: 25, dueDay: 5 },
-  ]);
+  return safeJSONParse<Card[]>(CARDS_KEY, []);
 }
 
 export function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
@@ -77,15 +77,19 @@ const defaultGoals: Goal[] = [
 
 
 export function getStoredGoals(): Goal[] {
-    const goals = safeJSONParse<any[]>(GOALS_KEY, defaultGoals);
-    return goals.map(goal => ({...goal, deadline: new Date(goal.deadline)}));
+    const goalsFromStorage = safeJSONParse<any[]>(GOALS_KEY, defaultGoals);
+    // When retrieving, ensure deadline is a Date object.
+    return goalsFromStorage.map(goal => ({...goal, deadline: new Date(goal.deadline)}));
 }
+
 
 export function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
   const goals = getStoredGoals();
   const newGoal: Goal = {
     id: `goal_${Date.now()}`,
     ...data,
+    amount: Number(data.targetAmount),
+    currentAmount: Number(data.currentAmount)
   };
   
   // Convert date to ISO string for storage

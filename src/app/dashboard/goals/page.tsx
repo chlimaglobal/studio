@@ -11,7 +11,7 @@ import { icons } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Goal } from '@/lib/goal-types';
 import { getStoredGoals } from '@/lib/storage';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isPast } from 'date-fns';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -39,7 +39,7 @@ export default function GoalsPage() {
   
   const calculateProgress = (current: number, target: number) => {
     if (target <= 0) return 0;
-    return (current / target) * 100;
+    return Math.min((current / target) * 100, 100);
   };
 
   const getDaysRemaining = (deadline: Date | string) => {
@@ -77,6 +77,8 @@ export default function GoalsPage() {
           {goals.map((goal) => {
             const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
             const daysRemaining = getDaysRemaining(goal.deadline);
+            const isFinished = isPast(new Date(goal.deadline)) && progress < 100;
+
             return (
                 <Card key={goal.id} className="flex flex-col">
                 <CardHeader>
@@ -86,14 +88,14 @@ export default function GoalsPage() {
                             <div>
                                 <CardTitle>{goal.name}</CardTitle>
                                 <CardDescription>
-                                    {formatCurrency(goal.targetAmount)}
+                                    Meta: {formatCurrency(goal.targetAmount)}
                                 </CardDescription>
                             </div>
                         </div>
-                        <div className="text-right text-sm text-muted-foreground flex items-center gap-1.5">
+                        <div className={`text-right text-sm flex items-center gap-1.5 ${isFinished ? 'text-destructive' : 'text-muted-foreground'}`}>
                             <Calendar className="h-4 w-4" />
                             <span>
-                                {daysRemaining >= 0 ? `${daysRemaining} dias` : 'Prazo finalizado'}
+                                {isFinished ? 'Prazo finalizado' : `${daysRemaining} dias`}
                             </span>
                         </div>
                     </div>

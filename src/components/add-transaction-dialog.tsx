@@ -53,7 +53,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     resolver: zodResolver(TransactionFormSchema),
     defaultValues: {
       description: '',
-      amount: '' as any, // Use empty string to avoid uncontrolled input error
+      amount: undefined, // Use undefined here so placeholder shows
       date: new Date(),
       type: 'expense',
       creditCard: '',
@@ -66,7 +66,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     if (open) {
       form.reset({
         description: initialData?.description || '',
-        amount: initialData?.amount || ('' as any),
+        amount: initialData?.amount || undefined,
         date: initialData?.date ? new Date(initialData.date) : new Date(),
         type: initialData?.type || 'expense',
         category: initialData?.category,
@@ -224,7 +224,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                             step="0.01" 
                             placeholder="0.00" 
                             {...field}
-                            value={field.value ?? ''}
+                            onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
                         />
                     </FormControl>
                     <FormMessage />

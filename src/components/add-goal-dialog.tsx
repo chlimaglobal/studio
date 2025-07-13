@@ -49,7 +49,7 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
     resolver: zodResolver(AddGoalFormSchema),
     defaultValues: {
       name: '',
-      targetAmount: 0,
+      targetAmount: undefined, // Use undefined for placeholder to show
       currentAmount: 0,
       deadline: undefined,
     },
@@ -111,13 +111,9 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
                             type="number" 
                             step="0.01" 
                             placeholder="2500,00" 
-                            {...field} 
-                            value={field.value === 0 ? '' : field.value}
-                            onChange={e => {
-                                const value = parseFloat(e.target.value);
-                                field.onChange(isNaN(value) ? '' : value);
-                            }}
-                        />
+                            {...field}
+                            onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
+                         />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -134,12 +130,8 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
                             type="number" 
                             step="0.01" 
                             placeholder="0,00" 
-                            {...field} 
-                            value={field.value === 0 ? '' : field.value}
-                            onChange={e => {
-                                const value = parseFloat(e.target.value);
-                                field.onChange(isNaN(value) ? '' : value);
-                            }}
+                            {...field}
+                             onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                     </FormControl>
                     <FormMessage />
