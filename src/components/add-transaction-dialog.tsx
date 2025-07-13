@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -62,8 +61,10 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
   });
   
   React.useEffect(() => {
+    // Pre-load the audio file when the component mounts
     if (typeof window !== 'undefined') {
         audioRef.current = new Audio('/cash-register.mp3');
+        audioRef.current.load(); // Explicitly load the audio
     }
   }, []);
 
@@ -132,7 +133,10 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         addStoredTransaction(values);
 
         if (values.type === 'income') {
-             audioRef.current?.play();
+             if (audioRef.current) {
+                audioRef.current.currentTime = 0; // Rewind to the start
+                audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+             }
              toast({
                 title: '🎉 Receita Adicionada!',
                 description: "Ótimo trabalho! Continue investindo no seu futuro."
@@ -329,9 +333,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 />
             )}
             <DialogFooter>
-              <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button type="submit">
                 Salvar Transação
               </Button>
@@ -342,3 +344,5 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     </Dialog>
   );
 }
+
+    
