@@ -113,7 +113,9 @@ export default function DashboardHeader() {
       </Sheet>
 
       <div className="flex w-full items-center gap-4">
-        <h1 className="text-xl font-semibold sm:text-2xl flex-1">Painel</h1>
+        <div className="flex-1">
+            {/* Can add breadcrumbs or title here if needed */}
+        </div>
         <div className="hidden sm:flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => setAudioOpen(true)}>
               <Mic className="mr-2 h-4 w-4" />

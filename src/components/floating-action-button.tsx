@@ -23,7 +23,7 @@ export default function FloatingActionButton() {
   const [audioOpen, setAudioOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
 
-  const [initialData, setInitialData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | null>(null);
+  const [initialData, setInitialData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | undefined>(undefined);
 
   useEffect(() => {
     setIsMounted(true);
@@ -47,13 +47,25 @@ export default function FloatingActionButton() {
   }, []);
 
   const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
+    setIsOpen(false);
     setInitialData(data);
     setAddTransactionOpen(true);
   };
   
   const handleOpenAddTransaction = () => {
-    setInitialData(null); // Clear any previous data
+    setIsOpen(false);
+    setInitialData(undefined); // Clear any previous data
     setAddTransactionOpen(true);
+  }
+
+  const handleOpenAudio = () => {
+    setIsOpen(false);
+    setAudioOpen(true);
+  }
+
+  const handleOpenQr = () => {
+    setIsOpen(false);
+    setQrOpen(true);
   }
 
   if (!isMounted) {
@@ -63,7 +75,7 @@ export default function FloatingActionButton() {
 
   return (
     <div className={cn("fixed bottom-6 z-50 sm:hidden", position === 'right' ? 'right-6' : 'left-6')}>
-      <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} initialData={initialData || undefined} />
+      <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} initialData={initialData} />
       <AudioTransactionDialog open={audioOpen} onOpenChange={setAudioOpen} onTransactionExtracted={handleTransactionExtracted} />
       <QrScannerDialog open={qrOpen} onOpenChange={setQrOpen} onTransactionExtracted={handleTransactionExtracted} />
       
@@ -78,7 +90,7 @@ export default function FloatingActionButton() {
           >
             <Tooltip>
               <TooltipTrigger asChild>
-                  <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setAudioOpen(true)}>
+                  <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={handleOpenAudio}>
                     <Mic className="h-6 w-6" />
                   </Button>
               </TooltipTrigger>
@@ -89,7 +101,7 @@ export default function FloatingActionButton() {
 
              <Tooltip>
               <TooltipTrigger asChild>
-                  <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setQrOpen(true)}>
+                  <Button variant="secondary" size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={handleOpenQr}>
                     <QrCode className="h-6 w-6" />
                   </Button>
               </TooltipTrigger>
@@ -115,6 +127,7 @@ export default function FloatingActionButton() {
             size="icon"
             className="h-16 w-16 rounded-full shadow-lg"
             onClick={() => setIsOpen(!isOpen)}
+            aria-expanded={isOpen}
           >
             <Plus
               className={cn(

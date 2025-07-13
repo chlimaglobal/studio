@@ -138,7 +138,7 @@ export default function SettingsPage() {
             </RadioGroup>
           </div>
           <div className="space-y-2">
-            <Label>Posição do Menu Flutuante (Móvel)</Label>
+            <Label>Posição do Botão Flutuante (Móvel)</Label>
              <RadioGroup
               value={fabPosition}
               onValueChange={(v) => handleFabPositionChange(v as FabPosition)}
