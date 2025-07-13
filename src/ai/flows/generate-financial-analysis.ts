@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -65,7 +66,7 @@ const prompt = ai.definePrompt({
   - Analise as despesas mais altas ou mais frequentes para dar as dicas mais relevantes. Foque em categorias como 'Restaurante', 'Lazer', 'Compras', 'Assinaturas'.
 
   **Dados das Transações do Usuário:**
-  {{jsonStringify transactions}}
+  {{{json transactions}}}
 
   Analise os dados e retorne o resultado no formato JSON solicitado.`,
 });
