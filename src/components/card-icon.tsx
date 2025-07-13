@@ -1,6 +1,6 @@
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import { type CardBrand } from '@/app/dashboard/cards/actions';
+import { type CardBrand } from '@/lib/card-types';
 
 interface CardIconProps extends React.SVGProps<SVGSVGElement> {
   brand: CardBrand;

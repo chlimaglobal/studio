@@ -2,7 +2,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, CreditCard, Calendar, AlertCircle } from 'lucide-react';
-import { getCards, type Card as CardType } from './actions';
+import { getCards } from './actions';
+import type { Card as CardType } from '@/lib/card-types';
 import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
 

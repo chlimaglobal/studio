@@ -24,7 +24,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-import { addCard, AddCardFormSchema, cardBrands } from '@/app/dashboard/cards/actions';
+import { addCard } from '@/app/dashboard/cards/actions';
+import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
