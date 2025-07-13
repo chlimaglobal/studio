@@ -84,6 +84,10 @@ export default function DashboardHeader() {
               <LayoutDashboard className="h-5 w-5" />
               Painel
             </MobileNavLink>
+             <MobileNavLink href="/dashboard/transactions" setOpen={setMobileMenuOpen}>
+              <ArrowRightLeft className="h-5 w-5" />
+              Transações
+            </MobileNavLink>
              <MobileNavLink href="/dashboard/cards" setOpen={setMobileMenuOpen}>
               <CreditCard className="h-5 w-5" />
               Cartões
@@ -96,10 +100,6 @@ export default function DashboardHeader() {
               <Activity className="h-5 w-5" />
               Análise
             </MobileNavLink>
-            <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" onClick={() => toast({ title: 'Em breve!', description: 'A página de Transações será implementada.'})}>
-              <ArrowRightLeft className="h-5 w-5" />
-              Transações
-            </Link>
             <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" onClick={() => toast({ title: 'Em breve!', description: 'A página de Relatórios será implementada.'})}>
               <BarChart3 className="h-5 w-5" />
               Relatórios

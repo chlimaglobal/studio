@@ -2,12 +2,11 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { Scale, TrendingDown, TrendingUp, Wallet, ArrowRightLeft } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import TransactionsTable from '@/components/transactions-table';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRightLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Transaction } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
@@ -198,8 +197,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <Card className="col-span-1 lg:col-span-3">
+      <div className="grid grid-cols-1 gap-6">
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Visão Geral (Últimos 30 dias)</CardTitle>
             <CardDescription>Comparativo de receitas e despesas por dia.</CardDescription>
@@ -207,24 +206,6 @@ export default function DashboardPage() {
           <CardContent className="pl-2">
             <FinancialChart data={chartData} />
           </CardContent>
-        </Card>
-
-        <Card className="col-span-1 lg:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle>Transações Recentes</CardTitle>
-                    <CardDescription>As últimas 5 movimentações.</CardDescription>
-                </div>
-                 <Button asChild variant="outline" size="sm">
-                    <Link href="#">
-                        Ver todas
-                        <ArrowRightLeft className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            </CardHeader>
-            <CardContent>
-                <TransactionsTable transactions={transactions.slice(0, 5)} />
-            </CardContent>
         </Card>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -9,10 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
+  { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
   { href: '/dashboard/goals', icon: Target, label: 'Metas' },
   { href: '/dashboard/analysis', icon: Activity, label: 'Análise' },
-  { href: '#', icon: ArrowRightLeft, label: 'Transações', disabled: true },
   { href: '#', icon: BarChart3, label: 'Relatórios', disabled: true },
 ];
 
