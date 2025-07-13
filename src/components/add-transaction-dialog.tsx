@@ -33,7 +33,7 @@ import { Calendar } from './ui/calendar';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { addStoredTransaction, getStoredTransactions } from '@/lib/storage';
 import { z } from 'zod';
 
@@ -47,7 +47,9 @@ type AddTransactionDialogProps = {
 export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const { toast } = useToast();
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  
+  // Use refs to hold Audio instances
+  const audioRefs = React.useRef<{ [key: string]: HTMLAudioElement }>({});
 
   const form = useForm<z.infer<typeof TransactionFormSchema>>({
     resolver: zodResolver(TransactionFormSchema),
@@ -60,13 +62,29 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     },
   });
   
+  // Pre-load audio files when component mounts or is used
   React.useEffect(() => {
-    // Pre-load the audio file when the component mounts
     if (typeof window !== 'undefined') {
-        audioRef.current = new Audio('/cash-register.mp3');
-        audioRef.current.load(); // Explicitly load the audio
+      const sounds = ['cash-register.mp3', 'coin.mp3', 'swoosh.mp3'];
+      sounds.forEach(sound => {
+        if (!audioRefs.current[sound]) {
+            const audio = new Audio(`/${sound}`);
+            audio.load();
+            audioRefs.current[sound] = audio;
+        }
+      });
     }
   }, []);
+
+  const playNotificationSound = (soundFile: string) => {
+    if (soundFile === 'none' || typeof window === 'undefined') return;
+
+    const audio = audioRefs.current[soundFile];
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(e => console.error("Error playing audio:", e));
+    }
+  };
 
   const watchedCategory = form.watch('category');
 
@@ -133,15 +151,15 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         addStoredTransaction(values);
 
         if (values.type === 'income') {
-             if (audioRef.current) {
-                audioRef.current.currentTime = 0; // Rewind to the start
-                audioRef.current.play().catch(e => console.error("Error playing audio:", e));
-             }
+             const sound = localStorage.getItem('incomeSound') || 'cash-register.mp3';
+             playNotificationSound(sound);
              toast({
                 title: '🎉 Receita Adicionada!',
                 description: "Ótimo trabalho! Continue investindo no seu futuro."
             });
         } else if (values.type === 'expense') {
+            const sound = localStorage.getItem('expenseSound') || 'swoosh.mp3';
+            playNotificationSound(sound);
             if (isUnusualSpending(values.amount, values.category)) {
                  toast({
                     variant: 'destructive',

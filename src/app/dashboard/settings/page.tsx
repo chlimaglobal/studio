@@ -8,11 +8,24 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 type FabPosition = 'left' | 'right';
+
+const incomeSounds = [
+    { value: 'cash-register.mp3', label: 'Caixa Registradora' },
+    { value: 'coin.mp3', label: 'Moeda' },
+    { value: 'none', label: 'Nenhum' },
+];
+
+const expenseSounds = [
+    { value: 'swoosh.mp3', label: 'Swoosh' },
+    { value: 'none', label: 'Nenhum' },
+];
 
 export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -23,6 +36,8 @@ export default function SettingsPage() {
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [payday, setPayday] = useState('');
+  const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
+  const [expenseSound, setExpenseSound] = useState('swoosh.mp3');
 
 
   useEffect(() => {
@@ -39,6 +54,12 @@ export default function SettingsPage() {
     const storedPayday = localStorage.getItem('payday');
     if (storedPayday) setPayday(storedPayday);
 
+    const storedIncomeSound = localStorage.getItem('incomeSound');
+    if (storedIncomeSound) setIncomeSound(storedIncomeSound);
+
+    const storedExpenseSound = localStorage.getItem('expenseSound');
+    if (storedExpenseSound) setExpenseSound(storedExpenseSound);
+
   }, []);
 
   const handleFabPositionChange = (value: FabPosition) => {
@@ -54,6 +75,8 @@ export default function SettingsPage() {
     localStorage.setItem('pushNotificationsEnabled', String(pushNotificationsEnabled));
     localStorage.setItem('monthlyIncome', monthlyIncome);
     localStorage.setItem('payday', payday);
+    localStorage.setItem('incomeSound', incomeSound);
+    localStorage.setItem('expenseSound', expenseSound);
     
     // Dispara um evento para notificar outros componentes (como o dashboard) das mudanças.
     window.dispatchEvent(new Event('storage'));
@@ -160,7 +183,7 @@ export default function SettingsPage() {
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notificações</CardTitle>
-          <CardDescription>Gerencie suas preferências de notificação.</CardDescription>
+          <CardDescription>Gerencie suas preferências de notificação e alertas sonoros.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between rounded-md border p-4">
@@ -172,6 +195,37 @@ export default function SettingsPage() {
                 checked={pushNotificationsEnabled}
                 onCheckedChange={handlePushNotificationsChange}
              />
+          </div>
+           <div className="space-y-2 rounded-md border p-4">
+             <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
+             <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
+                <div>
+                  <Label htmlFor="income-sound">Som de Receita</Label>
+                  <Select value={incomeSound} onValueChange={setIncomeSound}>
+                    <SelectTrigger id="income-sound">
+                      <SelectValue placeholder="Selecione um som" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {incomeSounds.map(sound => (
+                        <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                 <div>
+                  <Label htmlFor="expense-sound">Som de Despesa</Label>
+                  <Select value={expenseSound} onValueChange={setExpenseSound}>
+                    <SelectTrigger id="expense-sound">
+                      <SelectValue placeholder="Selecione um som" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {expenseSounds.map(sound => (
+                        <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+             </div>
           </div>
           <div className="flex items-center justify-between rounded-md border p-4">
              <div>
