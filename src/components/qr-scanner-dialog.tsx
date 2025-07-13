@@ -33,6 +33,18 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
   const animationFrameId = useRef<number>();
   const { toast } = useToast();
 
+  const stopCamera = useCallback(() => {
+    if (animationFrameId.current) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = undefined;
+    }
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
   const scan = useCallback(() => {
     if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA && canvasRef.current) {
       const video = videoRef.current;
@@ -54,12 +66,19 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
                 stopCamera();
                 toast({
                   title: 'QR Code Lido!',
-                  description: `Conteúdo: ${code.data.substring(0, 70)}...`,
+                  description: `A IA agora processaria a URL para extrair os detalhes da compra.`,
                 });
+
+                // Simula a extração de dados da URL e passa para o formulário
+                const simulatedData = {
+                  description: 'Compra via QR Code',
+                  amount: 42.50, // Valor de exemplo
+                  type: 'expense' as const,
+                  category: 'Compras' as const,
+                };
+                onTransactionExtracted(simulatedData);
                 onOpenChange(false);
-                // Em uma aplicação real, aqui você pegaria o 'code.data' (que é uma URL)
-                // e enviaria para um backend ou para uma função de IA para extrair os valores.
-                // Por ora, apenas fechamos e notificamos.
+
             } else {
                  animationFrameId.current = requestAnimationFrame(scan);
             }
@@ -73,23 +92,15 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
     } else {
         animationFrameId.current = requestAnimationFrame(scan);
     }
-  }, [toast, onOpenChange]);
-
-  const stopCamera = () => {
-    if (animationFrameId.current) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = undefined;
-    }
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-  };
+  }, [toast, onOpenChange, stopCamera, onTransactionExtracted]);
 
   const startCamera = useCallback(async () => {
     stopCamera();
+    setHasCameraPermission(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('MediaDevices API not supported.');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -110,7 +121,7 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
         description: 'Por favor, habilite a permissão da câmera nas configurações do seu navegador.',
       });
     }
-  }, [scan, toast]);
+  }, [scan, toast, stopCamera]);
 
   
   useEffect(() => {
@@ -124,7 +135,7 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
         stopCamera();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, startCamera]);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
