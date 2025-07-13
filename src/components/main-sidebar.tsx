@@ -14,7 +14,6 @@ const navItems = [
   { href: '/dashboard/analysis', icon: Activity, label: 'Análise' },
   { href: '#', icon: ArrowRightLeft, label: 'Transações', disabled: true },
   { href: '#', icon: BarChart3, label: 'Relatórios', disabled: true },
-  { href: '/dashboard/settings', icon: Settings, label: 'Configurações' },
 ];
 
 export default function MainSidebar() {
@@ -59,6 +58,23 @@ export default function MainSidebar() {
               <TooltipContent side="right">{item.label}</TooltipContent>
             </Tooltip>
           ))}
+        </nav>
+        <nav className="mt-auto flex flex-col items-center gap-4 px-2 py-4">
+           <Tooltip>
+              <TooltipTrigger asChild>
+                <Link
+                  href="/dashboard/settings"
+                  className={cn(
+                    'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
+                    pathname === '/dashboard/settings' && 'bg-accent text-accent-foreground'
+                  )}
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="sr-only">Configurações</span>
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right">Configurações</TooltipContent>
+            </Tooltip>
         </nav>
       </TooltipProvider>
     </aside>

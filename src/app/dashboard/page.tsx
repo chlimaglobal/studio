@@ -57,7 +57,7 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Listener para atualizar os dados quando as configurações ou transações mudarem
+    // Listener to update data when settings or transactions change
     window.addEventListener('storage', fetchData);
     return () => window.removeEventListener('storage', fetchData);
 
@@ -71,20 +71,20 @@ export default function DashboardPage() {
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normaliza para o início do dia
+    today.setHours(0, 0, 0, 0); // Normalize to the beginning of the day
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
     let nextPaydayDate = new Date(currentYear, currentMonth, payday);
     if (currentDay > payday) {
-      // Se já passou o dia do pagamento neste mês, calcule para o próximo mês
+      // If payday has already passed this month, calculate for next month
       nextPaydayDate = new Date(currentYear, currentMonth + 1, payday);
     }
 
     let lastPaydayDate = new Date(currentYear, currentMonth, payday);
      if (currentDay <= payday) {
-        // Se ainda não chegou o dia do pagamento neste mês, o último foi no mês anterior
+        // If payday hasn't arrived this month, the last one was last month
         lastPaydayDate.setMonth(lastPaydayDate.getMonth() - 1);
     }
 
