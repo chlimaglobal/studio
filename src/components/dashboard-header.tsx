@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -99,10 +100,10 @@ export default function DashboardHeader() {
               <Activity className="h-5 w-5" />
               Análise
             </MobileNavLink>
-            <Link href="#" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground" onClick={() => toast({ title: 'Em breve!', description: 'A página de Relatórios será implementada.'})}>
+            <MobileNavLink href="/dashboard/reports" setOpen={setMobileMenuOpen}>
               <BarChart3 className="h-5 w-5" />
               Relatórios
-            </Link>
+            </MobileNavLink>
             <MobileNavLink href="/dashboard/settings" setOpen={setMobileMenuOpen}>
               <Settings className="h-5 w-5" />
               Configurações

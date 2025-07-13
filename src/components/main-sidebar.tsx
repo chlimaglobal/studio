@@ -14,7 +14,7 @@ const navItems = [
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
   { href: '/dashboard/goals', icon: Target, label: 'Metas' },
   { href: '/dashboard/analysis', icon: Activity, label: 'Análise' },
-  { href: '#', icon: BarChart3, label: 'Relatórios', disabled: true },
+  { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
 ];
 
 export default function MainSidebar() {
