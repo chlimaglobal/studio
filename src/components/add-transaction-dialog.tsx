@@ -320,10 +320,12 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 )}
                 />
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit">
+            <DialogFooter className="flex-col gap-2 pt-4">
+              <Button type="submit" className="w-full">
                 Salvar Transação
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+                Cancelar
               </Button>
             </DialogFooter>
           </form>
