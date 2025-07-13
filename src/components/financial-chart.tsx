@@ -5,10 +5,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 interface FinancialChartProps {
   data: { date: string; income: number; expense: number }[];
+  isBalanceVisible: boolean;
 }
 
-export default function FinancialChart({ data }: FinancialChartProps) {
+export default function FinancialChart({ data, isBalanceVisible }: FinancialChartProps) {
     const formatCurrency = (value: number) => {
+        if (!isBalanceVisible) return 'R$***';
         if (value === 0) return 'R$0';
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -22,6 +24,14 @@ export default function FinancialChart({ data }: FinancialChartProps) {
         if (active && payload && payload.length) {
             const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
             const expense = payload.find((p: any) => p.dataKey === 'expense')?.value || 0;
+            
+            const formatTooltipCurrency = (value: number) => {
+                if (!isBalanceVisible) return 'R$ ●●●●●●';
+                return new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                }).format(value);
+            };
 
             return (
                 <div className="rounded-lg border bg-background p-2 shadow-sm">
@@ -31,7 +41,7 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                                 Receita
                             </span>
                             <span className="font-bold text-green-500">
-                                {formatCurrency(income)}
+                                {formatTooltipCurrency(income)}
                             </span>
                         </div>
                         <div className="flex flex-col space-y-1">
@@ -39,7 +49,7 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                                 Despesa
                             </span>
                             <span className="font-bold text-red-500">
-                                {formatCurrency(expense)}
+                                {formatTooltipCurrency(expense)}
                             </span>
                         </div>
                     </div>

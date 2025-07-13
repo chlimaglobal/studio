@@ -48,6 +48,7 @@ type AddTransactionDialogProps = {
 export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const { toast } = useToast();
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<z.infer<typeof TransactionFormSchema>>({
     resolver: zodResolver(TransactionFormSchema),
@@ -59,6 +60,12 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
       creditCard: '',
     },
   });
+  
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+        audioRef.current = new Audio('/cash-register.mp3');
+    }
+  }, []);
 
   const watchedCategory = form.watch('category');
 
@@ -125,6 +132,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         addStoredTransaction(values);
 
         if (values.type === 'income') {
+             audioRef.current?.play();
              toast({
                 title: '🎉 Receita Adicionada!',
                 description: "Ótimo trabalho! Continue investindo no seu futuro."

@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, TrendingDown, TrendingUp, Wallet, ArrowRightLeft } from 'lucide-react';
+import { Scale, TrendingDown, TrendingUp, Wallet, ArrowRightLeft, Eye, EyeOff } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import TransactionsTable from '@/components/transactions-table';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<FinancialSummary>({ totalIncome: 0, totalExpenses: 0, balance: 0 });
   const [dailyBalance, setDailyBalance] = useState<DailyBalance>({ dailyBudget: null, daysUntilPayday: null, paydayProgress: null });
   const [isLoading, setIsLoading] = useState(true);
+  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
 
   const fetchData = () => {
     const fetchedTransactions = getStoredTransactions();
@@ -98,6 +99,7 @@ export default function DashboardPage() {
   }
 
   const formatCurrency = (amount: number) => {
+    if (!isBalanceVisible) return 'R$ ●●●●●●';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -136,6 +138,16 @@ export default function DashboardPage() {
 
   return (
     <div className="grid gap-6">
+       <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsBalanceVisible(!isBalanceVisible)}
+        >
+          {isBalanceVisible ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+          {isBalanceVisible ? 'Ocultar Saldo' : 'Mostrar Saldo'}
+        </Button>
+      </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -204,7 +216,7 @@ export default function DashboardPage() {
             <CardDescription>Comparativo de receitas e despesas por dia.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
-            <FinancialChart data={chartData} />
+            <FinancialChart data={chartData} isBalanceVisible={isBalanceVisible} />
           </CardContent>
         </Card>
       </div>
