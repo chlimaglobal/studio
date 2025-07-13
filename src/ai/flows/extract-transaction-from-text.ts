@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { TransactionCategory, transactionCategories } from '@/lib/types';
+import { transactionCategories } from '@/lib/types';
 
 const ExtractTransactionInputSchema = z.object({
   text: z.string().describe('O texto em linguagem natural fornecido pelo usuário sobre uma transação.'),
@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   prompt: `Você é um assistente financeiro especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
   Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor e o tipo de transação (receita ou despesa).
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
-  O valor deve ser um número.
+  O valor deve ser um número. Interprete valores como "cento e cinquenta e 75" como 150.75.
 
   - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
   - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
@@ -58,6 +58,12 @@ const prompt = ai.definePrompt({
 
   5.  **Texto do Usuário:** "conta de luz 85 reais"
       **Saída Esperada:** { "description": "Conta de luz", "amount": 85, "type": "expense", "category": "Luz" }
+
+  6.  **Texto do Usuário:** "cinquenta e cinco e cinquenta no ifood"
+      **Saída Esperada:** { "description": "iFood", "amount": 55.50, "type": "expense", "category": "Restaurante" }
+      
+  7.  **Texto do Usuário:** "uber 23,40"
+      **Saída Esperada:** { "description": "Uber", "amount": 23.40, "type": "expense", "category": "Transporte" }
 
   **Texto do usuário para análise:**
   {{{text}}}

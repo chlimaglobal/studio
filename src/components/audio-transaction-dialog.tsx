@@ -29,24 +29,23 @@ type AudioTransactionDialogProps = {
 export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtracted, children }: AudioTransactionDialogProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statusText, setStatusText] = useState('Pressione o botão e comece a falar.');
   const [error, setError] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
   const processTranscript = useCallback(async (transcript: string) => {
-    setStatusText('Processando seu comando...');
     setIsProcessing(true);
     setError(null);
 
     try {
       const result = await extractTransactionInfoFromText(transcript);
-      if ('error' in result) {
-        toast({ variant: 'destructive', title: 'Não foi possível entender', description: `${result.error} Por favor, tente novamente.` });
-        setError(result.error);
-        setStatusText('Tente novamente. Fale de forma clara, por exemplo: "gastei 50 reais no supermercado".');
-        setIsProcessing(false); // Permite nova tentativa
+      // @ts-ignore
+      if (result.error) {
+        // @ts-ignore
+        const errorMessage = result.error || 'Não foi possível extrair os detalhes. Tente ser mais claro.';
+        toast({ variant: 'destructive', title: 'Não foi possível entender', description: `${errorMessage} Por favor, tente novamente.` });
+        setError(errorMessage);
       } else {
         // @ts-ignore
         onTransactionExtracted(result);
@@ -56,7 +55,8 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
       const errorMessage = 'Ocorreu um erro ao falar com a IA. Tente novamente.';
       toast({ variant: 'destructive', title: 'Erro de Processamento', description: errorMessage });
       setError(errorMessage);
-      setIsProcessing(false); // Permite nova tentativa
+    } finally {
+        setIsProcessing(false);
     }
   }, [toast, onOpenChange, onTransactionExtracted]);
 
@@ -71,7 +71,6 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
       setIsRecording(false);
       setIsProcessing(false);
       setError(null);
-      setStatusText('Pressione o botão e comece a falar.');
     }
   }, [open]);
 
@@ -99,19 +98,16 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     
     recognition.onstart = () => {
         setIsRecording(true);
-        setStatusText('Ouvindo...');
         setError(null);
     };
 
     recognition.onend = () => {
         setIsRecording(false);
-        // Não redefina o texto aqui para manter mensagens de erro
     };
 
     recognition.onerror = (event) => {
         console.error('Speech recognition error', event.error);
         if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          setStatusText('Ocorreu um erro. Tente novamente.');
           setError(`Erro: ${event.error}. Verifique a permissão do microfone.`);
         }
         setIsRecording(false);
@@ -121,6 +117,9 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         const transcript = event.results[0][0].transcript;
         if (transcript) {
           processTranscript(transcript);
+        } else {
+            setError('Não consegui ouvir nada. Por favor, tente novamente.');
+            setIsProcessing(false);
         }
     };
     
@@ -138,13 +137,13 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         <DialogHeader>
           <DialogTitle>Adicionar Transação por Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Processando..." : (isRecording ? "Ouvindo..." : "Pressione o microfone e fale. Ex: 'Gastei 50 reais no almoço'.")}
+            {isProcessing ? "Analisando..." : (isRecording ? "Ouvindo..." : "Pressione o microfone e fale. Ex: 'Gastei 50 reais no almoço'.")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center gap-4 py-8">
           <Button
             size="lg"
-            className={`h-20 w-20 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
+            className={`h-20 w-20 rounded-full transition-colors ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
             onClick={handleToggleRecording}
             disabled={isProcessing}
           >
@@ -157,9 +156,9 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
             )}
           </Button>
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="mt-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Erro</AlertTitle>
+              <AlertTitle>Erro ao Processar</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
