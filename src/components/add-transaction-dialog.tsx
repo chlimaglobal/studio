@@ -44,14 +44,9 @@ type AddTransactionDialogProps = {
   children?: React.ReactNode;
 };
 
-const incomeSounds = ['cash-register.mp3', 'coin.mp3'];
-const expenseSounds = ['swoosh.mp3'];
-
 export function AddTransactionDialog({ open, onOpenChange, initialData, children }: AddTransactionDialogProps) {
   const [isSuggesting, startSuggestionTransition] = React.useTransition();
   const { toast } = useToast();
-  
-  const audioRefs = React.useRef<{ [key: string]: HTMLAudioElement }>({});
 
   const form = useForm<z.infer<typeof TransactionFormSchema>>({
     resolver: zodResolver(TransactionFormSchema),
@@ -63,28 +58,18 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
       creditCard: '',
     },
   });
-  
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-        [...incomeSounds, ...expenseSounds].forEach(sound => {
-            if (!audioRefs.current[sound]) {
-                const audio = new Audio(`/${sound}`);
-                audio.load();
-                audioRefs.current[sound] = audio;
-            }
-        });
-    }
-  }, []);
 
-  const playNotificationSound = (soundFile: string) => {
-    if (soundFile === 'none' || typeof window === 'undefined') return;
+  const playNotificationSound = (soundFile: string | null) => {
+    if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
 
-    const audio = audioRefs.current[soundFile];
-    if (audio) {
-      audio.currentTime = 0;
+    try {
+      const audio = new Audio(`/${soundFile}`);
       audio.play().catch(e => console.error("Error playing audio:", e));
+    } catch (e) {
+      console.error("Failed to play notification sound:", e);
     }
   };
+
 
   const watchedCategory = form.watch('category');
 
@@ -150,14 +135,14 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         addStoredTransaction(values);
 
         if (values.type === 'income') {
-             const sound = localStorage.getItem('incomeSound') || 'cash-register.mp3';
+             const sound = localStorage.getItem('incomeSound');
              playNotificationSound(sound);
              toast({
                 title: '🎉 Receita Adicionada!',
                 description: "Ótimo trabalho! Continue investindo no seu futuro."
             });
         } else if (values.type === 'expense') {
-            const sound = localStorage.getItem('expenseSound') || 'swoosh.mp3';
+            const sound = localStorage.getItem('expenseSound');
             playNotificationSound(sound);
             if (isUnusualSpending(values.amount, values.category)) {
                  toast({
@@ -349,11 +334,13 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 )}
                 />
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit">
-                Salvar Transação
-              </Button>
+             <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:items-center pt-2">
+                <Button variant="link" className="text-muted-foreground" onClick={() => onOpenChange(false)}>
+                    Cancelar
+                </Button>
+                <Button type="submit" className="w-full sm:w-auto">
+                    Salvar Transação
+                </Button>
             </DialogFooter>
           </form>
         </Form>
