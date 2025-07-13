@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import type { Transaction } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import { getStoredTransactions } from '@/lib/storage';
+import { subDays, format } from 'date-fns';
 
 interface FinancialSummary {
   totalIncome: number;
@@ -34,7 +35,6 @@ export default function DashboardPage() {
   const fetchData = () => {
     const fetchedTransactions = getStoredTransactions();
 
-    // Ensure dates are Date objects
     const transactionsWithDates = fetchedTransactions.map(t => ({...t, date: new Date(t.date)}));
     setTransactions(transactionsWithDates);
 
@@ -57,7 +57,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Listener to update data when settings or transactions change
     window.addEventListener('storage', fetchData);
     return () => window.removeEventListener('storage', fetchData);
 
@@ -71,20 +70,18 @@ export default function DashboardPage() {
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to the beginning of the day
+    today.setHours(0, 0, 0, 0); 
     const currentDay = today.getDate();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
     let nextPaydayDate = new Date(currentYear, currentMonth, payday);
     if (currentDay > payday) {
-      // If payday has already passed this month, calculate for next month
       nextPaydayDate = new Date(currentYear, currentMonth + 1, payday);
     }
 
     let lastPaydayDate = new Date(currentYear, currentMonth, payday);
      if (currentDay <= payday) {
-        // If payday hasn't arrived this month, the last one was last month
         lastPaydayDate.setMonth(lastPaydayDate.getMonth() - 1);
     }
 
@@ -107,27 +104,35 @@ export default function DashboardPage() {
       currency: 'BRL',
     }).format(amount);
   };
+  
+  const generateChartData = (transactions: Transaction[]) => {
+    const data: { [key: string]: { date: string; income: number; expense: number } } = {};
+    const thirtyDaysAgo = subDays(new Date(), 30);
 
-  const chartData = transactions
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .reduce((acc, t) => {
-      const month = t.date.toLocaleString('pt-BR', { month: 'short' });
-      const existing = acc.find((item) => item.month === month);
-      if (existing) {
-        if (t.type === 'income') {
-          existing.income += t.amount;
-        } else {
-          existing.expense += t.amount;
+    for (let i = 0; i < 30; i++) {
+        const date = subDays(new Date(), i);
+        const formattedDate = format(date, 'yyyy-MM-dd');
+        const dayLabel = format(date, 'dd');
+        data[formattedDate] = { date: dayLabel, income: 0, expense: 0 };
+    }
+    
+    transactions.forEach(t => {
+        if (t.date >= thirtyDaysAgo) {
+            const formattedDate = format(t.date, 'yyyy-MM-dd');
+            if (data[formattedDate]) {
+                if (t.type === 'income') {
+                    data[formattedDate].income += t.amount;
+                } else {
+                    data[formattedDate].expense += t.amount;
+                }
+            }
         }
-      } else {
-        acc.push({
-          month,
-          income: t.type === 'income' ? t.amount : 0,
-          expense: t.type === 'expense' ? t.amount : 0,
-        });
-      }
-      return acc;
-    }, [] as { month: string; income: number; expense: number }[]);
+    });
+
+    return Object.values(data).sort((a,b) => a.date.localeCompare(b.date));
+  };
+
+  const chartData = generateChartData(transactions);
 
 
   return (
@@ -196,8 +201,8 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="col-span-1 lg:col-span-3">
           <CardHeader>
-            <CardTitle>Visão Geral</CardTitle>
-            <CardDescription>Comparativo de receitas e despesas ao longo do tempo.</CardDescription>
+            <CardTitle>Visão Geral (Últimos 30 dias)</CardTitle>
+            <CardDescription>Comparativo de receitas e despesas por dia.</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <FinancialChart data={chartData} />
