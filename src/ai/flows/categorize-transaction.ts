@@ -41,13 +41,13 @@ const prompt = ai.definePrompt({
 
   **Instruções de Categorização:**
   - **Alimentação:** Compras de comida em geral, não em restaurantes. Se for "mercado" ou "supermercado", use "Supermercado".
-  - **Assinaturas:** Serviços recorrentes como Netflix, Spotify, Amazon Prime, HBO Max, Disney+, academias (Smart Fit, etc.), jornais, revistas, etc.
+  - **Assinaturas:** Serviços recorrentes como academias (Smart Fit, etc.), jornais, revistas, etc. Não inclua serviços de streaming aqui.
   - **Contas:** Contas gerais da casa. Use categorias mais específicas se possível.
   - **Luz, Água, Internet, Telefone:** Use estas categorias para as respectivas contas de utilidades.
   - **Restaurante:** Comida fora de casa, iFood, Uber Eats, lanches.
   - **Transporte:** Uber, 99, ônibus, metrô. Se for relacionado a carro próprio, use "Gasolina" ou "Manutenção Veicular".
   - **Saúde:** Farmácia, médico, plano de saúde.
-  - **Lazer/Entretenimento:** Cinema, shows, passeios. Não inclua assinaturas aqui.
+  - **Entretenimento:** Cinema, shows, passeios, e serviços de streaming como Netflix, Spotify, Amazon Prime, HBO Max, Disney+.
   - **Educação:** Cursos, livros, material escolar.
   - **Salário, Bônus, Comissão:** Para diferentes tipos de renda.
 

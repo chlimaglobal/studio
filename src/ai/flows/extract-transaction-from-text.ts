@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
 
   - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
   - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
-  - Se mencionar serviços como Netflix, Spotify, Amazon Prime, o tipo é 'expense' e a categoria é 'Assinaturas'.
+  - Se mencionar serviços como Netflix, Spotify, Amazon Prime, o tipo é 'expense' e a categoria é 'Entretenimento'.
 
   **Exemplos:**
 
@@ -67,10 +67,10 @@ const prompt = ai.definePrompt({
       **Saída Esperada:** { "description": "Uber", "amount": 23.40, "type": "expense", "category": "Transporte" }
 
   8.  **Texto do Usuário:** "paguei o spotify"
-      **Saída Esperada:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Assinaturas" }
+      **Saída Esperada:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Entretenimento" }
       
   9.  **Texto do Usuário:** "netflix R$ 39.90"
-      **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Assinaturas" }
+      **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Entretenimento" }
 
   **Texto do usuário para análise:**
   {{{text}}}
