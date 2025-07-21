@@ -173,8 +173,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <DashboardHeader />
 
-      <div className="px-4">
-        <Button variant="secondary" className="w-full justify-between h-12">
+      <div className="px-0">
+        <Button variant="secondary" className="w-auto justify-between h-12 px-4">
             <span>Saldo em contas</span>
             <ChevronDown className="h-5 w-5" />
         </Button>
@@ -192,23 +192,23 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-3 gap-3 text-center px-4">
+      <div className="grid grid-cols-3 gap-3 text-center px-0">
         <Card className="bg-secondary p-2">
             <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                 <div className="w-4 h-4 rounded-full border-2 border-green-400"></div>
+                 <div className="w-4 h-4 rounded-full border-2 border-[hsl(var(--chart-1))]"></div>
                 <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="text-lg font-bold text-green-400">{formatCurrency(summary.recebidos)}</p>
+                 <p className="text-lg font-bold text-[hsl(var(--chart-1))]">{formatCurrency(summary.recebidos)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
             <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-red-500"></div>
+                <div className="w-4 h-4 rounded-full border-2 border-[hsl(var(--chart-2))]"></div>
                 <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="text-lg font-bold text-red-400">{formatCurrency(summary.despesas)}</p>
+                 <p className="text-lg font-bold text-[hsl(var(--chart-2))]">{formatCurrency(summary.despesas)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
@@ -222,7 +222,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-       <div className="px-4 space-y-4">
+       <div className="px-0 space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
           <div className="h-[250px] w-full">

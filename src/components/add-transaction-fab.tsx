@@ -40,6 +40,7 @@ export function AddTransactionFab() {
         <Button 
             size="icon" 
             className="rounded-full h-16 w-16 shadow-2xl bg-primary hover:bg-primary/90"
+            style={{bottom: '6rem', right: '1.5rem', position: 'fixed'}}
             onClick={() => {
                 setInitialTxData(undefined);
                 setIsAddTxOpen(true);
