@@ -4,14 +4,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard, UserCircle } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
-  { href: '/dashboard/settings', icon: UserCircle, label: 'Perfil' },
+  { href: '/dashboard/goals', icon: CreditCard, label: 'Metas' },
 ];
 
 export default function BottomNavBar() {
@@ -22,6 +22,11 @@ export default function BottomNavBar() {
       <div className="grid h-full max-w-lg grid-cols-5 mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+          // A special case for goals page as it's not in the design but we should keep it accessible
+          if (item.href === '/dashboard/goals') {
+              // Hide goals icon but keep it in the layout grid to not break spacing
+              return <div key={item.label}></div>
+          }
           return (
             <Link
               key={item.label}

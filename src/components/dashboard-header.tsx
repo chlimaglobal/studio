@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, History, Landmark, Plus } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getStoredTransactions } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
@@ -16,6 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
+import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 
 
 const LogoIcon = () => (
@@ -27,6 +30,9 @@ const LogoIcon = () => (
 export default function DashboardHeader() {
   const [totalBalance, setTotalBalance] = useState(0);
   const [userName, setUserName] = useState('Bem-vindo(a)!');
+  const [userEmail, setUserEmail] = useState('');
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   useEffect(() => {
     const calculateBalance = () => {
@@ -38,8 +44,10 @@ export default function DashboardHeader() {
     };
 
     const updateUserData = () => {
-        const storedName = localStorage.getItem('userName');
-        setUserName(storedName || 'Bem-vindo(a)!');
+        const storedName = localStorage.getItem('userName') || 'Bem-vindo(a)!';
+        setUserName(storedName);
+        const storedEmail = localStorage.getItem('userEmail') || 'seu@email.com';
+        setUserEmail(storedEmail);
     }
 
     calculateBalance();
@@ -54,19 +62,54 @@ export default function DashboardHeader() {
     }
   }, []);
 
+  const handleLogout = () => {
+      router.push('/login');
+  };
+
+  const toggleTheme = () => {
+      setTheme(theme === 'dark' ? 'light' : 'dark');
+  }
+
   return (
-    <header className="sticky top-0 z-10 flex h-auto flex-col gap-4 bg-background pt-4">
+    <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background pt-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-           <Avatar className="h-10 w-10">
-                <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
-                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-                <p className="text-sm text-muted-foreground">Bem-vindo(a)!</p>
-                <p className="text-base font-semibold capitalize">{userName}</p>
-            </div>
-        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-2 cursor-pointer">
+                    <Avatar className="h-10 w-10">
+                        <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
+                        <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+                 <DropdownMenuLabel>
+                     <div className='flex items-center gap-2'>
+                        <span className="font-semibold capitalize">{userName}</span>
+                        <Badge variant="outline" className='border-green-500 text-green-500'>PLUS</Badge>
+                     </div>
+                     <p className='text-xs text-muted-foreground font-normal'>{userEmail}</p>
+                 </DropdownMenuLabel>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>Planos</span>
+                 </DropdownMenuItem>
+                 <DropdownMenuItem>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    <span>Cancelar assinatura</span>
+                 </DropdownMenuItem>
+                  <DropdownMenuItem onClick={toggleTheme}>
+                    <Sun className="mr-2 h-4 w-4" />
+                    <span>{theme === 'dark' ? 'Light' : 'Dark'} tema</span>
+                 </DropdownMenuItem>
+                 <DropdownMenuSeparator />
+                 <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                 </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon">
@@ -80,31 +123,6 @@ export default function DashboardHeader() {
                 <span className="text-sm text-muted-foreground">Saldo total em contas</span>
                 <span className="text-2xl font-bold">{formatCurrency(totalBalance)}</span>
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" className="w-auto justify-between h-10 px-4 rounded-full">
-                        <span>Minhas Contas</span>
-                        <ChevronDown className="h-5 w-5" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Contas Disponíveis</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <Landmark className="mr-2 h-4 w-4" />
-                        <span>Conta Principal</span>
-                    </DropdownMenuItem>
-                     <DropdownMenuItem disabled>
-                        <Landmark className="mr-2 h-4 w-4" />
-                        <span>Investimentos</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                        <Plus className="mr-2 h-4 w-4" />
-                        <span>Adicionar Conta</span>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
        </div>
     </header>
   );
