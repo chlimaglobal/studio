@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 
 const LogoIcon = () => (
@@ -33,6 +34,7 @@ export default function DashboardHeader() {
   const [userEmail, setUserEmail] = useState('');
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     const calculateBalance = () => {
@@ -70,6 +72,13 @@ export default function DashboardHeader() {
       setTheme(theme === 'dark' ? 'light' : 'dark');
   }
 
+  const showPlaceholderToast = () => {
+    toast({
+      title: 'Funcionalidade em Breve',
+      description: 'Esta opção ainda não foi implementada.',
+    });
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background pt-4">
       <div className="flex items-center justify-between">
@@ -78,7 +87,7 @@ export default function DashboardHeader() {
                 <div className="flex items-center gap-2 cursor-pointer">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
-                        <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
+                        <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </div>
             </DropdownMenuTrigger>
@@ -91,11 +100,11 @@ export default function DashboardHeader() {
                      <p className='text-xs text-muted-foreground font-normal'>{userEmail}</p>
                  </DropdownMenuLabel>
                  <DropdownMenuSeparator />
-                 <DropdownMenuItem>
+                 <DropdownMenuItem onClick={showPlaceholderToast}>
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Planos</span>
                  </DropdownMenuItem>
-                 <DropdownMenuItem>
+                 <DropdownMenuItem onClick={showPlaceholderToast}>
                     <XCircle className="mr-2 h-4 w-4" />
                     <span>Cancelar assinatura</span>
                  </DropdownMenuItem>
@@ -112,7 +121,7 @@ export default function DashboardHeader() {
         </DropdownMenu>
 
         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={showPlaceholderToast}>
                 <History className="h-6 w-6" />
             </Button>
             <LogoIcon />
