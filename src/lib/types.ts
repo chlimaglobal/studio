@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const transactionCategories = [
@@ -37,16 +36,19 @@ export const transactionCategories = [
 export type TransactionCategory = (typeof transactionCategories)[number];
 
 export const TransactionFormSchema = z.object({
-  description: z.string().min(3, {
-    message: "A descrição deve ter pelo menos 3 caracteres.",
+  description: z.string().min(2, {
+    message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
   amount: z.coerce.number({invalid_type_error: "Por favor, insira um valor válido."}).positive({ message: "O valor deve ser um número positivo." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
+  paymentType: z.string().min(1, 'Tipo de pagamento é obrigatório.'),
+  receivedFrom: z.string().optional(),
   category: z.enum(transactionCategories, {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
   }),
-  creditCard: z.string().optional(),
+  paid: z.boolean().default(false),
+  creditCard: z.string().optional(), // This is still useful for credit card transactions
 }).refine(data => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
@@ -65,5 +67,8 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   category: TransactionCategory;
+  paymentType: string;
+  receivedFrom?: string;
+  paid: boolean;
   creditCard?: string;
 };
