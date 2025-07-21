@@ -43,7 +43,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="seu@email.com" required defaultValue="paulo.dutra@example.com" />
+              <Input id="email" type="email" placeholder="seu@email.com" required defaultValue="marcos.lima@example.com" />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

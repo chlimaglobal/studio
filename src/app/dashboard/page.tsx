@@ -26,9 +26,13 @@ interface SummaryData {
 const AiTipsCard = () => {
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
   const getTips = useCallback(async () => {
     setIsLoading(true);
+    const storedName = localStorage.getItem('userName') || 'Usuário';
+    setUserName(storedName.split(' ')[0]); // Get first name
+
     const transactions = getStoredTransactions();
     if (transactions.length > 2) { // Only run if there's some data
         try {
@@ -46,9 +50,13 @@ const AiTipsCard = () => {
 
   useEffect(() => {
     getTips();
-    window.addEventListener('storage', getTips);
-    return () => window.removeEventListener('storage', getTips);
+    const handleStorageChange = () => {
+      getTips();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [getTips]);
+
 
   if (isLoading || !tips || tips.suggestions.length === 0) {
     return null; // Don't show card if loading, no tips, or error
@@ -64,7 +72,7 @@ const AiTipsCard = () => {
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <p className="text-muted-foreground">
-          Paulo Dutra, olha só onde você pode estar errando nos seus gastos deste mês:
+          {userName}, olha só onde você pode estar errando nos seus gastos deste mês:
         </p>
         {tips.suggestions.slice(0, 1).map((tip, index) => (
              <div key={index} className="p-3 rounded-lg bg-background/50">
@@ -244,4 +252,5 @@ export default function DashboardPage() {
   );
 
     
+
 

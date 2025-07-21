@@ -44,7 +44,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const storedUserName = localStorage.getItem('userName') || 'Paulo Dutra';
+    const storedUserName = localStorage.getItem('userName') || 'Marcos Lima';
     setUserName(storedUserName);
 
     const storedUserEmail = localStorage.getItem('userEmail') || '';
