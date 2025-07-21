@@ -36,7 +36,7 @@
 
     --chart-1: 142 76% 51%; /* Green */
     --chart-2: 347 77% 60%; /* Red/Pink */
-    --chart-3: 262 84% 58%; /* Purple */
+    --chart-3: 262 84% 58%; /* Purple - Same as primary */
     --chart-4: 45 90% 70%;
     --chart-5: 50 80% 60%;
   }
@@ -72,7 +72,7 @@
 
     --chart-1: 142 76% 51%; /* Green */
     --chart-2: 347 77% 60%; /* Red/Pink */
-    --chart-3: 262 84% 58%; /* Purple */
+    --chart-3: 262 84% 58%; /* Purple - Same as primary */
     --chart-4: 45 90% 70%;
     --chart-5: 50 80% 60%;
   }
@@ -87,3 +87,5 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
+    

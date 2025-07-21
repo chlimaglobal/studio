@@ -190,7 +190,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3 text-center px-0">
         <Card className="bg-secondary p-2">
             <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                 <div className="w-4 h-4 rounded-full border-2 border-[hsl(var(--chart-1))]"></div>
+                 <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
                 <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
@@ -199,7 +199,7 @@ export default function DashboardPage() {
         </Card>
          <Card className="bg-secondary p-2">
             <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                <div className="w-4 h-4 rounded-full border-2 border-[hsl(var(--chart-2))]"></div>
+                <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
                 <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
@@ -254,3 +254,6 @@ export default function DashboardPage() {
     
 
 
+
+
+    
