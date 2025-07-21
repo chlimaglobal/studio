@@ -18,7 +18,7 @@ export default function DashboardHeader() {
   const currentDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-white/10 bg-background px-4">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between bg-background px-4">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon">
           <ChevronLeft className="h-6 w-6" />

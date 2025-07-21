@@ -9,12 +9,11 @@ import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
 import { useEffect, useState } from 'react';
 import { getStoredCards } from '@/lib/storage';
-import { CardDetailsDialog } from '@/components/card-details-dialog';
+import Link from 'next/link';
 
 
 export default function CardsPage() {
   const [cards, setCards] = useState<CardType[]>([]);
-  const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   const fetchCards = () => {
@@ -56,32 +55,32 @@ export default function CardsPage() {
         {cards.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {cards.map((card) => (
-              <Card 
-                key={card.id} 
-                className="flex flex-col cursor-pointer hover:border-primary/50 transition-colors"
-                onClick={() => setSelectedCard(card)}
-              >
-                <CardHeader className="flex flex-row items-start justify-between gap-4">
-                  <div>
-                      <CardTitle>{card.name}</CardTitle>
-                      <CardDescription className="capitalize">{card.brand}</CardDescription>
-                  </div>
-                  <CardIcon brand={card.brand} className="w-12 h-auto" />
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  {/* Future content can go here, like limits, current balance, etc. */}
-                </CardContent>
-                <CardFooter className="bg-muted/50 p-4 rounded-b-lg text-sm text-muted-foreground flex justify-between">
-                  <div className='flex items-center gap-2'>
-                      <Calendar className="h-4 w-4" />
-                      <span>Fecha dia {card.closingDay}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Vence dia {card.dueDay}</span>
-                  </div>
-                </CardFooter>
-              </Card>
+              <Link key={card.id} href={`/dashboard/cards/${encodeURIComponent(card.name)}`} passHref>
+                <Card 
+                  className="flex flex-col cursor-pointer hover:border-primary/50 transition-colors h-full"
+                >
+                  <CardHeader className="flex flex-row items-start justify-between gap-4">
+                    <div>
+                        <CardTitle>{card.name}</CardTitle>
+                        <CardDescription className="capitalize">{card.brand}</CardDescription>
+                    </div>
+                    <CardIcon brand={card.brand} className="w-12 h-auto" />
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    {/* Future content can go here, like limits, current balance, etc. */}
+                  </CardContent>
+                  <CardFooter className="bg-muted/50 p-4 rounded-b-lg text-sm text-muted-foreground flex justify-between">
+                    <div className='flex items-center gap-2'>
+                        <Calendar className="h-4 w-4" />
+                        <span>Fecha dia {card.closingDay}</span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Vence dia {card.dueDay}</span>
+                    </div>
+                  </CardFooter>
+                </Card>
+              </Link>
             ))}
           </div>
         ) : (
@@ -100,16 +99,6 @@ export default function CardsPage() {
           </div>
         )}
       </div>
-
-      <CardDetailsDialog
-        card={selectedCard}
-        open={!!selectedCard}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setSelectedCard(null);
-          }
-        }}
-      />
     </>
   );
 }

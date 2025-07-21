@@ -2,14 +2,15 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2 } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Transaction } from '@/lib/types';
 import { getStoredTransactions } from '@/lib/storage';
+import { Button } from '@/components/ui/button';
 
 interface SummaryData {
   recebidos: number;
@@ -26,7 +27,14 @@ const formatCurrency = (amount: number) => {
 
 export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [transactions, setTransactions] = useState<Transaction[]>(() => getStoredTransactions());
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+    useEffect(() => {
+        const fetchTransactions = () => setTransactions(getStoredTransactions());
+        fetchTransactions();
+        window.addEventListener('storage', fetchTransactions);
+        return () => window.removeEventListener('storage', fetchTransactions);
+    }, []);
 
     const handlePrevMonth = () => {
         setCurrentMonth(subMonths(currentMonth, 1));
@@ -54,7 +62,7 @@ export default function DashboardPage() {
 
         for (let i = 6; i >= 0; i--) {
             const date = subMonths(new Date(), i);
-            const monthKey = format(date, 'MM/yyyy');
+            const monthKey = format(date, 'MM/yy');
             dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
 
@@ -80,15 +88,19 @@ export default function DashboardPage() {
         }));
     };
     
-    const chartData = generateChartData(transactions);
+    const chartData = useMemo(() => generateChartData(transactions), [transactions]);
 
 
   return (
     <div className="space-y-6">
-      <Button variant="secondary" className="w-full justify-between h-12">
-        <span>Saldo em contas</span>
-        <ChevronDown className="h-5 w-5" />
-      </Button>
+      <DashboardHeader />
+
+      <div className="px-4">
+        <Button variant="secondary" className="w-full justify-between h-12">
+            <span>Saldo em contas</span>
+            <ChevronDown className="h-5 w-5" />
+        </Button>
+      </div>
 
       <div className="flex items-center justify-center gap-4">
         <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
@@ -102,9 +114,10 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-3 gap-3 text-center">
+      <div className="grid grid-cols-3 gap-3 text-center px-4">
         <Card className="bg-secondary p-2">
-            <CardHeader className="p-1">
+            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
+                 <div className="w-4 h-4 rounded-full border-2 border-green-400"></div>
                 <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
@@ -131,7 +144,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-       <div>
+       <div className="px-4">
         <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
         <div className="h-[250px] w-full">
             <FinancialChart data={chartData} />
