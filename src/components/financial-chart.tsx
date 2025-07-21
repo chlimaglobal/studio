@@ -76,6 +76,11 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                     iconType="circle"
                     iconSize={8}
                     wrapperStyle={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))', paddingTop: '10px' }}
+                    payload={[
+                        { value: 'A receber', type: 'circle', id: 'aReceber', color: 'hsl(var(--chart-1))' },
+                        { value: 'A pagar', type: 'circle', id: 'aPagar', color: 'hsl(var(--chart-2))' },
+                        { value: 'Resultado', type: 'circle', id: 'resultado', color: 'hsl(var(--chart-3))' },
+                    ]}
                 />
                 <Area type="monotone" dataKey="resultado" name="Resultado" stroke="hsl(var(--chart-3))" strokeWidth={2} fill="url(#colorResultado)" activeDot={{r: 6}} />
                 <Line type="monotone" dataKey="aReceber" name="A receber" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={<CustomizedDot />} />
