@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, Card as UICard } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, History, ArrowUp, ArrowDown, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, ArrowUp, ArrowDown, BarChart2, MoreHorizontal } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -101,7 +101,7 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                 </UICard>
                 <UICard className="bg-secondary p-3">
                     <CardHeader className="p-1 flex-row items-center gap-2">
-                        <BarChart2 className="h-4 w-4 text-green-400" />
+                        <BarChart2 className="h-4 w-4 text-primary" />
                         <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
                     </CardHeader>
                     <CardContent className="p-1">
@@ -120,28 +120,37 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                     <div className="text-right">Pago</div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 items-center">
-                    <div className="text-left font-semibold">{formatCurrency(1320.00)}</div>
-                    <div className="text-left text-sm flex items-center gap-2">
-                        <ArrowDown className="h-4 w-4 text-green-400 bg-green-400/20 p-0.5 rounded-full"/>
-                        <span>À vista</span>
+                <div className="grid grid-cols-4 gap-4 items-center">
+                    <div className="text-left font-semibold col-span-1">{formatCurrency(86.25)}</div>
+                    <div className="text-left text-sm col-span-2">
+                         <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-orange-400/20 text-orange-400">4/4</Badge>
+                            <span>Parcelado</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Mensal</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex justify-end items-center gap-1">
                         <Switch defaultChecked={true} />
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 items-center">
-                    <div className="text-left font-semibold">{formatCurrency(1560.90)}</div>
-                    <div className="text-left text-sm">
+                <div className="grid grid-cols-4 gap-4 items-center">
+                    <div className="text-left font-semibold col-span-1">{formatCurrency(1560.90)}</div>
+                    <div className="text-left text-sm col-span-2">
                         <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-green-400/20 text-green-400">8/12</Badge>
+                            <Badge variant="secondary" className="bg-green-400/20 text-green-400">9/12</Badge>
                             <span>Recorrente</span>
                         </div>
                         <p className="text-xs text-muted-foreground">Mensal</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex justify-end items-center gap-1">
                         <Switch defaultChecked={true} />
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -149,8 +158,8 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
 
         {/* FAB and Action Button */}
         <div className="p-4 flex items-center justify-center gap-4">
-                <Button className="flex-1 bg-primary/80 hover:bg-primary text-lg font-bold">
-                    também
+                <Button className="flex-1 bg-primary hover:bg-primary/90 text-lg font-bold rounded-full">
+                    Assinante
                 </Button>
                 <Button asChild size="icon" className="rounded-full h-14 w-14 bg-primary text-primary-foreground text-3xl">
                     <AddTransactionSheet.Trigger>

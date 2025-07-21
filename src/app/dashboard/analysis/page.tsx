@@ -3,7 +3,7 @@
 
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback } from 'react';
 import { getStoredTransactions } from '@/lib/storage';
@@ -12,28 +12,22 @@ import { Button } from '@/components/ui/button';
 export default function AnalysisPage() {
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastAnalysisHash, setLastAnalysisHash] = useState<string | null>(null);
 
-  const getTransactionsHash = (transactions: any[]): string => {
-    // Cria um "hash" simples baseado nos IDs das transações para verificar se houve mudança.
-    return JSON.stringify(transactions.map(t => t.id).sort());
-  };
-  
   const runAnalysis = useCallback(async (force = false) => {
     setIsLoading(true);
     const transactions = getStoredTransactions();
-    const currentHash = getTransactionsHash(transactions);
 
     const cachedAnalysis = localStorage.getItem('financialAnalysis');
+    const transactionsHash = JSON.stringify(transactions.map(t => t.id).sort());
     const cachedHash = localStorage.getItem('financialAnalysisHash');
     
-    if (cachedAnalysis && cachedHash === currentHash && !force) {
+    if (cachedAnalysis && cachedHash === transactionsHash && !force) {
         setAnalysis(JSON.parse(cachedAnalysis));
     } else if (transactions.length > 0) {
         const result = await generateFinancialAnalysis({ transactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
-        localStorage.setItem('financialAnalysisHash', currentHash);
+        localStorage.setItem('financialAnalysisHash', transactionsHash);
     } else {
         const defaultState = {
           diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
@@ -58,7 +52,7 @@ export default function AnalysisPage() {
 
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-full">
+        <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin" />
                 <span>Analisando suas finanças com IA...</span>
@@ -69,7 +63,7 @@ export default function AnalysisPage() {
 
   if (!analysis) {
      return (
-        <div className="text-center text-muted-foreground">
+        <div className="text-center text-muted-foreground p-8">
             <p>Não foi possível gerar a análise. Tente novamente.</p>
         </div>
     );
@@ -96,11 +90,11 @@ export default function AnalysisPage() {
       <Card className="bg-gradient-to-br from-primary/10 to-transparent">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <Lightbulb />
+            <Sparkles />
             Diagnóstico da IA
           </CardTitle>
           <CardDescription>
-            Uma visão geral da sua situação financeira no período.
+            Um resumo da sua situação financeira no período.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Sparkles, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, Sparkles, AlertTriangle, Repeat } from 'lucide-react';
 import { transactionCategories, TransactionFormSchema, TransactionCategory } from '@/lib/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -272,9 +272,13 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
                     </FormItem>
                 )}
                />
-             <SheetFooter className="pt-4">
-                <Button type="submit" className="w-full bg-primary/90 hover:bg-primary">
-                    Como
+             <SheetFooter className="pt-4 flex flex-row gap-2">
+                <Button type="button" variant="outline" className="flex-1">
+                    <Repeat className="mr-2 h-4 w-4"/>
+                    Repetir
+                </Button>
+                <Button type="submit" className="w-full flex-1 bg-primary/90 hover:bg-primary">
+                    Salvar
                 </Button>
             </SheetFooter>
           </form>
