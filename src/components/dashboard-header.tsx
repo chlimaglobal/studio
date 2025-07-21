@@ -1,164 +1,46 @@
 
 'use client';
 
-import Link from 'next/link';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { CircleUser, Menu, Wallet, LayoutDashboard, ArrowRightLeft, BarChart3, Settings, Mic, QrCode, Plus, CreditCard, Activity, Target } from 'lucide-react';
-import { AddTransactionDialog } from './add-transaction-dialog';
-import { ThemeToggle } from './theme-toggle';
-import { QrScannerDialog } from './qr-scanner-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { AudioTransactionDialog } from './audio-transaction-dialog';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { z } from 'zod';
-import { TransactionFormSchema } from '@/lib/types';
-import MobileNavLink from './mobile-nav-link';
+import { ChevronLeft, History } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import Image from 'next/image';
 
+const LogoIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20V14.5C4 13.0667 4.58333 11.8333 5.75 10.8C6.91667 9.76667 8.33333 9.25 10 9.25C11.6667 9.25 13.0833 9.76667 14.25 10.8C15.4167 11.8333 16 13.0667 16 14.5V20H11V14.5C11 14.0333 10.85 13.65 10.55 13.35C10.25 13.05 9.86667 12.9 9.4 12.9C8.93333 12.9 8.55 13.05 8.25 13.35C7.95 13.65 7.8 14.0333 7.8 14.5V20H4ZM12 8L15.3 4H19.5L14 9.5L18 13V15.5L12 8Z" fill="white"/>
+    </svg>
+)
 
 export default function DashboardHeader() {
-  const { toast } = useToast();
-  const router = useRouter();
-  
-  const [addTransactionOpen, setAddTransactionOpen] = useState(false);
-  const [initialData, setInitialData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | undefined>(undefined);
-
-  const [audioOpen, setAudioOpen] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
-    setInitialData(data);
-    setAddTransactionOpen(true);
-  };
-  
-  const handleOpenAddTransaction = () => {
-    setInitialData(undefined);
-    setAddTransactionOpen(true);
-  }
-
-  const handleLogout = () => {
-    toast({
-      title: 'Logout Realizado',
-      description: 'Você saiu da sua conta. Redirecionando...',
-    });
-    router.push('/');
-  };
-
-  const handleSupport = () => {
-     toast({
-      title: 'Suporte',
-      description: 'Em breve, você será redirecionado para a página de suporte.',
-    });
-  }
+  const currentDate = format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetTrigger asChild>
-          <Button size="icon" variant="outline" className="sm:hidden">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Alternar Menu</span>
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
-          <SheetHeader className="text-left">
-            <SheetTitle>Menu</SheetTitle>
-            <SheetDescription>Navegue pelas seções do aplicativo.</SheetDescription>
-          </SheetHeader>
-          <nav className="grid gap-6 text-lg font-medium mt-4">
-            <MobileNavLink href="/dashboard" setOpen={setMobileMenuOpen} className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base">
-                <Wallet className="h-5 w-5 transition-all group-hover:scale-110" />
-                <span className="sr-only">FinanceFlow</span>
-            </MobileNavLink>
-            <MobileNavLink href="/dashboard" setOpen={setMobileMenuOpen}>
-              <LayoutDashboard className="h-5 w-5" />
-              Painel
-            </MobileNavLink>
-             <MobileNavLink href="/dashboard/transactions" setOpen={setMobileMenuOpen}>
-              <ArrowRightLeft className="h-5 w-5" />
-              Transações
-            </MobileNavLink>
-             <MobileNavLink href="/dashboard/cards" setOpen={setMobileMenuOpen}>
-              <CreditCard className="h-5 w-5" />
-              Cartões
-            </MobileNavLink>
-            <MobileNavLink href="/dashboard/goals" setOpen={setMobileMenuOpen}>
-              <Target className="h-5 w-5" />
-              Metas
-            </MobileNavLink>
-            <MobileNavLink href="/dashboard/analysis" setOpen={setMobileMenuOpen}>
-              <Activity className="h-5 w-5" />
-              Análise
-            </MobileNavLink>
-            <MobileNavLink href="/dashboard/reports" setOpen={setMobileMenuOpen}>
-              <BarChart3 className="h-5 w-5" />
-              Relatórios
-            </MobileNavLink>
-            <MobileNavLink href="/dashboard/settings" setOpen={setMobileMenuOpen}>
-              <Settings className="h-5 w-5" />
-              Configurações
-            </MobileNavLink>
-          </nav>
-        </SheetContent>
-      </Sheet>
-
-      <div className="flex w-full items-center gap-4">
-        <div className="flex-1">
-            {/* Can add breadcrumbs or title here if needed */}
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-white/10 bg-background px-4">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon">
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+        <div>
+            <p className="text-sm font-semibold capitalize">{currentDate}</p>
+            <p className="text-xs text-muted-foreground">0:12</p>
         </div>
-        <div className="hidden sm:flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAudioOpen(true)}>
-              <Mic className="mr-2 h-4 w-4" />
-              Usar Voz
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setQrOpen(true)}>
-              <QrCode className="mr-2 h-4 w-4" />
-              Escanear Nota
-            </Button>
-          <Button size="sm" className="gap-1" onClick={handleOpenAddTransaction}>
-            <Plus className="h-4 w-4" />
-            Adicionar Transação
-          </Button>
-
-        </div>
-        <ThemeToggle />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" className="rounded-full">
-              <CircleUser className="h-5 w-5" />
-              <span className="sr-only">Alternar menu do usuário</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => router.push('/dashboard/settings')}>
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleSupport}>
-              Suporte
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleLogout}>
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
-      <AddTransactionDialog open={addTransactionOpen} onOpenChange={setAddTransactionOpen} initialData={initialData} />
-      <AudioTransactionDialog open={audioOpen} onOpenChange={setAudioOpen} onTransactionExtracted={handleTransactionExtracted} />
-      <QrScannerDialog open={qrOpen} onOpenChange={setQrOpen} onTransactionExtracted={handleTransactionExtracted} />
+      <div className="flex items-center gap-4">
+        <LogoIcon />
+        <div className='flex items-center gap-2'>
+            <div className="rounded-md bg-white/10 p-1.5">
+                <Image src="https://placehold.co/24x24.png" alt="Nu Icon" width={18} height={18} data-ai-hint="bank logo" />
+            </div>
+            <Avatar className="h-8 w-8">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
+                <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+        </div>
+      </div>
     </header>
   );
 }

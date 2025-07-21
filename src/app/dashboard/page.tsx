@@ -1,225 +1,143 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scale, TrendingDown, TrendingUp, Wallet, ArrowRightLeft, Eye, EyeOff } from 'lucide-react';
-import FinancialChart from '@/components/financial-chart';
-import TransactionsTable from '@/components/transactions-table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2 } from 'lucide-react';
+import FinancialChart from '@/components/financial-chart';
+import { subMonths, format, addMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useState, useMemo } from 'react';
 import type { Transaction } from '@/lib/types';
-import { Progress } from '@/components/ui/progress';
 import { getStoredTransactions } from '@/lib/storage';
-import { subDays, format } from 'date-fns';
 
-interface FinancialSummary {
-  totalIncome: number;
-  totalExpenses: number;
-  balance: number;
+interface SummaryData {
+  recebidos: number;
+  despesas: number;
+  previsto: number;
 }
 
-interface DailyBalance {
-  dailyBudget: number | null;
-  daysUntilPayday: number | null;
-  paydayProgress: number | null;
-}
-
-export default function DashboardPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [summary, setSummary] = useState<FinancialSummary>({ totalIncome: 0, totalExpenses: 0, balance: 0 });
-  const [dailyBalance, setDailyBalance] = useState<DailyBalance>({ dailyBudget: null, daysUntilPayday: null, paydayProgress: null });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isBalanceVisible, setIsBalanceVisible] = useState(true);
-
-  const fetchData = () => {
-    const fetchedTransactions = getStoredTransactions();
-
-    const transactionsWithDates = fetchedTransactions.map(t => ({...t, date: new Date(t.date)}));
-    setTransactions(transactionsWithDates);
-
-    const totalIncome = transactionsWithDates
-      .filter((t) => t.type === 'income')
-      .reduce((acc, t) => acc + t.amount, 0);
-
-    const totalExpenses = transactionsWithDates
-      .filter((t) => t.type === 'expense')
-      .reduce((acc, t) => acc + t.amount, 0);
-    
-    const balance = totalIncome - totalExpenses;
-    setSummary({ totalIncome, totalExpenses, balance });
-    
-    calculateDailyBalance(balance);
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-
-    window.addEventListener('storage', fetchData);
-    return () => window.removeEventListener('storage', fetchData);
-
-  }, []);
-
-  const calculateDailyBalance = (currentBalance: number) => {
-    const payday = Number(localStorage.getItem('payday'));
-    if (!payday || payday < 1 || payday > 31) {
-      setDailyBalance({ dailyBudget: null, daysUntilPayday: null, paydayProgress: null });
-      return;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-
-    let nextPaydayDate = new Date(currentYear, currentMonth, payday);
-    if (currentDay > payday) {
-      nextPaydayDate = new Date(currentYear, currentMonth + 1, payday);
-    }
-
-    let lastPaydayDate = new Date(currentYear, currentMonth, payday);
-     if (currentDay <= payday) {
-        lastPaydayDate.setMonth(lastPaydayDate.getMonth() - 1);
-    }
-
-
-    const timeDiff = nextPaydayDate.getTime() - today.getTime();
-    const daysUntilPayday = Math.max(0, Math.ceil(timeDiff / (1000 * 3600 * 24)));
-    
-    const totalDaysInCycle = (nextPaydayDate.getTime() - lastPaydayDate.getTime()) / (1000 * 3600 * 24);
-    const daysPassedInCycle = totalDaysInCycle - daysUntilPayday;
-    const paydayProgress = totalDaysInCycle > 0 ? (daysPassedInCycle / totalDaysInCycle) * 100 : 0;
-
-    const dailyBudget = daysUntilPayday > 0 ? currentBalance / daysUntilPayday : currentBalance;
-
-    setDailyBalance({ dailyBudget, daysUntilPayday, paydayProgress });
-  }
-
-  const formatCurrency = (amount: number) => {
-    if (!isBalanceVisible) return 'R$ ●●●●●●';
+const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
     }).format(amount);
-  };
-  
-  const generateChartData = (transactions: Transaction[]) => {
-    const data: { [key: string]: { date: string; income: number; expense: number } } = {};
-    const thirtyDaysAgo = subDays(new Date(), 30);
+};
 
-    for (let i = 0; i < 30; i++) {
-        const date = subDays(new Date(), i);
-        const formattedDate = format(date, 'yyyy-MM-dd');
-        const dayLabel = format(date, 'dd');
-        data[formattedDate] = { date: dayLabel, income: 0, expense: 0 };
-    }
+export default function DashboardPage() {
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [transactions, setTransactions] = useState<Transaction[]>(() => getStoredTransactions());
+
+    const handlePrevMonth = () => {
+        setCurrentMonth(subMonths(currentMonth, 1));
+    };
+
+    const handleNextMonth = () => {
+        setCurrentMonth(addMonths(currentMonth, 1));
+    };
     
-    transactions.forEach(t => {
-        if (t.date >= thirtyDaysAgo) {
-            const formattedDate = format(t.date, 'yyyy-MM-dd');
-            if (data[formattedDate]) {
-                if (t.type === 'income') {
-                    data[formattedDate].income += t.amount;
-                } else {
-                    data[formattedDate].expense += t.amount;
-                }
-            }
+    const summary: SummaryData = useMemo(() => {
+        const monthTransactions = transactions.filter(t => {
+            const tDate = new Date(t.date);
+            return tDate.getMonth() === currentMonth.getMonth() && tDate.getFullYear() === currentMonth.getFullYear();
+        });
+
+        const recebidos = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+        const despesas = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+        const previsto = recebidos - despesas;
+
+        return { recebidos, despesas, previsto };
+    }, [transactions, currentMonth]);
+    
+    const generateChartData = (transactions: Transaction[]) => {
+        const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
+
+        for (let i = 6; i >= 0; i--) {
+            const date = subMonths(new Date(), i);
+            const monthKey = format(date, 'MM/yyyy');
+            dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
-    });
 
-    return Object.values(data).sort((a,b) => a.date.localeCompare(b.date));
-  };
+        transactions.forEach(t => {
+            const tDate = new Date(t.date);
+            const monthKey = format(tDate, 'MM/yyyy');
 
-  const chartData = generateChartData(transactions);
+            if(dataMap.has(monthKey)){
+                const currentData = dataMap.get(monthKey)!;
+                if(t.type === 'income') {
+                    currentData.aReceber += t.amount;
+                } else {
+                    currentData.aPagar += t.amount;
+                }
+                currentData.resultado = currentData.aReceber - currentData.aPagar;
+                dataMap.set(monthKey, currentData);
+            }
+        });
+        
+        return Array.from(dataMap.entries()).map(([date, values]) => ({
+            date,
+            ...values,
+        }));
+    };
+    
+    const chartData = generateChartData(transactions);
 
 
   return (
-    <div className="grid gap-6">
-       <div className="flex justify-end">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsBalanceVisible(!isBalanceVisible)}
-        >
-          {isBalanceVisible ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
-          {isBalanceVisible ? 'Ocultar Saldo' : 'Mostrar Saldo'}
+    <div className="space-y-6">
+      <Button variant="secondary" className="w-full justify-between h-12">
+        <span>Saldo em contas</span>
+        <ChevronDown className="h-5 w-5" />
+      </Button>
+
+      <div className="flex items-center justify-center gap-4">
+        <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <span className="font-semibold capitalize w-28 text-center">
+          {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
+        </span>
+        <Button variant="ghost" size="icon" onClick={handleNextMonth}>
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-500">{formatCurrency(summary.totalIncome)}</div>
-            <p className="text-xs text-muted-foreground">no período</p>
-          </CardContent>
+      
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Card className="bg-secondary p-2">
+            <CardHeader className="p-1">
+                <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
+            </CardHeader>
+            <CardContent className="p-1">
+                 <p className="text-lg font-bold text-green-400">{formatCurrency(summary.recebidos)}</p>
+            </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesas Totais</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-500">{formatCurrency(summary.totalExpenses)}</div>
-            <p className="text-xs text-muted-foreground">no período</p>
-          </CardContent>
+         <Card className="bg-secondary p-2">
+            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
+                <div className="w-4 h-4 rounded-full border-2 border-red-500"></div>
+                <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
+            </CardHeader>
+            <CardContent className="p-1">
+                 <p className="text-lg font-bold text-red-400">{formatCurrency(summary.despesas)}</p>
+            </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
-            <Scale className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary.balance)}</div>
-            <p className="text-xs text-muted-foreground">Balanço total</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Diário</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {dailyBalance.dailyBudget !== null ? (
-              <>
-                <div className="text-2xl font-bold">{formatCurrency(dailyBalance.dailyBudget)}</div>
-                <p className="text-xs text-muted-foreground">
-                  {`para gastar por dia até o próximo pagamento`}
-                </p>
-                {dailyBalance.paydayProgress !== null && (
-                  <div className="mt-2">
-                     <Progress value={dailyBalance.paydayProgress} className="h-2"/>
-                     <p className="text-xs text-muted-foreground text-right mt-1">
-                        {dailyBalance.daysUntilPayday} dias restantes
-                     </p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-sm text-muted-foreground text-center pt-4">
-                <p>Defina sua renda e dia do pagamento nas <Link href="/dashboard/settings" className="underline text-primary">Configurações</Link> para ver seu saldo diário.</p>
-              </div>
-            )}
-          </CardContent>
+         <Card className="bg-secondary p-2">
+            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
+                 <BarChart2 className="h-4 w-4 text-green-400" />
+                <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
+            </CardHeader>
+            <CardContent className="p-1">
+                 <p className="text-lg font-bold text-green-400">{formatCurrency(summary.previsto)}</p>
+            </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Visão Geral (Últimos 30 dias)</CardTitle>
-            <CardDescription>Comparativo de receitas e despesas por dia.</CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <FinancialChart data={chartData} isBalanceVisible={isBalanceVisible} />
-          </CardContent>
-        </Card>
+       <div>
+        <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
+        <div className="h-[250px] w-full">
+            <FinancialChart data={chartData} />
+        </div>
       </div>
+
     </div>
   );
 }

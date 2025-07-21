@@ -1,6 +1,5 @@
-import MainSidebar from '@/components/main-sidebar';
 import DashboardHeader from '@/components/dashboard-header';
-import FloatingActionButton from '@/components/floating-action-button';
+import BottomNavBar from '@/components/bottom-nav-bar';
 
 export default function DashboardLayout({
   children,
@@ -8,16 +7,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen w-full bg-muted/40">
-      <MainSidebar />
-      <div className="flex flex-1 flex-col sm:pl-14">
-        <DashboardHeader />
-        <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-6">{children}</main>
-        <FloatingActionButton />
-        <footer className="text-center p-4 text-xs text-muted-foreground">
-          Marc Incorporação TEC - 2025 - ©™
-        </footer>
-      </div>
+    // The min-h-screen and bg-background are to ensure the whole page has the dark theme
+    <div className="flex flex-col min-h-screen w-full bg-background">
+      <DashboardHeader />
+      <main className="flex-1 overflow-y-auto p-4 pb-24">
+        {children}
+      </main>
+      <BottomNavBar />
     </div>
   );
 }

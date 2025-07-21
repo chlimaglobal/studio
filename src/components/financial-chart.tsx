@@ -1,79 +1,74 @@
 
 'use client';
 
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, Dot } from 'recharts';
 
 interface FinancialChartProps {
-  data: { date: string; income: number; expense: number }[];
-  isBalanceVisible: boolean;
+  data: { date: string; aReceber: number; aPagar: number; resultado: number }[];
 }
 
-export default function FinancialChart({ data, isBalanceVisible }: FinancialChartProps) {
-    const formatCurrency = (value: number) => {
-        if (!isBalanceVisible) return 'R$***';
-        if (value === 0) return 'R$0';
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            notation: 'compact',
-            compactDisplay: 'short',
-        }).format(value);
-    };
+const formatCurrency = (value: number) => {
+    if (value === 0) return '0';
+    return `${(value / 1000).toFixed(0)}k`;
+};
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
-            const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
-            const expense = payload.find((p: any) => p.dataKey === 'expense')?.value || 0;
-            
-            const formatTooltipCurrency = (value: number) => {
-                if (!isBalanceVisible) return 'R$ ●●●●●●';
-                return new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(value);
-            };
-
-            return (
-                <div className="rounded-lg border bg-background p-2 shadow-sm">
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col space-y-1">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                Receita
-                            </span>
-                            <span className="font-bold text-green-500">
-                                {formatTooltipCurrency(income)}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-1">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                                Despesa
-                            </span>
-                            <span className="font-bold text-red-500">
-                                {formatTooltipCurrency(expense)}
-                            </span>
-                        </div>
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="rounded-lg border border-border bg-popover p-3 shadow-sm text-sm">
+                <p className="font-bold mb-2">{label}</p>
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                        <span className="text-muted-foreground">A receber:</span>
+                        <span className="font-semibold">{data.aReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
+                        <span className="text-muted-foreground">A pagar:</span>
+                        <span className="font-semibold">{data.aPagar.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-white"></div>
+                        <span className="text-muted-foreground">Resultado:</span>
+                        <span className="font-semibold">{data.resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     </div>
                 </div>
-            );
-        }
-        return null;
-    };
+            </div>
+        );
+    }
+    return null;
+};
 
-  return (
-    <div className="h-[350px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
-          <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-          <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatCurrency} />
-          <Tooltip
-            cursor={{ fill: 'hsl(var(--muted))' }}
-            content={<CustomTooltip />}
-          />
-          <Bar dataKey="income" fill="hsl(var(--chart-1))" name="Receita" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expense" fill="hsl(var(--chart-2))" name="Despesa" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
+const CustomizedDot = (props: any) => {
+    const { cx, cy, stroke, payload, value } = props;
+
+    if (value !== 0) {
+        return (
+            <Dot {...props} r={4} strokeWidth={2} />
+        );
+    }
+
+    return null;
+};
+
+
+export default function FinancialChart({ data }: FinancialChartProps) {
+    return (
+        <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
+                <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatCurrency} />
+                <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
+                />
+                <Line type="monotone" dataKey="aReceber" name="A Receber" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={<CustomizedDot />} />
+                <Line type="monotone" dataKey="aPagar" name="A Pagar" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={<CustomizedDot />} />
+                <Line type="monotone" dataKey="resultado" name="Resultado" stroke="hsl(var(--chart-3))" strokeWidth={2} dot={<CustomizedDot />} />
+            </LineChart>
+        </ResponsiveContainer>
+    );
 }

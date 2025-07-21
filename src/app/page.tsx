@@ -16,7 +16,7 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="flex items-center gap-2 text-lg text-muted-foreground">
         <Loader2 className="h-6 w-6 animate-spin" />
-        <p>Redirecionando para o painel...</p>
+        <p>Carregando...</p>
       </div>
     </main>
   );
