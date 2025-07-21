@@ -174,7 +174,7 @@ export default function DashboardPage() {
       <DashboardHeader />
 
       <div className="px-0">
-        <Button variant="secondary" className="w-auto justify-between h-12 px-4">
+        <Button variant="secondary" className="w-auto justify-between h-10 px-4">
             <span>Saldo em contas</span>
             <ChevronDown className="h-5 w-5" />
         </Button>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="text-lg font-bold text-[hsl(var(--chart-1))]">{formatCurrency(summary.recebidos)}</p>
+                 <p className="font-bold text-[hsl(var(--chart-1))] break-words text-base md:text-lg">{formatCurrency(summary.recebidos)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="text-lg font-bold text-[hsl(var(--chart-2))]">{formatCurrency(summary.despesas)}</p>
+                 <p className="font-bold text-[hsl(var(--chart-2))] break-words text-base md:text-lg">{formatCurrency(summary.despesas)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="text-lg font-bold text-primary">{formatCurrency(summary.previsto)}</p>
+                 <p className="font-bold text-primary break-words text-base md:text-lg">{formatCurrency(summary.previsto)}</p>
             </CardContent>
         </Card>
       </div>
@@ -255,4 +255,5 @@ export default function DashboardPage() {
 
     </div>
   );
-}
+
+    
