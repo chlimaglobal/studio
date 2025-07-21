@@ -167,13 +167,6 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <DashboardHeader />
 
-      <div className="px-0">
-        <Button variant="secondary" className="w-auto justify-between h-10 px-4">
-            <span>Saldo em contas</span>
-            <ChevronDown className="h-5 w-5" />
-        </Button>
-      </div>
-
       <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
           <ChevronLeft className="h-5 w-5" />
@@ -251,3 +244,4 @@ export default function DashboardPage() {
   );
 
     
+
