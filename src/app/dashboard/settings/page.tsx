@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +32,8 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [fabPosition, setFabPosition] = useState<FabPosition>('right');
   const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState('');
@@ -42,6 +44,12 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    const storedUserName = localStorage.getItem('userName') || 'Paulo Dutra';
+    setUserName(storedUserName);
+
+    const storedUserEmail = localStorage.getItem('userEmail') || '';
+    setUserEmail(storedUserEmail);
+
     const storedFabPosition = localStorage.getItem('fabPosition') as FabPosition;
     if (storedFabPosition) setFabPosition(storedFabPosition);
     
@@ -79,7 +87,6 @@ export default function SettingsPage() {
     if (playPromise !== undefined) {
         playPromise.catch(error => {
             console.error("Audio playback error:", error);
-            // This toast is for debugging and for the user to know about browser settings.
             toast({
                 variant: 'destructive',
                 title: 'Erro ao Tocar Som',
@@ -91,6 +98,8 @@ export default function SettingsPage() {
 
 
   const handleSave = () => {
+    localStorage.setItem('userName', userName);
+    localStorage.setItem('userEmail', userEmail);
     localStorage.setItem('fabPosition', fabPosition);
     localStorage.setItem('pushNotificationsEnabled', String(pushNotificationsEnabled));
     localStorage.setItem('monthlyIncome', monthlyIncome);
@@ -98,7 +107,6 @@ export default function SettingsPage() {
     localStorage.setItem('incomeSound', incomeSound);
     localStorage.setItem('expenseSound', expenseSound);
     
-    // Dispara um evento para notificar outros componentes (como o dashboard) das mudanças.
     window.dispatchEvent(new Event('storage'));
 
     toast({
@@ -108,7 +116,7 @@ export default function SettingsPage() {
   };
 
   if (!isMounted) {
-    return null; // or a skeleton loader
+    return null; 
   }
 
   return (
@@ -120,6 +128,37 @@ export default function SettingsPage() {
         </div>
         <Button onClick={handleSave}>Salvar Alterações</Button>
       </div>
+
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Informações do Perfil</CardTitle>
+          <CardDescription>Edite seus dados pessoais.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                 <div>
+                    <Label htmlFor="user-name">Nome Completo</Label>
+                    <Input 
+                        id="user-name" 
+                        type="text" 
+                        placeholder="Seu nome" 
+                        value={userName}
+                        onChange={(e) => setUserName(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="user-email">Email</Label>
+                    <Input 
+                        id="user-email" 
+                        type="email" 
+                        placeholder="seu@email.com" 
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                    />
+                </div>
+            </div>
+        </CardContent>
+      </Card>
 
        <Card>
         <CardHeader>

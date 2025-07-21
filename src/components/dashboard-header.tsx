@@ -3,14 +3,19 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, History } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import Image from 'next/image';
+import { ChevronDown, History, Landmark, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getStoredTransactions } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/lib/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 
 const LogoIcon = () => (
@@ -21,6 +26,7 @@ const LogoIcon = () => (
 
 export default function DashboardHeader() {
   const [totalBalance, setTotalBalance] = useState(0);
+  const [userName, setUserName] = useState('Bem-vindo(a)!');
 
   useEffect(() => {
     const calculateBalance = () => {
@@ -31,9 +37,21 @@ export default function DashboardHeader() {
         setTotalBalance(balance);
     };
 
+    const updateUserData = () => {
+        const storedName = localStorage.getItem('userName');
+        setUserName(storedName || 'Bem-vindo(a)!');
+    }
+
     calculateBalance();
+    updateUserData();
+
     window.addEventListener('storage', calculateBalance);
-    return () => window.removeEventListener('storage', calculateBalance);
+    window.addEventListener('storage', updateUserData);
+
+    return () => {
+        window.removeEventListener('storage', calculateBalance);
+        window.removeEventListener('storage', updateUserData);
+    }
   }, []);
 
   return (
@@ -42,11 +60,11 @@ export default function DashboardHeader() {
         <div className="flex items-center gap-2">
            <Avatar className="h-10 w-10">
                 <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{userName.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
                 <p className="text-sm text-muted-foreground">Bem-vindo(a)!</p>
-                <p className="text-base font-semibold capitalize">Paulo Dutra</p>
+                <p className="text-base font-semibold capitalize">{userName}</p>
             </div>
         </div>
 
@@ -62,10 +80,31 @@ export default function DashboardHeader() {
                 <span className="text-sm text-muted-foreground">Saldo total em contas</span>
                 <span className="text-2xl font-bold">{formatCurrency(totalBalance)}</span>
             </div>
-             <Button variant="secondary" className="w-auto justify-between h-10 px-4 rounded-full">
-                <span>Minhas Contas</span>
-                <ChevronDown className="h-5 w-5" />
-            </Button>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" className="w-auto justify-between h-10 px-4 rounded-full">
+                        <span>Minhas Contas</span>
+                        <ChevronDown className="h-5 w-5" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Contas Disponíveis</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                        <Landmark className="mr-2 h-4 w-4" />
+                        <span>Conta Principal</span>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem disabled>
+                        <Landmark className="mr-2 h-4 w-4" />
+                        <span>Investimentos</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                        <Plus className="mr-2 h-4 w-4" />
+                        <span>Adicionar Conta</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
        </div>
     </header>
   );

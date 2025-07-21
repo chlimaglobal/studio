@@ -4,14 +4,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard, Target } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard, Target, Settings } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
-  { href: '/dashboard/goals', icon: Target, label: 'Metas' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Perfil' },
 ];
 
 export default function BottomNavBar() {
