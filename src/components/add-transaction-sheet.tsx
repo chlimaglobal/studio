@@ -32,11 +32,10 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from './ui/calendar';
-import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addStoredTransaction, getStoredTransactions } from '@/lib/storage';
 import { z } from 'zod';
 import { Switch } from './ui/switch';
+import { useTransactions } from '@/app/dashboard/layout';
 
 type AddTransactionSheetProps = {
   open: boolean;
@@ -46,7 +45,7 @@ type AddTransactionSheetProps = {
 };
 
 const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: AddTransactionSheetProps) => {
-  const [isSuggesting, startSuggestionTransition] = React.useTransition();
+  const { addTransaction } = useTransactions();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof TransactionFormSchema>>({
@@ -76,45 +75,10 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
       });
     }
   }, [initialData, form, open]);
-  
-  const isUnusualSpending = (newAmount: number, category: TransactionCategory): boolean => {
-    const historicalTransactions = getStoredTransactions().filter(
-      t => t.category === category && t.type === 'expense'
-    );
-    
-    if (historicalTransactions.length < 3) return false;
-
-    const total = historicalTransactions.reduce((acc, t) => acc + t.amount, 0);
-    const average = total / historicalTransactions.length;
-
-    return newAmount > average * 1.3 && average > 50;
-  }
 
   function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
-        addStoredTransaction(values);
-
-        if (values.type === 'income') {
-             toast({
-                title: '🎉 Receita Adicionada!',
-                description: "Ótimo trabalho! Continue investindo no seu futuro."
-            });
-        } else if (values.type === 'expense') {
-            if (isUnusualSpending(values.amount, values.category)) {
-                 toast({
-                    variant: 'destructive',
-                    title: '🚨 Gasto Incomum Detectado!',
-                    description: `Seu gasto em "${values.category}" está acima da sua média.`,
-                    action: <AlertTriangle className="h-5 w-5" />,
-                });
-            } else {
-                 toast({
-                    title: '💸 Despesa Adicionada',
-                    description: `"${values.description}" adicionado. Lembre-se de manter o controle.`
-                });
-            }
-        }
-        
+        addTransaction(values);
         onOpenChange(false);
         form.reset();
     } catch (error) {

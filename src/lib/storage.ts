@@ -30,7 +30,7 @@ export function getStoredTransactions(): Transaction[] {
   return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>) {
+export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Transaction {
   const transactions = getStoredTransactions();
   const newTransaction: Transaction = {
     id: `txn_${Date.now()}`,
@@ -40,8 +40,9 @@ export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>
   };
   transactions.unshift(newTransaction);
   localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
-  // Dispatch a storage event to notify other tabs/windows
-  window.dispatchEvent(new Event('storage'));
+  // This is for other tabs, the main update logic is now in context
+  window.dispatchEvent(new Event('storage')); 
+  return newTransaction;
 }
 
 

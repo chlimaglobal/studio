@@ -3,19 +3,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
-import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2 } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory } from '@/lib/types';
-import { getStoredTransactions } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
+import { useTransactions } from './layout';
 
 interface SummaryData {
   recebidos: number;
@@ -24,6 +24,7 @@ interface SummaryData {
 }
 
 const AiTipsCard = () => {
+  const { transactions } = useTransactions();
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
@@ -33,7 +34,6 @@ const AiTipsCard = () => {
     const storedName = localStorage.getItem('userName') || 'Usuário';
     setUserName(storedName.split(' ')[0]); // Get first name
 
-    const transactions = getStoredTransactions();
     if (transactions.length > 2) { // Only run if there's some data
         try {
             const result = await generateFinancialAnalysis({ transactions });
@@ -46,15 +46,20 @@ const AiTipsCard = () => {
         setTips(null);
     }
     setIsLoading(false);
-  }, []);
+  }, [transactions]);
 
   useEffect(() => {
     getTips();
-    const handleStorageChange = () => {
-      getTips();
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    // Add listener for username changes
+    const updateUsername = () => {
+       const storedName = localStorage.getItem('userName') || 'Usuário';
+       setUserName(storedName.split(' ')[0]);
+    }
+    window.addEventListener('storage', updateUsername);
+
+    return () => window.removeEventListener('storage', updateUsername);
+
   }, [getTips]);
 
 
@@ -91,14 +96,7 @@ const AiTipsCard = () => {
 
 export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-
-    useEffect(() => {
-        const fetchTransactions = () => setTransactions(getStoredTransactions());
-        fetchTransactions();
-        window.addEventListener('storage', fetchTransactions);
-        return () => window.removeEventListener('storage', fetchTransactions);
-    }, []);
+    const { transactions, isLoading } = useTransactions();
 
     const handlePrevMonth = () => {
         setCurrentMonth(subMonths(currentMonth, 1));
@@ -169,6 +167,17 @@ export default function DashboardPage() {
     };
     
     const chartData = useMemo(() => generateChartData(transactions), [transactions]);
+    
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-full p-8">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Carregando seu dashboard...</span>
+                </div>
+            </div>
+        );
+    }
 
 
   return (

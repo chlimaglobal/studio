@@ -3,25 +3,17 @@
 
 import { useEffect, useState } from 'react';
 import type { Transaction } from '@/lib/types';
-import { getStoredTransactions } from '@/lib/storage';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ArrowRightLeft } from 'lucide-react';
+import { useTransactions } from '../layout';
 
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { transactions, isLoading } = useTransactions();
 
-  useEffect(() => {
-    const fetchData = () => {
-      const fetchedTransactions = getStoredTransactions();
-      const transactionsWithDates = fetchedTransactions.map(t => ({...t, date: new Date(t.date)}));
-      setTransactions(transactionsWithDates);
-    };
-
-    fetchData();
-    window.addEventListener('storage', fetchData);
-    return () => window.removeEventListener('storage', fetchData);
-  }, []);
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
 
   return (
     <div className="space-y-6">

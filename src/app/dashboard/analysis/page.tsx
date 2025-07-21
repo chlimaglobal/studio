@@ -5,26 +5,34 @@ import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
-import { useEffect, useState, useCallback } from 'react';
-import { getStoredTransactions } from '@/lib/storage';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { useTransactions } from '../layout';
 
 export default function AnalysisPage() {
+  const { transactions: allTransactions, isLoading: isLoadingTransactions } = useTransactions();
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(true);
+
+  const transactionsHash = useMemo(() => {
+    return JSON.stringify(allTransactions.map(t => t.id).sort());
+  }, [allTransactions]);
 
   const runAnalysis = useCallback(async (force = false) => {
-    setIsLoading(true);
-    const transactions = getStoredTransactions();
-
-    const cachedAnalysis = localStorage.getItem('financialAnalysis');
-    const transactionsHash = JSON.stringify(transactions.map(t => t.id).sort());
-    const cachedHash = localStorage.getItem('financialAnalysisHash');
+    setIsAnalyzing(true);
     
-    if (cachedAnalysis && cachedHash === transactionsHash && !force) {
-        setAnalysis(JSON.parse(cachedAnalysis));
-    } else if (transactions.length > 0) {
-        const result = await generateFinancialAnalysis({ transactions });
+    if (!force) {
+        const cachedAnalysis = localStorage.getItem('financialAnalysis');
+        const cachedHash = localStorage.getItem('financialAnalysisHash');
+        if (cachedAnalysis && cachedHash === transactionsHash) {
+            setAnalysis(JSON.parse(cachedAnalysis));
+            setIsAnalyzing(false);
+            return;
+        }
+    }
+    
+    if (allTransactions.length > 0) {
+        const result = await generateFinancialAnalysis({ transactions: allTransactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', transactionsHash);
@@ -38,19 +46,16 @@ export default function AnalysisPage() {
         localStorage.removeItem('financialAnalysis');
         localStorage.removeItem('financialAnalysisHash');
     }
-    setIsLoading(false);
-  }, []);
+    setIsAnalyzing(false);
+  }, [allTransactions, transactionsHash]);
 
   useEffect(() => {
-    runAnalysis();
-    
-    const handleStorageChange = () => runAnalysis();
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    if (!isLoadingTransactions) {
+      runAnalysis();
+    }
+  }, [isLoadingTransactions, runAnalysis]);
 
-  }, [runAnalysis]);
-
-  if (isLoading) {
+  if (isLoadingTransactions || isAnalyzing) {
     return (
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -81,7 +86,7 @@ export default function AnalysisPage() {
             Sua saúde financeira e dicas personalizadas pela nossa IA.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => runAnalysis(true)} disabled={isLoading}>
+        <Button variant="outline" size="sm" onClick={() => runAnalysis(true)} disabled={isAnalyzing}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Rerrodar Análise
         </Button>

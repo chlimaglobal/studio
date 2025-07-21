@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { History, CreditCard, XCircle, Sun, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getStoredTransactions } from '@/lib/storage';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/lib/types';
 import {
@@ -20,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { useTransactions } from '@/app/dashboard/layout';
 
 
 const LogoIcon = () => (
@@ -29,6 +29,7 @@ const LogoIcon = () => (
 )
 
 export default function DashboardHeader() {
+  const { transactions } = useTransactions();
   const [totalBalance, setTotalBalance] = useState(0);
   const [userName, setUserName] = useState('Bem-vindo(a)!');
   const [userEmail, setUserEmail] = useState('');
@@ -37,29 +38,24 @@ export default function DashboardHeader() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const calculateBalance = () => {
-        const transactions: Transaction[] = getStoredTransactions();
-        const balance = transactions.reduce((acc, t) => {
-            return t.type === 'income' ? acc + t.amount : acc - t.amount;
-        }, 0);
-        setTotalBalance(balance);
-    };
+    const balance = transactions.reduce((acc, t) => {
+        return t.type === 'income' ? acc + t.amount : acc - t.amount;
+    }, 0);
+    setTotalBalance(balance);
+  }, [transactions]);
 
+  useEffect(() => {
     const updateUserData = () => {
-        const storedName = localStorage.getItem('userName') || 'Bem-vindo(a)!';
+        const storedName = localStorage.getItem('userName') || 'Marcos Lima';
         setUserName(storedName);
-        const storedEmail = localStorage.getItem('userEmail') || 'seu@email.com';
+        const storedEmail = localStorage.getItem('userEmail') || 'marcos.lima@example.com';
         setUserEmail(storedEmail);
     }
-
-    calculateBalance();
+    
     updateUserData();
-
-    window.addEventListener('storage', calculateBalance);
     window.addEventListener('storage', updateUserData);
 
     return () => {
-        window.removeEventListener('storage', calculateBalance);
         window.removeEventListener('storage', updateUserData);
     }
   }, []);
