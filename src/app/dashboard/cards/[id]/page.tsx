@@ -10,14 +10,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AddTransactionSheet } from '@/components/add-transaction-sheet';
 import { useState } from 'react';
-
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-};
+import { formatCurrency } from '@/lib/utils';
 
 
 export default function CardDetailsPage({ params }: { params: { id: string } }) {

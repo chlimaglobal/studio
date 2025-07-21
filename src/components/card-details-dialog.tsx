@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import CardIcon from './card-icon';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -24,13 +24,6 @@ interface CardDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-  };
 
 export function CardDetailsDialog({ card, open, onOpenChange }: CardDetailsDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);

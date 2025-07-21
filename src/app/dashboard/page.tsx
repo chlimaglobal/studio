@@ -15,19 +15,13 @@ import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils';
 
 interface SummaryData {
   recebidos: number;
   despesas: number;
   previsto: number;
 }
-
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-};
 
 const AiTipsCard = () => {
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);

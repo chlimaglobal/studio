@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import type { Transaction } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -29,13 +29,6 @@ interface TransactionsTableProps {
 
 export default function TransactionsTable({ transactions }: TransactionsTableProps) {
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-  };
 
   const handleRowClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);

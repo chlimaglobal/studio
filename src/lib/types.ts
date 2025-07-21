@@ -42,13 +42,13 @@ export const TransactionFormSchema = z.object({
   amount: z.coerce.number({invalid_type_error: "Por favor, insira um valor válido."}).positive({ message: "O valor deve ser um número positivo." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
-  paymentType: z.string().min(1, 'Tipo de pagamento é obrigatório.'),
+  paymentType: z.string().optional(),
   receivedFrom: z.string().optional(),
   category: z.enum(transactionCategories, {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
   }),
   paid: z.boolean().default(false),
-  creditCard: z.string().optional(), // This is still useful for credit card transactions
+  creditCard: z.string().optional(),
 }).refine(data => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
@@ -67,8 +67,8 @@ export type Transaction = {
   amount: number;
   type: 'income' | 'expense';
   category: TransactionCategory;
-  paymentType: string;
+  paymentType?: string;
   receivedFrom?: string;
-  paid: boolean;
+  paid?: boolean;
   creditCard?: string;
 };

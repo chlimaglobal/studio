@@ -10,6 +10,7 @@ import CategoryPieChart from '@/components/category-pie-chart';
 import { transactionCategories } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { formatCurrency } from '@/lib/utils';
 
 interface CategorySpending {
   name: TransactionCategory;
@@ -47,13 +48,6 @@ export default function ReportsPage() {
       .sort((a, b) => b.value - a.value);
   }, [transactions]);
   
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-  };
-
   const totalExpenses = useMemo(() => {
     return categorySpendingData.reduce((acc, curr) => acc + curr.value, 0);
   }, [categorySpendingData]);
@@ -99,7 +93,7 @@ export default function ReportsPage() {
                             return (
                                 <li key={item.name} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50">
                                     <div className="flex items-center gap-2">
-                                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `hsl(var(--chart-${(index % 2) + 1}))` }}></span>
+                                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))` }}></span>
                                         <span>{item.name}</span>
                                     </div>
                                     <div className="text-right">

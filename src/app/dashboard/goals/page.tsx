@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import type { Goal } from '@/lib/goal-types';
 import { getStoredGoals } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -29,13 +30,6 @@ export default function GoalsPage() {
     window.addEventListener('storage', fetchGoals);
     return () => window.removeEventListener('storage', fetchGoals);
   }, []);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(amount);
-  };
   
   const calculateProgress = (current: number, target: number) => {
     if (target <= 0) return 0;

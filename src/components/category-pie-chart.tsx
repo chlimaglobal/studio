@@ -2,6 +2,7 @@
 'use client';
 
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { formatCurrency } from '@/lib/utils';
 
 interface CategoryPieChartProps {
   data: { name: string; value: number }[];
@@ -20,12 +21,11 @@ const CustomTooltip = ({ active, payload }: any) => {
     const data = payload[0].payload;
     const value = payload[0].value;
     const percentage = (payload[0].percent * 100).toFixed(2);
-    const formattedValue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
+    
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm text-sm">
         <p className="font-medium">{data.name}</p>
-        <p className="text-muted-foreground">{`${formattedValue} (${percentage}%)`}</p>
+        <p className="text-muted-foreground">{`${formatCurrency(value)} (${percentage}%)`}</p>
       </div>
     );
   }
