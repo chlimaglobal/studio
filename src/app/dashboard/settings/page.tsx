@@ -12,8 +12,6 @@ import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, P
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bufferToBase64Url } from '@/lib/utils';
-
 
 type FabPosition = 'left' | 'right';
 
@@ -203,8 +201,8 @@ export default function SettingsPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Perfil e Segurança</CardTitle>
-          <CardDescription>Edite seus dados pessoais e gerencie o acesso à sua conta.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Perfil</CardTitle>
+          <CardDescription>Edite seus dados pessoais.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -231,7 +229,15 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-            
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
+          <CardDescription>Gerencie o acesso à sua conta.</CardDescription>
+        </CardHeader>
+        <CardContent>
             <div className="space-y-2">
                 <Label>Acesso Biométrico</Label>
                  {isBiometricSupported ? (
