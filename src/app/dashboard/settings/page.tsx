@@ -12,6 +12,7 @@ import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, P
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { bufferToBase64Url } from '@/lib/utils';
 
 type FabPosition = 'left' | 'right';
 
@@ -117,9 +118,9 @@ export default function SettingsPage() {
 
         const credential = await navigator.credentials.create({ publicKey: options });
         
-        if (credential && 'id' in credential) {
+        if (credential && (credential as PublicKeyCredential).id) {
             // In a real app, send credential to the server to store public key
-            localStorage.setItem('webauthn-credential-id', credential.id);
+            localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
             setIsBiometricRegistered(true);
             toast({
                 title: 'Sucesso!',

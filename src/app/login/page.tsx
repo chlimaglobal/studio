@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2, Fingerprint } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { base64UrlToBuffer, bufferToBase64Url } from '@/lib/utils';
+import { base64UrlToBuffer } from '@/lib/utils';
 
 const LogoIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -144,3 +144,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+    
