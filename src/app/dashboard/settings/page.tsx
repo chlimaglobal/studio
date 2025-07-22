@@ -107,7 +107,7 @@ export default function SettingsPage() {
                 { type: "public-key", alg: -257 }, // RS256
             ],
             authenticatorSelection: {
-                authenticatorAttachment: "platform", // or "cross-platform"
+                authenticatorAttachment: "platform",
                 userVerification: "required",
                 requireResidentKey: true,
             },
@@ -410,3 +410,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

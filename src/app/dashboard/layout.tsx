@@ -92,7 +92,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             });
         }
     }
-  }, [toast]); //eslint-disable-line
+  }, [toast, transactions]); //eslint-disable-line
 
   return (
     <TransactionsContext.Provider value={{ transactions, addTransaction, isLoading }}>
@@ -118,3 +118,5 @@ export default function DashboardLayout({
     </TransactionsProvider>
   );
 }
+
+    
