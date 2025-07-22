@@ -3,10 +3,9 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { History, CreditCard, XCircle, Sun, LogOut } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
-import type { Transaction } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +19,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/app/dashboard/layout';
+import Link from 'next/link';
 
 
 const LogoIcon = () => (
@@ -96,6 +96,18 @@ export default function DashboardHeader() {
                      <p className='text-xs text-muted-foreground font-normal'>{userEmail}</p>
                  </DropdownMenuLabel>
                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings">
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      <span>Perfil</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                     <Link href="/dashboard/settings">
+                        <Fingerprint className="mr-2 h-4 w-4" />
+                        <span>Segurança</span>
+                    </Link>
+                  </DropdownMenuItem>
                  <DropdownMenuItem onClick={showPlaceholderToast}>
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Planos</span>
