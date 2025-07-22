@@ -245,7 +245,7 @@ export default function SettingsPage() {
                     <Button onClick={handleRegisterBiometrics} disabled={isRegistering || isBiometricRegistered}>
                         {isRegistering ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : null}
+                        ) : ( <Fingerprint className="mr-2 h-4 w-4" />)}
                         {isBiometricRegistered ? 'Cadastrado' : 'Cadastrar'}
                     </Button>
                     </div>
@@ -404,3 +404,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
