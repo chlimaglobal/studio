@@ -118,7 +118,7 @@ export default function SettingsPage() {
 
         const credential = await navigator.credentials.create({ publicKey: options });
         
-        if (credential && (credential as PublicKeyCredential).id) {
+        if (credential && (credential as PublicKeyCredential).rawId) {
             // In a real app, send credential to the server to store public key
             localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
             setIsBiometricRegistered(true);
