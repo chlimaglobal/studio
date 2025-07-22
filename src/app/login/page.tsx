@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Fingerprint } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 const LogoIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,8 +21,8 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleLogin = (event?: React.FormEvent) => {
+    event?.preventDefault();
     setIsLoading(true);
     // Simulate API call
     setTimeout(() => {
@@ -40,7 +41,7 @@ export default function LoginPage() {
           <CardDescription>Insira seus dados para acessar sua conta.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="seu@email.com" required defaultValue="marcos.lima@example.com" />
@@ -58,13 +59,25 @@ export default function LoginPage() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
-            <div className="text-center text-sm">
+          </form>
+
+            <div className="my-4 flex items-center">
+                <div className="flex-grow border-t border-muted"></div>
+                <span className="mx-2 text-xs text-muted-foreground">OU</span>
+                <div className="flex-grow border-t border-muted"></div>
+            </div>
+
+            <Button variant="outline" className="w-full" disabled={isLoading} onClick={() => handleLogin()}>
+                <Fingerprint className="mr-2 h-4 w-4" />
+                Entrar com impressão digital
+            </Button>
+
+            <div className="mt-6 text-center text-sm">
               Não tem uma conta?{' '}
               <Button variant="link" type="button" className="p-0 h-auto">
                 Cadastre-se
               </Button>
             </div>
-          </form>
         </CardContent>
       </Card>
     </main>
