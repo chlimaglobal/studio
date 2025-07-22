@@ -203,63 +203,60 @@ export default function SettingsPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Informações do Perfil</CardTitle>
-          <CardDescription>Edite seus dados pessoais.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Perfil e Segurança</CardTitle>
+          <CardDescription>Edite seus dados pessoais e gerencie o acesso à sua conta.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                 <div>
-                    <Label htmlFor="user-name">Nome Completo</Label>
-                    <Input 
-                        id="user-name" 
-                        type="text" 
-                        placeholder="Seu nome" 
-                        value={userName}
-                        onChange={(e) => setUserName(e.target.value)}
-                    />
+        <CardContent className="space-y-6">
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <Label htmlFor="user-name">Nome Completo</Label>
+                        <Input 
+                            id="user-name" 
+                            type="text" 
+                            placeholder="Seu nome" 
+                            value={userName}
+                            onChange={(e) => setUserName(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="user-email">Email</Label>
+                        <Input 
+                            id="user-email" 
+                            type="email" 
+                            placeholder="seu@email.com" 
+                            value={userEmail}
+                            onChange={(e) => setUserEmail(e.target.value)}
+                        />
+                    </div>
                 </div>
-                <div>
-                    <Label htmlFor="user-email">Email</Label>
-                    <Input 
-                        id="user-email" 
-                        type="email" 
-                        placeholder="seu@email.com" 
-                        value={userEmail}
-                        onChange={(e) => setUserEmail(e.target.value)}
-                    />
-                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <Label>Acesso Biométrico</Label>
+                 {isBiometricSupported ? (
+                    <div className="flex items-center justify-between rounded-md border p-4">
+                    <div>
+                        <p className="font-medium">Login com Impressão Digital</p>
+                        <p className="text-sm text-muted-foreground">
+                        {isBiometricRegistered ? "Acesso biométrico está ativado." : "Cadastre sua digital para um login rápido."}
+                        </p>
+                    </div>
+                    <Button onClick={handleRegisterBiometrics} disabled={isRegistering || isBiometricRegistered}>
+                        {isRegistering ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        {isBiometricRegistered ? 'Cadastrado' : 'Cadastrar'}
+                    </Button>
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground p-4 border rounded-md">O acesso biométrico não é suportado neste navegador ou dispositivo.</p>
+                )}
             </div>
         </CardContent>
       </Card>
       
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
-          <CardDescription>Gerencie o acesso biométrico à sua conta.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isBiometricSupported ? (
-            <div className="flex items-center justify-between rounded-md border p-4">
-              <div>
-                <p className="font-medium">Login com Impressão Digital</p>
-                <p className="text-sm text-muted-foreground">
-                  {isBiometricRegistered ? "Acesso biométrico está ativado." : "Cadastre sua impressão digital para um login rápido e seguro."}
-                </p>
-              </div>
-              <Button onClick={handleRegisterBiometrics} disabled={isRegistering || isBiometricRegistered}>
-                {isRegistering ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {isBiometricRegistered ? 'Cadastrado' : 'Cadastrar'}
-              </Button>
-            </div>
-          ) : (
-             <p className="text-sm text-muted-foreground">O acesso biométrico não é suportado neste navegador ou dispositivo.</p>
-          )}
-        </CardContent>
-      </Card>
-
-       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Configuração Financeira</CardTitle>
           <CardDescription>Informe sua renda para um melhor planejamento e cálculo do fluxo diário.</CardDescription>
