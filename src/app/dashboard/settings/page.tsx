@@ -89,17 +89,22 @@ export default function SettingsPage() {
         const challenge = new Uint8Array(32);
         window.crypto.getRandomValues(challenge);
 
-        const userId = new Uint8Array(16);
-        window.crypto.getRandomValues(userId);
+        let userId = localStorage.getItem('webauthn-user-id');
+        if (!userId) {
+            const newUserId = new Uint8Array(16);
+            window.crypto.getRandomValues(newUserId);
+            userId = bufferToBase64Url(newUserId);
+            localStorage.setItem('webauthn-user-id', userId);
+        }
 
         const options: PublicKeyCredentialCreationOptions = {
             challenge,
             rp: {
-                name: "FinanceFlow App",
+                name: "FinanceFlow",
                 id: window.location.hostname,
             },
             user: {
-                id: userId,
+                id: Uint8Array.from(atob(userId.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
                 name: userEmail,
                 displayName: userName,
             },
@@ -119,7 +124,6 @@ export default function SettingsPage() {
         const credential = await navigator.credentials.create({ publicKey: options });
         
         if (credential && (credential as PublicKeyCredential).rawId) {
-            // In a real app, send credential to the server to store public key
             localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
             setIsBiometricRegistered(true);
             toast({
@@ -130,10 +134,11 @@ export default function SettingsPage() {
 
     } catch (err) {
         console.error("Erro no cadastro biométrico:", err);
+        const error = err as Error;
         toast({
             variant: 'destructive',
             title: 'Falha no Cadastro',
-            description: 'Não foi possível cadastrar a impressão digital. Tente novamente.',
+            description: `Não foi possível cadastrar a impressão digital. (${error.name}: ${error.message})`,
         });
     } finally {
         setIsRegistering(false);
@@ -151,19 +156,23 @@ export default function SettingsPage() {
   
   const playPreviewSound = (soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
+    
+    try {
+      const audio = new Audio(`/${soundFile}`);
+      const playPromise = audio.play();
 
-    const audio = new Audio(`/${soundFile}`);
-    const playPromise = audio.play();
-
-    if (playPromise !== undefined) {
-        playPromise.catch(error => {
-            console.error("Audio playback error:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Tocar Som',
-                description: 'Não foi possível reproduzir o áudio. Verifique as permissões de autoplay do seu navegador para este site.',
-            });
-        });
+      if (playPromise !== undefined) {
+          playPromise.catch(error => {
+              console.error("Audio playback error:", error);
+              toast({
+                  variant: 'destructive',
+                  title: 'Erro ao Tocar Som',
+                  description: 'Não foi possível reproduzir o áudio.',
+              });
+          });
+      }
+    } catch (e) {
+        console.error("Failed to create or play audio:", e)
     }
   };
 
@@ -411,5 +420,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    

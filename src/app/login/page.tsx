@@ -58,6 +58,7 @@ export default function LoginPage() {
             }],
             timeout: 60000,
             userVerification: 'required',
+            rpId: window.location.hostname
         };
 
         const credential = await navigator.credentials.get({ publicKey: options });
@@ -76,10 +77,11 @@ export default function LoginPage() {
 
     } catch (err) {
         console.error("Erro no login biométrico:", err);
+        const error = err as Error;
         toast({
             variant: 'destructive',
             title: 'Falha no Login Biométrico',
-            description: 'Não foi possível autenticar. Por favor, tente novamente ou use sua senha.',
+            description: `Não foi possível autenticar. (${error.name})`,
         });
     } finally {
         setIsBiometricLoading(false);
@@ -144,5 +146,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
-    
