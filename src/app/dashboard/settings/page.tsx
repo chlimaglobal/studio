@@ -8,10 +8,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { bufferToBase64Url } from '@/lib/utils';
 
 
 type FabPosition = 'left' | 'right';
@@ -40,14 +41,24 @@ export default function SettingsPage() {
   const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
   const [expenseSound, setExpenseSound] = useState('swoosh.mp3');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
 
 
   useEffect(() => {
     setIsMounted(true);
+    // Check for WebAuthn support
+    if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+        PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
+            setIsBiometricSupported(supported);
+        });
+    }
+
     const storedUserName = localStorage.getItem('userName') || 'Marcos Lima';
     setUserName(storedUserName);
 
-    const storedUserEmail = localStorage.getItem('userEmail') || '';
+    const storedUserEmail = localStorage.getItem('userEmail') || 'marcos.lima@example.com';
     setUserEmail(storedUserEmail);
 
     const storedFabPosition = localStorage.getItem('fabPosition') as FabPosition;
@@ -67,8 +78,69 @@ export default function SettingsPage() {
 
     const storedExpenseSound = localStorage.getItem('expenseSound');
     if (storedExpenseSound) setExpenseSound(storedExpenseSound);
+    
+    const storedCredential = localStorage.getItem('webauthn-credential-id');
+    if (storedCredential) setIsBiometricRegistered(true);
 
   }, []);
+  
+  const handleRegisterBiometrics = async () => {
+    setIsRegistering(true);
+    try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        const userId = new Uint8Array(16);
+        window.crypto.getRandomValues(userId);
+
+        const options: PublicKeyCredentialCreationOptions = {
+            challenge,
+            rp: {
+                name: "FinanceFlow App",
+                id: window.location.hostname,
+            },
+            user: {
+                id: userId,
+                name: userEmail,
+                displayName: userName,
+            },
+            pubKeyCredParams: [
+                { type: "public-key", alg: -7 }, // ES256
+                { type: "public-key", alg: -257 }, // RS256
+            ],
+            authenticatorSelection: {
+                authenticatorAttachment: "platform", // or "cross-platform"
+                userVerification: "required",
+                requireResidentKey: true,
+            },
+            timeout: 60000,
+            attestation: "direct",
+        };
+
+        const credential = await navigator.credentials.create({ publicKey: options });
+        
+        if (credential && 'id' in credential) {
+            // In a real app, send credential to the server to store public key
+            localStorage.setItem('webauthn-credential-id', credential.id);
+            setIsBiometricRegistered(true);
+            toast({
+                title: 'Sucesso!',
+                description: 'Sua impressão digital foi cadastrada com sucesso.',
+            });
+        }
+
+    } catch (err) {
+        console.error("Erro no cadastro biométrico:", err);
+        toast({
+            variant: 'destructive',
+            title: 'Falha no Cadastro',
+            description: 'Não foi possível cadastrar a impressão digital. Tente novamente.',
+        });
+    } finally {
+        setIsRegistering(false);
+    }
+  }
+
 
   const handleFabPositionChange = (value: FabPosition) => {
     setFabPosition(value);
@@ -157,6 +229,33 @@ export default function SettingsPage() {
                     />
                 </div>
             </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
+          <CardDescription>Gerencie o acesso biométrico à sua conta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isBiometricSupported ? (
+            <div className="flex items-center justify-between rounded-md border p-4">
+              <div>
+                <p className="font-medium">Login com Impressão Digital</p>
+                <p className="text-sm text-muted-foreground">
+                  {isBiometricRegistered ? "Acesso biométrico está ativado." : "Cadastre sua impressão digital para um login rápido e seguro."}
+                </p>
+              </div>
+              <Button onClick={handleRegisterBiometrics} disabled={isRegistering || isBiometricRegistered}>
+                {isRegistering ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                {isBiometricRegistered ? 'Cadastrado' : 'Cadastrar'}
+              </Button>
+            </div>
+          ) : (
+             <p className="text-sm text-muted-foreground">O acesso biométrico não é suportado neste navegador ou dispositivo.</p>
+          )}
         </CardContent>
       </Card>
 

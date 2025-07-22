@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { base64UrlToBuffer, bufferToBase64Url } from '@/lib/utils';
 
 const LogoIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,6 +21,8 @@ const LogoIcon = () => (
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleLogin = (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -29,6 +32,60 @@ export default function LoginPage() {
       router.push('/dashboard');
     }, 1000);
   };
+  
+  const handleBiometricLogin = async () => {
+    setIsBiometricLoading(true);
+    try {
+        const credentialId = localStorage.getItem('webauthn-credential-id');
+        if (!credentialId) {
+            toast({
+                variant: 'destructive',
+                title: 'Impressão Digital não Cadastrada',
+                description: 'Por favor, cadastre sua impressão digital nas configurações do perfil primeiro.',
+            });
+            setIsBiometricLoading(false);
+            return;
+        }
+
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        const options: PublicKeyCredentialRequestOptions = {
+            challenge,
+            allowCredentials: [{
+                type: 'public-key',
+                id: base64UrlToBuffer(credentialId),
+            }],
+            timeout: 60000,
+            userVerification: 'required',
+        };
+
+        const credential = await navigator.credentials.get({ publicKey: options });
+
+        if (credential) {
+            // In a real app, send this to the server for verification
+            console.log('Login com WebAuthn bem-sucedido!', credential);
+            toast({
+                title: 'Login Bem-Sucedido!',
+                description: 'Bem-vindo de volta!',
+            });
+            router.push('/dashboard');
+        } else {
+             throw new Error('Falha ao obter credencial.');
+        }
+
+    } catch (err) {
+        console.error("Erro no login biométrico:", err);
+        toast({
+            variant: 'destructive',
+            title: 'Falha no Login Biométrico',
+            description: 'Não foi possível autenticar. Por favor, tente novamente ou use sua senha.',
+        });
+    } finally {
+        setIsBiometricLoading(false);
+    }
+  }
+
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -67,8 +124,12 @@ export default function LoginPage() {
                 <div className="flex-grow border-t border-muted"></div>
             </div>
 
-            <Button variant="outline" className="w-full" disabled={isLoading} onClick={() => handleLogin()}>
-                <Fingerprint className="mr-2 h-4 w-4" />
+            <Button variant="outline" className="w-full" disabled={isLoading || isBiometricLoading} onClick={handleBiometricLogin}>
+                {isBiometricLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Fingerprint className="mr-2 h-4 w-4" />
+                )}
                 Entrar com impressão digital
             </Button>
 
