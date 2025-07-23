@@ -4,15 +4,137 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { categoryData } from '@/lib/types';
-import { ArrowLeft, Home, MoreHorizontal, Plus, Utensils } from 'lucide-react';
+import { 
+    ArrowLeft, Home, MoreHorizontal, Plus, Utensils, Pizza, Coffee, Bike,
+    UtensilsCrossed, ShoppingCart, Gamepad2, AppWindow, Tv, Smartphone, Wifi,
+    Lightbulb, Refrigerator, Building, HandCoins, Wrench, Droplets, Car, Shield,
+    Stethoscope, Tooth, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
+    Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
+    Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift
+} from 'lucide-react';
 import Link from 'next/link';
 
-// A simple map for category icons, can be expanded
+// A simple map for main category icons
 const categoryIcons: Record<string, React.ElementType> = {
   Moradia: Home,
   Alimentação: Utensils,
+  'Assinaturas/Serviços': Tv,
+  Transporte: Car,
+  Saúde: Stethoscope,
+  'Lazer/Hobbies': PartyPopper,
+  'Dívidas/Empréstimos': CreditCard,
+  Educação: GraduationCap,
+  'Impostos/Taxas': Percent,
+  Investimentos: TrendingUp,
+  Pets: Dog,
+  Salário: Banknote,
+  Vestuário: Shirt,
+  Viagens: Plane,
+  'Cuidado Pessoal': Hand,
+  Finanças: Landmark,
   Outros: MoreHorizontal,
-  // Add other main categories here
+};
+
+// Detailed map for subcategory icons
+const subcategoryIcons: Record<string, React.ElementType> = {
+    // Alimentação
+    "Padaria": Pizza,
+    "Cafeteria": Coffee,
+    "Delivery": Bike,
+    "Restaurante": UtensilsCrossed,
+    "Supermercado": ShoppingCart,
+    // Assinaturas/Serviços
+    "Jogos": Gamepad2,
+    "Aplicativos": AppWindow,
+    "Streamings": Tv,
+    "Telefone/Celular": Smartphone,
+    "Televisão": Tv,
+    "Internet": Wifi,
+    // Moradia
+    "Luz": Lightbulb,
+    "Eletrodomésticos": Refrigerator,
+    "Condomínio": Building,
+    "Aluguel/Prestação": HandCoins,
+    "Reformas": Wrench,
+    "Água": Droplets,
+    // Transporte
+    "IPVA": Car,
+    "Manutenção": Wrench,
+    "Táxi/Uber": Car,
+    "Licenciamento": Car,
+    "Combustível": Pizza,
+    "Multa": Car,
+    // Saúde
+    "Plano de Saúde": Shield,
+    "Plano Odontológico": Tooth,
+    "Consultas": Stethoscope,
+    "Dentista": Tooth,
+    "Exames": FlaskConical,
+    "Farmácia": Pill,
+    // Lazer/Hobbies
+    "Teatro": Drama,
+    "Parques": Trees,
+    "Bares": Beer,
+    "Cinema": Film,
+    "Shows e Eventos": PartyPopper,
+    "Esportes": Swords,
+    // Dívidas/Empréstimos
+    "Empréstimo": Landmark,
+    "Cartão de Crédito": CreditCard,
+    "Cheque Especial": Landmark,
+    "Consórcio": Landmark,
+    "Empréstimo Consignado": Landmark,
+    "Encargos": Percent,
+    // Educação
+    "Cursos": BookOpen,
+    "Faculdade": GraduationCap,
+    "Materiais e Livros": BookOpen,
+    "Escola": School,
+    // Impostos/Taxas
+    "Imposto de Renda": Library,
+    "Tarifa Bancária": Library,
+    "Anuidade Cartão": CreditCard,
+    "Tributos": Library,
+    // Investimentos
+    "Juros": Percent,
+    "Proventos": TrendingUp,
+    "Aplicação": TrendingUp,
+    "Rendimentos": TrendingUp,
+    "Retirada": TrendingUp,
+    // Pets
+    "Banho/Tosa": Droplets,
+    "Acessórios Pet": Dog,
+    "Alimentação Pet": Pizza,
+    "Medicamentos": Pill,
+    "Veterinário": Stethoscope,
+    // Salário
+    "Férias": Plane,
+    "Hora extra": Banknote,
+    "Comissão": Banknote,
+    "13º Salário": Banknote,
+    "Aposentadoria": Banknote,
+    "Trabalho": Briefcase,
+    "Bônus": Banknote,
+    // Vestuário
+    "Calçados": Shirt,
+    "Acessórios": Shirt,
+    "Roupas": Shirt,
+    // Viagens
+    "Hotel": Building,
+    "Passagem": Plane,
+    "Passeio": Plane,
+    // Cuidado Pessoal
+    "Higiene Pessoal": SprayCan,
+    "Manicure": Hand,
+    "Cabeleireiro/Barbeiro": Hand,
+    "Maquiagem": Hand,
+    // Finanças
+    "Financiamento": Landmark,
+    "Renegociação": Landmark,
+    "Seguros": Shield,
+    // Outros
+    "Presentes": Gift,
+    "Compras": ShoppingCart,
 };
 
 
@@ -53,15 +175,17 @@ export default function CategoriesPage() {
                     <h3 className="text-sm font-medium text-muted-foreground text-center">Subcategorias</h3>
                  </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {subcategories.map((subcategory) => (
-                    <div key={subcategory} className="flex items-center gap-3 rounded-lg p-3 bg-secondary/50">
-                        {/* Placeholder for subcategory icons */}
-                        <div className="w-8 h-8 bg-background rounded-md flex items-center justify-center">
-                            <span className="text-xl">💰</span>
+                  {subcategories.map((subcategory) => {
+                    const SubIcon = subcategoryIcons[subcategory] || Landmark;
+                    return (
+                        <div key={subcategory} className="flex items-center gap-3 rounded-lg p-3 bg-secondary/50">
+                            <div className="w-8 h-8 bg-background rounded-md flex items-center justify-center">
+                                <SubIcon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <span className="text-sm font-medium">{subcategory}</span>
                         </div>
-                        <span className="text-sm font-medium">{subcategory}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>
