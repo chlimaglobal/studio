@@ -8,12 +8,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { bufferToBase64Url } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 
 type FabPosition = 'left' | 'right';
@@ -46,7 +47,7 @@ const expenseSounds = [
 const NotificationSwitch = ({ id, label, checked, onCheckedChange }: { id: keyof NotificationSettings, label: string, checked: boolean, onCheckedChange: (id: keyof NotificationSettings, value: boolean) => void }) => (
     <div className="flex items-center justify-between py-3">
         <Label htmlFor={id} className="flex items-center gap-3 cursor-pointer">
-            <CheckCircle className={`h-6 w-6 transition-colors ${checked ? 'text-primary' : 'text-muted-foreground/50'}`} />
+            <CheckCircle className={cn('h-6 w-6 transition-colors', checked ? 'text-primary' : 'text-muted-foreground/50')} />
             <span className="font-normal">{label}</span>
         </Label>
         <Switch
@@ -57,15 +58,61 @@ const NotificationSwitch = ({ id, label, checked, onCheckedChange }: { id: keyof
     </div>
 );
 
+const ThemeSelector = () => {
+    const { theme, setTheme } = useTheme();
+
+    const themes = [
+        { name: 'light', label: 'Claro', gradient: 'from-blue-400 to-white' },
+        { name: 'dark', label: 'Escuro', gradient: 'from-gray-700 to-gray-900' },
+        { name: 'gold', label: 'Dourado', gradient: 'from-yellow-600 to-amber-800' },
+    ];
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5" /> Temas</CardTitle>
+                <CardDescription>Escolha um tema de sua preferência para deixar o app com o seu estilo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    {themes.map((t) => (
+                         <button
+                            key={t.name}
+                            onClick={() => setTheme(t.name)}
+                            className={cn(
+                                'w-full rounded-lg p-4 text-left relative overflow-hidden transition-all duration-300',
+                                theme === t.name && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                            )}
+                        >
+                            <div className={cn('absolute inset-0 bg-gradient-to-r', t.gradient)}></div>
+                            <div className="relative z-10 flex items-center justify-between">
+                                 <span className={cn('font-semibold', (t.name === 'light') ? 'text-black' : 'text-white')}>
+                                    {t.label}
+                                </span>
+                                {theme === t.name && (
+                                     <div className={cn('w-6 h-6 rounded-full flex items-center justify-center', (t.name === 'light') ? 'bg-black/20 text-white' : 'bg-white/30 text-white')}>
+                                        <Check className="w-4 h-4" />
+                                    </div>
+                                )}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                 <Button variant="link" className="p-0 text-sm h-auto text-muted-foreground">
+                    Tem alguma sugestão de tema? Toque aqui para nos sugerir.
+                </Button>
+            </CardContent>
+        </Card>
+    );
+};
+
+
 export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [fabPosition, setFabPosition] = useState<FabPosition>('right');
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
@@ -103,13 +150,7 @@ export default function SettingsPage() {
 
     const storedUserEmail = localStorage.getItem('userEmail') || 'marcos.lima@example.com';
     setUserEmail(storedUserEmail);
-
-    const storedFabPosition = localStorage.getItem('fabPosition') as FabPosition;
-    if (storedFabPosition) setFabPosition(storedFabPosition);
     
-    const storedPushEnabled = localStorage.getItem('pushNotificationsEnabled');
-    setPushNotificationsEnabled(storedPushEnabled === null ? true : storedPushEnabled === 'true');
-
     const storedIncome = localStorage.getItem('monthlyIncome');
     if (storedIncome) setMonthlyIncome(storedIncome);
 
@@ -194,15 +235,9 @@ export default function SettingsPage() {
     }
   }
 
-
-  const handleFabPositionChange = (value: FabPosition) => {
-    setFabPosition(value);
-  };
-
   const handleNotificationChange = (id: keyof NotificationSettings, value: boolean) => {
     setNotifications(prev => ({ ...prev, [id]: value }));
   };
-
   
   const playPreviewSound = (soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
@@ -230,8 +265,6 @@ export default function SettingsPage() {
   const handleSave = () => {
     localStorage.setItem('userName', userName);
     localStorage.setItem('userEmail', userEmail);
-    localStorage.setItem('fabPosition', fabPosition);
-    localStorage.setItem('pushNotificationsEnabled', String(pushNotificationsEnabled));
     localStorage.setItem('monthlyIncome', monthlyIncome);
     localStorage.setItem('payday', payday);
     localStorage.setItem('incomeSound', incomeSound);
@@ -355,68 +388,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Palette className="h-5 w-5" /> Aparência</CardTitle>
-          <CardDescription>Personalize a aparência do aplicativo.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Tema</Label>
-            <RadioGroup
-              value={theme}
-              onValueChange={setTheme}
-              className="grid grid-cols-2 gap-4 sm:grid-cols-4"
-            >
-              <Label htmlFor="theme-light" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="light" id="theme-light" className="sr-only" />
-                 <div className="w-full rounded-md bg-[#ffffff] p-2 shadow-sm flex items-center justify-center">
-                    <Sun className="h-4 w-4 text-black" />
-                 </div>
-                 Claro
-              </Label>
-              <Label htmlFor="theme-dark" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="dark" id="theme-dark" className="sr-only" />
-                 <div className="w-full rounded-md bg-[#09090b] p-2 shadow-sm flex items-center justify-center">
-                    <Moon className="h-4 w-4 text-white" />
-                 </div>
-                 Escuro
-              </Label>
-              <Label htmlFor="theme-blue" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="blue" id="theme-blue" className="sr-only" />
-                 <div className="w-full rounded-md bg-[#eff6ff] p-2 shadow-sm flex items-center justify-center">
-                    <Droplets className="h-4 w-4 text-[#2563eb]" />
-                 </div>
-                 Azul
-              </Label>
-              <Label htmlFor="theme-gold" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="gold" id="theme-gold" className="sr-only" />
-                 <div className="w-full rounded-md bg-[#fffbeb] p-2 shadow-sm flex items-center justify-center">
-                    <Sparkles className="h-4 w-4 text-[#f59e0b]" />
-                 </div>
-                 Dourado
-              </Label>
-            </RadioGroup>
-          </div>
-          <div className="space-y-2">
-            <Label>Posição do Botão Flutuante (Móvel)</Label>
-             <RadioGroup
-              value={fabPosition}
-              onValueChange={(v) => handleFabPositionChange(v as FabPosition)}
-              className="flex items-center gap-4"
-            >
-              <Label htmlFor="fab-left" className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="left" id="fab-left" />
-                Esquerda
-              </Label>
-              <Label htmlFor="fab-right" className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="right" id="fab-right" />
-                Direita
-              </Label>
-            </RadioGroup>
-          </div>
-        </CardContent>
-      </Card>
+      <ThemeSelector />
       
        <Card>
         <CardHeader>
@@ -424,90 +396,76 @@ export default function SettingsPage() {
           <CardDescription>Escolha os tipos de notificações que deseja receber durante seu dia a dia no app.</CardDescription>
         </CardHeader>
         <CardContent className="divide-y divide-border">
-          <div className="flex items-center justify-between py-4">
-            <div className="space-y-0.5">
-              <Label htmlFor="push-notifications" className="text-base">Notificações Push</Label>
-              <p className="text-sm text-muted-foreground">Receba alertas sobre seus gastos e receitas.</p>
-            </div>
-             <Switch
-                id="push-notifications"
-                checked={pushNotificationsEnabled}
-                onCheckedChange={setPushNotificationsEnabled}
-             />
-          </div>
+          
+          <div className="py-4">
+              <div className="divide-y divide-border rounded-lg border bg-background p-4">
+                  <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
+                  <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
+                  <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
+                  <NotificationSwitch id="sync" label="Sincronização com instituições" checked={notifications.sync} onCheckedChange={handleNotificationChange} />
+                  <NotificationSwitch id="promos" label="Ofertas e promoções" checked={notifications.promos} onCheckedChange={handleNotificationChange} />
+              </div>
 
-          {pushNotificationsEnabled && (
-            <div className="py-4">
+              <div className="my-4">
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Target className="h-4 w-4" /> Metas & Limites</h3>
                 <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                    <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="sync" label="Sincronização com instituições" checked={notifications.sync} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="promos" label="Ofertas e promoções" checked={notifications.promos} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="goalsMet" label="Alertas sobre metas alcançadas" checked={notifications.goalsMet} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="spendingLimits" label="Alertas sobre limites de gastos atingidos" checked={notifications.spendingLimits} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="goalReminders" label="Lembretes de quanto falta para alcançar metas" checked={notifications.goalReminders} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="spendingReminders" label="Lembretes de quanto falta para atingir limites" checked={notifications.spendingReminders} onCheckedChange={handleNotificationChange} />
                 </div>
+              </div>
 
-                <div className="my-4">
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Target className="h-4 w-4" /> Metas & Limites</h3>
-                  <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                      <NotificationSwitch id="goalsMet" label="Alertas sobre metas alcançadas" checked={notifications.goalsMet} onCheckedChange={handleNotificationChange} />
-                      <NotificationSwitch id="spendingLimits" label="Alertas sobre limites de gastos atingidos" checked={notifications.spendingLimits} onCheckedChange={handleNotificationChange} />
-                      <NotificationSwitch id="goalReminders" label="Lembretes de quanto falta para alcançar metas" checked={notifications.goalReminders} onCheckedChange={handleNotificationChange} />
-                      <NotificationSwitch id="spendingReminders" label="Lembretes de quanto falta para atingir limites" checked={notifications.spendingReminders} onCheckedChange={handleNotificationChange} />
-                  </div>
+              <div className="my-4">
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Cartão de Crédito</h3>
+                <div className="divide-y divide-border rounded-lg border bg-background p-4">
+                    <NotificationSwitch id="invoiceDue" label="Lembretes de faturas antes do fechamento" checked={notifications.invoiceDue} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="invoiceClosed" label="Lembretes de faturas fechadas" checked={notifications.invoiceClosed} onCheckedChange={handleNotificationChange} />
                 </div>
+              </div>
 
-                <div className="my-4">
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Cartão de Crédito</h3>
-                  <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                      <NotificationSwitch id="invoiceDue" label="Lembretes de faturas antes do fechamento" checked={notifications.invoiceDue} onCheckedChange={handleNotificationChange} />
-                      <NotificationSwitch id="invoiceClosed" label="Lembretes de faturas fechadas" checked={notifications.invoiceClosed} onCheckedChange={handleNotificationChange} />
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-2 rounded-md border p-4">
-                  <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
-                  <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
-                      <div>
-                        <Label htmlFor="income-sound">Som de Receita</Label>
-                        <div className="flex items-center gap-2">
-                          <Select value={incomeSound} onValueChange={setIncomeSound}>
-                              <SelectTrigger id="income-sound">
-                              <SelectValue placeholder="Selecione um som" />
-                              </SelectTrigger>
-                              <SelectContent>
-                              {incomeSounds.map(sound => (
-                                  <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="icon" onClick={() => playPreviewSound(incomeSound)}>
-                            <Play className="h-4 w-4" />
-                          </Button>
-                        </div>
+              <div className="mt-6 space-y-2 rounded-md border p-4">
+                <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
+                <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor="income-sound">Som de Receita</Label>
+                      <div className="flex items-center gap-2">
+                        <Select value={incomeSound} onValueChange={setIncomeSound}>
+                            <SelectTrigger id="income-sound">
+                            <SelectValue placeholder="Selecione um som" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {incomeSounds.map(sound => (
+                                <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" onClick={() => playPreviewSound(incomeSound)}>
+                          <Play className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div>
-                        <Label htmlFor="expense-sound">Som de Despesa</Label>
-                        <div className="flex items-center gap-2">
-                          <Select value={expenseSound} onValueChange={setExpenseSound}>
-                              <SelectTrigger id="expense-sound">
-                              <SelectValue placeholder="Selecione um som" />
-                              </SelectTrigger>
-                              <SelectContent>
-                              {expenseSounds.map(sound => (
-                                  <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                              ))}
-                              </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="icon" onClick={() => playPreviewSound(expenseSound)}>
-                            <Play className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="expense-sound">Som de Despesa</Label>
+                      <div className="flex items-center gap-2">
+                        <Select value={expenseSound} onValueChange={setExpenseSound}>
+                            <SelectTrigger id="expense-sound">
+                            <SelectValue placeholder="Selecione um som" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {expenseSounds.map(sound => (
+                                <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" onClick={() => playPreviewSound(expenseSound)}>
+                          <Play className="h-4 w-4" />
+                        </Button>
                       </div>
-                  </div>
+                    </div>
                 </div>
-            </div>
-          )}
-
+              </div>
+          </div>
         </CardContent>
       </Card>
     </div>
