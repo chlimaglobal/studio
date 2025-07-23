@@ -23,7 +23,6 @@ import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
 
 const menuItems = [
-    // Biometrics is handled separately now
     { 
         icon: UserCircle, 
         title: 'Meu perfil', 
@@ -43,9 +42,8 @@ const menuItems = [
         title: 'Importar extratos', 
         subtitle: 'Arquivos suportados: OFX, CSV, PDF.',
         type: 'link',
-        href: '#' // Placeholder
+        href: '/dashboard/import'
     },
-    // Import notifications is handled separately
     { 
         icon: LayoutGrid, 
         title: 'Minhas categorias', 
