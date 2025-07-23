@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { categoryData } from '@/lib/types';
 import { 
-    ArrowLeft, Home, MoreHorizontal, Plus, Utensils, Pizza, Coffee, Bike,
+    ArrowLeft, Home, MoreHorizontal, Plus, Utensils, Croissant, Coffee, Bike,
     UtensilsCrossed, ShoppingCart, Gamepad2, AppWindow, Tv, Smartphone, Wifi,
     Lightbulb, Refrigerator, Building, HandCoins, Wrench, Droplets, Car, Shield,
     Stethoscope, Smile, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
@@ -39,7 +39,7 @@ const categoryIcons: Record<string, React.ElementType> = {
 // Detailed map for subcategory icons
 const subcategoryIcons: Record<string, React.ElementType> = {
     // Alimentação
-    "Padaria": Pizza,
+    "Padaria": Croissant,
     "Cafeteria": Coffee,
     "Delivery": Bike,
     "Restaurante": UtensilsCrossed,
