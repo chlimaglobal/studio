@@ -1,17 +1,16 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard, Landmark } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, CreditCard, MessageCircle } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
   { href: '/dashboard/cards', icon: CreditCard, label: 'Cartões' },
-  { href: '/dashboard/banks', icon: Landmark, label: 'Bancos' },
+  { href: '/dashboard/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
 ];
 
 export default function BottomNavBar() {
