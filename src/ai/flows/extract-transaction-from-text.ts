@@ -22,7 +22,7 @@ const ExtractTransactionOutputSchema = z.object({
   description: z.string().describe('Uma descrição concisa da transação.'),
   amount: z.number().describe('O valor numérico da transação.'),
   type: z.enum(['income', 'expense']).describe('O tipo da transação (receita ou despesa).'),
-  category: z.enum(transactionCategories).optional().describe('A categoria sugerida para a transação, se puder ser inferida.'),
+  category: z.enum(transactionCategories as [string, ...string[]]).optional().describe('A categoria sugerida para a transação, se puder ser inferida.'),
 });
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
 
   - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
   - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
-  - Se mencionar serviços como Netflix, Spotify, Amazon Prime, o tipo é 'expense' e a categoria é 'Entretenimento'.
+  - Se mencionar serviços como Netflix, Spotify, Amazon Prime, o tipo é 'expense' e a categoria é 'Streamings'.
 
   **Exemplos:**
 
@@ -61,16 +61,16 @@ const prompt = ai.definePrompt({
       **Saída Esperada:** { "description": "Conta de luz", "amount": 85, "type": "expense", "category": "Luz" }
 
   6.  **Texto do Usuário:** "cinquenta e cinco e cinquenta no ifood"
-      **Saída Esperada:** { "description": "iFood", "amount": 55.50, "type": "expense", "category": "Restaurante" }
+      **Saída Esperada:** { "description": "iFood", "amount": 55.50, "type": "expense", "category": "Delivery" }
       
   7.  **Texto do Usuário:** "uber 23,40"
-      **Saída Esperada:** { "description": "Uber", "amount": 23.40, "type": "expense", "category": "Transporte" }
+      **Saída Esperada:** { "description": "Uber", "amount": 23.40, "type": "expense", "category": "Táxi/Uber" }
 
   8.  **Texto do Usuário:** "paguei o spotify"
-      **Saída Esperada:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Entretenimento" }
+      **Saída Esperada:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Streamings" }
       
   9.  **Texto do Usuário:** "netflix R$ 39.90"
-      **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Entretenimento" }
+      **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Streamings" }
 
   **Texto do usuário para análise:**
   {{{text}}}

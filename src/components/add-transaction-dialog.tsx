@@ -22,9 +22,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
-import { transactionCategories, TransactionFormSchema, TransactionCategory } from '@/lib/types';
+import { TransactionFormSchema, TransactionCategory, categoryData } from '@/lib/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
@@ -246,10 +246,15 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {transactionCategories.map((category) => (
-                                <SelectItem key={category} value={category}>
-                                    {category}
-                                </SelectItem>
+                                {Object.entries(categoryData).map(([category, subcategories]) => (
+                                    <SelectGroup key={category}>
+                                        <SelectLabel>{category}</SelectLabel>
+                                        {subcategories.map((subcategory) => (
+                                            <SelectItem key={subcategory} value={subcategory}>
+                                                {subcategory}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
                                 ))}
                             </SelectContent>
                         </Select>

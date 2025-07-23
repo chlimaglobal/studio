@@ -20,7 +20,7 @@ const CategorizeTransactionInputSchema = z.object({
 export type CategorizeTransactionInput = z.infer<typeof CategorizeTransactionInputSchema>;
 
 const CategorizeTransactionOutputSchema = z.object({
-  category: z.enum(transactionCategories).describe('The predicted category of the transaction.'),
+  category: z.enum(transactionCategories as [string, ...string[]]).describe('The predicted category of the transaction.'),
 });
 export type CategorizeTransactionOutput = z.infer<typeof CategorizeTransactionOutputSchema>;
 
@@ -45,9 +45,10 @@ const prompt = ai.definePrompt({
   - **Contas:** Contas gerais da casa. Use categorias mais específicas se possível.
   - **Luz, Água, Internet, Telefone:** Use estas categorias para as respectivas contas de utilidades.
   - **Restaurante:** Comida fora de casa, iFood, Uber Eats, lanches.
-  - **Transporte:** Uber, 99, ônibus, metrô. Se for relacionado a carro próprio, use "Gasolina" ou "Manutenção Veicular".
+  - **Transporte:** Uber, 99, ônibus, metrô. Se for relacionado a carro próprio, use "Combustível" ou "Manutenção".
   - **Saúde:** Farmácia, médico, plano de saúde.
-  - **Entretenimento:** Cinema, shows, passeios, e serviços de streaming como Netflix, Spotify, Amazon Prime, HBO Max, Disney+.
+  - **Lazer/Hobbies:** Cinema, shows, passeios.
+  - **Streamings**: Netflix, Spotify, Amazon Prime, HBO Max, Disney+.
   - **Educação:** Cursos, livros, material escolar.
   - **Salário, Bônus, Comissão:** Para diferentes tipos de renda.
 
