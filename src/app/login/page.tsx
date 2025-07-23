@@ -45,7 +45,8 @@ export default function LoginPage() {
 
     // Simulate API call and validation
     setTimeout(() => {
-      if (email === 'user@example.com' && password === 'password123') {
+      const storedPassword = localStorage.getItem('userPassword') || 'password123';
+      if (email === 'user@example.com' && password === storedPassword) {
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', email);
         } else {

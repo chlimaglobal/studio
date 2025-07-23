@@ -40,8 +40,9 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
 
-    // Simulate API call
+    // Simulate API call by saving to localStorage
     setTimeout(() => {
+      localStorage.setItem('userPassword', password);
       toast({
         title: 'Senha Redefinida!',
         description: 'Sua senha foi alterada com sucesso. Você já pode fazer login.',
