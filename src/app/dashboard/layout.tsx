@@ -38,8 +38,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Start with empty data to ensure values are zeroed out
-    const data = getStoredTransactions();
-    setTransactions(data);
+    setTransactions([]);
     setIsLoading(false);
   }, []);
 
