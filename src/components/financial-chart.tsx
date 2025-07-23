@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, Area, AreaChart, Dot } from 'recharts';
+import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, Dot } from 'recharts';
 
 interface FinancialChartProps {
   data: { date: string; aReceber: number; aPagar: number; resultado: number }[];
@@ -57,11 +57,11 @@ const CustomizedDot = (props: any) => {
 export default function FinancialChart({ data }: FinancialChartProps) {
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                  <defs>
                     <linearGradient id="colorResultado" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3}/>
                     </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
@@ -82,10 +82,10 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                         { value: 'Resultado', type: 'circle', id: 'resultado', color: 'hsl(var(--chart-3))' },
                     ]}
                 />
-                <Area type="monotone" dataKey="resultado" name="Resultado" stroke="hsl(var(--chart-3))" strokeWidth={2} fill="url(#colorResultado)" activeDot={{r: 6}} />
+                <Line type="monotone" dataKey="resultado" name="Resultado" stroke="url(#colorResultado)" strokeWidth={3} dot={false} activeDot={{r: 6}} />
                 <Line type="monotone" dataKey="aReceber" name="A receber" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={<CustomizedDot />} />
                 <Line type="monotone" dataKey="aPagar" name="A pagar" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={<CustomizedDot />} />
-            </AreaChart>
+            </LineChart>
         </ResponsiveContainer>
     );
 }
