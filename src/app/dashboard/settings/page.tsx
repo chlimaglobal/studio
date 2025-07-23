@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -366,19 +366,35 @@ export default function SettingsPage() {
             <RadioGroup
               value={theme}
               onValueChange={setTheme}
-              className="flex items-center gap-4"
+              className="grid grid-cols-2 gap-4 sm:grid-cols-4"
             >
-              <Label htmlFor="theme-light" className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="light" id="theme-light" />
-                <Sun className="h-4 w-4" /> Claro
+              <Label htmlFor="theme-light" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
+                <RadioGroupItem value="light" id="theme-light" className="sr-only" />
+                 <div className="w-full rounded-md bg-[#ffffff] p-2 shadow-sm flex items-center justify-center">
+                    <Sun className="h-4 w-4 text-black" />
+                 </div>
+                 Claro
               </Label>
-              <Label htmlFor="theme-dark" className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="dark" id="theme-dark" />
-                <Moon className="h-4 w-4" /> Escuro
+              <Label htmlFor="theme-dark" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
+                <RadioGroupItem value="dark" id="theme-dark" className="sr-only" />
+                 <div className="w-full rounded-md bg-[#09090b] p-2 shadow-sm flex items-center justify-center">
+                    <Moon className="h-4 w-4 text-white" />
+                 </div>
+                 Escuro
               </Label>
-               <Label htmlFor="theme-system" className="flex cursor-pointer items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
-                <RadioGroupItem value="system" id="theme-system" />
-                <Smartphone className="h-4 w-4" /> Sistema
+              <Label htmlFor="theme-blue" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
+                <RadioGroupItem value="blue" id="theme-blue" className="sr-only" />
+                 <div className="w-full rounded-md bg-[#eff6ff] p-2 shadow-sm flex items-center justify-center">
+                    <Droplets className="h-4 w-4 text-[#2563eb]" />
+                 </div>
+                 Azul
+              </Label>
+              <Label htmlFor="theme-gold" className="flex cursor-pointer flex-col items-center gap-2 rounded-md border p-2 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary">
+                <RadioGroupItem value="gold" id="theme-gold" className="sr-only" />
+                 <div className="w-full rounded-md bg-[#fffbeb] p-2 shadow-sm flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-[#f59e0b]" />
+                 </div>
+                 Dourado
               </Label>
             </RadioGroup>
           </div>
@@ -497,5 +513,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
