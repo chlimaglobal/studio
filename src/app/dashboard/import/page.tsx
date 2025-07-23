@@ -8,7 +8,7 @@ import { ArrowLeft, Upload, Loader2, Save } from 'lucide-react';
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
 import { extractFromFile } from '@/ai/flows/extract-from-file';
-import type { ExtractedTransaction } from '@/ai/flows/extract-from-file';
+import type { ExtractedTransaction } from '@/lib/types';
 import { useTransactions } from '../layout';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';

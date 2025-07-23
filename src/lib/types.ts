@@ -68,3 +68,24 @@ export type Transaction = {
   paid?: boolean;
   creditCard?: string;
 };
+
+// Types for File Extraction Flow
+export const ExtractFromFileInputSchema = z.object({
+  fileContent: z.string().describe("The content of the financial statement file, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  fileName: z.string().describe("The name of the file, which can provide context about the bank or format (e.g., 'statement.csv', 'extrato.ofx')."),
+});
+export type ExtractFromFileInput = z.infer<typeof ExtractFromFileInputSchema>;
+
+export const ExtractedTransactionSchema = z.object({
+    date: z.string().describe("The transaction date in YYYY-MM-DD format."),
+    description: z.string().describe("The description of the transaction."),
+    amount: z.number().describe("The numerical value of the transaction. For expenses, this should be a positive number."),
+    type: z.enum(['income', 'expense']).describe("The type of transaction."),
+    category: z.enum(transactionCategories as [string, ...string[]]).describe("The most likely category for the transaction."),
+});
+export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
+
+export const ExtractFromFileOutputSchema = z.object({
+  transactions: z.array(ExtractedTransactionSchema).describe('A list of transactions extracted from the file.'),
+});
+export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
