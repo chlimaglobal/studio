@@ -8,13 +8,29 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2 } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { bufferToBase64Url } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+
 
 type FabPosition = 'left' | 'right';
+type NotificationSettings = {
+  dailySummary: boolean;
+  futureIncome: boolean;
+  futurePayments: boolean;
+  sync: boolean;
+  promos: boolean;
+  goalsMet: boolean;
+  spendingLimits: boolean;
+  goalReminders: boolean;
+  spendingReminders: boolean;
+  invoiceDue: boolean;
+  invoiceClosed: boolean;
+};
+
 
 const incomeSounds = [
     { value: 'cash-register.mp3', label: 'Caixa Registradora' },
@@ -27,6 +43,20 @@ const expenseSounds = [
     { value: 'none', label: 'Nenhum' },
 ];
 
+const NotificationSwitch = ({ id, label, checked, onCheckedChange }: { id: keyof NotificationSettings, label: string, checked: boolean, onCheckedChange: (id: keyof NotificationSettings, value: boolean) => void }) => (
+    <div className="flex items-center justify-between py-3">
+        <Label htmlFor={id} className="flex items-center gap-3 cursor-pointer">
+            <CheckCircle className={`h-6 w-6 transition-colors ${checked ? 'text-primary' : 'text-muted-foreground/50'}`} />
+            <span className="font-normal">{label}</span>
+        </Label>
+        <Switch
+            id={id}
+            checked={checked}
+            onCheckedChange={(value) => onCheckedChange(id, value)}
+        />
+    </div>
+);
+
 export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -35,7 +65,7 @@ export default function SettingsPage() {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [fabPosition, setFabPosition] = useState<FabPosition>('right');
-  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(false);
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
@@ -43,11 +73,25 @@ export default function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    dailySummary: true,
+    futureIncome: true,
+    futurePayments: true,
+    sync: true,
+    promos: true,
+    goalsMet: true,
+    spendingLimits: true,
+    goalReminders: true,
+    spendingReminders: true,
+    invoiceDue: true,
+    invoiceClosed: true,
+  });
 
 
   useEffect(() => {
     setIsMounted(true);
-    // Check for WebAuthn support
+    if (typeof window === 'undefined') return;
+
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
         PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
             setIsBiometricSupported(supported);
@@ -63,8 +107,8 @@ export default function SettingsPage() {
     const storedFabPosition = localStorage.getItem('fabPosition') as FabPosition;
     if (storedFabPosition) setFabPosition(storedFabPosition);
     
-    const storedPushEnabled = localStorage.getItem('pushNotificationsEnabled') === 'true';
-    setPushNotificationsEnabled(storedPushEnabled);
+    const storedPushEnabled = localStorage.getItem('pushNotificationsEnabled');
+    setPushNotificationsEnabled(storedPushEnabled === null ? true : storedPushEnabled === 'true');
 
     const storedIncome = localStorage.getItem('monthlyIncome');
     if (storedIncome) setMonthlyIncome(storedIncome);
@@ -80,6 +124,11 @@ export default function SettingsPage() {
     
     const storedCredential = localStorage.getItem('webauthn-credential-id');
     if (storedCredential) setIsBiometricRegistered(true);
+
+    const storedNotifications = localStorage.getItem('notificationSettings');
+    if (storedNotifications) {
+      setNotifications(JSON.parse(storedNotifications));
+    }
 
   }, []);
   
@@ -100,7 +149,7 @@ export default function SettingsPage() {
         const options: PublicKeyCredentialCreationOptions = {
             challenge,
             rp: {
-                name: "FinanceFlow",
+                name: "FinanceFlow App",
                 id: window.location.hostname,
             },
             user: {
@@ -150,9 +199,10 @@ export default function SettingsPage() {
     setFabPosition(value);
   };
 
-  const handlePushNotificationsChange = (enabled: boolean) => {
-    setPushNotificationsEnabled(enabled);
+  const handleNotificationChange = (id: keyof NotificationSettings, value: boolean) => {
+    setNotifications(prev => ({ ...prev, [id]: value }));
   };
+
   
   const playPreviewSound = (soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
@@ -186,6 +236,7 @@ export default function SettingsPage() {
     localStorage.setItem('payday', payday);
     localStorage.setItem('incomeSound', incomeSound);
     localStorage.setItem('expenseSound', expenseSound);
+    localStorage.setItem('notificationSettings', JSON.stringify(notifications));
     
     window.dispatchEvent(new Event('storage'));
 
@@ -354,69 +405,97 @@ export default function SettingsPage() {
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notificações</CardTitle>
-          <CardDescription>Gerencie suas preferências de notificação e alertas sonoros.</CardDescription>
+          <CardDescription>Escolha os tipos de notificações que deseja receber durante seu dia a dia no app.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-md border p-4">
-            <div>
-              <p className="font-medium">Notificações Push</p>
+        <CardContent className="divide-y divide-border">
+          <div className="flex items-center justify-between py-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="push-notifications" className="text-base">Notificações Push</Label>
               <p className="text-sm text-muted-foreground">Receba alertas sobre seus gastos e receitas.</p>
             </div>
              <Switch
+                id="push-notifications"
                 checked={pushNotificationsEnabled}
-                onCheckedChange={handlePushNotificationsChange}
+                onCheckedChange={setPushNotificationsEnabled}
              />
           </div>
-           <div className="space-y-2 rounded-md border p-4">
-             <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
-             <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="income-sound">Som de Receita</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={incomeSound} onValueChange={setIncomeSound}>
-                        <SelectTrigger id="income-sound">
-                        <SelectValue placeholder="Selecione um som" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {incomeSounds.map(sound => (
-                            <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" onClick={() => playPreviewSound(incomeSound)}>
-                      <Play className="h-4 w-4" />
-                    </Button>
+
+          {pushNotificationsEnabled && (
+            <div className="py-4">
+                <div className="divide-y divide-border rounded-lg border bg-background p-4">
+                    <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="sync" label="Sincronização com instituições" checked={notifications.sync} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="promos" label="Ofertas e promoções" checked={notifications.promos} onCheckedChange={handleNotificationChange} />
+                </div>
+
+                <div className="my-4">
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Target className="h-4 w-4" /> Metas & Limites</h3>
+                  <div className="divide-y divide-border rounded-lg border bg-background p-4">
+                      <NotificationSwitch id="goalsMet" label="Alertas sobre metas alcançadas" checked={notifications.goalsMet} onCheckedChange={handleNotificationChange} />
+                      <NotificationSwitch id="spendingLimits" label="Alertas sobre limites de gastos atingidos" checked={notifications.spendingLimits} onCheckedChange={handleNotificationChange} />
+                      <NotificationSwitch id="goalReminders" label="Lembretes de quanto falta para alcançar metas" checked={notifications.goalReminders} onCheckedChange={handleNotificationChange} />
+                      <NotificationSwitch id="spendingReminders" label="Lembretes de quanto falta para atingir limites" checked={notifications.spendingReminders} onCheckedChange={handleNotificationChange} />
                   </div>
                 </div>
-                 <div>
-                  <Label htmlFor="expense-sound">Som de Despesa</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={expenseSound} onValueChange={setExpenseSound}>
-                        <SelectTrigger id="expense-sound">
-                        <SelectValue placeholder="Selecione um som" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        {expenseSounds.map(sound => (
-                            <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
-                        ))}
-                        </SelectContent>
-                    </Select>
-                     <Button variant="outline" size="icon" onClick={() => playPreviewSound(expenseSound)}>
-                      <Play className="h-4 w-4" />
-                    </Button>
+
+                <div className="my-4">
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Cartão de Crédito</h3>
+                  <div className="divide-y divide-border rounded-lg border bg-background p-4">
+                      <NotificationSwitch id="invoiceDue" label="Lembretes de faturas antes do fechamento" checked={notifications.invoiceDue} onCheckedChange={handleNotificationChange} />
+                      <NotificationSwitch id="invoiceClosed" label="Lembretes de faturas fechadas" checked={notifications.invoiceClosed} onCheckedChange={handleNotificationChange} />
                   </div>
                 </div>
-             </div>
-          </div>
-          <div className="flex items-center justify-between rounded-md border p-4">
-             <div>
-              <p className="font-medium">Alertas de gastos excessivos</p>
-              <p className="text-sm text-muted-foreground">Seja notificado sobre despesas incomuns.</p>
+
+                <div className="mt-6 space-y-2 rounded-md border p-4">
+                  <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
+                  <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="income-sound">Som de Receita</Label>
+                        <div className="flex items-center gap-2">
+                          <Select value={incomeSound} onValueChange={setIncomeSound}>
+                              <SelectTrigger id="income-sound">
+                              <SelectValue placeholder="Selecione um som" />
+                              </SelectTrigger>
+                              <SelectContent>
+                              {incomeSounds.map(sound => (
+                                  <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="icon" onClick={() => playPreviewSound(incomeSound)}>
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="expense-sound">Som de Despesa</Label>
+                        <div className="flex items-center gap-2">
+                          <Select value={expenseSound} onValueChange={setExpenseSound}>
+                              <SelectTrigger id="expense-sound">
+                              <SelectValue placeholder="Selecione um som" />
+                              </SelectTrigger>
+                              <SelectContent>
+                              {expenseSounds.map(sound => (
+                                  <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
+                              ))}
+                              </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="icon" onClick={() => playPreviewSound(expenseSound)}>
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                  </div>
+                </div>
             </div>
-             <Switch checked disabled />
-          </div>
+          )}
+
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
