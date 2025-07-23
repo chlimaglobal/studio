@@ -71,9 +71,9 @@ export function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
 const GOALS_KEY = 'financeflow_goals';
 
 const defaultGoals: Goal[] = [
-    { id: 'goal_1', name: 'Viagem para o Japão', icon: 'Plane', targetAmount: 20000, currentAmount: 7500, deadline: addDays(new Date(), 180) },
-    { id: 'goal_2', name: 'Carro Novo', icon: 'Car', targetAmount: 80000, currentAmount: 35000, deadline: addDays(new Date(), 365) },
-    { id: 'goal_3', name: 'Reserva de Emergência', icon: 'ShieldCheck', targetAmount: 15000, currentAmount: 15000, deadline: subMonths(new Date(), 1) },
+    { id: 'goal_1', name: 'Viagem para o Japão', icon: 'Plane', targetAmount: 20000, currentAmount: 0, deadline: addDays(new Date(), 180) },
+    { id: 'goal_2', name: 'Carro Novo', icon: 'Car', targetAmount: 80000, currentAmount: 0, deadline: addDays(new Date(), 365) },
+    { id: 'goal_3', name: 'Reserva de Emergência', icon: 'ShieldCheck', targetAmount: 15000, currentAmount: 0, deadline: subMonths(new Date(), 1) },
 ].map(g => ({...g, deadline: g.deadline.toISOString() as any as Date}));
 
 

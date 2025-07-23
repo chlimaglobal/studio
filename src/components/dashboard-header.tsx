@@ -46,9 +46,9 @@ export default function DashboardHeader() {
 
   useEffect(() => {
     const updateUserData = () => {
-        const storedName = localStorage.getItem('userName') || 'Marcos Lima';
+        const storedName = localStorage.getItem('userName') || '';
         setUserName(storedName);
-        const storedEmail = localStorage.getItem('userEmail') || 'marcos.lima@example.com';
+        const storedEmail = localStorage.getItem('userEmail') || '';
         setUserEmail(storedEmail);
     }
     
@@ -83,14 +83,14 @@ export default function DashboardHeader() {
                 <div className="flex items-center gap-2 cursor-pointer">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
-                        <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                     </Avatar>
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
                  <DropdownMenuLabel>
                      <div className='flex items-center gap-2'>
-                        <span className="font-semibold capitalize">{userName}</span>
+                        <span className="font-semibold capitalize">{userName || 'Usuário'}</span>
                         <Badge variant="outline" className='border-green-500 text-green-500'>PLUS</Badge>
                      </div>
                      <p className='text-xs text-muted-foreground font-normal'>{userEmail}</p>

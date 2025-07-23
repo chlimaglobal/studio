@@ -145,10 +145,10 @@ export default function SettingsPage() {
         });
     }
 
-    const storedUserName = localStorage.getItem('userName') || 'Marcos Lima';
+    const storedUserName = localStorage.getItem('userName') || '';
     setUserName(storedUserName);
 
-    const storedUserEmail = localStorage.getItem('userEmail') || 'marcos.lima@example.com';
+    const storedUserEmail = localStorage.getItem('userEmail') || '';
     setUserEmail(storedUserEmail);
     
     const storedIncome = localStorage.getItem('monthlyIncome');

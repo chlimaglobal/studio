@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, Card as UICard } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, History, ArrowUp, ArrowDown, BarChart2, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, History, BarChart2, MoreHorizontal } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -11,12 +11,20 @@ import Link from 'next/link';
 import { AddTransactionSheet } from '@/components/add-transaction-sheet';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
+import { useTransactions } from '../../layout';
 
 
 export default function CardDetailsPage({ params }: { params: { id: string } }) {
   const cardName = decodeURIComponent(params.id);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const { transactions } = useTransactions();
+
+  const cardTransactions = transactions.filter(
+    (t) => t.type === 'expense' && t.category === 'Cartão de Crédito' && t.creditCard === cardName
+  );
+  
+  const totalSpent = cardTransactions.reduce((acc, t) => acc + t.amount, 0);
 
   useEffect(() => {
     setIsMounted(true);
@@ -53,12 +61,12 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                 </div>
                 <div>
                     <p className="font-semibold">{cardName}</p>
-                    <p className="text-sm text-green-400">{formatCurrency(1200)}</p>
+                    <p className="text-sm text-green-400">{formatCurrency(0)}</p>
                 </div>
             </div>
             <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Total:</span>
-                <span className="font-semibold">{formatCurrency(1268.88)}</span>
+                <span className="font-semibold">{formatCurrency(totalSpent)}</span>
             </div>
         </div>
 
@@ -89,7 +97,7 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                         <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
                     </CardHeader>
                     <CardContent className="p-1">
-                        <p className="text-lg font-bold text-foreground">{formatCurrency(2880.90)}</p>
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(0)}</p>
                     </CardContent>
                 </UICard>
                 <UICard className="bg-secondary p-3">
@@ -98,7 +106,7 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                         <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
                     </CardHeader>
                     <CardContent className="p-1">
-                        <p className="text-lg font-bold text-foreground">{formatCurrency(909.00)}</p>
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(totalSpent)}</p>
                     </CardContent>
                 </UICard>
                 <UICard className="bg-secondary p-3">
@@ -107,7 +115,7 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                         <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
                     </CardHeader>
                     <CardContent className="p-1">
-                        <p className="text-lg font-bold text-foreground">{formatCurrency(1971.90)}</p>
+                        <p className="text-lg font-bold text-foreground">{formatCurrency(0 - totalSpent)}</p>
                     </CardContent>
                 </UICard>
         </div>
@@ -122,39 +130,28 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                     <div className="text-right">Pago</div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 items-center">
-                    <div className="text-left font-semibold col-span-1">{formatCurrency(86.25)}</div>
-                    <div className="text-left text-sm col-span-2">
-                         <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-orange-400/20 text-orange-400">4/4</Badge>
-                            <span>Parcelado</span>
+                {cardTransactions.length > 0 ? (
+                    cardTransactions.map(transaction => (
+                        <div key={transaction.id} className="grid grid-cols-4 gap-4 items-center">
+                            <div className="text-left font-semibold col-span-1">{formatCurrency(transaction.amount)}</div>
+                            <div className="text-left text-sm col-span-2">
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="bg-orange-400/20 text-orange-400">Info</Badge>
+                                    <span>{transaction.description}</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">{new Date(transaction.date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right flex justify-end items-center gap-1">
+                                <Switch defaultChecked={transaction.paid} />
+                                <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">Mensal</p>
-                    </div>
-                    <div className="text-right flex justify-end items-center gap-1">
-                        <Switch defaultChecked={true} />
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-4 gap-4 items-center">
-                    <div className="text-left font-semibold col-span-1">{formatCurrency(1560.90)}</div>
-                    <div className="text-left text-sm col-span-2">
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-green-400/20 text-green-400">9/12</Badge>
-                            <span>Recorrente</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">Mensal</p>
-                    </div>
-                    <div className="text-right flex justify-end items-center gap-1">
-                        <Switch defaultChecked={true} />
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
+                    ))
+                ) : (
+                    <div className="text-center col-span-3 text-muted-foreground py-4">Nenhuma transação neste cartão.</div>
+                )}
             </div>
         </div>
 

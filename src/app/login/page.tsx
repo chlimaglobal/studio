@@ -111,7 +111,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="seu@email.com" required defaultValue="marcos.lima@example.com" />
+              <Input id="email" type="email" placeholder="seu@email.com" required />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -120,7 +120,7 @@ export default function LoginPage() {
                   Esqueceu a senha?
                 </Button>
               </div>
-              <Input id="password" type="password" required defaultValue="password123" />
+              <Input id="password" type="password" required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
