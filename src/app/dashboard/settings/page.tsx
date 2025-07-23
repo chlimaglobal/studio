@@ -1,20 +1,21 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { bufferToBase64Url } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 
 type FabPosition = 'left' | 'right';
@@ -113,6 +114,7 @@ export default function SettingsPage() {
   
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
@@ -133,7 +135,7 @@ export default function SettingsPage() {
     invoiceDue: true,
     invoiceClosed: true,
   });
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -151,6 +153,9 @@ export default function SettingsPage() {
     const storedUserEmail = localStorage.getItem('userEmail') || '';
     setUserEmail(storedUserEmail);
     
+    const storedProfilePic = localStorage.getItem('profilePic');
+    if (storedProfilePic) setProfilePic(storedProfilePic);
+
     const storedIncome = localStorage.getItem('monthlyIncome');
     if (storedIncome) setMonthlyIncome(storedIncome);
 
@@ -279,6 +284,28 @@ export default function SettingsPage() {
     });
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProfilePicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setProfilePic(base64String);
+        localStorage.setItem('profilePic', base64String);
+        window.dispatchEvent(new Event('storage'));
+        toast({
+          title: 'Foto de perfil atualizada!',
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   if (!isMounted) {
     return null; 
   }
@@ -296,11 +323,32 @@ export default function SettingsPage() {
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Perfil</CardTitle>
-          <CardDescription>Edite seus dados pessoais.</CardDescription>
+          <CardDescription>Edite seus dados pessoais e foto.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="flex items-center gap-6">
+                <div className="relative">
+                    <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                        <AvatarImage src={profilePic ?? undefined} alt="User Avatar" />
+                        <AvatarFallback className="text-3xl">
+                            {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div 
+                        className="absolute bottom-0 right-0 h-7 w-7 bg-primary rounded-full flex items-center justify-center text-primary-foreground cursor-pointer"
+                        onClick={handleAvatarClick}
+                    >
+                        <Camera className="h-4 w-4" />
+                    </div>
+                    <Input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        accept="image/png, image/jpeg"
+                        onChange={handleProfilePicChange}
+                    />
+                </div>
+                <div className="flex-1 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <Label htmlFor="user-name">Nome Completo</Label>
                         <Input 

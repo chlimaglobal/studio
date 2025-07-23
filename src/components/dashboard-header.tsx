@@ -33,6 +33,7 @@ export default function DashboardHeader() {
   const [totalBalance, setTotalBalance] = useState(0);
   const [userName, setUserName] = useState('Bem-vindo(a)!');
   const [userEmail, setUserEmail] = useState('');
+  const [profilePic, setProfilePic] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
@@ -50,6 +51,8 @@ export default function DashboardHeader() {
         setUserName(storedName);
         const storedEmail = localStorage.getItem('userEmail') || '';
         setUserEmail(storedEmail);
+        const storedProfilePic = localStorage.getItem('profilePic');
+        setProfilePic(storedProfilePic);
     }
     
     updateUserData();
@@ -82,7 +85,7 @@ export default function DashboardHeader() {
             <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2 cursor-pointer">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="User Avatar" data-ai-hint="person" />
+                        <AvatarImage src={profilePic ?? undefined} alt="User Avatar" />
                         <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                     </Avatar>
                 </div>
