@@ -19,6 +19,12 @@ const LogoIcon = () => (
     </svg>
 );
 
+const GoogleIcon = () => (
+    <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+        <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c71.2 0 133 28.5 176.9 73.4L345 152.2c-23.7-22.5-59.3-37.1-101-37.1-79.2 0-143.9 65.5-143.9 146.2s64.7 146.2 143.9 146.2c87.3 0 125.9-61.7 130.8-93.1H244v-64.8h243.2c1.3 8.3 1.8 16.9 1.8 25.8z"></path>
+    </svg>
+);
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -119,6 +125,22 @@ export default function LoginPage() {
     }
   }
 
+  const handleGoogleLogin = () => {
+    setIsLoading(true);
+    // Simulate Google OAuth flow
+    setTimeout(() => {
+        toast({
+            title: 'Login com Google bem-sucedido!',
+            description: 'Bem-vindo(a) ao FinanceFlow.',
+        });
+        // In a real app, you'd get user info from Google and set it.
+        // For now, we can set some defaults.
+        localStorage.setItem('userName', 'Usuário Google');
+        localStorage.setItem('userEmail', 'google.user@example.com');
+        router.push('/dashboard');
+    }, 1000);
+  };
+
   if (!isMounted) {
     return null;
   }
@@ -184,14 +206,22 @@ export default function LoginPage() {
                 <div className="flex-grow border-t border-muted"></div>
             </div>
 
-            <Button variant="outline" className="w-full" disabled={isLoading || isBiometricLoading} onClick={handleBiometricLogin}>
-                {isBiometricLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Fingerprint className="mr-2 h-4 w-4" />
-                )}
-                Entrar com impressão digital
-            </Button>
+            <div className="space-y-2">
+                <Button variant="outline" className="w-full" disabled={isLoading || isBiometricLoading} onClick={handleBiometricLogin}>
+                    {isBiometricLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Fingerprint className="mr-2 h-4 w-4" />
+                    )}
+                    Entrar com impressão digital
+                </Button>
+
+                <Button variant="outline" className="w-full" disabled={isLoading} onClick={handleGoogleLogin}>
+                    <GoogleIcon />
+                    Entrar com o Google
+                </Button>
+            </div>
+
 
             <div className="mt-6 text-center text-sm">
               Não tem uma conta?{' '}
