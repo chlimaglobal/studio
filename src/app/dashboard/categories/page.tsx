@@ -10,7 +10,8 @@ import {
     Lightbulb, Refrigerator, Building, HandCoins, Wrench, Droplets, Car, Shield,
     Stethoscope, Tooth, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
     Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
-    Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift
+    Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift,
+    PiggyBank, LineChart, AreaChart, CandlestickChart
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -25,7 +26,7 @@ const categoryIcons: Record<string, React.ElementType> = {
   'Dívidas/Empréstimos': CreditCard,
   Educação: GraduationCap,
   'Impostos/Taxas': Percent,
-  Investimentos: TrendingUp,
+  'Investimentos e Reservas': TrendingUp,
   Pets: Dog,
   Salário: Banknote,
   Vestuário: Shirt,
@@ -95,7 +96,11 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     "Tarifa Bancária": Library,
     "Anuidade Cartão": CreditCard,
     "Tributos": Library,
-    // Investimentos
+    // Investimentos e Reservas
+    "Reserva de Emergência": PiggyBank,
+    "Ações": LineChart,
+    "Fundos Imobiliários": AreaChart,
+    "Renda Fixa": CandlestickChart,
     "Juros": Percent,
     "Proventos": TrendingUp,
     "Aplicação": TrendingUp,

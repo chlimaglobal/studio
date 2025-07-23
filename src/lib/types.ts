@@ -11,7 +11,7 @@ export const categoryData = {
   "Dívidas/Empréstimos": ["Empréstimo", "Cartão de Crédito", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos"],
   "Educação": ["Cursos", "Faculdade", "Materiais e Livros", "Escola"],
   "Impostos/Taxas": ["Imposto de Renda", "Tarifa Bancária", "Anuidade Cartão", "Tributos"],
-  "Investimentos": ["Juros", "Proventos", "Aplicação", "Rendimentos", "Retirada"],
+  "Investimentos e Reservas": ["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Proventos", "Aplicação", "Rendimentos", "Retirada", "Juros"],
   "Pets": ["Banho/Tosa", "Acessórios Pet", "Alimentação Pet", "Medicamentos", "Veterinário"],
   "Salário": ["Férias", "Hora extra", "Comissão", "13º Salário", "Aposentadoria", "Trabalho", "Bônus"],
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
