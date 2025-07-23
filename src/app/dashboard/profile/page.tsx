@@ -14,18 +14,16 @@ import {
     Wallet, 
     Target, 
     Bell,
-    Fingerprint
+    Fingerprint,
+    Loader2
 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
+import { bufferToBase64Url } from '@/lib/utils';
 
 const menuItems = [
-    { 
-        icon: Fingerprint, 
-        title: 'Desbloquear com biometria', 
-        subtitle: null,
-        type: 'switch',
-        href: ''
-    },
+    // Biometrics is handled separately now
     { 
         icon: UserCircle, 
         title: 'Meu perfil', 
@@ -45,21 +43,15 @@ const menuItems = [
         title: 'Importar extratos', 
         subtitle: 'Arquivos suportados: OFX, CSV, PDF.',
         type: 'link',
-        href: '#'
+        href: '#' // Placeholder
     },
-    { 
-        icon: BellRing, 
-        title: 'Importar notificações', 
-        subtitle: 'Importe suas transações a partir de notificações do banco.',
-        type: 'switch',
-        href: ''
-    },
+    // Import notifications is handled separately
     { 
         icon: LayoutGrid, 
         title: 'Minhas categorias', 
         subtitle: null,
         type: 'link',
-        href: '#'
+        href: '#' // Placeholder
     },
     { 
         icon: Wallet, 
@@ -84,6 +76,181 @@ const menuItems = [
     },
 ];
 
+const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
+    const { toast } = useToast();
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (item.href === '#') {
+            e.preventDefault();
+            toast({
+                title: 'Funcionalidade em Breve',
+                description: 'Esta opção ainda não foi implementada.',
+            });
+        }
+    };
+
+    return (
+        <Link href={item.href} key={item.title} onClick={handleClick}>
+             <Card className="p-4 flex items-center justify-between hover:border-primary/50 transition-colors">
+                <div className="flex items-center gap-4">
+                    <item.icon className="h-6 w-6 text-primary" />
+                    <div className="flex flex-col">
+                        <span className="font-semibold">{item.title}</span>
+                        {item.subtitle && <span className="text-sm text-muted-foreground">{item.subtitle}</span>}
+                    </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Card>
+        </Link>
+    );
+};
+
+
+const BiometricsCard = () => {
+    const { toast } = useToast();
+    const [isRegistering, setIsRegistering] = useState(false);
+    const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+    const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
+    const [isChecked, setIsChecked] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+                PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
+                    setIsBiometricSupported(supported);
+                });
+            }
+            const storedCredential = localStorage.getItem('webauthn-credential-id');
+            const registered = !!storedCredential;
+            setIsBiometricRegistered(registered);
+            setIsChecked(registered);
+        }
+    }, []);
+    
+    const handleRegisterBiometrics = async (enabled: boolean) => {
+        setIsChecked(enabled);
+
+        if (!enabled) {
+            // Logic to disable/remove biometrics
+            localStorage.removeItem('webauthn-credential-id');
+            localStorage.removeItem('webauthn-user-id');
+            setIsBiometricRegistered(false);
+            toast({
+                title: 'Biometria Desativada',
+                description: 'O acesso com impressão digital foi removido.',
+            });
+            return;
+        }
+
+        setIsRegistering(true);
+        try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+
+            let userId = localStorage.getItem('webauthn-user-id');
+            if (!userId) {
+                const newUserId = new Uint8Array(16);
+                window.crypto.getRandomValues(newUserId);
+                userId = bufferToBase64Url(newUserId);
+                localStorage.setItem('webauthn-user-id', userId);
+            }
+            
+            const userName = localStorage.getItem('userName') || 'Usuário';
+            const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+
+            const options: PublicKeyCredentialCreationOptions = {
+                challenge,
+                rp: {
+                    name: "FinanceFlow",
+                    id: window.location.hostname,
+                },
+                user: {
+                    id: Uint8Array.from(atob(userId.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                    name: userEmail,
+                    displayName: userName,
+                },
+                pubKeyCredParams: [
+                    { type: "public-key", alg: -7 }, // ES256
+                    { type: "public-key", alg: -257 }, // RS256
+                ],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform",
+                    userVerification: "required",
+                    requireResidentKey: true,
+                },
+                timeout: 60000,
+                attestation: "direct",
+            };
+
+            const credential = await navigator.credentials.create({ publicKey: options });
+            
+            if (credential && (credential as PublicKeyCredential).rawId) {
+                localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
+                setIsBiometricRegistered(true);
+                setIsChecked(true);
+                toast({
+                    title: 'Sucesso!',
+                    description: 'Sua impressão digital foi cadastrada com sucesso.',
+                });
+            }
+
+        } catch (err) {
+            console.error("Erro no cadastro biométrico:", err);
+            const error = err as Error;
+            toast({
+                variant: 'destructive',
+                title: 'Falha no Cadastro',
+                description: `Não foi possível cadastrar a impressão digital. (${error.name})`,
+            });
+            setIsChecked(false); // Revert switch on failure
+        } finally {
+            setIsRegistering(false);
+        }
+    }
+    
+     if (!isBiometricSupported) {
+        return null; // Don't show the card if not supported
+    }
+
+    return (
+        <Card className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <Fingerprint className="h-6 w-6 text-primary" />
+                <div className="flex flex-col">
+                    <span className="font-semibold">Desbloquear com biometria</span>
+                </div>
+            </div>
+            {isRegistering ? <Loader2 className="h-5 w-5 animate-spin" /> : <Switch checked={isChecked} onCheckedChange={handleRegisterBiometrics} />}
+        </Card>
+    );
+};
+
+const SwitchCard = ({ icon: Icon, title, subtitle }: { icon: React.ElementType, title: string, subtitle: string | null }) => {
+    const { toast } = useToast();
+    
+    const handleCheckedChange = (checked: boolean) => {
+        if(checked) {
+             toast({
+                title: 'Funcionalidade em Breve',
+                description: 'Esta opção ainda não foi implementada.',
+            });
+        }
+    };
+
+    return (
+         <Card className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <Icon className="h-6 w-6 text-primary" />
+                <div className="flex flex-col">
+                    <span className="font-semibold">{title}</span>
+                    {subtitle && <span className="text-sm text-muted-foreground">{subtitle}</span>}
+                </div>
+            </div>
+            <Switch onCheckedChange={handleCheckedChange} />
+        </Card>
+    )
+};
+
 
 export default function ProfilePage() {
 
@@ -99,33 +266,18 @@ export default function ProfilePage() {
       </div>
       
       <div className="space-y-3">
-        {menuItems.map((item) => {
-            const ItemCard = () => (
-                <Card className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <item.icon className="h-6 w-6 text-primary" />
-                        <div className="flex flex-col">
-                            <span className="font-semibold">{item.title}</span>
-                            {item.subtitle && <span className="text-sm text-muted-foreground">{item.subtitle}</span>}
-                        </div>
-                    </div>
-                    {item.type === 'link' && <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                    {item.type === 'switch' && <Switch />}
-                </Card>
-            );
-
-            if (item.type === 'link' && item.href !== '#') {
-                return (
-                    <Link href={item.href} key={item.title}>
-                        <ItemCard />
-                    </Link>
-                );
-            }
-            
-            return <ItemCard key={item.title}/>;
-        })}
+        <BiometricsCard />
+        
+        {menuItems.map((item) => (
+            <LinkCard item={item} key={item.title} />
+        ))}
+        
+        <SwitchCard 
+            icon={BellRing}
+            title="Importar notificações"
+            subtitle="Importe suas transações a partir de notificações do banco."
+        />
       </div>
-
     </div>
   );
 }
