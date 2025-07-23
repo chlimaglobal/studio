@@ -71,7 +71,6 @@ export function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
 const GOALS_KEY = 'financeflow_goals';
 
 export function getStoredGoals(): Goal[] {
-    // Return empty array by default instead of defaultGoals
     const goalsFromStorage = safeJSONParse<any[]>(GOALS_KEY, []);
     // When retrieving, ensure deadline is a Date object.
     return goalsFromStorage.map(goal => ({...goal, deadline: new Date(goal.deadline)}));

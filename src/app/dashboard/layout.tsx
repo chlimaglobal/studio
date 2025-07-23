@@ -37,6 +37,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Start with empty data to ensure values are zeroed out
     const data = getStoredTransactions();
     setTransactions(data);
     setIsLoading(false);
