@@ -8,7 +8,7 @@ import type { Card as CardType } from '@/lib/card-types';
 import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
 import { useEffect, useState } from 'react';
-import { getStoredCards } from '@/lib/storage';
+import { onCardsUpdate } from '@/lib/storage';
 import Link from 'next/link';
 
 
@@ -16,17 +16,11 @@ export default function CardsPage() {
   const [cards, setCards] = useState<CardType[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
-  const fetchCards = () => {
-    const storedCards = getStoredCards();
-    setCards(storedCards);
-  };
-
   useEffect(() => {
     setIsMounted(true);
-    fetchCards();
-
-    window.addEventListener('storage', fetchCards);
-    return () => window.removeEventListener('storage', fetchCards);
+    const unsubscribe = onCardsUpdate(setCards);
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   if (!isMounted) {

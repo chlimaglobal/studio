@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { getStoredTransactions, addStoredTransaction as storageAdd } from '@/lib/storage';
+import { addStoredTransaction, onTransactionsUpdate } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -37,9 +37,15 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Start with empty data to ensure values are zeroed out
-    setTransactions([]);
-    setIsLoading(false);
+    setIsLoading(true);
+    // onTransactionsUpdate will call the callback with initial data and then with any updates.
+    const unsubscribe = onTransactionsUpdate((newTransactions) => {
+      setTransactions(newTransactions);
+      setIsLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
   const isUnusualSpending = (newAmount: number, category: any): boolean => {
@@ -66,9 +72,9 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addTransaction = useCallback((data: z.infer<typeof TransactionFormSchema>) => {
-    const newTransaction = storageAdd(data); // This now returns the created transaction
-    setTransactions(prev => [newTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
+    // Now an async function that adds to Firestore
+    await addStoredTransaction(data); 
     
     playNotificationSound(data.type);
 
@@ -118,5 +124,3 @@ export default function DashboardLayout({
     </TransactionsProvider>
   );
 }
-
-    

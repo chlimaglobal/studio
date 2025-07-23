@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import type { Transaction, TransactionCategory } from '@/lib/types';
-import { getStoredTransactions } from '@/lib/storage';
+import { onTransactionsUpdate } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
@@ -23,15 +23,12 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const fetchData = () => {
-      const fetchedTransactions = getStoredTransactions();
-      const transactionsWithDates = fetchedTransactions.map(t => ({ ...t, date: new Date(t.date) }));
-      setTransactions(transactionsWithDates);
-    };
+    const unsubscribe = onTransactionsUpdate((newTransactions) => {
+        const transactionsWithDates = newTransactions.map(t => ({ ...t, date: new Date(t.date) }));
+        setTransactions(transactionsWithDates);
+    });
 
-    fetchData();
-    window.addEventListener('storage', fetchData);
-    return () => window.removeEventListener('storage', fetchData);
+    return () => unsubscribe();
   }, []);
 
   const categorySpendingData = useMemo((): CategorySpending[] => {

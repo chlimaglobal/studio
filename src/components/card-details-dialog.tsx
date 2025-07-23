@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import type { Card } from '@/lib/card-types';
 import type { Transaction } from '@/lib/types';
-import { getStoredTransactions } from '@/lib/storage';
+import { onTransactionsUpdate } from '@/lib/storage';
 import { useEffect, useState } from 'react';
 import CardIcon from './card-icon';
 import { ScrollArea } from './ui/scroll-area';
@@ -31,14 +31,16 @@ export function CardDetailsDialog({ card, open, onOpenChange }: CardDetailsDialo
 
   useEffect(() => {
     if (open && card) {
-      const allTransactions = getStoredTransactions();
-      const cardTransactions = allTransactions.filter(
-        (t) => t.type === 'expense' && t.category === 'Cartão de Crédito' && t.creditCard === card.name
-      );
-      setTransactions(cardTransactions);
+      const unsubscribe = onTransactionsUpdate((allTransactions) => {
+          const cardTransactions = allTransactions.filter(
+            (t) => t.type === 'expense' && t.category === 'Cartão de Crédito' && t.creditCard === card.name
+          );
+          setTransactions(cardTransactions);
 
-      const total = cardTransactions.reduce((acc, t) => acc + t.amount, 0);
-      setTotalSpent(total);
+          const total = cardTransactions.reduce((acc, t) => acc + t.amount, 0);
+          setTotalSpent(total);
+      });
+      return () => unsubscribe();
     }
   }, [open, card]);
 

@@ -10,7 +10,7 @@ import Icon from '@/components/icon';
 import { icons } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { Goal } from '@/lib/goal-types';
-import { getStoredGoals } from '@/lib/storage';
+import { onGoalsUpdate } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 
@@ -18,17 +18,10 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
-  const fetchGoals = () => {
-    const storedGoals = getStoredGoals();
-    setGoals(storedGoals);
-  };
-
   useEffect(() => {
     setIsMounted(true);
-    fetchGoals();
-
-    window.addEventListener('storage', fetchGoals);
-    return () => window.removeEventListener('storage', fetchGoals);
+    const unsubscribe = onGoalsUpdate(setGoals);
+    return () => unsubscribe();
   }, []);
   
   const calculateProgress = (current: number, target: number) => {

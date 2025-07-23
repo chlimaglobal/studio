@@ -1,100 +1,106 @@
 
-
+import { db } from './firebase';
+import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
-import { addDays, subMonths } from 'date-fns';
-
-// Utility to safely parse JSON from localStorage
-function safeJSONParse<T>(key: string, defaultValue: T): T {
-  if (typeof window === 'undefined') {
-    return defaultValue;
-  }
-  try {
-    const item = window.localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultValue;
-  } catch (error) {
-    console.warn(`Error parsing localStorage key "${key}":`, error);
-    return defaultValue;
-  }
-}
 
 // ======== TRANSACTIONS ========
 
-const TRANSACTIONS_KEY = 'financeflow_transactions';
+export function onTransactionsUpdate(callback: (transactions: Transaction[]) => void): () => void {
+  const q = query(collection(db, "transactions"), orderBy("date", "desc"));
+  
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const transactions: Transaction[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      transactions.push({
+        id: doc.id,
+        ...data,
+        // Convert Firestore Timestamp to ISO string to match our type
+        date: (data.date as Timestamp).toDate().toISOString(),
+      } as Transaction);
+    });
+    callback(transactions);
+  });
 
-export function getStoredTransactions(): Transaction[] {
-  const transactions = safeJSONParse<Transaction[]>(TRANSACTIONS_KEY, []);
-  // Sort by date descending
-  return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  return unsubscribe;
 }
 
-export function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Transaction {
-  const transactions = getStoredTransactions();
-  const newTransaction: Transaction = {
-    id: `txn_${Date.now()}`,
-    ...data,
-    amount: Number(data.amount),
-    date: data.date.toISOString(), // Store date as ISO string
-  };
-  transactions.unshift(newTransaction);
-  localStorage.setItem(TRANSACTIONS_KEY, JSON.stringify(transactions));
-  // This is for other tabs, the main update logic is now in context
-  window.dispatchEvent(new Event('storage')); 
-  return newTransaction;
-}
 
+export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<void> {
+  try {
+    await addDoc(collection(db, "transactions"), {
+      ...data,
+      amount: Number(data.amount),
+      // Convert JS Date to Firestore Timestamp
+      date: Timestamp.fromDate(data.date),
+    });
+  } catch (e) {
+    console.error("Error adding document: ", e);
+  }
+}
 
 // ======== CARDS ========
 
-const CARDS_KEY = 'financeflow_cards';
+export function onCardsUpdate(callback: (cards: Card[]) => void): () => void {
+  const q = query(collection(db, "cards"), orderBy("name"));
 
-export function getStoredCards(): Card[] {
-  return safeJSONParse<Card[]>(CARDS_KEY, []);
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const cards: Card[] = [];
+    querySnapshot.forEach((doc) => {
+        cards.push({ id: doc.id, ...doc.data() } as Card);
+    });
+    callback(cards);
+  });
+
+  return unsubscribe;
 }
 
-export function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
-  const cards = getStoredCards();
-  const newCard: Card = {
-    id: `card_${Date.now()}`,
-    ...data,
-  };
-  cards.push(newCard);
-  localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
-  window.dispatchEvent(new Event('storage'));
+
+export async function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
+   try {
+    await addDoc(collection(db, "cards"), data);
+  } catch (e) {
+    console.error("Error adding card: ", e);
+  }
 }
 
 
 // ======== GOALS ========
 
-const GOALS_KEY = 'financeflow_goals';
+export function onGoalsUpdate(callback: (goals: Goal[]) => void): () => void {
+  const q = query(collection(db, "goals"), orderBy("deadline"));
 
-export function getStoredGoals(): Goal[] {
-    const goalsFromStorage = safeJSONParse<any[]>(GOALS_KEY, []);
-    // When retrieving, ensure deadline is a Date object.
-    return goalsFromStorage.map(goal => ({...goal, deadline: new Date(goal.deadline)}));
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const goals: Goal[] = [];
+    querySnapshot.forEach((doc) => {
+       const data = doc.data();
+       goals.push({
+        id: doc.id,
+        ...data,
+        // Convert Firestore Timestamp to JS Date object
+        deadline: (data.deadline as Timestamp).toDate(),
+       } as Goal);
+    });
+    callback(goals);
+  });
+  
+  return unsubscribe;
 }
 
 
-export function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
-  const goals = getStoredGoals();
-  const newGoal: Goal = {
-    id: `goal_${Date.now()}`,
-    ...data,
-    amount: Number(data.targetAmount),
-    currentAmount: Number(data.currentAmount)
-  };
-  
-  // Convert date to ISO string for storage
-  const storableGoal = {
-    ...newGoal,
-    deadline: newGoal.deadline.toISOString(),
-  };
-
-  const storableGoals = goals.map(g => ({...g, deadline: new Date(g.deadline).toISOString()}));
-  storableGoals.push(storableGoal);
-
-  localStorage.setItem(GOALS_KEY, JSON.stringify(storableGoals));
-  window.dispatchEvent(new Event('storage'));
+export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
+  try {
+    const goalData = {
+        ...data,
+        targetAmount: Number(data.targetAmount),
+        currentAmount: Number(data.currentAmount),
+        deadline: Timestamp.fromDate(data.deadline),
+    };
+    await addDoc(collection(db, "goals"), goalData);
+  } catch (e) {
+    console.error("Error adding goal: ", e);
+  }
 }
