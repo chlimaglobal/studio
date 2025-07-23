@@ -61,7 +61,6 @@ export function AddTransactionFab() {
         <Button 
             size="icon" 
             className="rounded-full h-16 w-16 shadow-2xl bg-primary hover:bg-primary/90 transition-transform duration-300"
-            style={{bottom: '6rem', right: '1.5rem', position: 'fixed'}}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
