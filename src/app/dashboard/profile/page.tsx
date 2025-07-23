@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -250,6 +251,15 @@ const SwitchCard = ({ icon: Icon, title, subtitle }: { icon: React.ElementType, 
 
 
 export default function ProfilePage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null; // Or a loading skeleton
+  }
 
   return (
     <div className="space-y-4">

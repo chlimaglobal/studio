@@ -9,13 +9,22 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AddTransactionSheet } from '@/components/add-transaction-sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 
 
 export default function CardDetailsPage({ params }: { params: { id: string } }) {
   const cardName = decodeURIComponent(params.id);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <AddTransactionSheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
