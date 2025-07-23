@@ -8,7 +8,7 @@ import {
     ArrowLeft, Home, MoreHorizontal, Plus, Utensils, Pizza, Coffee, Bike,
     UtensilsCrossed, ShoppingCart, Gamepad2, AppWindow, Tv, Smartphone, Wifi,
     Lightbulb, Refrigerator, Building, HandCoins, Wrench, Droplets, Car, Shield,
-    Stethoscope, Tooth, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
+    Stethoscope, Smile, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
     Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
     Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift,
     PiggyBank, LineChart, AreaChart, CandlestickChart
@@ -67,9 +67,9 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     "Multa": Car,
     // Saúde
     "Plano de Saúde": Shield,
-    "Plano Odontológico": Tooth,
+    "Plano Odontológico": Smile,
     "Consultas": Stethoscope,
-    "Dentista": Tooth,
+    "Dentista": Smile,
     "Exames": FlaskConical,
     "Farmácia": Pill,
     // Lazer/Hobbies
