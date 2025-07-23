@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, Fingerprint } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const LogoIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -24,14 +25,29 @@ export default function LoginPage() {
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberMe(true);
+    }
   }, []);
 
   const handleLogin = (event?: React.FormEvent) => {
     event?.preventDefault();
     setIsLoading(true);
+
+    if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+    } else {
+        localStorage.removeItem('rememberedEmail');
+    }
+
     // Simulate API call
     setTimeout(() => {
       router.push('/dashboard');
@@ -111,16 +127,40 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="seu@email.com" required />
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="seu@email.com" 
+                required 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
+              </div>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+             <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(checked) => setRememberMe(checked as boolean)} />
+                    <label
+                        htmlFor="remember-me"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                        Lembrar de mim
+                    </label>
+                </div>
                 <Button variant="link" type="button" className="p-0 h-auto text-xs">
                   Esqueceu a senha?
                 </Button>
-              </div>
-              <Input id="password" type="password" required />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
