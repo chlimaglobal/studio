@@ -43,7 +43,7 @@ export const TransactionFormSchema = z.object({
   category: z.enum(transactionCategories as [string, ...string[]], {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
   }),
-  paid: z.boolean().default(false),
+  paid: z.boolean().default(true),
   creditCard: z.string().optional(),
 }).refine(data => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {

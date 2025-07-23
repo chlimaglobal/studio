@@ -37,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { z } from 'zod';
 import { useTransactions } from '@/app/dashboard/layout';
+import { Switch } from './ui/switch';
 
 type AddTransactionDialogProps = {
   open: boolean;
@@ -58,6 +59,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
       date: new Date(),
       type: 'expense',
       creditCard: '',
+      paid: true,
     },
   });
 
@@ -72,6 +74,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         type: initialData?.type || 'expense',
         category: initialData?.category,
         creditCard: initialData?.creditCard || '',
+        paid: initialData?.paid ?? true,
       });
       if (initialData?.description && !initialData.category) {
           handleAiCategorize(initialData.description);
@@ -221,7 +224,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                             mode="single"
                             selected={field.value ? new Date(field.value) : undefined}
                             onSelect={field.onChange}
-                            disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                            disabled={(date) => date > new Date("2100-01-01") || date < new Date('1900-01-01')}
                             initialFocus
                             locale={ptBR}
                             />
@@ -232,6 +235,26 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                     )}
               />
             </div>
+             <FormField
+                control={form.control}
+                name="paid"
+                render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                            <FormLabel>Pago</FormLabel>
+                             <FormDescription className="text-xs">
+                                Desative para lançamentos futuros ou previstos.
+                            </FormDescription>
+                        </div>
+                        <FormControl>
+                            <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            />
+                        </FormControl>
+                    </FormItem>
+                )}
+               />
              <FormField
                 control={form.control}
                 name="category"
