@@ -42,15 +42,23 @@ export default function LoginPage() {
     event?.preventDefault();
     setIsLoading(true);
 
-    if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
-    } else {
-        localStorage.removeItem('rememberedEmail');
-    }
-
-    // Simulate API call
+    // Simulate API call and validation
     setTimeout(() => {
-      router.push('/dashboard');
+      if (email === 'user@example.com' && password === 'password123') {
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email);
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        router.push('/dashboard');
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Login Falhou',
+          description: 'E-mail ou senha inválidos.',
+        });
+        setIsLoading(false);
+      }
     }, 1000);
   };
   
