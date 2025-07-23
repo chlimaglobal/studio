@@ -48,18 +48,18 @@ const prompt = ai.definePrompt({
   **Instruções de Processamento:**
   1.  **Analise o Conteúdo:** O conteúdo do arquivo será fornecido como uma string. Identifique o formato (mesmo que a extensão seja genérica) e a estrutura dos dados.
   2.  **Extraia os Campos:** Para cada transação, extraia as seguintes informações:
-      *   `date`: A data da transação. Normalize para o formato **YYYY-MM-DD**.
-      *   `description`: A descrição da transação.
-      *   `amount`: O valor da transação. Deve ser sempre um número **positivo**.
-      *   `type`: Determine se é 'income' (receita) ou 'expense' (despesa). Em muitos extratos, despesas são representadas por valores negativos.
-      *   `category`: Sugira a categoria mais apropriada para a transação com base na descrição, usando a lista de categorias fornecida.
+      -   \`date\`: A data da transação. Normalize para o formato **YYYY-MM-DD**.
+      -   \`description\`: A descrição da transação.
+      -   \`amount\`: O valor da transação. Deve ser sempre um número **positivo**.
+      -   \`type\`: Determine se é 'income' (receita) ou 'expense' (despesa). Em muitos extratos, despesas são representadas por valores negativos.
+      -   \`category\`: Sugira a categoria mais apropriada para a transação com base na descrição, usando a lista de categorias fornecida.
   3.  **Lógica de Tipos:**
-      *   Se o valor for positivo no extrato, geralmente é 'income'.
-      *   Se o valor for negativo, é 'expense'. O `amount` no JSON de saída deve ser o valor absoluto (positivo).
+      -   Se o valor for positivo no extrato, geralmente é 'income'.
+      -   Se o valor for negativo, é 'expense'. O \`amount\` no JSON de saída deve ser o valor absoluto (positivo).
   4.  **Categorização**: Use a descrição para inferir a categoria mais provável. Por exemplo, "UBER TRIP" deve ser "Táxi/Uber". "PADARIA DO ZE" deve ser "Padaria".
-  5.  **Retorno:** Retorne um objeto JSON contendo uma única chave `transactions`, que é um array de todos os objetos de transação que você conseguiu extrair.
+  5.  **Retorno:** Retorne um objeto JSON contendo uma única chave \`transactions\`, que é um array de todos os objetos de transação que você conseguiu extrair.
 
-  **Categorias Disponíveis para `category`:**
+  **Categorias Disponíveis para \`category\`:**
   {{#each categories}}
   - {{this}}
   {{/each}}
