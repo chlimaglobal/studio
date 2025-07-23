@@ -31,10 +31,10 @@ export function AddTransactionFab() {
   return (
     <>
       <div className="fixed bottom-24 right-4 z-50 flex flex-col items-center gap-3">
-        {/* <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setIsAudioOpen(true)}>
+        <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setIsAudioOpen(true)}>
           <Mic className="h-6 w-6" />
         </Button>
-         <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setIsQrOpen(true)}>
+         {/* <Button size="icon" className="rounded-full h-12 w-12 shadow-lg" onClick={() => setIsQrOpen(true)}>
           <QrCode className="h-6 w-6" />
         </Button> */}
         <Button 
