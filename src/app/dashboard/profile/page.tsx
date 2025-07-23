@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,7 @@ const menuItems = [
         title: 'Minhas categorias', 
         subtitle: null,
         type: 'link',
-        href: '#' // Placeholder
+        href: '/dashboard/categories'
     },
     { 
         icon: Wallet, 
