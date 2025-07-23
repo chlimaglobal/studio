@@ -11,6 +11,7 @@ import { Loader2, Fingerprint } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link';
 
 const LogoIcon = () => (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -166,8 +167,8 @@ export default function LoginPage() {
                         Lembrar de mim
                     </label>
                 </div>
-                <Button variant="link" type="button" className="p-0 h-auto text-xs">
-                  Esqueceu a senha?
+                <Button variant="link" type="button" className="p-0 h-auto text-xs" asChild>
+                  <Link href="/forgot-password">Esqueceu a senha?</Link>
                 </Button>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
