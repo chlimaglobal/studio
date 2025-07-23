@@ -4,6 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Check, Fuel, MessageCircle, Wallet } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const LogoIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -13,6 +14,8 @@ const LogoIcon = () => (
 
 
 export default function WhatsAppPage() {
+
+  const whatsappLink = "https://wa.me/5511999999999?text=Ol%C3%A1!%20Quero%20come%C3%A7ar%20a%20usar%20o%20assistente%20FinanceFlow.";
 
   return (
     <div className="flex flex-col items-center text-center space-y-8 px-4 py-8">
@@ -56,10 +59,14 @@ export default function WhatsAppPage() {
             </p>
         </div>
 
-        <Button size="lg" className="w-full max-w-sm">
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Conectar com o WhatsApp
-        </Button>
+        <Link href={whatsappLink} passHref legacyBehavior>
+            <a target="_blank" rel="noopener noreferrer" className="w-full max-w-sm">
+                <Button size="lg" className="w-full">
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    Conectar com o WhatsApp
+                </Button>
+            </a>
+        </Link>
     </div>
   );
 }
