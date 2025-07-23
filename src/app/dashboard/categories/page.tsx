@@ -11,7 +11,7 @@ import {
     Stethoscope, Smile, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
     Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
     Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift,
-    PiggyBank, LineChart, AreaChart, CandlestickChart
+    PiggyBank, LineChart, AreaChart, CandlestickChart, Fuel
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -63,7 +63,7 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     "Manutenção": Wrench,
     "Táxi/Uber": Car,
     "Licenciamento": Car,
-    "Combustível": Pizza,
+    "Combustível": Fuel,
     "Multa": Car,
     // Saúde
     "Plano de Saúde": Shield,
@@ -109,7 +109,7 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     // Pets
     "Banho/Tosa": Droplets,
     "Acessórios Pet": Dog,
-    "Alimentação Pet": Pizza,
+    "Alimentação Pet": Dog,
     "Medicamentos": Pill,
     "Veterinário": Stethoscope,
     // Salário
