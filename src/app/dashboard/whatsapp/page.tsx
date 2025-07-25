@@ -15,7 +15,7 @@ const LogoIcon = () => (
 
 export default function WhatsAppPage() {
 
-  const whatsappLink = "https://wa.me/5585997635718?text=Ol%C3%A1!%20Quero%20come%C3%A7ar%20a%20usar%20o%20assistente%20FinanceFlow.";
+  const whatsappLink = "https://wa.me/14155238886?text=Ol%C3%A1!%20Quero%20come%C3%A7ar%20a%20usar%20o%20assistente%20FinanceFlow.";
 
   return (
     <div className="flex flex-col items-center text-center space-y-8 px-4 py-8">
