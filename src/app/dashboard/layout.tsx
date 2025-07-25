@@ -10,6 +10,8 @@ import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle } from 'lucide-react';
+import { sendWhatsAppNotification } from '../actions';
+import { formatCurrency } from '@/lib/utils';
 
 // 1. Create a context
 interface TransactionsContextType {
@@ -77,6 +79,15 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     await addStoredTransaction(data); 
     
     playNotificationSound(data.type);
+    
+    // Send WhatsApp notification
+    const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
+    if (userWhatsAppNumber) {
+        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+        const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+        sendWhatsAppNotification(messageBody, userWhatsAppNumber);
+    }
+
 
     if (data.type === 'income') {
          toast({

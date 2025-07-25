@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -114,6 +114,7 @@ export default function SettingsPage() {
   
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userWhatsApp, setUserWhatsApp] = useState('');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [payday, setPayday] = useState('');
@@ -147,30 +148,16 @@ export default function SettingsPage() {
         });
     }
 
-    const storedUserName = localStorage.getItem('userName') || '';
-    setUserName(storedUserName);
-
-    const storedUserEmail = localStorage.getItem('userEmail') || '';
-    setUserEmail(storedUserEmail);
+    setUserName(localStorage.getItem('userName') || '');
+    setUserEmail(localStorage.getItem('userEmail') || '');
+    setUserWhatsApp(localStorage.getItem('userWhatsApp') || '');
+    setProfilePic(localStorage.getItem('profilePic'));
+    setMonthlyIncome(localStorage.getItem('monthlyIncome') || '');
+    setPayday(localStorage.getItem('payday') || '');
+    setIncomeSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
+    setExpenseSound(localStorage.getItem('expenseSound') || 'swoosh.mp3');
+    setIsBiometricRegistered(!!localStorage.getItem('webauthn-credential-id'));
     
-    const storedProfilePic = localStorage.getItem('profilePic');
-    if (storedProfilePic) setProfilePic(storedProfilePic);
-
-    const storedIncome = localStorage.getItem('monthlyIncome');
-    if (storedIncome) setMonthlyIncome(storedIncome);
-
-    const storedPayday = localStorage.getItem('payday');
-    if (storedPayday) setPayday(storedPayday);
-
-    const storedIncomeSound = localStorage.getItem('incomeSound');
-    if (storedIncomeSound) setIncomeSound(storedIncomeSound);
-
-    const storedExpenseSound = localStorage.getItem('expenseSound');
-    if (storedExpenseSound) setExpenseSound(storedExpenseSound);
-    
-    const storedCredential = localStorage.getItem('webauthn-credential-id');
-    if (storedCredential) setIsBiometricRegistered(true);
-
     const storedNotifications = localStorage.getItem('notificationSettings');
     if (storedNotifications) {
       setNotifications(JSON.parse(storedNotifications));
@@ -270,6 +257,7 @@ export default function SettingsPage() {
   const handleSave = () => {
     localStorage.setItem('userName', userName);
     localStorage.setItem('userEmail', userEmail);
+    localStorage.setItem('userWhatsApp', userWhatsApp);
     localStorage.setItem('monthlyIncome', monthlyIncome);
     localStorage.setItem('payday', payday);
     localStorage.setItem('incomeSound', incomeSound);
@@ -371,6 +359,17 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+            <div>
+              <Label htmlFor="user-whatsapp">Número do WhatsApp</Label>
+              <Input 
+                  id="user-whatsapp" 
+                  type="tel" 
+                  placeholder="ex: 5511999998888" 
+                  value={userWhatsApp}
+                  onChange={(e) => setUserWhatsApp(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Inclua o código do país (ex: 55 para Brasil).</p>
+          </div>
         </CardContent>
       </Card>
 
