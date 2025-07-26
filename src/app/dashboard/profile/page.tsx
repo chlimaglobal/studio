@@ -45,6 +45,13 @@ const menuItems = [
         href: '/dashboard/import'
     },
     { 
+        icon: BellRing, 
+        title: 'Importar via notificações', 
+        subtitle: 'Encaminhe alertas de bancos para a IA no WhatsApp.',
+        type: 'link',
+        href: '/dashboard/whatsapp'
+    },
+    { 
         icon: LayoutGrid, 
         title: 'Minhas categorias', 
         subtitle: null,
@@ -223,33 +230,6 @@ const BiometricsCard = () => {
     );
 };
 
-const SwitchCard = ({ icon: Icon, title, subtitle }: { icon: React.ElementType, title: string, subtitle: string | null }) => {
-    const { toast } = useToast();
-    
-    const handleCheckedChange = (checked: boolean) => {
-        if(checked) {
-             toast({
-                title: 'Funcionalidade em Breve',
-                description: 'Esta opção ainda não foi implementada.',
-            });
-        }
-    };
-
-    return (
-         <Card className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <Icon className="h-6 w-6 text-primary" />
-                <div className="flex flex-col">
-                    <span className="font-semibold">{title}</span>
-                    {subtitle && <span className="text-sm text-muted-foreground">{subtitle}</span>}
-                </div>
-            </div>
-            <Switch onCheckedChange={handleCheckedChange} />
-        </Card>
-    )
-};
-
-
 export default function ProfilePage() {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -279,11 +259,6 @@ export default function ProfilePage() {
             <LinkCard item={item} key={item.title} />
         ))}
         
-        <SwitchCard 
-            icon={BellRing}
-            title="Importar notificações"
-            subtitle="Importe suas transações a partir de notificações do banco."
-        />
       </div>
     </div>
   );
