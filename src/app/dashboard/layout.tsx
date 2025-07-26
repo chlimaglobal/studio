@@ -64,7 +64,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
     try {
-        // Now we wait for the transaction to be stored before doing anything else
         await addStoredTransaction(data);
 
         // --- Show Success Feedback ---
