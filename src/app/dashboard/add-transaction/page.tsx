@@ -63,7 +63,7 @@ function AddTransactionForm() {
     const watchedPaymentMethod = form.watch('paymentMethod');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        if (!description || form.formState.isDirty('category')) return;
+        if (!description || form.formState.dirtyFields.category) return;
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
@@ -195,7 +195,7 @@ function AddTransactionForm() {
                                                 step="0.01" 
                                                 placeholder="0,00" 
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                                onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -338,7 +338,7 @@ function AddTransactionForm() {
                                                         min="2" 
                                                         placeholder="Ex: 12" 
                                                         {...field} 
-                                                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                                        onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
