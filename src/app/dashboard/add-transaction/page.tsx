@@ -88,10 +88,13 @@ function AddTransactionForm() {
             clearTimeout(suggestionTimeoutRef.current);
         }
 
-        if (watchedDescription && !form.getValues('category')) {
-            suggestionTimeoutRef.current = setTimeout(() => {
-                handleAiCategorize(watchedDescription);
-            }, 500); // 500ms debounce
+        if (watchedDescription) {
+             const hasCategory = !!form.getValues('category');
+             if (!hasCategory) {
+                suggestionTimeoutRef.current = setTimeout(() => {
+                    handleAiCategorize(watchedDescription);
+                }, 500); // 500ms debounce
+             }
         }
 
         return () => {
@@ -119,6 +122,11 @@ function AddTransactionForm() {
                 title: 'Erro ao Adicionar Transação',
                 description: "Ocorreu um erro. Tente novamente."
             });
+        } finally {
+             if (form.formState.isSubmitting) {
+                // This is a failsafe, but react-hook-form should handle it.
+                // In some complex cases, it might be necessary.
+             }
         }
     }
     
@@ -434,3 +442,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
