@@ -138,7 +138,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Send WhatsApp notification in background
+      // Send WhatsApp notification in background without awaiting
       const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
       if (userWhatsAppNumber) {
           const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
