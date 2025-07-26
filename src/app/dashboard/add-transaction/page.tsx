@@ -46,7 +46,7 @@ function AddTransactionForm() {
         resolver: zodResolver(TransactionFormSchema),
         defaultValues: {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : '',
+            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : ('' as any),
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as any) || undefined,
@@ -440,7 +440,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
 
     
