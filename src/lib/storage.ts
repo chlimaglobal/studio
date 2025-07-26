@@ -25,20 +25,24 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
     });
     const filteredTransactions = transactions.filter(t => !t.hideFromReports);
     callback(filteredTransactions);
+  }, (error) => {
+    console.error("Error fetching transactions:", error);
   });
 
   return unsubscribe;
 }
 
 
-export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<void> {
+export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<string | string[]> {
   try {
-    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments) {
+    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
         const batch = writeBatch(db);
         const installmentAmount = data.amount / data.installments;
+        const newDocIds: string[] = [];
 
         for (let i = 0; i < data.installments; i++) {
             const installmentDate = addMonths(new Date(data.date), i);
+            const docRef = doc(collection(db, "transactions"));
             const docData = {
                 ...data,
                 amount: Number(installmentAmount.toFixed(2)),
@@ -50,10 +54,11 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             };
             delete docData.installments;
             
-            const docRef = doc(collection(db, "transactions"));
             batch.set(docRef, docData);
+            newDocIds.push(docRef.id);
         }
         await batch.commit();
+        return newDocIds;
 
     } else {
         const docData = {
@@ -61,13 +66,29 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
           amount: Number(data.amount),
           date: Timestamp.fromDate(new Date(data.date)),
         };
-        await addDoc(collection(db, "transactions"), docData);
+        const docRef = await addDoc(collection(db, "transactions"), docData);
+        return docRef.id;
     }
   } catch (e) {
     console.error("Error adding document: ", e);
     throw new Error('Falha ao adicionar transação no Firestore.');
   }
 }
+
+export async function deleteStoredTransactions(ids: string[]): Promise<void> {
+    try {
+        const batch = writeBatch(db);
+        ids.forEach(id => {
+            const docRef = doc(db, "transactions", id);
+            batch.delete(docRef);
+        });
+        await batch.commit();
+    } catch (e) {
+        console.error("Error deleting documents: ", e);
+        throw new Error('Falha ao remover transação no Firestore.');
+    }
+}
+
 
 // ======== CARDS ========
 

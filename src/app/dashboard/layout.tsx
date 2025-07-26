@@ -5,18 +5,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { addStoredTransaction, onTransactionsUpdate } from '@/lib/storage';
+import { addStoredTransaction, deleteStoredTransactions, onTransactionsUpdate } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle } from 'lucide-react';
 import { sendWhatsAppNotification } from '../actions';
 import { formatCurrency } from '@/lib/utils';
+import { addMonths } from 'date-fns';
 
 // 1. Create a context
 interface TransactionsContextType {
   transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => void;
+  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -75,40 +76,86 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
-    // Now an async function that adds to Firestore
-    await addStoredTransaction(data); 
-    
     playNotificationSound(data.type);
+
+    let tempIds: string[] = [];
     
-    // Send WhatsApp notification
-    const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
-    if (userWhatsAppNumber) {
-        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
-        const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
-        sendWhatsAppNotification(messageBody, userWhatsAppNumber);
-    }
-
-
-    if (data.type === 'income') {
-         toast({
-            title: '🎉 Receita Adicionada!',
-            description: "Ótimo trabalho! Continue investindo no seu futuro."
-        });
-    } else if (data.type === 'expense') {
-        if (isUnusualSpending(data.amount, data.category)) {
-             toast({
-                variant: 'destructive',
-                title: '🚨 Gasto Incomum Detectado!',
-                description: `Seu gasto em "${data.category}" está acima da sua média.`,
-                action: <AlertTriangle className="h-5 w-5" />,
-            });
-        } else {
-             toast({
-                title: '💸 Despesa Adicionada',
-                description: `"${data.description}" adicionado. Lembre-se de manter o controle.`
+    // --- Optimistic UI Update ---
+    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
+        const installmentAmount = data.amount / data.installments;
+        const newTransactions: Transaction[] = [];
+        for (let i = 0; i < data.installments; i++) {
+            const tempId = `temp_${Date.now()}_${i}`;
+            tempIds.push(tempId);
+            newTransactions.push({
+                id: tempId,
+                ...data,
+                date: addMonths(new Date(data.date), i).toISOString(),
+                amount: Number(installmentAmount.toFixed(2)),
+                description: `${data.description} (${i + 1}/${data.installments})`,
+                paid: i === 0 ? data.paid : false,
+                installmentNumber: i + 1,
+                totalInstallments: data.installments,
             });
         }
+        setTransactions(current => [...newTransactions, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    } else {
+        const tempId = `temp_${Date.now()}`;
+        tempIds.push(tempId);
+        const newTransaction: Transaction = {
+            id: tempId,
+            ...data,
+            date: new Date(data.date).toISOString(),
+        };
+        setTransactions(current => [newTransaction, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
+
+
+    try {
+      // Send to server in the background
+      await addStoredTransaction(data); 
+
+      // Show toast on success
+      if (data.type === 'income') {
+        toast({
+          title: '🎉 Receita Adicionada!',
+          description: "Ótimo trabalho! Continue investindo no seu futuro."
+        });
+      } else if (data.type === 'expense') {
+        if (isUnusualSpending(data.amount, data.category)) {
+          toast({
+              variant: 'destructive',
+              title: '🚨 Gasto Incomum Detectado!',
+              description: `Seu gasto em "${data.category}" está acima da sua média.`,
+              action: <AlertTriangle className="h-5 w-5" />,
+          });
+        } else {
+          toast({
+              title: '💸 Despesa Adicionada',
+              description: `"${data.description}" adicionado. Lembre-se de manter o controle.`
+          });
+        }
+      }
+
+      // Send WhatsApp notification in background
+      const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
+      if (userWhatsAppNumber) {
+          const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+          const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+          sendWhatsAppNotification(messageBody, userWhatsAppNumber);
+      }
+
+    } catch (error) {
+      // --- Revert UI on error ---
+      console.error("Failed to save transaction, reverting UI:", error);
+      setTransactions(current => current.filter(t => !tempIds.includes(t.id)));
+      toast({
+          variant: 'destructive',
+          title: 'Erro ao Salvar Transação',
+          description: "Não foi possível salvar a transação. Por favor, tente novamente.",
+      });
+    }
+
   }, [toast, transactions]); //eslint-disable-line
 
   return (
