@@ -122,10 +122,6 @@ function AddTransactionForm() {
             });
         }
     }
-    
-    const handlePaymentMethodChange = (value: string) => {
-        form.setValue('paymentMethod', value as any, { shouldValidate: true });
-    };
 
     return (
         <div className="flex flex-col h-full">
@@ -148,7 +144,7 @@ function AddTransactionForm() {
                                     <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
-                                        value={field.value}
+                                        defaultValue={field.value}
                                         className="grid grid-cols-2 gap-4"
                                     >
                                         <FormItem className="flex items-center">
@@ -291,33 +287,42 @@ function AddTransactionForm() {
 
                             {watchedType === 'expense' && (
                                 <div className="space-y-4">
-                                     <FormItem>
-                                        <FormLabel>Tipo de Pagamento</FormLabel>
-                                        <RadioGroup
-                                            onValueChange={handlePaymentMethodChange}
-                                            value={watchedPaymentMethod}
-                                            className="flex space-x-4"
-                                        >
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl>
-                                                <RadioGroupItem value="one-time" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">À Vista</FormLabel>
+                                     <FormField
+                                        control={form.control}
+                                        name="paymentMethod"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Tipo de Pagamento</FormLabel>
+                                                <FormControl>
+                                                    <RadioGroup
+                                                        onValueChange={field.onChange}
+                                                        defaultValue={field.value}
+                                                        className="flex space-x-4"
+                                                    >
+                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="one-time" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">À Vista</FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="installments" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">Parcelado</FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="recurring" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">Recorrente</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
                                             </FormItem>
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl>
-                                                <RadioGroupItem value="installments" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">Parcelado</FormLabel>
-                                            </FormItem>
-                                            <FormItem className="flex items-center space-x-2 space-y-0">
-                                            <FormControl>
-                                                <RadioGroupItem value="recurring" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">Recorrente</FormLabel>
-                                            </FormItem>
-                                        </RadioGroup>
-                                     </FormItem>
+                                        )}
+                                     />
 
                                     {watchedPaymentMethod === 'installments' && (
                                         <FormField
