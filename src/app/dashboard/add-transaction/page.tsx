@@ -63,9 +63,6 @@ function AddTransactionForm() {
     const watchedPaymentMethod = form.watch('paymentMethod');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        // Do not suggest if a category is already selected
-        if (form.getValues('category')) return;
-
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
@@ -88,7 +85,8 @@ function AddTransactionForm() {
         if (suggestionTimeoutRef.current) {
             clearTimeout(suggestionTimeoutRef.current);
         }
-        if (watchedDescription) {
+        // Do not suggest if a category is already selected
+        if (watchedDescription && !form.getValues('category')) {
             suggestionTimeoutRef.current = setTimeout(() => {
                 handleAiCategorize(watchedDescription);
             }, 1000); // 1s debounce
@@ -98,7 +96,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, handleAiCategorize]);
+    }, [watchedDescription, form, handleAiCategorize]);
 
     useEffect(() => {
         if (watchedType === 'income') {
