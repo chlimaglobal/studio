@@ -62,23 +62,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     return newAmount > average * 1.3 && average > 50;
   };
   
-  const playNotificationSound = (type: 'income' | 'expense') => {
-    if (typeof window === 'undefined') return;
-    const soundKey = type === 'income' ? 'incomeSound' : 'expenseSound';
-    const soundFile = localStorage.getItem(soundKey);
-    if (soundFile && soundFile !== 'none') {
-        try {
-            const audio = new Audio(`/${soundFile}`);
-            audio.play().catch(e => console.error("Error playing sound:", e));
-        } catch (e) {
-            console.error("Failed to play notification sound:", e);
-        }
-    }
-  };
-
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
-    playNotificationSound(data.type);
-    
     try {
         // Now we wait for the transaction to be stored before doing anything else
         await addStoredTransaction(data);
