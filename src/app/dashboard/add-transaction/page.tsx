@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
-import { TransactionFormSchema, categoryData } from '@/lib/types';
+import { TransactionFormSchema, categoryData, TransactionCategory } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -49,10 +49,10 @@ function AddTransactionForm() {
             amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : ('' as any),
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
-            category: (searchParams.get('category') as any) || undefined,
+            category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: true,
             paymentMethod: 'one-time',
-            installments: '' as any,
+            installments: undefined,
             observations: '',
             hideFromReports: false,
         },
@@ -63,7 +63,7 @@ function AddTransactionForm() {
     const watchedPaymentMethod = form.watch('paymentMethod');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        if (!description || form.getValues('category')) return;
+        if (!description || form.formState.isDirty('category')) return;
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
@@ -195,6 +195,7 @@ function AddTransactionForm() {
                                                 step="0.01" 
                                                 placeholder="0,00" 
                                                 {...field}
+                                                onChange={e => field.onChange(e.target.value === '' ? '' : parseFloat(e.target.value))}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -332,7 +333,13 @@ function AddTransactionForm() {
                                                 <FormItem>
                                                 <FormLabel>Número de Parcelas</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" min="2" placeholder="Ex: 12" {...field} />
+                                                    <Input 
+                                                        type="number" 
+                                                        min="2" 
+                                                        placeholder="Ex: 12" 
+                                                        {...field} 
+                                                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                                 </FormItem>

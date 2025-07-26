@@ -48,30 +48,28 @@ export const TransactionFormSchema = z.object({
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
-}).refine(data => {
+}).superRefine((data, ctx) => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
-        return false;
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O nome do cartão é obrigatório para a categoria 'Cartão de Crédito'.",
+            path: ["creditCard"],
+        });
     }
-    return true;
-}, {
-    message: "O nome do cartão é obrigatório para a categoria 'Cartão de Crédito'.",
-    path: ["creditCard"],
-}).refine(data => {
     if (data.paymentMethod === 'installments' && (!data.installments || data.installments < 2)) {
-        return false;
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
+            path: ["installments"],
+        });
     }
-    return true;
-}, {
-    message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
-    path: ["installments"],
-}).refine(data => {
     if (data.paymentMethod === 'recurring' && !data.recurrence) {
-        return false;
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "A frequência da recorrência é obrigatória.",
+            path: ["recurrence"],
+        });
     }
-    return true;
-}, {
-    message: "A frequência da recorrência é obrigatória.",
-    path: ["recurrence"],
 });
 
 
