@@ -147,9 +147,12 @@ export default function SettingsPage() {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
     
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
+    const checkNotificationPermission = () => {
+      if ('Notification' in window) {
+        setNotificationPermission(Notification.permission);
+      }
+    };
+    checkNotificationPermission();
 
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
         PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
@@ -171,6 +174,10 @@ export default function SettingsPage() {
     if (storedNotifications) {
       setNotifications(JSON.parse(storedNotifications));
     }
+    
+    // Check permission again when tab becomes visible, as user might have changed it in another tab
+    document.addEventListener('visibilitychange', checkNotificationPermission);
+    return () => document.removeEventListener('visibilitychange', checkNotificationPermission);
 
   }, []);
 
@@ -179,7 +186,16 @@ export default function SettingsPage() {
         toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
         return;
     }
-    // A função requestPermission() invoca o diálogo nativo do navegador/SO.
+    
+    if (Notification.permission === 'denied') {
+        toast({
+            variant: 'destructive',
+            title: 'Permissão Bloqueada',
+            description: 'Você precisa habilitar as notificações manualmente nas configurações do seu navegador.',
+        });
+        return;
+    }
+
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
      if (permission === 'granted') {
@@ -487,7 +503,11 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
                 </div>
                 {notificationPermission === 'granted' && <span className="text-sm font-medium text-green-600">Ativado</span>}
-                {notificationPermission === 'denied' && <span className="text-sm font-medium text-red-600">Bloqueado</span>}
+                {notificationPermission === 'denied' && (
+                    <Button onClick={handleRequestNotificationPermission} size="sm" variant="destructive">
+                        Bloqueado
+                    </Button>
+                )}
                 {notificationPermission === 'default' && (
                     <Button onClick={handleRequestNotificationPermission} size="sm" variant="outline">
                         <BellRing className="mr-2 h-4 w-4" />
