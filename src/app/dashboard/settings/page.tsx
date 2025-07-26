@@ -543,7 +543,7 @@ export default function SettingsPage() {
                         <Select value={expenseSound} onValueChange={setExpenseSound}>
                             <SelectTrigger id="expense-sound">
                             <SelectValue placeholder="Selecione um som" />
-                            </Trigger>
+                            </SelectTrigger>
                             <SelectContent>
                             {expenseSounds.map(sound => (
                                 <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>
