@@ -71,7 +71,7 @@ function AddTransactionForm() {
                 form.setValue('category', category, { shouldValidate: true });
                 toast({
                     title: 'Sugestão da IA',
-                    description: `Categorizamos isso como "${category}".`,
+                    description: `Categorizamos isso como "${categoryData[category as keyof typeof categoryData][0]}".`,
                 });
             }
         } catch (e) {
@@ -105,22 +105,17 @@ function AddTransactionForm() {
     }, [watchedType, form]);
 
 
-    async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
-        try {
-            await addTransaction(values);
-            toast({
-                title: 'Sucesso!',
-                description: 'Transação salva com sucesso.'
-            });
-            router.back();
-        } catch (error) {
-            console.error("Failed to add transaction:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Adicionar Transação',
-                description: "Ocorreu um erro. Tente novamente."
-            });
-        }
+    function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
+        // Chamada sem await para resposta imediata da UI
+        addTransaction(values);
+        
+        toast({
+            title: 'Sucesso!',
+            description: 'Transação salva.'
+        });
+        
+        // Navega de volta imediatamente
+        router.back();
     }
 
     return (
