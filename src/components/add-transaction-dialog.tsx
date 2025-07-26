@@ -142,8 +142,8 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <ScrollArea className="max-h-[70vh] p-1 pr-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <ScrollArea className="max-h-[60vh] p-1 pr-4">
               <div className="space-y-4 p-2">
                   <FormField
                     control={form.control}
@@ -395,8 +395,8 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                   )}
               </div>
             </ScrollArea>
-            <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between sm:items-center pt-2">
-                <Button type="button" variant="link" className="text-muted-foreground" onClick={() => onOpenChange(false)}>
+            <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cancelar
                 </Button>
                 <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
@@ -410,3 +410,5 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     </Dialog>
   );
 }
+
+    
