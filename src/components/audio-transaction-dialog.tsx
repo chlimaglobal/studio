@@ -27,6 +27,13 @@ type AudioTransactionDialogProps = {
   children?: React.ReactNode;
 }
 
+const SoundWave = () => (
+    <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute h-48 w-48 rounded-full bg-primary/20 animate-ping duration-1000"></div>
+        <div className="absolute h-32 w-32 rounded-full bg-primary/30 animate-ping delay-200 duration-1000"></div>
+    </div>
+);
+
 export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtracted, children }: AudioTransactionDialogProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -134,40 +141,45 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:rounded-2xl bg-secondary/95 backdrop-blur-sm border-primary/20">
+      <DialogContent className="sm:rounded-2xl bg-background/80 backdrop-blur-sm border-border/50">
         <DialogHeader className="text-center">
-          <DialogTitle>Adicionar Transação por Voz</DialogTitle>
+          <DialogTitle>Adicionar por Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Pressione o microfone e diga o que você gastou ou recebeu.")}
+            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Diga o que você gastou ou recebeu.")}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col items-center justify-center gap-4 py-8">
-          <Button
-            size="lg"
-            className={cn(
-              "h-24 w-24 rounded-full transition-all duration-300 shadow-lg",
-              isRecording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-primary hover:bg-primary/90'
+
+        <div className="flex flex-col items-center justify-center gap-4 py-12">
+            <button
+                className={cn(
+                    "relative h-32 w-32 rounded-full transition-all duration-300 flex items-center justify-center",
+                    isRecording ? 'bg-destructive/20' : 'bg-primary/20'
+                )}
+                onClick={handleToggleRecording}
+                disabled={isProcessing}
+                aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
+            >
+                {isRecording && <SoundWave />}
+                 <div className="h-24 w-24 rounded-full bg-background flex items-center justify-center z-10 shadow-inner">
+                    {isProcessing ? (
+                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        ) : isRecording ? (
+                        <Square className="h-8 w-8 text-destructive fill-destructive" />
+                        ) : (
+                        <Mic className="h-10 w-10 text-primary" />
+                    )}
+                 </div>
+            </button>
+            {error && (
+                <Alert variant="destructive" className="mt-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Erro ao Processar</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+                </Alert>
             )}
-            onClick={handleToggleRecording}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <Loader2 className="h-10 w-10 animate-spin" />
-            ) : isRecording ? (
-              <Square className="h-8 w-8 fill-white" />
-            ) : (
-              <Mic className="h-10 w-10" />
-            )}
-          </Button>
-          {error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Erro ao Processar</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
         </div>
-         <DialogFooter>
+
+        <DialogFooter>
           <Button variant="ghost" onClick={() => handleOpenChange(false)} className="w-full">
             Cancelar
           </Button>
