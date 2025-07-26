@@ -8,10 +8,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 const Logo = () => (
-    <div className="text-5xl font-bold tracking-tighter">
-        <span className="text-primary">F</span>
-        <span className="text-foreground">$</span>
-        <span className="text-primary">F</span>
+    <div className="p-3 bg-secondary/50 rounded-2xl inline-block shadow-inner">
+        <div className="text-5xl font-bold tracking-tighter" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
+            <span className="text-primary">F</span>
+            <span className="text-foreground">$</span>
+            <span className="text-primary">F</span>
+        </div>
     </div>
 );
 

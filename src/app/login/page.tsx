@@ -14,10 +14,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 
 const Logo = () => (
-    <div className="text-4xl font-bold tracking-tighter">
-        <span className="text-primary">F</span>
-        <span className="text-foreground">$</span>
-        <span className="text-primary">F</span>
+    <div className="p-2 bg-secondary/50 rounded-xl inline-block shadow-inner">
+        <div className="text-4xl font-bold tracking-tighter" style={{ textShadow: '1px 1px 1px hsl(var(--muted))' }}>
+            <span className="text-primary">F</span>
+            <span className="text-foreground">$</span>
+            <span className="text-primary">F</span>
+        </div>
     </div>
 );
 
@@ -152,7 +154,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2">
+          <div className="mx-auto mb-4">
             <Logo />
           </div>
           <CardTitle>Bem-vindo de volta!</CardTitle>
