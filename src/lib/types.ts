@@ -49,12 +49,13 @@ export const TransactionFormSchema = z.object({
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
 }).refine(data => {
+    // This refinement logic was incorrect. It should check the category, not the payment method.
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
     }
     return true;
 }, {
-    message: "O nome do cartão é obrigatório para esta categoria.",
+    message: "O nome do cartão é obrigatório para a categoria 'Cartão de Crédito'.",
     path: ["creditCard"],
 }).refine(data => {
     if (data.paymentMethod === 'installments' && (!data.installments || data.installments < 2)) {
