@@ -134,7 +134,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[480px] flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Adicionar Nova Transação</DialogTitle>
           <DialogDescription>
@@ -142,9 +142,9 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 -mr-6 pr-6">
-              <div className="space-y-4 pr-1">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <ScrollArea className="max-h-[65vh] pr-4">
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="type"
@@ -395,20 +395,22 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                       )}
                       />
                   )}
-              </div>
-            </ScrollArea>
-            <DialogFooter className="pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                    Cancelar
-                </Button>
-                <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Salvar Transação
-                </Button>
-            </DialogFooter>
+                </div>
+              </ScrollArea>
+              <DialogFooter className="pt-4 border-t">
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                      Cancelar
+                  </Button>
+                  <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Salvar Transação
+                  </Button>
+              </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
