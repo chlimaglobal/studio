@@ -111,9 +111,9 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     });
   };
 
-  function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
+  async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
-        addTransaction(values);
+        await addTransaction(values);
         onOpenChange(false);
         form.reset();
     } catch (error) {
@@ -318,7 +318,8 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 <Button type="button" variant="link" className="text-muted-foreground" onClick={() => onOpenChange(false)}>
                     Cancelar
                 </Button>
-                <Button type="submit" className="w-full sm:w-auto">
+                <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Salvar Transação
                 </Button>
             </DialogFooter>

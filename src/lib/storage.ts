@@ -31,14 +31,16 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
 
 export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<void> {
   try {
-    await addDoc(collection(db, "transactions"), {
+    const docData = {
       ...data,
       amount: Number(data.amount),
       // Convert JS Date to Firestore Timestamp
-      date: Timestamp.fromDate(data.date),
-    });
+      date: Timestamp.fromDate(new Date(data.date)),
+    };
+    await addDoc(collection(db, "transactions"), docData);
   } catch (e) {
     console.error("Error adding document: ", e);
+    throw new Error('Falha ao adicionar transação no Firestore.');
   }
 }
 
@@ -64,6 +66,7 @@ export async function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
     await addDoc(collection(db, "cards"), data);
   } catch (e) {
     console.error("Error adding card: ", e);
+    throw new Error('Falha ao adicionar cartão no Firestore.');
   }
 }
 
@@ -97,10 +100,11 @@ export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
         ...data,
         targetAmount: Number(data.targetAmount),
         currentAmount: Number(data.currentAmount),
-        deadline: Timestamp.fromDate(data.deadline),
+        deadline: Timestamp.fromDate(new Date(data.deadline)),
     };
     await addDoc(collection(db, "goals"), goalData);
   } catch (e) {
     console.error("Error adding goal: ", e);
+    throw new Error('Falha ao adicionar meta no Firestore.');
   }
 }

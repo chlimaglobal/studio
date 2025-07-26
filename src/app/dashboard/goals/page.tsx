@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, PlusCircle, Target, ArrowLeft } from 'lucide-react';
+import { Calendar, PlusCircle, Target, ArrowLeft, Loader2 } from 'lucide-react';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/icon';
@@ -17,12 +17,15 @@ import { useRouter } from 'next/navigation';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    setIsMounted(true);
-    const unsubscribe = onGoalsUpdate(setGoals);
+    setIsLoading(true);
+    const unsubscribe = onGoalsUpdate((newGoals) => {
+      setGoals(newGoals);
+      setIsLoading(false);
+    });
     return () => unsubscribe();
   }, []);
   
@@ -39,8 +42,15 @@ export default function GoalsPage() {
     return differenceInDays(deadlineDate, today);
   };
 
-  if (!isMounted) {
-    return null; // Or a loading skeleton
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-full p-8">
+            <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Carregando suas metas...</span>
+            </div>
+        </div>
+    );
   }
 
   return (

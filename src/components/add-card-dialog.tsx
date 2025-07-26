@@ -58,9 +58,9 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof AddCardFormSchema>) {
+  async function onSubmit(values: z.infer<typeof AddCardFormSchema>) {
     try {
-        addStoredCard(values);
+        await addStoredCard(values);
         toast({
             title: 'Sucesso!',
             description: "Cartão adicionado com sucesso!",
@@ -156,7 +156,8 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit">
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Cartão
               </Button>
             </DialogFooter>

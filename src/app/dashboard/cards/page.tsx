@@ -11,22 +11,33 @@ import { useEffect, useState } from 'react';
 import { onCardsUpdate } from '@/lib/storage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 
 export default function CardsPage() {
   const [cards, setCards] = useState<CardType[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    setIsMounted(true);
-    const unsubscribe = onCardsUpdate(setCards);
+    setIsLoading(true);
+    const unsubscribe = onCardsUpdate((newCards) => {
+      setCards(newCards);
+      setIsLoading(false);
+    });
     // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-  if (!isMounted) {
-      return null; // Or a loading skeleton
+  if (isLoading) {
+      return (
+            <div className="flex justify-center items-center h-full p-8">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Carregando cartões...</span>
+                </div>
+            </div>
+        );
   }
 
   return (

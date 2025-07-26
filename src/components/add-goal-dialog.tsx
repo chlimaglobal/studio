@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, icons } from 'lucide-react';
+import { CalendarIcon, Loader2, icons } from 'lucide-react';
 import React from 'react';
 import { AddGoalFormSchema, iconNames } from '@/lib/goal-types';
 import { useToast } from '@/hooks/use-toast';
@@ -55,9 +55,9 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
     },
   });
 
-  function onSubmit(values: z.infer<typeof AddGoalFormSchema>) {
+  async function onSubmit(values: z.infer<typeof AddGoalFormSchema>) {
     try {
-      addStoredGoal(values);
+      await addStoredGoal(values);
       toast({
           title: 'Sucesso!',
           description: "Meta adicionada com sucesso!",
@@ -207,7 +207,8 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
               />
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit">
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Meta
               </Button>
             </DialogFooter>
