@@ -49,7 +49,6 @@ export const TransactionFormSchema = z.object({
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
 }).refine(data => {
-    // This refinement logic was incorrect. It should check the category, not the payment method.
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
     }
