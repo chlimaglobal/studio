@@ -4,7 +4,6 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Mic, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
-import { AddTransactionDialog } from './add-transaction-dialog';
 import { AudioTransactionDialog } from './audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
@@ -18,8 +17,16 @@ export function AddTransactionFab() {
 
   const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
     setIsMenuOpen(false);
-    // Navigate to the new page with query params
-    const query = new URLSearchParams(data as Record<string, string>).toString();
+    
+    // Prepare query params, ensuring all values are strings
+    const params: Record<string, string> = {};
+    if (data.description) params.description = data.description;
+    if (data.amount !== undefined) params.amount = String(data.amount);
+    if (data.type) params.type = data.type;
+    if (data.date) params.date = new Date(data.date).toISOString();
+    if (data.category) params.category = data.category;
+    
+    const query = new URLSearchParams(params).toString();
     router.push(`/dashboard/add-transaction?${query}`);
   };
 
