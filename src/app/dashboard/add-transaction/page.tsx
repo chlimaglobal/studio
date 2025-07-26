@@ -59,22 +59,21 @@ function AddTransactionForm() {
     });
     
     const watchedDescription = form.watch('description');
+    const watchedType = form.watch('type');
+    const watchedPaymentMethod = form.watch('paymentMethod');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        if (!description) return;
+        if (!description || form.getValues('category')) return;
 
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
             if (category) {
-                // Check category again inside the async function to prevent race conditions
-                if (!form.getValues('category')) {
-                    form.setValue('category', category, { shouldValidate: true });
-                    toast({
-                        title: 'Sugestão da IA',
-                        description: `Categorizamos isso como "${category}".`,
-                    });
-                }
+                form.setValue('category', category, { shouldValidate: true });
+                toast({
+                    title: 'Sugestão da IA',
+                    description: `Categorizamos isso como "${category}".`,
+                });
             }
         } catch (e) {
             // Fail silently on exception
@@ -102,6 +101,12 @@ function AddTransactionForm() {
         };
     }, [watchedDescription, form, handleAiCategorize]);
 
+    useEffect(() => {
+        if (watchedType === 'income') {
+            form.setValue('paymentMethod', 'one-time');
+        }
+    }, [watchedType, form]);
+
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
@@ -120,9 +125,6 @@ function AddTransactionForm() {
     const handlePaymentMethodChange = (value: string) => {
         form.setValue('paymentMethod', value as any, { shouldValidate: true });
     };
-    
-    const watchedType = form.watch('type');
-    const watchedPaymentMethod = form.watch('paymentMethod');
 
     return (
         <div className="flex flex-col h-full">
@@ -144,12 +146,7 @@ function AddTransactionForm() {
                                 <FormItem className="space-y-3">
                                     <FormControl>
                                     <RadioGroup
-                                        onValueChange={(value) => {
-                                        field.onChange(value);
-                                        if (value === 'income') {
-                                            form.setValue('paymentMethod', 'one-time');
-                                        }
-                                        }}
+                                        onValueChange={field.onChange}
                                         value={field.value}
                                         className="grid grid-cols-2 gap-4"
                                     >
