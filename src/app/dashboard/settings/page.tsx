@@ -46,9 +46,9 @@ const expenseSounds = [
     { value: 'none', label: 'Nenhum' },
 ];
 
-const NotificationSwitch = ({ id, label, checked, onCheckedChange }: { id: keyof NotificationSettings, label: string, checked: boolean, onCheckedChange: (id: keyof NotificationSettings, value: boolean) => void }) => (
+const NotificationSwitch = ({ id, label, checked, onCheckedChange, disabled = false }: { id: keyof NotificationSettings, label: string, checked: boolean, onCheckedChange: (id: keyof NotificationSettings, value: boolean) => void, disabled?: boolean }) => (
     <div className="flex items-center justify-between py-3">
-        <Label htmlFor={id} className="flex items-center gap-3 cursor-pointer">
+        <Label htmlFor={id} className={cn("flex items-center gap-3 cursor-pointer", disabled && "cursor-not-allowed opacity-50")}>
             <CheckCircle className={cn('h-6 w-6 transition-colors', checked ? 'text-primary' : 'text-muted-foreground/50')} />
             <span className="font-normal">{label}</span>
         </Label>
@@ -56,6 +56,7 @@ const NotificationSwitch = ({ id, label, checked, onCheckedChange }: { id: keyof
             id={id}
             checked={checked}
             onCheckedChange={(value) => onCheckedChange(id, value)}
+            disabled={disabled}
         />
     </div>
 );
@@ -178,12 +179,13 @@ export default function SettingsPage() {
         toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
         return;
     }
+    // A função requestPermission() invoca o diálogo nativo do navegador/SO.
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
      if (permission === 'granted') {
       toast({
         title: 'Notificações Ativadas!',
-        description: 'Você receberá as últimas atualizações.',
+        description: 'Você receberá os alertas do sistema.',
       });
     } else {
       toast({
@@ -479,45 +481,55 @@ export default function SettingsPage() {
         <CardContent className="divide-y divide-border">
           
           <div className="py-4">
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Smartphone className="h-4 w-4" /> Alertas do Sistema</h3>
               <div className="flex items-center justify-between rounded-md border bg-background p-4">
                 <div>
-                    <Label>Notificações no Navegador</Label>
-                    <p className="text-sm text-muted-foreground">Receba alertas diretamente no seu dispositivo.</p>
+                    <Label>Notificações Push</Label>
+                    <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
                 </div>
-                <Button onClick={handleRequestNotificationPermission} disabled={notificationPermission === 'granted'}>
-                    <BellRing className="mr-2 h-4 w-4" />
-                    {notificationPermission === 'granted' ? 'Ativadas' : 'Ativar'}
-                </Button>
+                {notificationPermission === 'granted' && <span className="text-sm font-medium text-green-600">Ativado</span>}
+                {notificationPermission === 'denied' && <span className="text-sm font-medium text-red-600">Bloqueado</span>}
+                {notificationPermission === 'default' && (
+                    <Button onClick={handleRequestNotificationPermission}>
+                        <BellRing className="mr-2 h-4 w-4" />
+                        Ativar
+                    </Button>
+                )}
               </div>
+            </div>
 
-              <div className="divide-y divide-border rounded-lg border bg-background p-4 mt-4">
-                  <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
-                  <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
-                  <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
-                  <NotificationSwitch id="sync" label="Sincronização com instituições" checked={notifications.sync} onCheckedChange={handleNotificationChange} />
-                  <NotificationSwitch id="promos" label="Ofertas e promoções" checked={notifications.promos} onCheckedChange={handleNotificationChange} />
-              </div>
+            <div className="py-4">
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Sparkles className="h-4 w-4" /> Alertas no App</h3>
+                <div className="divide-y divide-border rounded-lg border bg-background p-4 mt-4">
+                    <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="sync" label="Sincronização com instituições" checked={notifications.sync} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="promos" label="Ofertas e promoções" checked={notifications.promos} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                </div>
+            </div>
 
-              <div className="my-4">
+
+            <div className="py-4">
                 <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Target className="h-4 w-4" /> Metas & Limites</h3>
                 <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                    <NotificationSwitch id="goalsMet" label="Alertas sobre metas alcançadas" checked={notifications.goalsMet} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="spendingLimits" label="Alertas sobre limites de gastos atingidos" checked={notifications.spendingLimits} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="goalReminders" label="Lembretes de quanto falta para alcançar metas" checked={notifications.goalReminders} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="spendingReminders" label="Lembretes de quanto falta para atingir limites" checked={notifications.spendingReminders} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="goalsMet" label="Alertas sobre metas alcançadas" checked={notifications.goalsMet} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="spendingLimits" label="Alertas sobre limites de gastos atingidos" checked={notifications.spendingLimits} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="goalReminders" label="Lembretes de quanto falta para alcançar metas" checked={notifications.goalReminders} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="spendingReminders" label="Lembretes de quanto falta para atingir limites" checked={notifications.spendingReminders} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
                 </div>
               </div>
 
-              <div className="my-4">
+            <div className="py-4">
                 <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><CreditCard className="h-4 w-4" /> Cartão de Crédito</h3>
                 <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                    <NotificationSwitch id="invoiceDue" label="Lembretes de faturas antes do fechamento" checked={notifications.invoiceDue} onCheckedChange={handleNotificationChange} />
-                    <NotificationSwitch id="invoiceClosed" label="Lembretes de faturas fechadas" checked={notifications.invoiceClosed} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="invoiceDue" label="Lembretes de faturas antes do fechamento" checked={notifications.invoiceDue} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="invoiceClosed" label="Lembretes de faturas fechadas" checked={notifications.invoiceClosed} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
                 </div>
-              </div>
+            </div>
 
-              <div className="mt-6 space-y-2 rounded-md border p-4">
-                <Label className="flex items-center gap-2"><Music className="h-4 w-4" /> Sons de Notificação</Label>
+            <div className="pt-4">
+                <Label className="flex items-center gap-2 font-semibold text-muted-foreground"><Music className="h-4 w-4" /> Sons de Notificação</Label>
                 <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="income-sound">Som de Receita</Label>
@@ -557,9 +569,10 @@ export default function SettingsPage() {
                     </div>
                 </div>
               </div>
-          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
