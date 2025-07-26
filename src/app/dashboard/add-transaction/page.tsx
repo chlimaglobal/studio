@@ -59,19 +59,17 @@ function AddTransactionForm() {
     });
     
     const watchedDescription = form.watch('description');
-    const watchedCategory = form.watch('category');
 
     const handleAiCategorize = useCallback((description: string) => {
-        if (!description || form.getValues('category')) { // Don't suggest if a category is already selected
+        if (!description) {
             return;
         }
-        
         startSuggestionTransition(async () => {
             const { category, error } = await getCategorySuggestion(description);
             if (error) {
                 // Fail silently
             } else if (category) {
-                // Only set if the category is still empty
+                // Check category again inside the async function to prevent race conditions
                 if (!form.getValues('category')) {
                     form.setValue('category', category, { shouldValidate: true });
                     toast({
@@ -89,7 +87,8 @@ function AddTransactionForm() {
             clearTimeout(suggestionTimeoutRef.current);
         }
 
-        if (watchedDescription && !watchedCategory) {
+        const currentCategory = form.getValues('category');
+        if (watchedDescription && !currentCategory) {
             suggestionTimeoutRef.current = setTimeout(() => {
                 handleAiCategorize(watchedDescription);
             }, 500); // 500ms debounce
@@ -100,7 +99,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, watchedCategory, handleAiCategorize]);
+    }, [watchedDescription, form, handleAiCategorize]);
 
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
