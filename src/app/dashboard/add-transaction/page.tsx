@@ -62,7 +62,7 @@ function AddTransactionForm() {
     const watchedCategory = form.watch('category');
 
     const handleAiCategorize = useCallback((description: string) => {
-        if (!description || watchedCategory) { // Don't suggest if a category is already selected
+        if (!description || form.getValues('category')) { // Don't suggest if a category is already selected
             return;
         }
         
@@ -81,7 +81,7 @@ function AddTransactionForm() {
                 }
             }
         });
-    }, [watchedCategory, form, toast]);
+    }, [form, toast]);
 
 
     React.useEffect(() => {
