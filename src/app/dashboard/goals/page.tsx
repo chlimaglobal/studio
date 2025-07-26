@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, PlusCircle, Target } from 'lucide-react';
+import { Calendar, PlusCircle, Target, ArrowLeft } from 'lucide-react';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/icon';
@@ -13,10 +13,12 @@ import type { Goal } from '@/lib/goal-types';
 import { onGoalsUpdate } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -44,12 +46,17 @@ export default function GoalsPage() {
   return (
     <div className="space-y-6">
        <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Target className="h-6 w-6" />
-            Minhas Metas
-          </h1>
-          <p className="text-muted-foreground">Acompanhe seu progresso em direção aos seus sonhos.</p>
+         <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <Target className="h-6 w-6" />
+                Minhas Metas
+              </h1>
+              <p className="text-muted-foreground">Acompanhe seu progresso em direção aos seus sonhos.</p>
+            </div>
         </div>
         <AddGoalDialog>
             <Button>

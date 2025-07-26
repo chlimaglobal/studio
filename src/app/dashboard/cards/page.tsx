@@ -3,18 +3,20 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, CreditCard, Calendar, AlertCircle } from 'lucide-react';
+import { PlusCircle, CreditCard, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
 import type { Card as CardType } from '@/lib/card-types';
 import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
 import { useEffect, useState } from 'react';
 import { onCardsUpdate } from '@/lib/storage';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 
 export default function CardsPage() {
   const [cards, setCards] = useState<CardType[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -31,12 +33,17 @@ export default function CardsPage() {
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <CreditCard className="h-6 w-6" />
-              Meus Cartões
-            </h1>
-            <p className="text-muted-foreground">Gerencie seus cartões de crédito em um só lugar.</p>
+           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+                <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <CreditCard className="h-6 w-6" />
+                Meus Cartões
+                </h1>
+                <p className="text-muted-foreground">Gerencie seus cartões de crédito em um só lugar.</p>
+            </div>
           </div>
           <AddCardDialog>
               <Button>

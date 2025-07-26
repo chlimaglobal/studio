@@ -5,12 +5,14 @@ import { useEffect, useState, useMemo } from 'react';
 import type { Transaction, TransactionCategory } from '@/lib/types';
 import { onTransactionsUpdate } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, ArrowLeft } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
 import { transactionCategories } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface CategorySpending {
   name: TransactionCategory;
@@ -20,6 +22,7 @@ interface CategorySpending {
 export default function ReportsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -56,14 +59,19 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
-          <BarChart3 className="h-6 w-6" />
-          Relatórios
-        </h1>
-        <p className="text-muted-foreground">
-          Analise seus dados financeiros com gráficos interativos.
-        </p>
+       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-6 w-6" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <BarChart3 className="h-6 w-6" />
+            Relatórios
+          </h1>
+          <p className="text-muted-foreground">
+            Analise seus dados financeiros com gráficos interativos.
+          </p>
+        </div>
       </div>
       <Card>
         <CardHeader>

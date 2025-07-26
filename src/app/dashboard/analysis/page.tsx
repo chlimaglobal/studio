@@ -3,16 +3,18 @@
 
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '../layout';
+import { useRouter } from 'next/navigation';
 
 export default function AnalysisPage() {
   const { transactions: allTransactions, isLoading: isLoadingTransactions } = useTransactions();
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
+  const router = useRouter();
 
   const transactionsHash = useMemo(() => {
     return JSON.stringify(allTransactions.map(t => t.id).sort());
@@ -77,14 +79,19 @@ export default function AnalysisPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Activity className="h-6 w-6" />
-            Análise Financeira
-          </h1>
-          <p className="text-muted-foreground">
-            Sua saúde financeira e dicas personalizadas pela nossa IA.
-          </p>
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <Activity className="h-6 w-6" />
+                Análise Financeira
+              </h1>
+              <p className="text-muted-foreground">
+                Sua saúde financeira e dicas personalizadas pela nossa IA.
+              </p>
+            </div>
         </div>
         <Button variant="outline" size="sm" onClick={() => runAnalysis(true)} disabled={isAnalyzing}>
             <RefreshCw className="mr-2 h-4 w-4" />

@@ -5,14 +5,16 @@ import { useState } from 'react';
 import type { Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ArrowRightLeft, Download } from 'lucide-react';
+import { ArrowRightLeft, Download, ArrowLeft } from 'lucide-react';
 import { useTransactions } from '../layout';
 import { Button } from '@/components/ui/button';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 export default function TransactionsPage() {
   const { transactions, isLoading } = useTransactions();
+  const router = useRouter();
 
   const handleExport = () => {
     const dataToExport = transactions.map(t => ({
@@ -43,14 +45,19 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
-              <ArrowRightLeft className="h-6 w-6" />
-              Transações
-            </h1>
-            <p className="text-muted-foreground">
-              Visualize e gerencie todas as suas movimentações financeiras.
-            </p>
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+                <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <ArrowRightLeft className="h-6 w-6" />
+                Transações
+                </h1>
+                <p className="text-muted-foreground">
+                Visualize e gerencie todas as suas movimentações financeiras.
+                </p>
+            </div>
         </div>
         <Button variant="outline" onClick={handleExport} disabled={transactions.length === 0}>
             <Download className="mr-2 h-4 w-4" />

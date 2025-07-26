@@ -1,19 +1,27 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Landmark, PlusCircle } from 'lucide-react';
+import { Landmark, PlusCircle, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function BanksPage() {
+  const router = useRouter();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Landmark className="h-6 w-6" />
-            Minhas Contas
-          </h1>
-          <p className="text-muted-foreground">Gerencie suas contas bancárias em um só lugar.</p>
+        <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold flex items-center gap-2">
+                <Landmark className="h-6 w-6" />
+                Minhas Contas
+              </h1>
+              <p className="text-muted-foreground">Gerencie suas contas bancárias em um só lugar.</p>
+            </div>
         </div>
         <Button>
             <PlusCircle className="mr-2 h-4 w-4" />

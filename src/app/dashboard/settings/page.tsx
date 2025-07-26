@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +16,7 @@ import { bufferToBase64Url } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { useRouter } from 'next/navigation';
 
 
 type FabPosition = 'left' | 'right';
@@ -111,6 +112,7 @@ const ThemeSelector = () => {
 export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
   
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -301,9 +303,14 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
        <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Configurações</h1>
-          <p className="text-muted-foreground">Gerencie as preferências do aplicativo e da sua conta.</p>
+         <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold">Configurações</h1>
+              <p className="text-muted-foreground">Gerencie as preferências do aplicativo e da sua conta.</p>
+            </div>
         </div>
         <Button onClick={handleSave}>Salvar Alterações</Button>
       </div>
@@ -498,7 +505,7 @@ export default function SettingsPage() {
                         <Select value={expenseSound} onValueChange={setExpenseSound}>
                             <SelectTrigger id="expense-sound">
                             <SelectValue placeholder="Selecione um som" />
-                            </SelectTrigger>
+                            </Trigger>
                             <SelectContent>
                             {expenseSounds.map(sound => (
                                 <SelectItem key={sound.value} value={sound.value}>{sound.label}</SelectItem>

@@ -2,9 +2,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Check, Fuel, MessageCircle, Wallet } from 'lucide-react';
+import { Check, Fuel, MessageCircle, Wallet, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const LogoIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -14,12 +15,18 @@ const LogoIcon = () => (
 
 
 export default function WhatsAppPage() {
-
-  const whatsappLink = "https://wa.me/14155238886?text=Ol%C3%A1!%20Quero%20come%C3%A7ar%20a%20usar%20o%20assistente%20FinanceFlow.";
+  const router = useRouter();
+  const whatsappLink = "https://wa.me/14155238886?text=join%20smitten-chose";
 
   return (
-    <div className="flex flex-col items-center text-center space-y-8 px-4 py-8">
+    <div className="flex flex-col items-center text-center space-y-8 px-4 py-2">
         
+        <div className="w-full flex justify-start">
+             <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft className="h-6 w-6" />
+            </Button>
+        </div>
+
         <LogoIcon />
 
         <div className="w-full max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-secondary/30" style={{ 
