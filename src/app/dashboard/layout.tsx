@@ -17,7 +17,7 @@ import { addMonths } from 'date-fns';
 // 1. Create a context
 interface TransactionsContextType {
   transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => void;
+  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -62,41 +62,32 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     return newAmount > average * 1.3 && average > 50;
   };
   
-  const addTransaction = useCallback((data: z.infer<typeof TransactionFormSchema>) => {
-    // Optimistic UI update
-    const tempId = `temp-${Date.now()}`;
-    const newTransaction: Transaction = {
-      ...data,
-      id: tempId,
-      date: new Date(data.date).toISOString(),
-    };
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
+    try {
+        await addStoredTransaction(data);
 
-    setTransactions(prev => [newTransaction, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    
-    // Background tasks
-    if (data.type === 'expense' && isUnusualSpending(data.amount, data.category)) {
-      toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
-    }
+        // Background tasks that don't need to be awaited
+        if (data.type === 'expense' && isUnusualSpending(data.amount, data.category)) {
+          toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
+        }
 
-    const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
-    if (userWhatsAppNumber) {
-        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
-        const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
-        sendWhatsAppNotification(messageBody, userWhatsAppNumber);
-    }
-    
-    // Persist to Firestore in the background
-    addStoredTransaction(data)
-      .catch((error) => {
+        const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
+        if (userWhatsAppNumber) {
+            const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+            const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+            sendWhatsAppNotification(messageBody, userWhatsAppNumber);
+        }
+
+    } catch (error) {
         console.error("Failed to save transaction:", error);
         toast({
             variant: 'destructive',
             title: 'Erro ao Salvar Transação',
-            description: "Não foi possível salvar. A transação foi removida.",
+            description: "Não foi possível salvar a transação no banco de dados. Tente novamente.",
         });
-        // Revert optimistic update on failure
-        setTransactions(prev => prev.filter(t => t.id !== tempId));
-      });
+        // Re-throw the error to be caught by the form's onSubmit handler
+        throw error;
+    }
   }, [toast, transactions]);
 
 

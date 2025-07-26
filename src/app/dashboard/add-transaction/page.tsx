@@ -105,16 +105,14 @@ function AddTransactionForm() {
     }, [watchedType, form]);
 
 
-    function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
-        // Chamada sem await para resposta imediata da UI
-        addTransaction(values);
+    async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
+        await addTransaction(values);
         
         toast({
             title: 'Sucesso!',
             description: 'Transação salva.'
         });
         
-        // Navega de volta imediatamente
         router.back();
     }
 
