@@ -39,7 +39,7 @@ function AddTransactionForm() {
     const searchParams = useSearchParams();
     const { toast } = useToast();
     const { addTransaction } = useTransactions();
-    const [isSuggesting, startSuggestionTransition] = React.useTransition();
+    const [isSuggesting, setIsSuggesting] = React.useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
@@ -60,11 +60,11 @@ function AddTransactionForm() {
     
     const watchedDescription = form.watch('description');
 
-    const handleAiCategorize = useCallback((description: string) => {
-        if (!description) {
-            return;
-        }
-        startSuggestionTransition(async () => {
+    const handleAiCategorize = async (description: string) => {
+        if (!description) return;
+
+        setIsSuggesting(true);
+        try {
             const { category, error } = await getCategorySuggestion(description);
             if (error) {
                 // Fail silently
@@ -78,9 +78,12 @@ function AddTransactionForm() {
                     });
                 }
             }
-        });
-    }, [form, toast]);
-
+        } catch (e) {
+            // Also fail silently on exception
+        } finally {
+            setIsSuggesting(false);
+        }
+    };
 
     React.useEffect(() => {
         if (suggestionTimeoutRef.current) {
@@ -99,7 +102,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, form, handleAiCategorize]);
+    }, [watchedDescription, form]);
 
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
@@ -436,5 +439,7 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
