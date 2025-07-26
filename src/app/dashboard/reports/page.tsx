@@ -72,7 +72,7 @@ export default function ReportsPage() {
             Despesas por Categoria
           </CardTitle>
           <CardDescription>
-            Veja como suas despesas estão distribuídas entre as categorias no período.
+            Veja como suas despesas estão distribuídas entre as categorias em todo o histórico.
           </CardDescription>
         </CardHeader>
         <CardContent>
