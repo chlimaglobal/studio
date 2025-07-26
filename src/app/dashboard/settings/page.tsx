@@ -206,7 +206,7 @@ export default function SettingsPage() {
     } else {
       toast({
         variant: 'destructive',
-        title: 'Notificações Bloqueadas',
+        title: 'Ativação Necessária',
         description: 'Você precisa permitir as notificações nas configurações do seu navegador.',
       });
     }
@@ -503,13 +503,8 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
                 </div>
                 {notificationPermission === 'granted' && <span className="text-sm font-medium text-green-600">Ativado</span>}
-                {notificationPermission === 'denied' && (
-                    <Button onClick={handleRequestNotificationPermission} size="sm" variant="destructive">
-                        Bloqueado
-                    </Button>
-                )}
-                {notificationPermission === 'default' && (
-                    <Button onClick={handleRequestNotificationPermission} size="sm" variant="outline">
+                {(notificationPermission === 'default' || notificationPermission === 'denied') && (
+                    <Button onClick={handleRequestNotificationPermission} size="sm" variant={notificationPermission === 'denied' ? 'secondary' : 'outline'}>
                         <BellRing className="mr-2 h-4 w-4" />
                         Ativar
                     </Button>
@@ -572,3 +567,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
