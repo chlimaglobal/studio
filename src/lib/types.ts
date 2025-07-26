@@ -48,6 +48,8 @@ export const TransactionFormSchema = z.object({
   paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
   installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional(),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
+  observations: z.string().optional(),
+  hideFromReports: z.boolean().default(false),
 }).refine(data => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
@@ -91,6 +93,8 @@ export type Transaction = {
   recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   installmentNumber?: number;
   totalInstallments?: number;
+  observations?: string;
+  hideFromReports?: boolean;
 };
 
 // Types for File Extraction Flow

@@ -8,25 +8,24 @@ import { AddTransactionDialog } from './add-transaction-dialog';
 import { AudioTransactionDialog } from './audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function AddTransactionFab() {
-  const [isAddTxOpen, setIsAddTxOpen] = useState(false);
   const [isAudioOpen, setIsAudioOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [initialTxData, setInitialTxData] = useState<Partial<z.infer<typeof TransactionFormSchema>> | undefined>(undefined);
   const pathname = usePathname();
+  const router = useRouter();
 
   const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
-    setInitialTxData(data);
     setIsMenuOpen(false);
-    setIsAddTxOpen(true);
+    // Navigate to the new page with query params
+    const query = new URLSearchParams(data as Record<string, string>).toString();
+    router.push(`/dashboard/add-transaction?${query}`);
   };
 
   const handleManualAddClick = () => {
-    setInitialTxData(undefined);
     setIsMenuOpen(false);
-    setIsAddTxOpen(true);
+    router.push('/dashboard/add-transaction');
   };
 
   const handleAudioAddClick = () => {
@@ -37,6 +36,11 @@ export function AddTransactionFab() {
   if (pathname.includes('/dashboard/cards/')) {
     return null;
   }
+  
+  if (pathname.includes('/dashboard/add-transaction')) {
+    return null;
+  }
+
 
   return (
     <>
@@ -67,11 +71,6 @@ export function AddTransactionFab() {
         </Button>
       </div>
 
-      <AddTransactionDialog
-        open={isAddTxOpen}
-        onOpenChange={setIsAddTxOpen}
-        initialData={initialTxData}
-      />
       <AudioTransactionDialog
         open={isAudioOpen}
         onOpenChange={setIsAudioOpen}

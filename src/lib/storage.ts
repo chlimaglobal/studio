@@ -23,7 +23,8 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
-    callback(transactions);
+    const filteredTransactions = transactions.filter(t => !t.hideFromReports);
+    callback(filteredTransactions);
   });
 
   return unsubscribe;
