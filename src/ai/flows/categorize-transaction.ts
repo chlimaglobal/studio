@@ -32,30 +32,30 @@ const prompt = ai.definePrompt({
   name: 'categorizeTransactionPrompt',
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
-  prompt: `Você é um especialista em finanças pessoais. Sua tarefa é categorizar transações com base na descrição fornecida, escolhendo a categoria mais apropriada da lista abaixo.
+  prompt: `Você é um especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
-  **Categorias Disponíveis:**
-  {{#each categories}}
-  - {{this}}
-  {{/each}}
+**Exemplos de Categorização:**
+- "Pão na padaria" -> "Padaria"
+- "Gasolina no posto Shell" -> "Combustível"
+- "Almoço com amigos" -> "Restaurante"
+- "Cinema ingresso" -> "Cinema"
+- "iFood" -> "Delivery"
+- "Conta de luz" -> "Luz"
+- "Mensalidade da academia" -> "Assinaturas/Serviços"
+- "Compra no mercado" -> "Supermercado"
+- "Uber" -> "Táxi/Uber"
+- "Netflix" -> "Streamings"
+- "Salário da empresa X" -> "Salário"
 
-  **Instruções de Categorização:**
-  - **Alimentação:** Compras de comida em geral, não em restaurantes. Se for "mercado" ou "supermercado", use "Supermercado".
-  - **Assinaturas:** Serviços recorrentes como academias (Smart Fit, etc.), jornais, revistas, etc. Não inclua serviços de streaming aqui.
-  - **Contas:** Contas gerais da casa. Use categorias mais específicas se possível.
-  - **Luz, Água, Internet, Telefone:** Use estas categorias para as respectivas contas de utilidades.
-  - **Restaurante:** Comida fora de casa, iFood, Uber Eats, lanches.
-  - **Transporte:** Uber, 99, ônibus, metrô. Se for relacionado a carro próprio, use "Combustível" ou "Manutenção".
-  - **Saúde:** Farmácia, médico, plano de saúde.
-  - **Lazer/Hobbies:** Cinema, shows, passeios.
-  - **Streamings**: Netflix, Spotify, Amazon Prime, HBO Max, Disney+.
-  - **Educação:** Cursos, livros, material escolar.
-  - **Salário, Bônus, Comissão:** Para diferentes tipos de renda.
+**Categorias Disponíveis:**
+{{#each categories}}
+- {{this}}
+{{/each}}
 
-  Analise a descrição a seguir e retorne **apenas uma** das categorias da lista.
+Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja o mais específico possível.
 
-  **Descrição da Transação:** {{{description}}}
-  **Categoria Prevista:**`,
+**Descrição da Transação:** {{{description}}}
+`,
   templateOptions: {
     // @ts-ignore
     categories: transactionCategories,
