@@ -81,7 +81,8 @@ function AddTransactionForm() {
         startSuggestionTransition(async () => {
         const { category, error } = await getCategorySuggestion(description);
         if (error) {
-            console.error(error); // Log the error for debugging
+            // Error is already logged in the action, no need to show a toast here.
+            // It should fail silently for the user.
         } else if (category) {
             form.setValue('category', category, { shouldValidate: true });
             toast({
@@ -95,10 +96,6 @@ function AddTransactionForm() {
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
             await addTransaction(values);
-            toast({
-                title: 'Transação Salva!',
-                description: 'Sua transação foi adicionada com sucesso.'
-            });
             router.back();
         } catch (error) {
             console.error("Failed to add transaction:", error);
