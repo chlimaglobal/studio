@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { TransactionFormSchema, categoryData } from '@/lib/types';
-import React, { Suspense } from 'react';
+import React, { Suspense, useCallback } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -40,6 +40,7 @@ function AddTransactionForm() {
     const { toast } = useToast();
     const { addTransaction } = useTransactions();
     const [isSuggesting, startSuggestionTransition] = React.useTransition();
+    const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
         resolver: zodResolver(TransactionFormSchema),
@@ -56,43 +57,51 @@ function AddTransactionForm() {
             hideFromReports: false,
         },
     });
-
-    const watchedType = form.watch('type');
-    const watchedPaymentMethod = form.watch('paymentMethod');
+    
+    const watchedDescription = form.watch('description');
     const watchedCategory = form.watch('category');
 
-    React.useEffect(() => {
-        const description = searchParams.get('description');
-        const category = searchParams.get('category');
-        if (description && !category) {
-            handleAiCategorize(description);
-        }
-    }, [searchParams]);
-
-
-    const handleAiCategorize = (description: string) => {
-        if (!description) {
-        form.setError('description', {
-            type: 'manual',
-            message: 'Por favor, insira uma descrição primeiro.',
-        });
-        return;
+    const handleAiCategorize = useCallback((description: string) => {
+        if (!description || watchedCategory) { // Don't suggest if a category is already selected
+            return;
         }
         
         startSuggestionTransition(async () => {
-        const { category, error } = await getCategorySuggestion(description);
-        if (error) {
-            // Error is already logged in the action, no need to show a toast here.
-            // It should fail silently for the user.
-        } else if (category) {
-            form.setValue('category', category, { shouldValidate: true });
-            toast({
-            title: 'Sugestão da IA',
-            description: `Categorizamos isso como "${category}".`,
-            });
-        }
+            const { category, error } = await getCategorySuggestion(description);
+            if (error) {
+                // Fail silently
+            } else if (category) {
+                // Only set if the category is still empty
+                if (!form.getValues('category')) {
+                    form.setValue('category', category, { shouldValidate: true });
+                    toast({
+                        title: 'Sugestão da IA',
+                        description: `Categorizamos isso como "${category}".`,
+                    });
+                }
+            }
         });
-    };
+    }, [watchedCategory, form, toast]);
+
+
+    React.useEffect(() => {
+        if (suggestionTimeoutRef.current) {
+            clearTimeout(suggestionTimeoutRef.current);
+        }
+
+        if (watchedDescription && !watchedCategory) {
+            suggestionTimeoutRef.current = setTimeout(() => {
+                handleAiCategorize(watchedDescription);
+            }, 500); // 500ms debounce
+        }
+
+        return () => {
+            if (suggestionTimeoutRef.current) {
+                clearTimeout(suggestionTimeoutRef.current);
+            }
+        };
+    }, [watchedDescription, watchedCategory, handleAiCategorize]);
+
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
@@ -111,6 +120,9 @@ function AddTransactionForm() {
     const handlePaymentMethodChange = (value: string) => {
         form.setValue('paymentMethod', value as any, { shouldValidate: true });
     };
+    
+    const watchedType = form.watch('type');
+    const watchedPaymentMethod = form.watch('paymentMethod');
 
     return (
         <div className="flex flex-col h-full">
@@ -425,3 +437,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
