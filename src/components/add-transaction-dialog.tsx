@@ -134,7 +134,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Adicionar Nova Transação</DialogTitle>
           <DialogDescription>
@@ -142,9 +142,9 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="max-h-[60vh] p-1 pr-4">
-              <div className="space-y-4 p-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 -mr-6 pr-6">
+              <div className="space-y-4 pr-1">
                   <FormField
                     control={form.control}
                     name="type"
@@ -349,6 +349,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                                       </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
+                                    <ScrollArea className="h-72">
                                       {Object.entries(categoryData).map(([category, subcategories]) => (
                                           <SelectGroup key={category}>
                                               <SelectLabel>{category}</SelectLabel>
@@ -359,6 +360,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                                               ))}
                                           </SelectGroup>
                                       ))}
+                                    </ScrollArea>
                                   </SelectContent>
                               </Select>
                               <TooltipProvider>
@@ -395,7 +397,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                   )}
               </div>
             </ScrollArea>
-            <DialogFooter className="pt-4">
+            <DialogFooter className="pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                     Cancelar
                 </Button>
@@ -410,5 +412,3 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
     </Dialog>
   );
 }
-
-    
