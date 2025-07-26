@@ -500,9 +500,9 @@ export default function SettingsPage() {
             <div className="space-y-2">
                 <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><Sparkles className="h-4 w-4" /> Alertas no App</h3>
                 <div className="divide-y divide-border rounded-lg border bg-background p-4">
-                    <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
-                    <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
-                    <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} disabled={notificationPermission !== 'granted'} />
+                    <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
+                    <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
                 </div>
               </div>
 
