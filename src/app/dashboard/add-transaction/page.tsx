@@ -16,9 +16,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { TransactionFormSchema, categoryData } from '@/lib/types';
-import React, { Suspense, useCallback } from 'react';
+import React, { Suspense, useCallback, useEffect } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -52,7 +52,7 @@ function AddTransactionForm() {
             category: (searchParams.get('category') as any) || undefined,
             paid: true,
             paymentMethod: 'one-time',
-            installments: '',
+            installments: '' as any,
             observations: '',
             hideFromReports: false,
         },
@@ -60,7 +60,7 @@ function AddTransactionForm() {
     
     const watchedDescription = form.watch('description');
 
-    const handleAiCategorize = async (description: string) => {
+    const handleAiCategorize = useCallback(async (description: string) => {
         if (!description) return;
 
         setIsSuggesting(true);
@@ -83,9 +83,10 @@ function AddTransactionForm() {
         } finally {
             setIsSuggesting(false);
         }
-    };
+    }, [form, toast]);
 
-    React.useEffect(() => {
+
+    useEffect(() => {
         if (suggestionTimeoutRef.current) {
             clearTimeout(suggestionTimeoutRef.current);
         }
@@ -102,7 +103,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, form]);
+    }, [watchedDescription, form, handleAiCategorize]);
 
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {

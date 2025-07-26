@@ -2,19 +2,8 @@
 'use client';
 
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, Dot } from 'recharts';
+import { formatCurrency } from '@/lib/utils';
 
-interface FinancialChartProps {
-  data: { date: string; aReceber: number; aPagar: number; resultado: number }[];
-}
-
-const formatCurrency = (value: number) => {
-    if (value === 0) return '0';
-    const absValue = Math.abs(value);
-    if (absValue >= 1000) {
-      return `${(value / 1000).toFixed(0)}k`;
-    }
-    return value.toString();
-};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -26,17 +15,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
                         <span className="text-muted-foreground">A receber:</span>
-                        <span className="font-semibold">{data.aReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span className="font-semibold">{formatCurrency(data.aReceber)}</span>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
                         <span className="text-muted-foreground">A pagar:</span>
-                        <span className="font-semibold">{data.aPagar.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span className="font-semibold">{formatCurrency(data.aPagar)}</span>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-3))]"></div>
                         <span className="text-muted-foreground">Resultado:</span>
-                        <span className="font-semibold">{data.resultado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        <span className="font-semibold">{formatCurrency(data.resultado)}</span>
                     </div>
                 </div>
             </div>
@@ -55,6 +44,15 @@ const CustomizedDot = (props: any) => {
 
 
 export default function FinancialChart({ data }: FinancialChartProps) {
+    const yAxisFormatter = (value: number) => {
+        if (value === 0) return 'R$0';
+        const absValue = Math.abs(value);
+        if (absValue >= 1000) {
+            return `R$${(value / 1000).toFixed(0)}k`;
+        }
+        return `R$${value}`;
+    };
+
     return (
         <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -66,7 +64,7 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
                 <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatCurrency} />
+                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} />
                 <Tooltip
                     content={<CustomTooltip />}
                     cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
