@@ -66,7 +66,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     try {
         await addStoredTransaction(data);
 
-        // Background tasks that don't need to be awaited
+        // Background tasks that don't need to be awaited by the form
         if (data.type === 'expense' && isUnusualSpending(data.amount, data.category)) {
           toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
         }

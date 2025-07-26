@@ -71,7 +71,7 @@ function AddTransactionForm() {
                 form.setValue('category', category, { shouldValidate: true });
                 toast({
                     title: 'Sugestão da IA',
-                    description: `Categorizamos isso como "${categoryData[category as keyof typeof categoryData][0]}".`,
+                    description: `Categorizamos isso como "${category}".`,
                 });
             }
         } catch (e) {
@@ -248,9 +248,9 @@ function AddTransactionForm() {
                                             </FormControl>
                                             <SelectContent>
                                                 <ScrollArea className="h-72">
-                                                {Object.entries(categoryData).map(([category, subcategories]) => (
-                                                    <SelectGroup key={category}>
-                                                        <SelectLabel>{category}</SelectLabel>
+                                                {Object.entries(categoryData).map(([group, subcategories]) => (
+                                                    <SelectGroup key={group}>
+                                                        <SelectLabel>{group}</SelectLabel>
                                                         {subcategories.map((subcategory) => (
                                                             <SelectItem key={subcategory} value={subcategory}>
                                                                 {subcategory}
