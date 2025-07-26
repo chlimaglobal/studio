@@ -42,6 +42,14 @@ const CustomizedDot = (props: any) => {
     return null;
 };
 
+interface FinancialChartProps {
+    data: {
+        date: string;
+        aReceber: number;
+        aPagar: number;
+        resultado: number;
+    }[];
+}
 
 export default function FinancialChart({ data }: FinancialChartProps) {
     const yAxisFormatter = (value: number) => {
