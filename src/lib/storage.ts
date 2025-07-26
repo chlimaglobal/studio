@@ -1,10 +1,11 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc, writeBatch } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
+import { addMonths, addWeeks, addQuarters, addYears } from 'date-fns';
 
 // ======== TRANSACTIONS ========
 
@@ -31,13 +32,36 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
 
 export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<void> {
   try {
-    const docData = {
-      ...data,
-      amount: Number(data.amount),
-      // Convert JS Date to Firestore Timestamp
-      date: Timestamp.fromDate(new Date(data.date)),
-    };
-    await addDoc(collection(db, "transactions"), docData);
+    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments) {
+        const batch = writeBatch(db);
+        const installmentAmount = data.amount / data.installments;
+
+        for (let i = 0; i < data.installments; i++) {
+            const installmentDate = addMonths(new Date(data.date), i);
+            const docData = {
+                ...data,
+                amount: Number(installmentAmount.toFixed(2)),
+                date: Timestamp.fromDate(installmentDate),
+                description: `${data.description} (${i + 1}/${data.installments})`,
+                paid: i === 0 ? data.paid : false, // Only first is paid now
+                installmentNumber: i + 1,
+                totalInstallments: data.installments,
+            };
+            delete docData.installments;
+            
+            const docRef = doc(collection(db, "transactions"));
+            batch.set(docRef, docData);
+        }
+        await batch.commit();
+
+    } else {
+        const docData = {
+          ...data,
+          amount: Number(data.amount),
+          date: Timestamp.fromDate(new Date(data.date)),
+        };
+        await addDoc(collection(db, "transactions"), docData);
+    }
   } catch (e) {
     console.error("Error adding document: ", e);
     throw new Error('Falha ao adicionar transação no Firestore.');

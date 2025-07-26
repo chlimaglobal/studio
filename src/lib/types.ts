@@ -45,6 +45,9 @@ export const TransactionFormSchema = z.object({
   }),
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
+  paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
+  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional(),
+  recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
 }).refine(data => {
     if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         return false;
@@ -53,6 +56,22 @@ export const TransactionFormSchema = z.object({
 }, {
     message: "O nome do cartão é obrigatório para esta categoria.",
     path: ["creditCard"],
+}).refine(data => {
+    if (data.paymentMethod === 'installments' && !data.installments) {
+        return false;
+    }
+    return true;
+}, {
+    message: "O número de parcelas é obrigatório.",
+    path: ["installments"],
+}).refine(data => {
+    if (data.paymentMethod === 'recurring' && !data.recurrence) {
+        return false;
+    }
+    return true;
+}, {
+    message: "A frequência da recorrência é obrigatória.",
+    path: ["recurrence"],
 });
 
 
@@ -67,6 +86,11 @@ export type Transaction = {
   receivedFrom?: string;
   paid?: boolean;
   creditCard?: string;
+  paymentMethod?: 'one-time' | 'installments' | 'recurring';
+  installments?: number;
+  recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';
+  installmentNumber?: number;
+  totalInstallments?: number;
 };
 
 // Types for File Extraction Flow

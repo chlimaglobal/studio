@@ -61,9 +61,12 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
       type: 'expense',
       creditCard: '',
       paid: true,
+      paymentMethod: 'one-time',
     },
   });
-
+  
+  const watchedType = form.watch('type');
+  const watchedPaymentMethod = form.watch('paymentMethod');
   const watchedCategory = form.watch('category');
 
   React.useEffect(() => {
@@ -76,6 +79,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
         category: initialData?.category,
         creditCard: initialData?.creditCard || '',
         paid: initialData?.paid ?? true,
+        paymentMethod: 'one-time',
       });
       if (initialData?.description && !initialData.category) {
           handleAiCategorize(initialData.description);
@@ -145,8 +149,13 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                 <FormItem className="space-y-3">
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        if (value === 'income') {
+                          form.setValue('paymentMethod', 'one-time');
+                        }
+                      }}
+                      value={field.value}
                       className="flex space-x-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -256,6 +265,73 @@ export function AddTransactionDialog({ open, onOpenChange, initialData, children
                     </FormItem>
                 )}
                />
+
+            {watchedType === 'expense' && (
+              <FormField
+                control={form.control}
+                name="paymentMethod"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Pagamento</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                      <SelectContent>
+                        <SelectItem value="one-time">À Vista</SelectItem>
+                        <SelectItem value="installments">Parcelado</SelectItem>
+                        <SelectItem value="recurring">Recorrente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {watchedPaymentMethod === 'installments' && watchedType === 'expense' && (
+              <FormField
+                control={form.control}
+                name="installments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Parcelas</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="2" placeholder="Ex: 12" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {watchedPaymentMethod === 'recurring' && watchedType === 'expense' && (
+              <FormField
+                control={form.control}
+                name="recurrence"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Frequência da Recorrência</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                       <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a frequência" />
+                          </SelectTrigger>
+                        </FormControl>
+                      <SelectContent>
+                        <SelectItem value="weekly">Semanalmente</SelectItem>
+                        <SelectItem value="monthly">Mensalmente</SelectItem>
+                        <SelectItem value="quarterly">Trimestralmente</SelectItem>
+                        <SelectItem value="annually">Anualmente</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
              <FormField
                 control={form.control}
                 name="category"

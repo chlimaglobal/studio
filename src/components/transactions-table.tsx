@@ -56,9 +56,14 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                 <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
                   <TableCell>
                     <div className="font-medium">{transaction.description}</div>
-                    {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
-                        <div className="text-xs text-muted-foreground">{transaction.creditCard}</div>
-                    )}
+                    <div className="text-xs text-muted-foreground space-x-2">
+                        {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
+                            <span>{transaction.creditCard}</span>
+                        )}
+                        {transaction.installmentNumber && transaction.totalInstallments && (
+                             <Badge variant="secondary">{`${transaction.installmentNumber}/${transaction.totalInstallments}`}</Badge>
+                        )}
+                    </div>
                   </TableCell>
                   <TableCell className="hidden text-center sm:table-cell">
                     <Badge variant="outline">{transaction.category}</Badge>
@@ -121,6 +126,12 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Cartão</p>
                     <p className="font-medium">{selectedTransaction.creditCard}</p>
+                </div>
+              )}
+               {selectedTransaction.installmentNumber && selectedTransaction.totalInstallments && (
+                 <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">Parcela</p>
+                    <p className="font-medium">{`${selectedTransaction.installmentNumber} de ${selectedTransaction.totalInstallments}`}</p>
                 </div>
               )}
               <div className="flex items-center justify-between">
