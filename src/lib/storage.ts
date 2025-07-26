@@ -23,14 +23,25 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
-    const filteredTransactions = transactions.filter(t => !t.hideFromReports);
-    callback(filteredTransactions);
+    // The filtering logic should be done on the client side, not here.
+    callback(transactions);
   }, (error) => {
     console.error("Error fetching transactions:", error);
   });
 
   return unsubscribe;
 }
+
+// Helper function to clean data before sending to Firestore
+const cleanDataForFirestore = (data: Record<string, any>) => {
+    const cleanedData: Record<string, any> = {};
+    for (const key in data) {
+        if (data[key] !== undefined) {
+            cleanedData[key] = data[key];
+        }
+    }
+    return cleanedData;
+};
 
 
 export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<string | string[]> {
@@ -39,12 +50,16 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
         const batch = writeBatch(db);
         const installmentAmount = data.amount / data.installments;
         const newDocIds: string[] = [];
+        
+        const baseData = { ...data };
+        delete baseData.installments; // Not needed in the final object
 
         for (let i = 0; i < data.installments; i++) {
             const installmentDate = addMonths(new Date(data.date), i);
             const docRef = doc(collection(db, "transactions"));
+            
             const docData = {
-                ...data,
+                ...baseData,
                 amount: Number(installmentAmount.toFixed(2)),
                 date: Timestamp.fromDate(installmentDate),
                 description: `${data.description} (${i + 1}/${data.installments})`,
@@ -52,9 +67,8 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
                 installmentNumber: i + 1,
                 totalInstallments: data.installments,
             };
-            delete docData.installments;
             
-            batch.set(docRef, docData);
+            batch.set(docRef, cleanDataForFirestore(docData));
             newDocIds.push(docRef.id);
         }
         await batch.commit();
@@ -66,7 +80,7 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
           amount: Number(data.amount),
           date: Timestamp.fromDate(new Date(data.date)),
         };
-        const docRef = await addDoc(collection(db, "transactions"), docData);
+        const docRef = await addDoc(collection(db, "transactions"), cleanDataForFirestore(docData));
         return docRef.id;
     }
   } catch (e) {
@@ -148,7 +162,7 @@ export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
         currentAmount: Number(data.currentAmount),
         deadline: Timestamp.fromDate(new Date(data.deadline)),
     };
-    await addDoc(collection(db, "goals"), goalData);
+    await addDoc(collection(db, "goals"), cleanDataForFirestore(goalData));
   } catch (e) {
     console.error("Error adding goal: ", e);
     throw new Error('Falha ao adicionar meta no Firestore.');

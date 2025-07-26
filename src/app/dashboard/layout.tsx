@@ -43,7 +43,8 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     // onTransactionsUpdate will call the callback with initial data and then with any updates.
     const unsubscribe = onTransactionsUpdate((newTransactions) => {
-      setTransactions(newTransactions);
+      const filteredTransactions = newTransactions.filter(t => !t.hideFromReports);
+      setTransactions(filteredTransactions);
       setIsLoading(false);
     });
 
