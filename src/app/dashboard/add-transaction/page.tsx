@@ -63,8 +63,6 @@ function AddTransactionForm() {
     const watchedPaymentMethod = form.watch('paymentMethod');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        if (!description || form.getValues('category')) return;
-
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
@@ -76,7 +74,7 @@ function AddTransactionForm() {
                 });
             }
         } catch (e) {
-            // Fail silently on exception
+            // Fail silently on exception, error is logged in the action
         } finally {
             setIsSuggesting(false);
         }
@@ -87,16 +85,14 @@ function AddTransactionForm() {
         if (suggestionTimeoutRef.current) {
             clearTimeout(suggestionTimeoutRef.current);
         }
-
         if (watchedDescription) {
              const hasCategory = !!form.getValues('category');
              if (!hasCategory) {
                 suggestionTimeoutRef.current = setTimeout(() => {
                     handleAiCategorize(watchedDescription);
-                }, 500); // 500ms debounce
+                }, 1000); // 1s debounce
              }
         }
-
         return () => {
             if (suggestionTimeoutRef.current) {
                 clearTimeout(suggestionTimeoutRef.current);
@@ -114,6 +110,10 @@ function AddTransactionForm() {
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
             await addTransaction(values);
+            toast({
+                title: 'Sucesso!',
+                description: 'Transação salva com sucesso.'
+            });
             router.back();
         } catch (error) {
             console.error("Failed to add transaction:", error);
@@ -122,11 +122,6 @@ function AddTransactionForm() {
                 title: 'Erro ao Adicionar Transação',
                 description: "Ocorreu um erro. Tente novamente."
             });
-        } finally {
-             if (form.formState.isSubmitting) {
-                // This is a failsafe, but react-hook-form should handle it.
-                // In some complex cases, it might be necessary.
-             }
         }
     }
     
@@ -281,7 +276,7 @@ function AddTransactionForm() {
                                         <TooltipProvider>
                                             <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="outline" size="icon" type="button" onClick={() => handleAiCategorize(form.getValues('description'))} disabled={isSuggesting}>
+                                                <Button variant="outline" size="icon" type="button" onClick={() => handleAiCategorize(form.getValues('description'))} disabled={isSuggesting || !watchedDescription}>
                                                 {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                                                 </Button>
                                             </TooltipTrigger>
@@ -442,5 +437,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
