@@ -14,11 +14,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 
 const Logo = () => (
-    <div className="p-2 bg-secondary/50 rounded-xl inline-block shadow-inner">
-        <div className="text-4xl font-bold tracking-tighter" style={{ textShadow: '1px 1px 1px hsl(var(--muted))' }}>
-            <span className="text-primary">F</span>
-            <span className="text-foreground">$</span>
-            <span className="text-primary">F</span>
+    <div className="p-4 bg-secondary/50 rounded-2xl inline-block shadow-inner">
+        <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
+            <span className="text-foreground">Finance</span>
+            <span className="text-primary"> $ </span>
+            <span className="text-foreground">Flow</span>
         </div>
     </div>
 );

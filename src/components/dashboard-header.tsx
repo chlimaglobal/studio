@@ -23,11 +23,11 @@ import Link from 'next/link';
 
 
 const Logo = () => (
-    <div className="p-1 bg-secondary/50 rounded-lg inline-block shadow-inner">
-      <div className="text-2xl font-bold tracking-tighter" style={{ textShadow: '1px 1px 1px hsl(var(--muted))' }}>
-          <span className="text-primary">F</span>
-          <span className="text-foreground">$</span>
-          <span className="text-primary">F</span>
+    <div className="p-2 bg-secondary/50 rounded-lg inline-block shadow-inner">
+      <div className="text-xl font-bold tracking-tight" style={{ textShadow: '1px 1px 1px hsl(var(--muted))' }}>
+          <span className="text-foreground">Finance</span>
+          <span className="text-primary"> $ </span>
+          <span className="text-foreground">Flow</span>
       </div>
     </div>
 );
