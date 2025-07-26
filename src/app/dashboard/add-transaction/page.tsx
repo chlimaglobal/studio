@@ -106,14 +106,17 @@ function AddTransactionForm() {
 
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
-        await addTransaction(values);
-        
-        toast({
-            title: 'Sucesso!',
-            description: 'Transação salva.'
-        });
-        
-        router.back();
+        try {
+            await addTransaction(values);
+            toast({
+                title: 'Sucesso!',
+                description: 'Transação salva.'
+            });
+            router.back();
+        } catch (error) {
+            // Error toast is handled in the context, so we just log here
+            console.error("Failed to submit transaction:", error);
+        }
     }
 
     return (
