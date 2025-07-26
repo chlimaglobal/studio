@@ -18,6 +18,7 @@ import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 type AudioTransactionDialogProps = {
   open: boolean;
@@ -133,17 +134,20 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="sm:rounded-2xl bg-secondary/95 backdrop-blur-sm border-primary/20">
+        <DialogHeader className="text-center">
           <DialogTitle>Adicionar Transação por Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Analisando..." : (isRecording ? "Ouvindo..." : "Pressione o microfone e fale. Ex: 'Gastei 50 reais no almoço'.")}
+            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Pressione o microfone e diga o que você gastou ou recebeu.")}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center gap-4 py-8">
           <Button
             size="lg"
-            className={`h-20 w-20 rounded-full transition-colors ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-primary'}`}
+            className={cn(
+              "h-24 w-24 rounded-full transition-all duration-300 shadow-lg",
+              isRecording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : 'bg-primary hover:bg-primary/90'
+            )}
             onClick={handleToggleRecording}
             disabled={isProcessing}
           >
@@ -164,8 +168,8 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
           )}
         </div>
          <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Fechar
+          <Button variant="ghost" onClick={() => handleOpenChange(false)} className="w-full">
+            Cancelar
           </Button>
         </DialogFooter>
       </DialogContent>
