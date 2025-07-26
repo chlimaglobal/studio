@@ -81,11 +81,7 @@ function AddTransactionForm() {
         startSuggestionTransition(async () => {
         const { category, error } = await getCategorySuggestion(description);
         if (error) {
-            toast({
-            variant: 'destructive',
-            title: 'Falha na Categorização com IA',
-            description: error,
-            });
+            console.error(error); // Log the error for debugging
         } else if (category) {
             form.setValue('category', category, { shouldValidate: true });
             toast({
