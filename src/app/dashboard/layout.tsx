@@ -78,71 +78,43 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
 
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
     playNotificationSound(data.type);
+    
+    try {
+        // Now we wait for the transaction to be stored before doing anything else
+        await addStoredTransaction(data);
 
-    const tempIds: string[] = [];
-    const optimisticTransactions: Transaction[] = [];
-
-    // --- Optimistic UI Update ---
-    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
-        const installmentAmount = data.amount / data.installments;
-        for (let i = 0; i < data.installments; i++) {
-            const tempId = `temp_${Date.now()}_${i}`;
-            tempIds.push(tempId);
-            optimisticTransactions.push({
-                id: tempId,
-                ...data,
-                date: addMonths(new Date(data.date), i).toISOString(),
-                amount: Number(installmentAmount.toFixed(2)),
-                description: `${data.description} (${i + 1}/${data.installments})`,
-                paid: i === 0 ? data.paid : false,
-                installmentNumber: i + 1,
-                totalInstallments: data.installments,
-            });
+        // --- Show Success Feedback ---
+        if (data.type === 'income') {
+            toast({ title: '🎉 Receita Adicionada!', description: "Ótimo trabalho! Continue investindo no seu futuro." });
+        } else if (data.type === 'expense') {
+            if (isUnusualSpending(data.amount, data.category)) {
+                toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
+            } else {
+                toast({ title: '💸 Despesa Adicionada', description: `"${data.description}" adicionado. Lembre-se de manter o controle.` });
+            }
         }
-    } else {
-        const tempId = `temp_${Date.now()}`;
-        tempIds.push(tempId);
-        optimisticTransactions.push({
-            id: tempId,
-            ...data,
-            date: new Date(data.date).toISOString(),
-        });
-    }
-
-    setTransactions(current => [...optimisticTransactions, ...current].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-
-    // --- Show Immediate Feedback ---
-    if (data.type === 'income') {
-        toast({ title: '🎉 Receita Adicionada!', description: "Ótimo trabalho! Continue investindo no seu futuro." });
-    } else if (data.type === 'expense') {
-        if (isUnusualSpending(data.amount, data.category)) {
-            toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
-        } else {
-            toast({ title: '💸 Despesa Adicionada', description: `"${data.description}" adicionado. Lembre-se de manter o controle.` });
+        
+        // --- Background Tasks (after successful save) ---
+        const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
+        if (userWhatsAppNumber) {
+            const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+            const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+            // This runs in the background, not blocking the UI
+            sendWhatsAppNotification(messageBody, userWhatsAppNumber);
         }
-    }
 
-    // --- Background Tasks ---
-    // Save to Firestore without blocking UI
-    addStoredTransaction(data).catch(error => {
-        // Revert UI on error
-        console.error("Failed to save transaction, reverting UI:", error);
-        setTransactions(current => current.filter(t => !tempIds.includes(t.id)));
+    } catch (error) {
+        console.error("Failed to save transaction:", error);
         toast({
             variant: 'destructive',
             title: 'Erro ao Salvar Transação',
             description: "Não foi possível salvar a transação. Por favor, tente novamente.",
         });
-    });
-
-    // Send WhatsApp notification in background
-    const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
-    if (userWhatsAppNumber) {
-        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
-        const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
-        sendWhatsAppNotification(messageBody, userWhatsAppNumber);
+        // Re-throw the error so the form knows the submission failed
+        throw error;
     }
-  }, [toast, transactions]); //eslint-disable-line
+  }, [toast, transactions]);
+
 
   return (
     <TransactionsContext.Provider value={{ transactions, addTransaction, isLoading }}>
