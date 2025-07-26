@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -125,6 +125,8 @@ export default function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+
   const [notifications, setNotifications] = useState<NotificationSettings>({
     dailySummary: true,
     futureIncome: true,
@@ -143,6 +145,10 @@ export default function SettingsPage() {
   useEffect(() => {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
+    
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
 
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
         PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
@@ -166,6 +172,27 @@ export default function SettingsPage() {
     }
 
   }, []);
+
+  const handleRequestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+        toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
+        return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+     if (permission === 'granted') {
+      toast({
+        title: 'Notificações Ativadas!',
+        description: 'Você receberá as últimas atualizações.',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Notificações Bloqueadas',
+        description: 'Você precisa permitir as notificações nas configurações do seu navegador.',
+      });
+    }
+  };
   
   const handleRegisterBiometrics = async () => {
     setIsRegistering(true);
@@ -452,7 +479,18 @@ export default function SettingsPage() {
         <CardContent className="divide-y divide-border">
           
           <div className="py-4">
-              <div className="divide-y divide-border rounded-lg border bg-background p-4">
+              <div className="flex items-center justify-between rounded-md border bg-background p-4">
+                <div>
+                    <Label>Notificações no Navegador</Label>
+                    <p className="text-sm text-muted-foreground">Receba alertas diretamente no seu dispositivo.</p>
+                </div>
+                <Button onClick={handleRequestNotificationPermission} disabled={notificationPermission === 'granted'}>
+                    <BellRing className="mr-2 h-4 w-4" />
+                    {notificationPermission === 'granted' ? 'Ativadas' : 'Ativar'}
+                </Button>
+              </div>
+
+              <div className="divide-y divide-border rounded-lg border bg-background p-4 mt-4">
                   <NotificationSwitch id="dailySummary" label="Resumo do dia anterior" checked={notifications.dailySummary} onCheckedChange={handleNotificationChange} />
                   <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
                   <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />

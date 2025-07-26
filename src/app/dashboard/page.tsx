@@ -16,6 +16,7 @@ import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financ
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactions } from './layout';
+import { NotificationPermission } from '@/components/notification-permission';
 
 interface SummaryData {
   recebidos: number;
@@ -184,6 +185,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <DashboardHeader />
 
+      <NotificationPermission />
+      
       <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
           <ChevronLeft className="h-5 w-5" />
