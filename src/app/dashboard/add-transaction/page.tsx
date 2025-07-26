@@ -65,10 +65,8 @@ function AddTransactionForm() {
 
         setIsSuggesting(true);
         try {
-            const { category, error } = await getCategorySuggestion(description);
-            if (error) {
-                // Fail silently
-            } else if (category) {
+            const { category } = await getCategorySuggestion(description);
+            if (category) {
                 // Check category again inside the async function to prevent race conditions
                 if (!form.getValues('category')) {
                     form.setValue('category', category, { shouldValidate: true });
@@ -79,7 +77,7 @@ function AddTransactionForm() {
                 }
             }
         } catch (e) {
-            // Also fail silently on exception
+            // Fail silently on exception
         } finally {
             setIsSuggesting(false);
         }
@@ -91,8 +89,7 @@ function AddTransactionForm() {
             clearTimeout(suggestionTimeoutRef.current);
         }
 
-        const currentCategory = form.getValues('category');
-        if (watchedDescription && !currentCategory) {
+        if (watchedDescription && !form.getValues('category')) {
             suggestionTimeoutRef.current = setTimeout(() => {
                 handleAiCategorize(watchedDescription);
             }, 500); // 500ms debounce
@@ -440,5 +437,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
