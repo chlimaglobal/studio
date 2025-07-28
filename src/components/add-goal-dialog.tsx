@@ -36,6 +36,7 @@ import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/app/dashboard/layout';
 
 type AddGoalDialogProps = {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ type AddGoalDialogProps = {
 export function AddGoalDialog({ children }: AddGoalDialogProps) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof AddGoalFormSchema>>({
     resolver: zodResolver(AddGoalFormSchema),
@@ -56,8 +58,16 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
   });
 
   async function onSubmit(values: z.infer<typeof AddGoalFormSchema>) {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Autenticação',
+            description: "Você precisa estar logado para adicionar uma meta."
+        });
+        return;
+    }
     try {
-      await addStoredGoal(values);
+      await addStoredGoal(user.uid, values);
       toast({
           title: 'Sucesso!',
           description: "Meta adicionada com sucesso!",

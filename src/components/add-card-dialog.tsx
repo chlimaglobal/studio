@@ -29,6 +29,7 @@ import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { addStoredCard } from '@/lib/storage';
+import { useAuth } from '@/app/dashboard/layout';
 
 type AddCardDialogProps = {
   children: React.ReactNode;
@@ -48,6 +49,7 @@ const brandNames: Record<typeof cardBrands[number], string> = {
 export function AddCardDialog({ children }: AddCardDialogProps) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof AddCardFormSchema>>({
     resolver: zodResolver(AddCardFormSchema),
@@ -59,8 +61,16 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
   });
 
   async function onSubmit(values: z.infer<typeof AddCardFormSchema>) {
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Autenticação',
+            description: "Você precisa estar logado para adicionar um cartão."
+        });
+        return;
+    }
     try {
-        await addStoredCard(values);
+        await addStoredCard(user.uid, values);
         toast({
             title: 'Sucesso!',
             description: "Cartão adicionado com sucesso!",

@@ -26,9 +26,11 @@ import { z } from 'zod';
 import { addStoredCommission, onCommissionsUpdate } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '../layout';
 
 function CommissionForm() {
     const { toast } = useToast();
+    const { user } = useAuth();
     const form = useForm<z.infer<typeof AddCommissionFormSchema>>({
         resolver: zodResolver(AddCommissionFormSchema),
         defaultValues: {
@@ -40,8 +42,12 @@ function CommissionForm() {
     });
 
     async function onSubmit(values: z.infer<typeof AddCommissionFormSchema>) {
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+            return;
+        }
         try {
-            await addStoredCommission(values);
+            await addStoredCommission(user.uid, values);
             toast({
                 title: 'Sucesso!',
                 description: 'Comissão adicionada com sucesso.',
@@ -201,15 +207,20 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
 export default function CommissionsPage() {
     const [commissions, setCommissions] = useState<Commission[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
+        if (!user) {
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
-        const unsubscribe = onCommissionsUpdate((newCommissions) => {
+        const unsubscribe = onCommissionsUpdate(user.uid, (newCommissions) => {
             setCommissions(newCommissions);
             setIsLoading(false);
         });
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     if (isLoading) {
         return (

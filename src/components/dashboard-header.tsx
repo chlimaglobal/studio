@@ -20,6 +20,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/app/dashboard/layout';
 import Link from 'next/link';
+import { getAuth, signOut } from 'firebase/auth';
+import { useAuth } from '@/app/dashboard/layout';
 
 
 const Logo = () => (
@@ -34,9 +36,8 @@ const Logo = () => (
 
 export default function DashboardHeader() {
   const { transactions } = useTransactions();
+  const { user } = useAuth();
   const [totalBalance, setTotalBalance] = useState(0);
-  const [userName, setUserName] = useState('Bem-vindo(a)!');
-  const [userEmail, setUserEmail] = useState('');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -48,27 +49,26 @@ export default function DashboardHeader() {
     }, 0);
     setTotalBalance(balance);
   }, [transactions]);
-
+  
   useEffect(() => {
-    const updateUserData = () => {
-        const storedName = localStorage.getItem('userName') || '';
-        setUserName(storedName);
-        const storedEmail = localStorage.getItem('userEmail') || '';
-        setUserEmail(storedEmail);
-        const storedProfilePic = localStorage.getItem('profilePic');
-        setProfilePic(storedProfilePic);
+    // This could be used to fetch profile pic from a user profile document in Firestore
+    if (user?.photoURL) {
+      setProfilePic(user.photoURL);
     }
-    
-    updateUserData();
-    window.addEventListener('storage', updateUserData);
+  }, [user]);
 
-    return () => {
-        window.removeEventListener('storage', updateUserData);
-    }
-  }, []);
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
       router.push('/login');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Sair',
+        description: 'Não foi possível fazer logout. Tente novamente.',
+      });
+    }
   };
 
   const toggleTheme = () => {
@@ -89,18 +89,18 @@ export default function DashboardHeader() {
             <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2 cursor-pointer">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={profilePic ?? undefined} alt="User Avatar" />
-                        <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                        <AvatarImage src={profilePic ?? user?.photoURL ?? undefined} alt="User Avatar" />
+                        <AvatarFallback>{user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}</AvatarFallback>
                     </Avatar>
                 </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
                  <DropdownMenuLabel>
                      <div className='flex items-center gap-2'>
-                        <span className="font-semibold capitalize">{userName || 'Usuário'}</span>
+                        <span className="font-semibold capitalize">{user?.displayName || 'Usuário'}</span>
                         <Badge variant="outline" className='border-green-500 text-green-500'>PLUS</Badge>
                      </div>
-                     <p className='text-xs text-muted-foreground font-normal'>{userEmail}</p>
+                     <p className='text-xs text-muted-foreground font-normal'>{user?.email}</p>
                  </DropdownMenuLabel>
                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>

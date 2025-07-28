@@ -14,20 +14,26 @@ import { onGoalsUpdate } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../layout';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
-    const unsubscribe = onGoalsUpdate((newGoals) => {
+    const unsubscribe = onGoalsUpdate(user.uid, (newGoals) => {
       setGoals(newGoals);
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [user]);
   
   const calculateProgress = (current: number, target: number) => {
     if (target <= 0) return 0;

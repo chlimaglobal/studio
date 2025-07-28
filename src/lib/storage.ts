@@ -1,7 +1,7 @@
 
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc, writeBatch } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc, writeBatch, where } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -9,10 +9,29 @@ import { z } from 'zod';
 import { addMonths, addWeeks, addQuarters, addYears } from 'date-fns';
 import { AddCommissionFormSchema, Commission } from './commission-types';
 
+// Helper function to clean data before sending to Firestore
+const cleanDataForFirestore = (data: Record<string, any>) => {
+    const cleanedData: Record<string, any> = {};
+    for (const key in data) {
+        if (data[key] !== undefined && data[key] !== null) { // Firestore also rejects null in some cases
+            cleanedData[key] = data[key];
+        }
+    }
+    return cleanedData;
+};
+
 // ======== TRANSACTIONS ========
 
-export function onTransactionsUpdate(callback: (transactions: Transaction[]) => void): () => void {
-  const q = query(collection(db, "transactions"), orderBy("date", "desc"));
+export function onTransactionsUpdate(userId: string, callback: (transactions: Transaction[]) => void): () => void {
+  if (!userId) {
+    console.error("onTransactionsUpdate called without a userId.");
+    return () => {}; // Return an empty unsubscribe function
+  }
+  const q = query(
+    collection(db, "transactions"), 
+    where("userId", "==", userId),
+    orderBy("date", "desc")
+  );
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const transactions: Transaction[] = [];
@@ -21,11 +40,9 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
       transactions.push({
         id: doc.id,
         ...data,
-        // Convert Firestore Timestamp to ISO string to match our type
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
-    // The filtering logic should be done on the client side, not here.
     callback(transactions);
   }, (error) => {
     console.error("Error fetching transactions:", error);
@@ -34,21 +51,10 @@ export function onTransactionsUpdate(callback: (transactions: Transaction[]) => 
   return unsubscribe;
 }
 
-// Helper function to clean data before sending to Firestore
-const cleanDataForFirestore = (data: Record<string, any>) => {
-    const cleanedData: Record<string, any> = {};
-    for (const key in data) {
-        if (data[key] !== undefined) {
-            cleanedData[key] = data[key];
-        }
-    }
-    return cleanedData;
-};
-
-
-export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>) {
+export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
     const transactionData = {
         ...data,
+        userId,
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
@@ -72,8 +78,13 @@ export async function deleteStoredTransactions(ids: string[]): Promise<void> {
 
 // ======== CARDS ========
 
-export function onCardsUpdate(callback: (cards: Card[]) => void): () => void {
-  const q = query(collection(db, "cards"), orderBy("name"));
+export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void): () => void {
+  if (!userId) return () => {};
+  const q = query(
+      collection(db, "cards"),
+      where("userId", "==", userId),
+      orderBy("name")
+  );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const cards: Card[] = [];
@@ -86,10 +97,10 @@ export function onCardsUpdate(callback: (cards: Card[]) => void): () => void {
   return unsubscribe;
 }
 
-
-export async function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
+export async function addStoredCard(userId: string, data: z.infer<typeof AddCardFormSchema>) {
    try {
-    await addDoc(collection(db, "cards"), cleanDataForFirestore(data));
+    const cardData = { ...data, userId };
+    await addDoc(collection(db, "cards"), cleanDataForFirestore(cardData));
   } catch (e) {
     console.error("Error adding card: ", e);
     throw new Error('Falha ao adicionar cartão no Firestore.');
@@ -99,8 +110,13 @@ export async function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
 
 // ======== GOALS ========
 
-export function onGoalsUpdate(callback: (goals: Goal[]) => void): () => void {
-  const q = query(collection(db, "goals"), orderBy("deadline"));
+export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void): () => void {
+  if (!userId) return () => {};
+  const q = query(
+      collection(db, "goals"),
+      where("userId", "==", userId),
+      orderBy("deadline")
+  );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const goals: Goal[] = [];
@@ -109,7 +125,6 @@ export function onGoalsUpdate(callback: (goals: Goal[]) => void): () => void {
        goals.push({
         id: doc.id,
         ...data,
-        // Convert Firestore Timestamp to JS Date object
         deadline: (data.deadline as Timestamp).toDate(),
        } as Goal);
     });
@@ -119,11 +134,11 @@ export function onGoalsUpdate(callback: (goals: Goal[]) => void): () => void {
   return unsubscribe;
 }
 
-
-export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
+export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoalFormSchema>) {
   try {
     const goalData = {
         ...data,
+        userId,
         targetAmount: Number(data.targetAmount),
         currentAmount: Number(data.currentAmount),
         deadline: Timestamp.fromDate(new Date(data.deadline)),
@@ -137,8 +152,13 @@ export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
 
 // ======== COMMISSIONS ========
 
-export function onCommissionsUpdate(callback: (commissions: Commission[]) => void): () => void {
-  const q = query(collection(db, "commissions"), orderBy("date", "desc"));
+export function onCommissionsUpdate(userId: string, callback: (commissions: Commission[]) => void): () => void {
+  if (!userId) return () => {};
+  const q = query(
+      collection(db, "commissions"),
+      where("userId", "==", userId),
+      orderBy("date", "desc")
+  );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const commissions: Commission[] = [];
@@ -158,10 +178,11 @@ export function onCommissionsUpdate(callback: (commissions: Commission[]) => voi
   return unsubscribe;
 }
 
-export async function addStoredCommission(data: z.infer<typeof AddCommissionFormSchema>) {
+export async function addStoredCommission(userId: string, data: z.infer<typeof AddCommissionFormSchema>) {
   try {
     const commissionData = {
       ...data,
+      userId,
       amount: Number(data.amount),
       date: Timestamp.fromDate(new Date(data.date)),
     };

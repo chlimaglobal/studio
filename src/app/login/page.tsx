@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { app } from '@/lib/firebase'; // Import the initialized app
 
 const Logo = () => (
     <div className="p-4 bg-secondary/50 rounded-2xl inline-block shadow-inner">
@@ -22,7 +24,6 @@ const Logo = () => (
         </div>
     </div>
 );
-
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -40,6 +41,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const auth = getAuth(app);
 
   useEffect(() => {
     setIsMounted(true);
@@ -50,29 +52,32 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = (event?: React.FormEvent) => {
+  const handleLogin = async (event?: React.FormEvent) => {
     event?.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call and validation
-    setTimeout(() => {
-      const storedPassword = localStorage.getItem('userPassword') || 'password123';
-      if (email === 'user@example.com' && password === storedPassword) {
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', email);
         } else {
           localStorage.removeItem('rememberedEmail');
         }
         router.push('/dashboard');
-      } else {
+    } catch (error: any) {
+        const errorCode = error.code;
+        let errorMessage = 'Ocorreu um erro ao fazer login.';
+        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
+            errorMessage = 'E-mail ou senha inválidos.';
+        }
         toast({
           variant: 'destructive',
           title: 'Login Falhou',
-          description: 'E-mail ou senha inválidos.',
+          description: errorMessage,
         });
+    } finally {
         setIsLoading(false);
-      }
-    }, 1000);
+    }
   };
   
   const handleBiometricLogin = async () => {
@@ -107,6 +112,7 @@ export default function LoginPage() {
 
         if (credential) {
             // In a real app, send this to the server for verification
+            // For now, we assume successful verification means we can redirect
             console.log('Login com WebAuthn bem-sucedido!', credential);
             toast({
                 title: 'Login Bem-Sucedido!',
@@ -130,20 +136,25 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
-    // Simulate Google OAuth flow
-    setTimeout(() => {
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
         toast({
             title: 'Login com Google bem-sucedido!',
             description: 'Bem-vindo(a) ao FinanceFlow.',
         });
-        // In a real app, you'd get user info from Google and set it.
-        // For now, we can set some defaults.
-        localStorage.setItem('userName', 'Usuário Google');
-        localStorage.setItem('userEmail', 'google.user@example.com');
         router.push('/dashboard');
-    }, 1000);
+    } catch (error) {
+         toast({
+            variant: 'destructive',
+            title: 'Falha no Login com Google',
+            description: 'Não foi possível autenticar com o Google. Tente novamente.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   if (!isMounted) {

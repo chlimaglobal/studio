@@ -12,22 +12,29 @@ import { onCardsUpdate } from '@/lib/storage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '../layout';
 
 
 export default function CardsPage() {
   const [cards, setCards] = useState<CardType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    };
+
     setIsLoading(true);
-    const unsubscribe = onCardsUpdate((newCards) => {
+    const unsubscribe = onCardsUpdate(user.uid, (newCards) => {
       setCards(newCards);
       setIsLoading(false);
     });
-    // Cleanup subscription on unmount
+
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   if (isLoading) {
       return (
