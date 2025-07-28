@@ -7,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2, Fingerprint } from 'lucide-react';
+import { Loader2, Fingerprint, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { app } from '@/lib/firebase'; // Import the initialized app
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 import { useAuth } from '../dashboard/layout';
 
 const Logo = () => (
@@ -40,14 +40,17 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const auth = getAuth(app);
   const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
+    // If auth state is resolved and we have a user, redirect to dashboard
     if (!isAuthLoading && user) {
         router.replace('/dashboard');
     }
+    // Check for remembered email on component mount
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
         setEmail(rememberedEmail);
@@ -55,8 +58,8 @@ export default function LoginPage() {
     }
   }, [user, isAuthLoading, router]);
 
-  const handleLogin = async (event?: React.FormEvent) => {
-    event?.preventDefault();
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
     setIsLoading(true);
 
     try {
@@ -66,7 +69,7 @@ export default function LoginPage() {
         } else {
           localStorage.removeItem('rememberedEmail');
         }
-        // The onAuthStateChanged listener in the layout will handle the redirect
+        // The layout's auth listener will handle the redirect
         router.push('/dashboard');
     } catch (error: any) {
         const errorCode = error.code;
@@ -94,7 +97,6 @@ export default function LoginPage() {
                 title: 'Impressão Digital não Cadastrada',
                 description: 'Por favor, cadastre sua impressão digital nas configurações do perfil primeiro.',
             });
-            setIsBiometricLoading(false);
             return;
         }
 
@@ -115,21 +117,16 @@ export default function LoginPage() {
         const credential = await navigator.credentials.get({ publicKey: options });
 
         if (credential) {
-            // In a real app, send this to the server for verification
-            // and sign in the user, which would trigger onAuthStateChanged
-            console.log('Login com WebAuthn bem-sucedido!', credential);
-            toast({
-                title: 'Login Bem-Sucedido!',
-                description: 'Bem-vindo de volta!',
-            });
-             // For this simulation, we manually redirect.
+            // In a real app, this assertion would be sent to the server for verification,
+            // which would then sign the user in, triggering onAuthStateChanged.
+            // For this simulation, we'll assume success and redirect.
+            toast({ title: 'Login Biométrico Bem-Sucedido!' });
             router.push('/dashboard');
         } else {
-             throw new Error('Falha ao obter credencial.');
+             throw new Error('Falha ao obter credencial biométrica.');
         }
 
     } catch (err) {
-        console.error("Erro no login biométrico:", err);
         const error = err as Error;
         toast({
             variant: 'destructive',
@@ -146,8 +143,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        // The onAuthStateChanged listener in the layout will handle the redirect.
-        // We can also redirect manually for faster user experience.
+        // The layout's auth listener will handle the redirect
         router.push('/dashboard');
     } catch (error) {
          toast({
@@ -160,6 +156,7 @@ export default function LoginPage() {
     }
   };
 
+  // Show a loading spinner while the auth state is being checked
   if (isAuthLoading || user) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -192,16 +189,25 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password">Senha</Label>
+              <div className="relative">
+                <Input 
+                    id="password" 
+                    type={showPassword ? 'text' : 'password'} 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
             </div>
              <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -245,7 +251,6 @@ export default function LoginPage() {
                 </Button>
             </div>
 
-
             <div className="mt-6 text-center text-sm">
               Não tem uma conta?{' '}
               <Button variant="link" type="button" className="p-0 h-auto">
@@ -257,3 +262,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+    
