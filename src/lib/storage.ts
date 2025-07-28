@@ -1,7 +1,7 @@
 
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, where } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, where, getDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -13,24 +13,33 @@ import { AddCommissionFormSchema, Commission } from './commission-types';
 const cleanDataForFirestore = (data: Record<string, any>) => {
     const cleanedData: Record<string, any> = {};
     for (const key in data) {
-        if (data[key] !== undefined && data[key] !== null) { // Firestore also rejects null in some cases
+        // Firestore rejects 'undefined' but allows 'null'. Let's keep nulls.
+        if (data[key] !== undefined) {
             cleanedData[key] = data[key];
         }
     }
     return cleanedData;
 };
 
+// ======== USER DOCUMENT HELPER ========
+// Helper to ensure user document exists
+const ensureUserDocument = async (userId: string) => {
+    const userDocRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userDocRef);
+    if (!userDoc.exists()) {
+        await setDoc(userDocRef, { createdAt: Timestamp.now() });
+    }
+};
+
+
 // ======== TRANSACTIONS ========
 
 export function onTransactionsUpdate(userId: string, callback: (transactions: Transaction[]) => void): () => void {
   if (!userId) {
     console.error("onTransactionsUpdate called without a userId.");
-    return () => {}; // Return an empty unsubscribe function
+    return () => {};
   }
-  const q = query(
-    collection(db, "transactions"), 
-    where("userId", "==", userId)
-  );
+  const q = query(collection(db, "users", userId, "transactions"));
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const transactions: Transaction[] = [];
@@ -42,7 +51,6 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
-    // Sort client-side
     transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     callback(transactions);
   }, (error) => {
@@ -53,20 +61,22 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 }
 
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
+    await ensureUserDocument(userId);
     const transactionData = {
         ...data,
-        userId,
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
-    await addDoc(collection(db, 'transactions'), cleanDataForFirestore(transactionData));
+    // Remove the redundant userId from the transaction data itself
+    const { userId: _, ...restOfData } = transactionData;
+    await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(restOfData));
 }
 
-export async function deleteStoredTransactions(ids: string[]): Promise<void> {
+export async function deleteStoredTransactions(userId: string, ids: string[]): Promise<void> {
     try {
         const batch = writeBatch(db);
         ids.forEach(id => {
-            const docRef = doc(db, "transactions", id);
+            const docRef = doc(db, "users", userId, "transactions", id);
             batch.delete(docRef);
         });
         await batch.commit();
@@ -81,17 +91,13 @@ export async function deleteStoredTransactions(ids: string[]): Promise<void> {
 
 export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(
-      collection(db, "cards"),
-      where("userId", "==", userId)
-  );
+  const q = query(collection(db, "users", userId, "cards"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const cards: Card[] = [];
     querySnapshot.forEach((doc) => {
         cards.push({ id: doc.id, ...doc.data() } as Card);
     });
-    // Sort client-side
     cards.sort((a, b) => a.name.localeCompare(b.name));
     callback(cards);
   }, (error) => {
@@ -103,8 +109,8 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
 
 export async function addStoredCard(userId: string, data: z.infer<typeof AddCardFormSchema>) {
    try {
-    const cardData = { ...data, userId };
-    await addDoc(collection(db, "cards"), cleanDataForFirestore(cardData));
+    await ensureUserDocument(userId);
+    await addDoc(collection(db, "users", userId, "cards"), cleanDataForFirestore(data));
   } catch (e) {
     console.error("Error adding card: ", e);
     throw new Error('Falha ao adicionar cartão no Firestore.');
@@ -116,10 +122,7 @@ export async function addStoredCard(userId: string, data: z.infer<typeof AddCard
 
 export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(
-      collection(db, "goals"),
-      where("userId", "==", userId)
-  );
+  const q = query(collection(db, "users", userId, "goals"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const goals: Goal[] = [];
@@ -131,7 +134,6 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
         deadline: (data.deadline as Timestamp).toDate(),
        } as Goal);
     });
-    // Sort client-side
     goals.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
     callback(goals);
   }, (error) => {
@@ -143,14 +145,14 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
 
 export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoalFormSchema>) {
   try {
+    await ensureUserDocument(userId);
     const goalData = {
         ...data,
-        userId,
         targetAmount: Number(data.targetAmount),
         currentAmount: Number(data.currentAmount),
         deadline: Timestamp.fromDate(new Date(data.deadline)),
     };
-    await addDoc(collection(db, "goals"), cleanDataForFirestore(goalData));
+    await addDoc(collection(db, "users", userId, "goals"), cleanDataForFirestore(goalData));
   } catch (e) {
     console.error("Error adding goal: ", e);
     throw new Error('Falha ao adicionar meta no Firestore.');
@@ -161,10 +163,7 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
 
 export function onCommissionsUpdate(userId: string, callback: (commissions: Commission[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(
-      collection(db, "commissions"),
-      where("userId", "==", userId)
-  );
+  const q = query(collection(db, "users", userId, "commissions"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const commissions: Commission[] = [];
@@ -176,7 +175,6 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
         date: (data.date as Timestamp).toDate(),
       } as Commission);
     });
-    // Sort client-side
     commissions.sort((a, b) => b.date.getTime() - a.date.getTime());
     callback(commissions);
   }, (error) => {
@@ -188,13 +186,13 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
 
 export async function addStoredCommission(userId: string, data: z.infer<typeof AddCommissionFormSchema>) {
   try {
+    await ensureUserDocument(userId);
     const commissionData = {
       ...data,
-      userId,
       amount: Number(data.amount),
       date: Timestamp.fromDate(new Date(data.date)),
     };
-    await addDoc(collection(db, "commissions"), cleanDataForFirestore(commissionData));
+    await addDoc(collection(db, "users", userId, "commissions"), cleanDataForFirestore(commissionData));
   } catch (e) {
     console.error("Error adding commission: ", e);
     throw new Error('Falha ao adicionar comissão no Firestore.');
