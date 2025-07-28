@@ -43,20 +43,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const auth = getAuth(app);
-  const { user, isLoading: isAuthLoading } = useAuth();
-
+  
   useEffect(() => {
-    // If auth state is resolved and we have a user, redirect to dashboard
-    if (!isAuthLoading && user) {
-        router.replace('/dashboard');
-    }
     // Check for remembered email on component mount
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
         setEmail(rememberedEmail);
         setRememberMe(true);
     }
-  }, [user, isAuthLoading, router]);
+  }, []);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -156,15 +151,6 @@ export default function LoginPage() {
     }
   };
 
-  // Show a loading spinner while the auth state is being checked
-  if (isAuthLoading || user) {
-    return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-    );
-  }
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
@@ -262,5 +248,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
-    
