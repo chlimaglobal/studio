@@ -22,12 +22,13 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 };
 
 // ======== USER DOCUMENT HELPER ========
-// Helper to ensure user document exists
+// Helper to ensure user document exists. This is crucial for security rules.
 const ensureUserDocument = async (userId: string) => {
+    if (!userId) return;
     const userDocRef = doc(db, 'users', userId);
     const userDoc = await getDoc(userDocRef);
     if (!userDoc.exists()) {
-        await setDoc(userDocRef, { createdAt: Timestamp.now() });
+        await setDoc(userDocRef, { createdAt: Timestamp.now(), email: '' });
     }
 };
 
@@ -67,9 +68,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
-    // Remove the redundant userId from the transaction data itself
-    const { userId: _, ...restOfData } = transactionData;
-    await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(restOfData));
+    await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
 }
 
 export async function deleteStoredTransactions(userId: string, ids: string[]): Promise<void> {
