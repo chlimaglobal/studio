@@ -1,18 +1,16 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import type { Transaction, TransactionCategory } from '@/lib/types';
-import { onTransactionsUpdate } from '@/lib/storage';
+import { useState, useMemo } from 'react';
+import type { TransactionCategory } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, PieChart as PieChartIcon, ArrowLeft } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2 } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
-import { transactionCategories } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { useTransactions } from '../layout';
 
 interface CategorySpending {
   name: TransactionCategory;
@@ -20,25 +18,14 @@ interface CategorySpending {
 }
 
 export default function ReportsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
+  const { transactions, isLoading } = useTransactions();
   const router = useRouter();
-
-  useEffect(() => {
-    setIsMounted(true);
-    const unsubscribe = onTransactionsUpdate((newTransactions) => {
-        const transactionsWithDates = newTransactions.map(t => ({ ...t, date: new Date(t.date) }));
-        setTransactions(transactionsWithDates);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const categorySpendingData = useMemo((): CategorySpending[] => {
     const spendingMap = new Map<TransactionCategory, number>();
 
     transactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'expense' && !t.hideFromReports)
       .forEach(t => {
         spendingMap.set(t.category, (spendingMap.get(t.category) || 0) + t.amount);
       });
@@ -53,8 +40,15 @@ export default function ReportsPage() {
   }, [categorySpendingData]);
 
 
-  if (!isMounted) {
-    return null; // Or a loading skeleton
+  if (isLoading) {
+    return (
+        <div className="flex justify-center items-center h-full p-8">
+            <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Carregando relatórios...</span>
+            </div>
+        </div>
+    );
   }
 
   return (
@@ -84,7 +78,7 @@ export default function ReportsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {transactions.filter(t=>t.type==='expense').length > 0 ? (
+          {categorySpendingData.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               <div className="h-[350px]">
                 <CategoryPieChart data={categorySpendingData} />

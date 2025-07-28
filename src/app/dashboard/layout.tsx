@@ -78,19 +78,18 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!user) {
+    if (user) {
+      setIsLoading(true);
+      const unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
+        setTransactions(newTransactions);
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      // If no user, clear transactions and stop loading.
       setTransactions([]);
       setIsLoading(false);
-      return;
-    };
-    
-    setIsLoading(true);
-    const unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
-      setTransactions(newTransactions);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, [user]);
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
