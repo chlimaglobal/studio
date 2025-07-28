@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { app } from '@/lib/firebase'; // Import the initialized app
 
 const Logo = () => (
@@ -36,7 +36,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,13 +44,22 @@ export default function LoginPage() {
   const auth = getAuth(app);
 
   useEffect(() => {
-    setIsMounted(true);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+            router.replace('/dashboard');
+        } else {
+            setIsAuthCheckComplete(true);
+        }
+    });
+    
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
         setEmail(rememberedEmail);
         setRememberMe(true);
     }
-  }, []);
+
+    return () => unsubscribe();
+  }, [auth, router]);
 
   const handleLogin = async (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -63,7 +72,7 @@ export default function LoginPage() {
         } else {
           localStorage.removeItem('rememberedEmail');
         }
-        router.push('/dashboard');
+        // The onAuthStateChanged listener will handle the redirect
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro ao fazer login.';
@@ -112,12 +121,13 @@ export default function LoginPage() {
 
         if (credential) {
             // In a real app, send this to the server for verification
-            // For now, we assume successful verification means we can redirect
+            // and sign in the user, which would trigger onAuthStateChanged
             console.log('Login com WebAuthn bem-sucedido!', credential);
             toast({
                 title: 'Login Bem-Sucedido!',
                 description: 'Bem-vindo de volta!',
             });
+             // For this simulation, we manually redirect.
             router.push('/dashboard');
         } else {
              throw new Error('Falha ao obter credencial.');
@@ -141,11 +151,7 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        toast({
-            title: 'Login com Google bem-sucedido!',
-            description: 'Bem-vindo(a) ao FinanceFlow.',
-        });
-        router.push('/dashboard');
+        // The onAuthStateChanged listener will handle the redirect
     } catch (error) {
          toast({
             variant: 'destructive',
@@ -157,8 +163,12 @@ export default function LoginPage() {
     }
   };
 
-  if (!isMounted) {
-    return null;
+  if (!isAuthCheckComplete) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    );
   }
 
   return (

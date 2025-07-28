@@ -9,9 +9,9 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to the login page instead of the dashboard
-    router.replace('/login');
-  }, []);
+    // Redirect to the dashboard, which is now protected by the layout
+    router.replace('/dashboard');
+  }, [router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

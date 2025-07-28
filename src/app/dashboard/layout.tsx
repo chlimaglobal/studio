@@ -14,6 +14,7 @@ import { formatCurrency } from '@/lib/utils';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { app } from '@/lib/firebase';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -33,22 +34,16 @@ export function useAuth() {
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
-    const auth = getAuth();
+    const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-      } else {
-        setUser(null);
-        router.replace('/login');
-      }
+      setUser(user);
       setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
@@ -149,6 +144,15 @@ export default function DashboardLayout({
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading: isAuthLoading, user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If auth is done loading and there's no user, redirect to login
+    if (!isAuthLoading && !user) {
+      router.replace('/login');
+    }
+  }, [isAuthLoading, user, router]);
+
 
   if (isAuthLoading || !user) {
     return (
