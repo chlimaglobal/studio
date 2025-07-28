@@ -21,14 +21,10 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
 }
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 }
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -78,24 +74,25 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
   useEffect(() => {
+    let unsubscribe: () => void = () => {};
     if (user) {
       setIsLoading(true);
-      const unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
+      unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
         setTransactions(newTransactions);
         setIsLoading(false);
       });
-      return () => unsubscribe();
     } else {
       // If no user, clear transactions and stop loading.
       setTransactions([]);
       setIsLoading(false);
     }
+    return () => unsubscribe();
   }, [user]);
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
-      return;
+      throw new Error("User not authenticated");
     }
     
     try {

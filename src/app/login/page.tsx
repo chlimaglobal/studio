@@ -12,8 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase'; // Import the initialized app
+import { useAuth } from '../dashboard/layout';
 
 const Logo = () => (
     <div className="p-4 bg-secondary/50 rounded-2xl inline-block shadow-inner">
@@ -36,30 +37,23 @@ export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
-  const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const auth = getAuth(app);
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-            router.replace('/dashboard');
-        } else {
-            setIsAuthCheckComplete(true);
-        }
-    });
-    
+    if (!isAuthLoading && user) {
+        router.replace('/dashboard');
+    }
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
         setEmail(rememberedEmail);
         setRememberMe(true);
     }
-
-    return () => unsubscribe();
-  }, [auth, router]);
+  }, [user, isAuthLoading, router]);
 
   const handleLogin = async (event?: React.FormEvent) => {
     event?.preventDefault();
@@ -72,7 +66,8 @@ export default function LoginPage() {
         } else {
           localStorage.removeItem('rememberedEmail');
         }
-        // The onAuthStateChanged listener will handle the redirect
+        // The onAuthStateChanged listener in the layout will handle the redirect
+        router.push('/dashboard');
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro ao fazer login.';
@@ -151,7 +146,9 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        // The onAuthStateChanged listener will handle the redirect
+        // The onAuthStateChanged listener in the layout will handle the redirect.
+        // We can also redirect manually for faster user experience.
+        router.push('/dashboard');
     } catch (error) {
          toast({
             variant: 'destructive',
@@ -163,7 +160,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isAuthCheckComplete) {
+  if (isAuthLoading || user) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
