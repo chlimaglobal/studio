@@ -29,8 +29,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
   }
   const q = query(
     collection(db, "transactions"), 
-    where("userId", "==", userId),
-    orderBy("date", "desc")
+    where("userId", "==", userId)
   );
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -43,6 +42,8 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
+    // Sort client-side
+    transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     callback(transactions);
   }, (error) => {
     console.error("Error fetching transactions:", error);
@@ -82,8 +83,7 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
   if (!userId) return () => {};
   const q = query(
       collection(db, "cards"),
-      where("userId", "==", userId),
-      orderBy("name")
+      where("userId", "==", userId)
   );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -91,6 +91,8 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
     querySnapshot.forEach((doc) => {
         cards.push({ id: doc.id, ...doc.data() } as Card);
     });
+    // Sort client-side
+    cards.sort((a, b) => a.name.localeCompare(b.name));
     callback(cards);
   });
 
@@ -114,8 +116,7 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
   if (!userId) return () => {};
   const q = query(
       collection(db, "goals"),
-      where("userId", "==", userId),
-      orderBy("deadline")
+      where("userId", "==", userId)
   );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -128,6 +129,8 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
         deadline: (data.deadline as Timestamp).toDate(),
        } as Goal);
     });
+    // Sort client-side
+    goals.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
     callback(goals);
   });
   
@@ -156,8 +159,7 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
   if (!userId) return () => {};
   const q = query(
       collection(db, "commissions"),
-      where("userId", "==", userId),
-      orderBy("date", "desc")
+      where("userId", "==", userId)
   );
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -170,6 +172,8 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
         date: (data.date as Timestamp).toDate(),
       } as Commission);
     });
+    // Sort client-side
+    commissions.sort((a, b) => b.date.getTime() - a.date.getTime());
     callback(commissions);
   }, (error) => {
     console.error("Error fetching commissions:", error);
