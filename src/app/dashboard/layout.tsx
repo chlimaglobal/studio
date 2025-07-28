@@ -51,26 +51,10 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
-
-  const isUnusualSpending = (newAmount: number, category: any): boolean => {
-    const historicalTransactions = transactions.filter(
-      t => t.category === category && t.type === 'expense'
-    );
-    if (historicalTransactions.length < 3) return false;
-    const total = historicalTransactions.reduce((acc, t) => acc + t.amount, 0);
-    const average = total / historicalTransactions.length;
-    return newAmount > average * 1.3 && average > 50;
-  };
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
     try {
         await addStoredTransaction(data);
-
-        // Background tasks that don't need to be awaited by the form
-        if (data.type === 'expense' && isUnusualSpending(data.amount, data.category)) {
-          toast({ variant: 'destructive', title: '🚨 Gasto Incomum Detectado!', description: `Seu gasto em "${data.category}" está acima da sua média.`, action: <AlertTriangle className="h-5 w-5" /> });
-        }
-
         const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
         if (userWhatsAppNumber) {
             const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
@@ -88,7 +72,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         // Re-throw the error to be caught by the form's onSubmit handler
         throw error;
     }
-  }, [toast, transactions]);
+  }, [toast]);
 
 
   return (
