@@ -1,7 +1,7 @@
 
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc, writeBatch, where } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, where } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -94,6 +94,8 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
     // Sort client-side
     cards.sort((a, b) => a.name.localeCompare(b.name));
     callback(cards);
+  }, (error) => {
+    console.error("Error fetching cards:", error);
   });
 
   return unsubscribe;
@@ -132,6 +134,8 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
     // Sort client-side
     goals.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
     callback(goals);
+  }, (error) => {
+    console.error("Error fetching goals:", error);
   });
   
   return unsubscribe;
