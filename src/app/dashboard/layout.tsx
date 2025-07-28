@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { addStoredTransaction, onTransactionsUpdate } from '@/lib/storage';
+import { addStoredTransaction, onTransactionsUpdate, initializeUser } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +35,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
+      if (user) {
+        // Initialize user document in Firestore on login
+        initializeUser(user);
+      }
       setIsLoading(false);
     });
 
@@ -95,7 +99,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
     
     try {
-        addStoredTransaction(user.uid, data);
+        await addStoredTransaction(user.uid, data);
         const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
         if (userWhatsAppNumber) {
             const messageType = data.type === 'income' ? 'Receita' : 'Despesa';

@@ -8,6 +8,7 @@ import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { addMonths, addWeeks, addQuarters, addYears } from 'date-fns';
 import { AddCommissionFormSchema, Commission } from './commission-types';
+import { User } from 'firebase/auth';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -21,14 +22,19 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
     return cleanedData;
 };
 
+
 // ======== USER DOCUMENT HELPER ========
-// Helper to ensure user document exists. This is crucial for security rules.
-const ensureUserDocument = async (userId: string) => {
-    if (!userId) return;
-    const userDocRef = doc(db, 'users', userId);
+// This function is called when a user logs in to ensure their document exists.
+export const initializeUser = async (user: User) => {
+    if (!user) return;
+    const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
     if (!userDoc.exists()) {
-        await setDoc(userDocRef, { createdAt: Timestamp.now(), email: '' });
+        await setDoc(userDocRef, { 
+            email: user.email,
+            displayName: user.displayName,
+            createdAt: Timestamp.now() 
+        });
     }
 };
 
@@ -52,6 +58,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
         date: (data.date as Timestamp).toDate().toISOString(),
       } as Transaction);
     });
+    // Sort on client-side
     transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     callback(transactions);
   }, (error) => {
@@ -62,7 +69,6 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 }
 
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
-    await ensureUserDocument(userId);
     const transactionData = {
         ...data,
         amount: Number(data.amount),
@@ -108,7 +114,6 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
 
 export async function addStoredCard(userId: string, data: z.infer<typeof AddCardFormSchema>) {
    try {
-    await ensureUserDocument(userId);
     await addDoc(collection(db, "users", userId, "cards"), cleanDataForFirestore(data));
   } catch (e) {
     console.error("Error adding card: ", e);
@@ -144,7 +149,6 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
 
 export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoalFormSchema>) {
   try {
-    await ensureUserDocument(userId);
     const goalData = {
         ...data,
         targetAmount: Number(data.targetAmount),
@@ -185,7 +189,6 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
 
 export async function addStoredCommission(userId: string, data: z.infer<typeof AddCommissionFormSchema>) {
   try {
-    await ensureUserDocument(userId);
     const commissionData = {
       ...data,
       amount: Number(data.amount),
