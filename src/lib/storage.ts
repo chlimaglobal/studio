@@ -47,11 +47,12 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 
 
 export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>) {
-    await addDoc(collection(db, 'transactions'), {
+    const transactionData = {
         ...data,
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
-    });
+    };
+    await addDoc(collection(db, 'transactions'), cleanDataForFirestore(transactionData));
 }
 
 export async function deleteStoredTransactions(ids: string[]): Promise<void> {
@@ -88,7 +89,7 @@ export function onCardsUpdate(callback: (cards: Card[]) => void): () => void {
 
 export async function addStoredCard(data: z.infer<typeof AddCardFormSchema>) {
    try {
-    await addDoc(collection(db, "cards"), data);
+    await addDoc(collection(db, "cards"), cleanDataForFirestore(data));
   } catch (e) {
     console.error("Error adding card: ", e);
     throw new Error('Falha ao adicionar cartão no Firestore.');
