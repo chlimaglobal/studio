@@ -1,4 +1,5 @@
 
+
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, Timestamp, doc, deleteDoc, setDoc, writeBatch } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
@@ -6,6 +7,7 @@ import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { addMonths, addWeeks, addQuarters, addYears } from 'date-fns';
+import { AddCommissionFormSchema, Commission } from './commission-types';
 
 // ======== TRANSACTIONS ========
 
@@ -44,49 +46,12 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 };
 
 
-export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>): Promise<string | string[]> {
-  try {
-    if (data.type === 'expense' && data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
-        const batch = writeBatch(db);
-        const installmentAmount = data.amount / data.installments;
-        const newDocIds: string[] = [];
-        
-        const baseData = { ...data };
-        delete baseData.installments; // Not needed in the final object
-
-        for (let i = 0; i < data.installments; i++) {
-            const installmentDate = addMonths(new Date(data.date), i);
-            const docRef = doc(collection(db, "transactions"));
-            
-            const docData = {
-                ...baseData,
-                amount: Number(installmentAmount.toFixed(2)),
-                date: Timestamp.fromDate(installmentDate),
-                description: `${data.description} (${i + 1}/${data.installments})`,
-                paid: i === 0 ? data.paid : false, // Only first is paid now
-                installmentNumber: i + 1,
-                totalInstallments: data.installments,
-            };
-            
-            batch.set(docRef, cleanDataForFirestore(docData));
-            newDocIds.push(docRef.id);
-        }
-        await batch.commit();
-        return newDocIds;
-
-    } else {
-        const docData = {
-          ...data,
-          amount: Number(data.amount),
-          date: Timestamp.fromDate(new Date(data.date)),
-        };
-        const docRef = await addDoc(collection(db, "transactions"), cleanDataForFirestore(docData));
-        return docRef.id;
-    }
-  } catch (e) {
-    console.error("Error adding document: ", e);
-    throw new Error('Falha ao adicionar transação no Firestore.');
-  }
+export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>) {
+    await addDoc(collection(db, 'transactions'), {
+        ...data,
+        amount: Number(data.amount),
+        date: Timestamp.fromDate(new Date(data.date))
+    });
 }
 
 export async function deleteStoredTransactions(ids: string[]): Promise<void> {
@@ -166,5 +131,42 @@ export async function addStoredGoal(data: z.infer<typeof AddGoalFormSchema>) {
   } catch (e) {
     console.error("Error adding goal: ", e);
     throw new Error('Falha ao adicionar meta no Firestore.');
+  }
+}
+
+// ======== COMMISSIONS ========
+
+export function onCommissionsUpdate(callback: (commissions: Commission[]) => void): () => void {
+  const q = query(collection(db, "commissions"), orderBy("date", "desc"));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const commissions: Commission[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      commissions.push({
+        id: doc.id,
+        ...data,
+        date: (data.date as Timestamp).toDate(),
+      } as Commission);
+    });
+    callback(commissions);
+  }, (error) => {
+    console.error("Error fetching commissions:", error);
+  });
+
+  return unsubscribe;
+}
+
+export async function addStoredCommission(data: z.infer<typeof AddCommissionFormSchema>) {
+  try {
+    const commissionData = {
+      ...data,
+      amount: Number(data.amount),
+      date: Timestamp.fromDate(new Date(data.date)),
+    };
+    await addDoc(collection(db, "commissions"), cleanDataForFirestore(commissionData));
+  } catch (e) {
+    console.error("Error adding commission: ", e);
+    throw new Error('Falha ao adicionar comissão no Firestore.');
   }
 }
