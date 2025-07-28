@@ -131,9 +131,11 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthProvider>
-      <DashboardLayoutContent>
-        {children}
-      </DashboardLayoutContent>
+      <TransactionsProvider>
+        <DashboardLayoutContent>
+          {children}
+        </DashboardLayoutContent>
+      </TransactionsProvider>
     </AuthProvider>
   );
 }
@@ -141,6 +143,7 @@ export default function DashboardLayout({
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading: isAuthLoading, user } = useAuth();
+  const { isLoading: isTransactionsLoading } = useTransactions();
   const router = useRouter();
 
   useEffect(() => {
@@ -151,7 +154,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, [isAuthLoading, user, router]);
 
 
-  if (isAuthLoading || !user) {
+  if (isAuthLoading || !user || isTransactionsLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -161,7 +164,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <TransactionsProvider>
       <div className="flex flex-col min-h-screen w-full bg-background relative">
         <main className="flex-1 overflow-y-auto pb-24 p-4">
           {children}
@@ -169,6 +171,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         <AddTransactionFab />
         <BottomNavBar />
       </div>
-    </TransactionsProvider>
   );
 }
