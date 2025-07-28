@@ -65,8 +65,8 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
             title: 'Sucesso!',
             description: "Cartão adicionado com sucesso!",
         });
-        setOpen(false);
         form.reset();
+        setOpen(false);
     } catch (error) {
         console.error("Failed to add card:", error);
         toast({

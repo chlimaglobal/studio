@@ -62,8 +62,8 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
           title: 'Sucesso!',
           description: "Meta adicionada com sucesso!",
       });
-      setOpen(false);
       form.reset();
+      setOpen(false);
     } catch (error) {
       console.error("Failed to add goal:", error);
       toast({

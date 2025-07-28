@@ -46,7 +46,12 @@ function CommissionForm() {
                 title: 'Sucesso!',
                 description: 'Comissão adicionada com sucesso.',
             });
-            form.reset();
+            form.reset({
+                description: '',
+                amount: '' as any,
+                client: '',
+                date: new Date(),
+            });
         } catch (error) {
             console.error("Failed to submit commission:", error);
             toast({
