@@ -101,6 +101,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         if (userWhatsAppNumber) {
             const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
             const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+            // Do not await this, let it run in the background
             sendWhatsAppNotification(messageBody, userWhatsAppNumber);
         }
 
