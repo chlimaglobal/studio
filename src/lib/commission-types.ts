@@ -8,6 +8,7 @@ export const AddCommissionFormSchema = z.object({
   amount: z.coerce.number().positive('O valor da comissão deve ser positivo.'),
   client: z.string().optional(),
   date: z.date({ required_error: 'Por favor, selecione uma data.' }),
+  status: z.enum(['received', 'pending']).default('received'),
 });
 
 export type Commission = {

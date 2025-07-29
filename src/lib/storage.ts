@@ -1,12 +1,10 @@
 
-
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, where, getDoc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, where, getDoc, updateDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
-import { addMonths, addWeeks, addQuarters, addYears } from 'date-fns';
 import { AddCommissionFormSchema, Commission } from './commission-types';
 import { User } from 'firebase/auth';
 
@@ -28,13 +26,17 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 export const initializeUser = async (user: User) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists()) {
-        await setDoc(userDocRef, { 
-            email: user.email,
-            displayName: user.displayName,
-            createdAt: Timestamp.now() 
-        });
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (!userDoc.exists()) {
+            await setDoc(userDocRef, { 
+                email: user.email,
+                displayName: user.displayName,
+                createdAt: Timestamp.now() 
+            });
+        }
+    } catch (error) {
+        console.error("Error ensuring user document exists:", error);
     }
 };
 
@@ -55,7 +57,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
       transactions.push({
         id: doc.id,
         ...data,
-        date: (data.date as Timestamp).toDate().toISOString(),
+        date: (data.date as Timestamp)?.toDate()?.toISOString(),
       } as Transaction);
     });
     // Sort on client-side
@@ -199,4 +201,14 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
     console.error("Error adding commission: ", e);
     throw new Error('Falha ao adicionar comissão no Firestore.');
   }
+}
+
+export async function updateStoredCommissionStatus(userId: string, commissionId: string, status: 'received' | 'pending') {
+  const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
+  await updateDoc(commissionRef, { status });
+}
+
+export async function deleteStoredCommission(userId: string, commissionId: string) {
+    const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
+    await deleteDoc(commissionRef);
 }

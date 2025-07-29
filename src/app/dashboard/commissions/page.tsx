@@ -13,9 +13,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { CalendarIcon, Loader2, HandCoins, PlusCircle } from 'lucide-react';
+import { CalendarIcon, Loader2, HandCoins, PlusCircle, Trash2, CheckCircle, Clock, PieChart } from 'lucide-react';
 import { AddCommissionFormSchema, Commission } from '@/lib/commission-types';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -23,10 +23,22 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { addStoredCommission, onCommissionsUpdate } from '@/lib/storage';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { addStoredCommission, onCommissionsUpdate, updateStoredCommissionStatus, deleteStoredCommission } from '@/lib/storage';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '../layout';
+import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 function CommissionForm() {
     const { toast } = useToast();
@@ -38,6 +50,7 @@ function CommissionForm() {
             amount: '' as any,
             client: '',
             date: new Date(),
+            status: 'received',
         },
     });
 
@@ -57,6 +70,7 @@ function CommissionForm() {
                 amount: '' as any,
                 client: '',
                 date: new Date(),
+                status: 'received',
             });
         } catch (error) {
             console.error("Failed to submit commission:", error);
@@ -160,6 +174,21 @@ function CommissionForm() {
                             </FormItem>
                             )}
                         />
+                         <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                    <FormLabel>Já foi recebida?</FormLabel>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value === 'received'}
+                                            onCheckedChange={(checked) => field.onChange(checked ? 'received' : 'pending')}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
                         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                             {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Salvar Comissão
@@ -172,6 +201,36 @@ function CommissionForm() {
 }
 
 function CommissionList({ commissions }: { commissions: Commission[] }) {
+    const { user } = useAuth();
+    const { toast } = useToast();
+
+    const handleStatusChange = async (commission: Commission) => {
+        if (!user) return;
+        const newStatus = commission.status === 'received' ? 'pending' : 'received';
+        try {
+            await updateStoredCommissionStatus(user.uid, commission.id, newStatus);
+            toast({
+                title: 'Status Atualizado!',
+                description: `Comissão marcada como ${newStatus === 'received' ? 'recebida' : 'pendente'}.`,
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o status.' });
+        }
+    }
+
+    const handleDelete = async (commissionId: string) => {
+        if (!user) return;
+        try {
+            await deleteStoredCommission(user.uid, commissionId);
+            toast({
+                title: 'Comissão Excluída!',
+                description: 'O registro da comissão foi removido com sucesso.',
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível excluir a comissão.' });
+        }
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -184,12 +243,44 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
                         {commissions.length > 0 ? (
                             commissions.map((commission) => (
                                 <li key={commission.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
-                                    <div>
-                                        <p className="font-semibold">{commission.description}</p>
-                                        {commission.client && <p className="text-sm text-muted-foreground">{commission.client}</p>}
-                                        <p className="text-xs text-muted-foreground">{format(commission.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                    <div className="flex items-center gap-4">
+                                        <Switch
+                                            checked={commission.status === 'received'}
+                                            onCheckedChange={() => handleStatusChange(commission)}
+                                            aria-label={commission.status === 'received' ? 'Marcar como pendente' : 'Marcar como recebida'}
+                                        />
+                                        <div>
+                                            <p className="font-semibold">{commission.description}</p>
+                                            {commission.client && <p className="text-sm text-muted-foreground">{commission.client}</p>}
+                                            <p className="text-xs text-muted-foreground">{format(commission.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                        </div>
                                     </div>
-                                    <p className="font-bold text-lg text-green-500">{formatCurrency(commission.amount)}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className={cn("font-bold text-lg", commission.status === 'received' ? 'text-green-500' : 'text-amber-500')}>
+                                            {formatCurrency(commission.amount)}
+                                        </p>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da comissão.
+                                                </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDelete(commission.id)} className="bg-destructive hover:bg-destructive/90">
+                                                    Sim, excluir
+                                                </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </li>
                             ))
                         ) : (
@@ -199,6 +290,45 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
                         )}
                     </ul>
                 </ScrollArea>
+            </CardContent>
+        </Card>
+    )
+}
+
+function CommissionSummary({ commissions }: { commissions: Commission[] }) {
+    const { received, pending, total } = useMemo(() => {
+        const received = commissions
+            .filter(c => c.status === 'received')
+            .reduce((acc, c) => acc + c.amount, 0);
+
+        const pending = commissions
+            .filter(c => c.status === 'pending')
+            .reduce((acc, c) => acc + c.amount, 0);
+
+        return { received, pending, total: received + pending };
+    }, [commissions]);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><PieChart /> Resumo das Comissões</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center p-4 rounded-lg bg-green-500/10 text-green-500">
+                    <CheckCircle className="h-8 w-8 mb-2" />
+                    <p className="text-sm font-medium">Total Recebido</p>
+                    <p className="text-2xl font-bold">{formatCurrency(received)}</p>
+                </div>
+                 <div className="flex flex-col items-center p-4 rounded-lg bg-amber-500/10 text-amber-500">
+                    <Clock className="h-8 w-8 mb-2" />
+                    <p className="text-sm font-medium">A Receber</p>
+                    <p className="text-2xl font-bold">{formatCurrency(pending)}</p>
+                </div>
+                <div className="flex flex-col items-center p-4 rounded-lg bg-primary/10 text-primary">
+                    <HandCoins className="h-8 w-8 mb-2" />
+                    <p className="text-sm font-medium">Total Geral</p>
+                    <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+                </div>
             </CardContent>
         </Card>
     )
@@ -243,9 +373,12 @@ export default function CommissionsPage() {
                 <p className="text-muted-foreground">Adicione e acompanhe seus ganhos de comissões.</p>
             </header>
             
-            <CommissionForm />
+            <CommissionSummary commissions={commissions} />
 
-            <CommissionList commissions={commissions} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <CommissionForm />
+                <CommissionList commissions={commissions} />
+            </div>
         </div>
     )
 }
