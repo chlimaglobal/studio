@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -16,18 +17,38 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
 import type { Transaction } from '@/lib/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Button } from './ui/button';
+import { useTransactions } from '@/app/dashboard/layout';
+import { useToast } from '@/hooks/use-toast';
+import { Trash2, Pencil } from 'lucide-react';
+
 
 interface TransactionsTableProps {
   transactions: Transaction[];
 }
 
 export default function TransactionsTable({ transactions }: TransactionsTableProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const { deleteTransaction } = useTransactions();
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
 
   const handleRowClick = (transaction: Transaction) => {
@@ -37,6 +58,30 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
   const handleCloseDialog = () => {
     setSelectedTransaction(null);
   };
+  
+  const handleEdit = () => {
+    if (!selectedTransaction) return;
+    router.push(`/dashboard/add-transaction?id=${selectedTransaction.id}`);
+    handleCloseDialog();
+  }
+
+  const handleDelete = async () => {
+    if (!selectedTransaction) return;
+    try {
+        await deleteTransaction(selectedTransaction.id);
+        toast({
+            title: 'Sucesso!',
+            description: 'Transação excluída.',
+        });
+        handleCloseDialog();
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro!',
+            description: 'Não foi possível excluir a transação.',
+        });
+    }
+  }
 
   return (
     <>
@@ -140,6 +185,34 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
               </div>
             </div>
           )}
+           <DialogFooter className="grid grid-cols-2 gap-2">
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="text-destructive hover:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Essa ação não pode ser desfeita. Isso excluirá permanentemente a transação dos seus registros.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                Sim, excluir
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                <Button onClick={handleEdit}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

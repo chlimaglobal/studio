@@ -79,16 +79,23 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
     await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
 }
 
-export async function deleteStoredTransactions(userId: string, ids: string[]): Promise<void> {
+
+export async function updateStoredTransaction(userId: string, transactionId: string, data: z.infer<typeof TransactionFormSchema>) {
+    const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
+    const transactionData = {
+        ...data,
+        amount: Number(data.amount),
+        date: Timestamp.fromDate(new Date(data.date))
+    };
+    await updateDoc(transactionRef, cleanDataForFirestore(transactionData));
+}
+
+export async function deleteStoredTransaction(userId: string, transactionId: string): Promise<void> {
     try {
-        const batch = writeBatch(db);
-        ids.forEach(id => {
-            const docRef = doc(db, "users", userId, "transactions", id);
-            batch.delete(docRef);
-        });
-        await batch.commit();
+        const docRef = doc(db, "users", userId, "transactions", transactionId);
+        await deleteDoc(docRef);
     } catch (e) {
-        console.error("Error deleting documents: ", e);
+        console.error("Error deleting document: ", e);
         throw new Error('Falha ao remover transação no Firestore.');
     }
 }

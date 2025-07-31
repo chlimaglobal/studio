@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { addStoredTransaction, onTransactionsUpdate, initializeUser } from '@/lib/storage';
+import { addStoredTransaction, onTransactionsUpdate, initializeUser, deleteStoredTransaction, updateStoredTransaction } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +57,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 interface TransactionsContextType {
   transactions: Transaction[];
   addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -119,8 +121,36 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [toast, user]);
 
+  const updateTransaction = useCallback(async (id: string, data: z.infer<typeof TransactionFormSchema>) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      throw new Error("User not authenticated");
+    }
+    try {
+      await updateStoredTransaction(user.uid, id, data);
+    } catch (error) {
+      console.error("Failed to update transaction:", error);
+      toast({ variant: 'destructive', title: 'Erro ao Atualizar', description: "Não foi possível atualizar a transação." });
+      throw error;
+    }
+  }, [toast, user]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      throw new Error("User not authenticated");
+    }
+    try {
+      await deleteStoredTransaction(user.uid, id);
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      toast({ variant: 'destructive', title: 'Erro ao Excluir', description: "Não foi possível excluir a transação." });
+      throw error;
+    }
+  }, [toast, user]);
+
   return (
-    <TransactionsContext.Provider value={{ transactions, addTransaction, isLoading }}>
+    <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction, isLoading }}>
       {children}
     </TransactionsContext.Provider>
   );

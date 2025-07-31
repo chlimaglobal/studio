@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
 import { TransactionFormSchema, categoryData, TransactionCategory } from '@/lib/types';
-import React, { Suspense, useCallback, useEffect } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -38,25 +38,47 @@ function AddTransactionForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
-    const { addTransaction } = useTransactions();
+    const { addTransaction, updateTransaction, transactions } = useTransactions();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
 
-    const form = useForm<z.infer<typeof TransactionFormSchema>>({
-        resolver: zodResolver(TransactionFormSchema),
-        defaultValues: {
+    const transactionId = searchParams.get('id');
+    const isEditing = !!transactionId;
+
+    const initialValues = useMemo(() => {
+        if (isEditing) {
+            const transactionToEdit = transactions.find(t => t.id === transactionId);
+            if (transactionToEdit) {
+                return {
+                    ...transactionToEdit,
+                    date: new Date(transactionToEdit.date),
+                    amount: transactionToEdit.amount,
+                };
+            }
+        }
+        // Values from query params (e.g., from voice command) or defaults
+        return {
             description: searchParams.get('description') || '',
             amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : ('' as any),
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
-            paid: true,
-            paymentMethod: 'one-time',
-            installments: undefined,
-            observations: '',
-            hideFromReports: false,
-        },
+            paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
+            paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
+            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : undefined,
+            observations: searchParams.get('observations') || '',
+            hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
+        };
+    }, [isEditing, transactionId, transactions, searchParams]);
+
+    const form = useForm<z.infer<typeof TransactionFormSchema>>({
+        resolver: zodResolver(TransactionFormSchema),
+        defaultValues: initialValues
     });
+
+    useEffect(() => {
+        form.reset(initialValues);
+    }, [initialValues, form]);
     
     const watchedDescription = form.watch('description');
     const watchedType = form.watch('type');
@@ -86,7 +108,7 @@ function AddTransactionForm() {
         if (suggestionTimeoutRef.current) {
             clearTimeout(suggestionTimeoutRef.current);
         }
-        if (watchedDescription) {
+        if (watchedDescription && !isEditing) { // Only auto-suggest for new transactions
             suggestionTimeoutRef.current = setTimeout(() => {
                 handleAiCategorize(watchedDescription);
             }, 1000); // 1s debounce
@@ -96,7 +118,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, handleAiCategorize]);
+    }, [watchedDescription, handleAiCategorize, isEditing]);
 
     useEffect(() => {
         if (watchedType === 'income') {
@@ -107,11 +129,19 @@ function AddTransactionForm() {
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
-            await addTransaction(values);
-            toast({
-                title: 'Sucesso!',
-                description: 'Transação salva.'
-            });
+            if (isEditing && transactionId) {
+                await updateTransaction(transactionId, values);
+                 toast({
+                    title: 'Sucesso!',
+                    description: 'Transação atualizada.'
+                });
+            } else {
+                await addTransaction(values);
+                toast({
+                    title: 'Sucesso!',
+                    description: 'Transação salva.'
+                });
+            }
             router.back();
         } catch (error) {
             // Error toast is handled in the context, so we just log here
@@ -125,7 +155,7 @@ function AddTransactionForm() {
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
-                <h1 className="text-xl font-semibold">Adicionar Transação</h1>
+                <h1 className="text-xl font-semibold">{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</h1>
             </header>
 
             <Form {...form}>
@@ -427,7 +457,7 @@ function AddTransactionForm() {
                     <div className="p-4 border-t">
                         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
                             {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Salvar Transação
+                            {isEditing ? 'Atualizar Transação' : 'Salvar Transação'}
                         </Button>
                     </div>
                 </form>
