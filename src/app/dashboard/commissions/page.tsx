@@ -13,7 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { CalendarIcon, Loader2, HandCoins, PlusCircle, Trash2, CheckCircle, Clock, PieChart } from 'lucide-react';
+import { CalendarIcon, Loader2, HandCoins, PlusCircle, Trash2, CheckCircle, Clock, PieChart, Pencil } from 'lucide-react';
 import { AddCommissionFormSchema, Commission } from '@/lib/commission-types';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { EditCommissionDialog } from '@/components/edit-commission-dialog';
 
 function CommissionForm() {
     const { toast } = useToast();
@@ -63,7 +64,7 @@ function CommissionForm() {
             await addStoredCommission(user.uid, values);
             toast({
                 title: 'Sucesso!',
-                description: 'Comissão adicionada com sucesso.',
+                description: `Comissão adicionada com sucesso. Uma transação de receita foi criada.`,
             });
             form.reset({
                 description: '',
@@ -86,7 +87,7 @@ function CommissionForm() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><PlusCircle /> Adicionar Nova Comissão</CardTitle>
-                <CardDescription>Registre uma nova comissão recebida.</CardDescription>
+                <CardDescription>Registre uma nova comissão. Se marcada como "Recebida", será adicionada como receita automaticamente.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
@@ -203,15 +204,20 @@ function CommissionForm() {
 function CommissionList({ commissions }: { commissions: Commission[] }) {
     const { user } = useAuth();
     const { toast } = useToast();
+    const [editingCommission, setEditingCommission] = useState<Commission | null>(null);
 
     const handleStatusChange = async (commission: Commission) => {
         if (!user) return;
         const newStatus = commission.status === 'received' ? 'pending' : 'received';
         try {
-            await updateStoredCommissionStatus(user.uid, commission.id, newStatus);
+            await updateStoredCommissionStatus(user.uid, commission);
+            let description = `Comissão marcada como ${newStatus === 'received' ? 'recebida' : 'pendente'}.`;
+            if (newStatus === 'received') {
+                description += ' Uma transação de receita foi criada.';
+            }
             toast({
                 title: 'Status Atualizado!',
-                description: `Comissão marcada como ${newStatus === 'received' ? 'recebida' : 'pendente'}.`,
+                description: description,
             });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível atualizar o status.' });
@@ -232,66 +238,84 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Comissões Registradas</CardTitle>
-                <CardDescription>Seu histórico de comissões.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ScrollArea className="h-96">
-                    <ul className="space-y-4">
-                        {commissions.length > 0 ? (
-                            commissions.map((commission) => (
-                                <li key={commission.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
-                                    <div className="flex items-center gap-4">
-                                        <Switch
-                                            checked={commission.status === 'received'}
-                                            onCheckedChange={() => handleStatusChange(commission)}
-                                            aria-label={commission.status === 'received' ? 'Marcar como pendente' : 'Marcar como recebida'}
-                                        />
-                                        <div>
-                                            <p className="font-semibold">{commission.description}</p>
-                                            {commission.client && <p className="text-sm text-muted-foreground">{commission.client}</p>}
-                                            <p className="text-xs text-muted-foreground">{format(commission.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Comissões Registradas</CardTitle>
+                    <CardDescription>Seu histórico de comissões.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-96">
+                        <ul className="space-y-4">
+                            {commissions.length > 0 ? (
+                                commissions.map((commission) => (
+                                    <li key={commission.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+                                        <div className="flex items-center gap-4">
+                                            <Switch
+                                                checked={commission.status === 'received'}
+                                                onCheckedChange={() => handleStatusChange(commission)}
+                                                aria-label={commission.status === 'received' ? 'Marcar como pendente' : 'Marcar como recebida'}
+                                            />
+                                            <div>
+                                                <p className="font-semibold">{commission.description}</p>
+                                                {commission.client && <p className="text-sm text-muted-foreground">{commission.client}</p>}
+                                                <p className="text-xs text-muted-foreground">{format(commission.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <p className={cn("font-bold text-lg", commission.status === 'received' ? 'text-green-500' : 'text-amber-500')}>
-                                            {formatCurrency(commission.amount)}
-                                        </p>
-                                        <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da comissão.
-                                                </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDelete(commission.id)} className="bg-destructive hover:bg-destructive/90">
-                                                    Sim, excluir
-                                                </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </div>
+                                        <div className="flex items-center gap-1">
+                                            <p className={cn("font-bold text-lg", commission.status === 'received' ? 'text-green-500' : 'text-amber-500')}>
+                                                {formatCurrency(commission.amount)}
+                                            </p>
+                                            
+                                            <Button variant="ghost" size="icon" onClick={() => setEditingCommission(commission)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da comissão.
+                                                    </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(commission.id)} className="bg-destructive hover:bg-destructive/90">
+                                                        Sim, excluir
+                                                    </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </li>
+                                ))
+                            ) : (
+                                <li className="text-center text-muted-foreground py-10">
+                                    Nenhuma comissão registrada ainda.
                                 </li>
-                            ))
-                        ) : (
-                            <li className="text-center text-muted-foreground py-10">
-                                Nenhuma comissão registrada ainda.
-                            </li>
-                        )}
-                    </ul>
-                </ScrollArea>
-            </CardContent>
-        </Card>
+                            )}
+                        </ul>
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+            {editingCommission && (
+                <EditCommissionDialog
+                    commission={editingCommission}
+                    open={!!editingCommission}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setEditingCommission(null);
+                        }
+                    }}
+                />
+            )}
+        </>
     )
 }
 
