@@ -69,7 +69,7 @@ export default function LoginPage() {
     }
     // The AuthProvider in layout will handle the user state update
     // and the redirection will be handled by the effect above.
-    // So we can just let it redirect.
+    // We just need to wait for the state to propagate.
   };
 
   const handleLogin = async (event: React.FormEvent) => {

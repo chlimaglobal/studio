@@ -1,12 +1,12 @@
 
-import { db, auth } from './firebase';
+import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
-import { User, getAuth } from 'firebase/auth';
+import { User } from 'firebase/auth';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
