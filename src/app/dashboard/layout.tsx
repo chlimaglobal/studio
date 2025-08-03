@@ -35,13 +35,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setUser(user);
-        // Initialize user document in Firestore on login and store UID
         await initializeUser(user);
-        localStorage.setItem('userId', user.uid);
+        setUser(user);
       } else {
         setUser(null);
-        localStorage.removeItem('userId');
       }
       setIsLoading(false);
     });

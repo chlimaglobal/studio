@@ -54,14 +54,12 @@ export default function LoginPage() {
   }, []);
 
   const handleSuccessfulLogin = (userCredential: UserCredential) => {
-    const user = userCredential.user;
-    localStorage.setItem('userId', user.uid); // Save userId on login
     if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
     } else {
         localStorage.removeItem('rememberedEmail');
     }
-    // The layout's auth listener will handle the redirect
+    // The layout's auth listener will handle storing user info and redirecting
     router.push('/dashboard');
   };
 
