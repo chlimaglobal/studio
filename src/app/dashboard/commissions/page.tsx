@@ -210,7 +210,7 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
         if (!user) return;
         const newStatus = commission.status === 'received' ? 'pending' : 'received';
         try {
-            await updateStoredCommissionStatus(user.uid, commission.id, newStatus);
+            await updateStoredCommissionStatus(user.uid, commission.id, newStatus, commission);
             let description = `Comissão marcada como ${newStatus === 'received' ? 'recebida' : 'pendente'}.`;
             if (newStatus === 'received') {
                 description += ' Uma transação de receita foi criada.';

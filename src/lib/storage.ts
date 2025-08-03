@@ -237,10 +237,9 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
   }
 }
 
-export async function updateStoredCommissionStatus(userId: string, commission: Commission) {
+export async function updateStoredCommissionStatus(userId: string, commissionId: string, newStatus: 'received' | 'pending', commission: Commission) {
   if (!userId) throw new Error("User not authenticated");
-  const commissionRef = doc(db, 'users', userId, 'commissions', commission.id);
-  const newStatus = commission.status === 'received' ? 'pending' : 'received';
+  const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
   
   await updateDoc(commissionRef, { status: newStatus });
   
