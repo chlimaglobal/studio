@@ -42,15 +42,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const auth = getAuth(app);
   const { user, isLoading: isAuthLoading } = useAuth();
   
   useEffect(() => {
     // Check for remembered email on component mount
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
-    if (rememberedEmail) {
-        setEmail(rememberedEmail);
-        setRememberMe(true);
+    if (typeof window !== 'undefined') {
+        const rememberedEmail = localStorage.getItem('rememberedEmail');
+        if (rememberedEmail) {
+            setEmail(rememberedEmail);
+            setRememberMe(true);
+        }
     }
   }, []);
 
@@ -69,12 +70,12 @@ export default function LoginPage() {
     }
     // The AuthProvider in layout will handle the user state update
     // and the redirection will be handled by the effect above.
-    // We just need to wait for the state to propagate.
   };
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
+    const auth = getAuth(app); // Ensure fresh auth instance
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -85,6 +86,7 @@ export default function LoginPage() {
         if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
             errorMessage = 'E-mail ou senha inválidos.';
         }
+        console.error("Login Error:", error);
         toast({
           variant: 'destructive',
           title: 'Login Falhou',
@@ -129,6 +131,7 @@ export default function LoginPage() {
             // which would then sign the user in, triggering onAuthStateChanged.
             // For this simulation, we'll assume success and let the auth provider handle it.
             toast({ title: 'Login Biométrico Bem-Sucedido!' });
+            // The onAuthStateChanged listener in AuthProvider will do the rest.
         } else {
              throw new Error('Falha ao obter credencial biométrica.');
         }
@@ -147,6 +150,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
+    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
         const userCredential = await signInWithPopup(auth, provider);
@@ -192,6 +196,7 @@ export default function LoginPage() {
                 required 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -203,6 +208,7 @@ export default function LoginPage() {
                     required 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                 />
                  <Button
                   type="button"
