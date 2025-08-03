@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { exportUserDataAction } from '@/app/actions';
+import { useAuth } from '@/app/layout';
 
 
 type FabPosition = 'left' | 'right';
@@ -114,6 +115,7 @@ export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
   
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -342,11 +344,16 @@ export default function SettingsPage() {
   };
 
   const handleExportData = async () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para fazer o backup.' });
+        return;
+    }
+
     setIsExporting(true);
     toast({ title: 'Preparando seu backup...', description: 'Estamos coletando todos os seus dados. Isso pode levar um momento.' });
 
     try {
-      const userData = await exportUserDataAction();
+      const userData = await exportUserDataAction(user.uid);
 
       if (userData.error) {
         throw new Error(userData.error);
@@ -368,7 +375,8 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Erro no Backup',
-        description: 'Não foi possível gerar seu backup. Tente novamente mais tarde.',
+        // @ts-ignore
+        description: `Não foi possível gerar seu backup. ${error?.message || 'Tente novamente mais tarde.'}`,
       });
     } finally {
       setIsExporting(false);
@@ -617,5 +625,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
