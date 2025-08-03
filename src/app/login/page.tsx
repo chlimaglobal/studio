@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '../layout';
 
@@ -78,7 +78,6 @@ export default function LoginPage() {
     const auth = getAuth(app);
 
     try {
-        await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         handleSuccessfulLogin(userCredential);
     } catch (error: any) {
@@ -154,7 +153,6 @@ export default function LoginPage() {
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
-        await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithPopup(auth, provider);
         handleSuccessfulLogin(userCredential);
     } catch (error) {
