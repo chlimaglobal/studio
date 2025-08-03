@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { useAuth } from '../dashboard/layout';
+import { useAuth } from '../layout';
 
 const Logo = () => (
     <div className="p-4 bg-secondary/50 rounded-2xl inline-block shadow-inner">
@@ -43,6 +43,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const auth = getAuth(app);
+  const { user, isLoading: isAuthLoading } = useAuth();
   
   useEffect(() => {
     // Check for remembered email on component mount
@@ -53,14 +54,22 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isAuthLoading, router]);
+
   const handleSuccessfulLogin = (userCredential: UserCredential) => {
     if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
     } else {
         localStorage.removeItem('rememberedEmail');
     }
-    // The layout's auth listener will handle storing user info and redirecting
-    router.push('/dashboard');
+    // The AuthProvider in layout will handle the user state update
+    // and the redirection will be handled by the effect above.
+    // So we can just let it redirect.
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -118,9 +127,8 @@ export default function LoginPage() {
         if (credential) {
             // In a real app, this assertion would be sent to the server for verification,
             // which would then sign the user in, triggering onAuthStateChanged.
-            // For this simulation, we'll assume success and redirect.
+            // For this simulation, we'll assume success and let the auth provider handle it.
             toast({ title: 'Login Biométrico Bem-Sucedido!' });
-            router.push('/dashboard');
         } else {
              throw new Error('Falha ao obter credencial biométrica.');
         }
@@ -153,6 +161,15 @@ export default function LoginPage() {
         setIsLoading(false);
     }
   };
+  
+  // Don't render the form if auth is loading or user is already logged in, show a loader instead
+  if(isAuthLoading || user) {
+     return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

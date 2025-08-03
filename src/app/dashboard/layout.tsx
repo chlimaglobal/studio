@@ -5,56 +5,17 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { addStoredTransaction, onTransactionsUpdate, initializeUser, deleteStoredTransaction, updateStoredTransaction } from '@/lib/storage';
+import { addStoredTransaction, onTransactionsUpdate, deleteStoredTransaction, updateStoredTransaction } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { sendWhatsAppNotification } from '../actions';
 import { formatCurrency } from '@/lib/utils';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { app } from '@/lib/firebase';
+import { useAuth } from '../layout'; // Import from Root Layout
 
-// 1. Auth Context
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-}
-const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await initializeUser(user);
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{ user, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-
-// 2. Transactions Context
+// 1. Transactions Context
 interface TransactionsContextType {
   transactions: Transaction[];
   addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
@@ -73,7 +34,7 @@ export function useTransactions() {
   return context;
 }
 
-// 3. Provider Component
+// 2. Provider Component
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -166,19 +127,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <AuthProvider>
-      <TransactionsProvider>
-        <DashboardLayoutContent>
-          {children}
-        </DashboardLayoutContent>
-      </TransactionsProvider>
-    </AuthProvider>
-  );
-}
-
-
-function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading, user } = useAuth();
   const router = useRouter();
 
@@ -194,18 +142,20 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Carregando dados do usuário...</p>
+        <p className="mt-4 text-muted-foreground">Carregando...</p>
       </div>
     );
   }
 
   return (
-      <div className="flex flex-col min-h-screen w-full bg-background relative">
-        <main className="flex-1 overflow-y-auto pb-24 p-4">
-          {children}
-        </main>
-        <AddTransactionFab />
-        <BottomNavBar />
-      </div>
+      <TransactionsProvider>
+          <div className="flex flex-col min-h-screen w-full bg-background relative">
+            <main className="flex-1 overflow-y-auto pb-24 p-4">
+              {children}
+            </main>
+            <AddTransactionFab />
+            <BottomNavBar />
+          </div>
+      </TransactionsProvider>
   );
 }

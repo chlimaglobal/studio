@@ -4,14 +4,21 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from './layout';
 
 export default function HomePage() {
   const router = useRouter();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    // Redirect to the dashboard, which is now protected by the layout
-    router.replace('/dashboard');
-  }, [router]);
+    if (!isLoading) {
+      if (user) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [isLoading, user, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
