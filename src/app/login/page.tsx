@@ -55,6 +55,7 @@ export default function LoginPage() {
 
   const handleSuccessfulLogin = (userCredential: UserCredential) => {
     const user = userCredential.user;
+    localStorage.setItem('userId', user.uid); // Save userId on login
     if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
     } else {
@@ -243,8 +244,8 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm">
               Não tem uma conta?{' '}
-              <Button variant="link" type="button" className="p-0 h-auto">
-                Cadastre-se
+              <Button variant="link" type="button" className="p-0 h-auto" asChild>
+                <Link href="/signup">Cadastre-se</Link>
               </Button>
             </div>
         </CardContent>
