@@ -1,12 +1,12 @@
 
-import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, getDoc, updateDoc } from "firebase/firestore";
+import { db, auth } from './firebase';
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
-import { User } from 'firebase/auth';
+import { User, getAuth } from 'firebase/auth';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -68,6 +68,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 }
 
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
+    if (!userId) throw new Error("User not authenticated");
     const transactionData = {
         ...data,
         amount: Number(data.amount),
@@ -77,6 +78,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
 }
 
 export async function updateStoredTransaction(userId: string, transactionId: string, data: z.infer<typeof TransactionFormSchema>) {
+    if (!userId) throw new Error("User not authenticated");
     const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
     const transactionData = {
         ...data,
@@ -87,6 +89,7 @@ export async function updateStoredTransaction(userId: string, transactionId: str
 }
 
 export async function deleteStoredTransaction(userId: string, transactionId: string): Promise<void> {
+    if (!userId) throw new Error("User not authenticated");
     const docRef = doc(db, 'users', userId, "transactions", transactionId);
     await deleteDoc(docRef);
 }
@@ -113,6 +116,7 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
 }
 
 export async function addStoredCard(userId: string, data: z.infer<typeof AddCardFormSchema>) {
+   if (!userId) throw new Error("User not authenticated");
    try {
     await addDoc(collection(db, "users", userId, "cards"), cleanDataForFirestore(data));
   } catch (e) {
@@ -148,6 +152,7 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
 }
 
 export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoalFormSchema>) {
+  if (!userId) throw new Error("User not authenticated");
   try {
     const goalData = {
         ...data,
@@ -214,6 +219,7 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
 }
 
 export async function addStoredCommission(userId: string, data: z.infer<typeof AddCommissionFormSchema>) {
+  if (!userId) throw new Error("User not authenticated");
   try {
     const commissionData = {
       ...data,
@@ -232,6 +238,7 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
 }
 
 export async function updateStoredCommissionStatus(userId: string, commission: Commission) {
+  if (!userId) throw new Error("User not authenticated");
   const commissionRef = doc(db, 'users', userId, 'commissions', commission.id);
   const newStatus = commission.status === 'received' ? 'pending' : 'received';
   
@@ -244,6 +251,7 @@ export async function updateStoredCommissionStatus(userId: string, commission: C
 }
 
 export async function updateStoredCommission(userId: string, commissionId: string, data: z.infer<typeof EditCommissionFormSchema>) {
+  if (!userId) throw new Error("User not authenticated");
   const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
   const commissionData = {
     ...data,
@@ -254,6 +262,7 @@ export async function updateStoredCommission(userId: string, commissionId: strin
 }
 
 export async function deleteStoredCommission(userId: string, commissionId: string) {
+    if (!userId) throw new Error("User not authenticated");
     const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
     await deleteDoc(commissionRef);
 }

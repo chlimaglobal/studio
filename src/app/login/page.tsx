@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '../dashboard/layout';
 
@@ -53,19 +53,24 @@ export default function LoginPage() {
     }
   }, []);
 
+  const handleSuccessfulLogin = (userCredential: UserCredential) => {
+    const user = userCredential.user;
+    if (rememberMe) {
+        localStorage.setItem('rememberedEmail', email);
+    } else {
+        localStorage.removeItem('rememberedEmail');
+    }
+    // The layout's auth listener will handle the redirect
+    router.push('/dashboard');
+  };
+
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        if (rememberMe) {
-          localStorage.setItem('rememberedEmail', email);
-        } else {
-          localStorage.removeItem('rememberedEmail');
-        }
-        // The layout's auth listener will handle the redirect
-        router.push('/dashboard');
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        handleSuccessfulLogin(userCredential);
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro ao fazer login.';
@@ -137,9 +142,8 @@ export default function LoginPage() {
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-        await signInWithPopup(auth, provider);
-        // The layout's auth listener will handle the redirect
-        router.push('/dashboard');
+        const userCredential = await signInWithPopup(auth, provider);
+        handleSuccessfulLogin(userCredential);
     } catch (error) {
          toast({
             variant: 'destructive',
