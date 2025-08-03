@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { formatCurrency, cn } from '@/lib/utils';
 import { useTransactions } from './layout';
 import { NotificationPermission } from '@/components/notification-permission';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SummaryData {
   recebidos: number;
@@ -93,6 +94,31 @@ const AiTipsCard = () => {
     </Card>
   );
 };
+
+const DashboardLoadingSkeleton = () => (
+    <div className="space-y-6">
+        <DashboardHeader />
+        <Skeleton className="h-24 w-full" />
+        <div className="flex items-center justify-center gap-2">
+            <Skeleton className="h-8 w-8" />
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-8 w-8" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+        </div>
+        <div className="space-y-4">
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-64 w-full" />
+        </div>
+        <div className="space-y-4">
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-32 w-full" />
+        </div>
+    </div>
+);
 
 
 export default function DashboardPage() {
@@ -173,14 +199,7 @@ export default function DashboardPage() {
     const chartData = useMemo(() => generateChartData(transactions), [transactions]);
     
     if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-full p-8">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Carregando seu dashboard...</span>
-                </div>
-            </div>
-        );
+        return <DashboardLoadingSkeleton />;
     }
 
 
