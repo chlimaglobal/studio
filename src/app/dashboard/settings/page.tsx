@@ -16,8 +16,8 @@ import { bufferToBase64Url, cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
-import { exportUserDataAction } from '@/app/actions';
 import { useAuth } from '@/app/layout';
+import { getAllUserDataForBackup } from '@/lib/storage';
 
 
 type FabPosition = 'left' | 'right';
@@ -353,12 +353,8 @@ export default function SettingsPage() {
     toast({ title: 'Preparando seu backup...', description: 'Estamos coletando todos os seus dados. Isso pode levar um momento.' });
 
     try {
-      const userData = await exportUserDataAction(user.uid);
-
-      if (userData.error) {
-        throw new Error(userData.error);
-      }
-
+      const userData = await getAllUserDataForBackup(user.uid);
+      
       const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(userData, null, 2))}`;
       const link = document.createElement('a');
       link.href = jsonString;
@@ -375,8 +371,7 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Erro no Backup',
-        // @ts-ignore
-        description: `Não foi possível gerar seu backup. ${error?.message || 'Tente novamente mais tarde.'}`,
+        description: `Não foi possível gerar seu backup. Tente novamente mais tarde.`,
       });
     } finally {
       setIsExporting(false);
