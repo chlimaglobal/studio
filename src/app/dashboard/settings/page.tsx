@@ -8,15 +8,15 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bufferToBase64Url } from '@/lib/utils';
+import { bufferToBase64Url, cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
+import { exportUserDataAction } from '@/app/actions';
 
 
 type FabPosition = 'left' | 'right';
@@ -127,6 +127,7 @@ export default function SettingsPage() {
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [isExporting, setIsExporting] = useState(false);
 
   const [notifications, setNotifications] = useState<NotificationSettings>({
     dailySummary: true,
@@ -340,6 +341,40 @@ export default function SettingsPage() {
     }
   };
 
+  const handleExportData = async () => {
+    setIsExporting(true);
+    toast({ title: 'Preparando seu backup...', description: 'Estamos coletando todos os seus dados. Isso pode levar um momento.' });
+
+    try {
+      const userData = await exportUserDataAction();
+
+      if (userData.error) {
+        throw new Error(userData.error);
+      }
+
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(userData, null, 2))}`;
+      const link = document.createElement('a');
+      link.href = jsonString;
+      link.download = 'backup-finance-flow.json';
+      link.click();
+
+      toast({
+        title: 'Backup Concluído!',
+        description: 'Seu arquivo de backup foi baixado com sucesso.',
+      });
+
+    } catch (error) {
+      console.error("Failed to export data:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro no Backup',
+        description: 'Não foi possível gerar seu backup. Tente novamente mais tarde.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
 
   if (!isMounted) {
     return null; 
@@ -422,6 +457,21 @@ export default function SettingsPage() {
               />
               <p className="text-xs text-muted-foreground mt-1">Inclua o código do país (ex: 55 para Brasil).</p>
           </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" /> Backup e Exportação</CardTitle>
+          <CardDescription>
+            Exporte todos os seus dados para um arquivo JSON como medida de segurança ou para migração.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleExportData} disabled={isExporting} className="w-full">
+            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            {isExporting ? 'Gerando Backup...' : 'Fazer Backup Agora'}
+          </Button>
         </CardContent>
       </Card>
 

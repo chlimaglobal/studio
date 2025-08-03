@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -27,11 +27,13 @@ export const initializeUser = async (user: User) => {
     try {
         const userDoc = await getDoc(userDocRef);
         if (!userDoc.exists()) {
-            await setDoc(userDocRef, { 
+             await setDoc(userDocRef, {
+                uid: user.uid,
                 email: user.email,
                 displayName: user.displayName,
+                photoURL: user.photoURL,
                 createdAt: Timestamp.now(),
-            });
+            }, { merge: true });
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
@@ -265,3 +267,37 @@ export async function deleteStoredCommission(userId: string, commissionId: strin
     const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
     await deleteDoc(commissionRef);
 }
+
+// ======== BACKUP ========
+const collectionsToBackup = ['transactions', 'cards', 'goals', 'commissions'];
+
+const serializeFirestoreData = (docData: any) => {
+    const data = { ...docData };
+    for (const key in data) {
+        if (data[key] instanceof Timestamp) {
+            data[key] = data[key].toDate().toISOString();
+        }
+    }
+    return data;
+}
+
+export async function getAllUserDataForBackup(userId: string) {
+    if (!userId) {
+        throw new Error("User not authenticated");
+    }
+
+    const backupData: Record<string, any[]> = {};
+
+    for (const collectionName of collectionsToBackup) {
+        const collectionRef = collection(db, 'users', userId, collectionName);
+        const snapshot = await getDocs(collectionRef);
+        backupData[collectionName] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...serializeFirestoreData(doc.data()),
+        }));
+    }
+
+    return backupData;
+}
+
+    
