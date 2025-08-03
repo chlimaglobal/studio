@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, getDoc, updateDoc, where } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, writeBatch, getDoc, updateDoc } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -12,7 +12,6 @@ import { User } from 'firebase/auth';
 const cleanDataForFirestore = (data: Record<string, any>) => {
     const cleanedData: Record<string, any> = {};
     for (const key in data) {
-        // Firestore rejects 'undefined' but allows 'null'. Let's keep nulls.
         if (data[key] !== undefined) {
             cleanedData[key] = data[key];
         }
@@ -22,7 +21,6 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 
 
 // ======== USER DOCUMENT HELPER ========
-// This function is called when a user logs in to ensure their document exists.
 export const initializeUser = async (user: User) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
@@ -48,7 +46,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
     console.error("onTransactionsUpdate called without a userId.");
     return () => {};
   }
-  const q = query(collection(db, "transactions"), where("userId", "==", userId));
+  const q = query(collection(db, "users", userId, "transactions"));
   
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const transactions: Transaction[] = [];
@@ -60,7 +58,6 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
         date: (data.date as Timestamp)?.toDate()?.toISOString(),
       } as Transaction);
     });
-    // Sort on client-side
     transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     callback(transactions);
   }, (error) => {
@@ -73,19 +70,17 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
     const transactionData = {
         ...data,
-        userId: userId,
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
-    await addDoc(collection(db, 'transactions'), cleanDataForFirestore(transactionData));
+    // No need to add userId to the data itself anymore
+    await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
 }
 
-
 export async function updateStoredTransaction(userId: string, transactionId: string, data: z.infer<typeof TransactionFormSchema>) {
-    const transactionRef = doc(db, 'transactions', transactionId);
+    const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
     const transactionData = {
         ...data,
-        userId: userId,
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
@@ -93,19 +88,8 @@ export async function updateStoredTransaction(userId: string, transactionId: str
 }
 
 export async function deleteStoredTransaction(userId: string, transactionId: string): Promise<void> {
-    try {
-        const docRef = doc(db, "transactions", transactionId);
-        // Security check on client-side although rules should prevent this
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().userId === userId) {
-            await deleteDoc(docRef);
-        } else {
-            throw new Error("User is not authorized to delete this document or document does not exist.");
-        }
-    } catch (e) {
-        console.error("Error deleting document: ", e);
-        throw new Error('Falha ao remover transação no Firestore.');
-    }
+    const docRef = doc(db, 'users', userId, "transactions", transactionId);
+    await deleteDoc(docRef);
 }
 
 
@@ -113,7 +97,7 @@ export async function deleteStoredTransaction(userId: string, transactionId: str
 
 export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(collection(db, "cards"), where("userId", "==", userId));
+  const q = query(collection(db, "users", userId, "cards"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const cards: Card[] = [];
@@ -131,8 +115,7 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
 
 export async function addStoredCard(userId: string, data: z.infer<typeof AddCardFormSchema>) {
    try {
-    const cardData = { ...data, userId: userId };
-    await addDoc(collection(db, "cards"), cleanDataForFirestore(cardData));
+    await addDoc(collection(db, "users", userId, "cards"), cleanDataForFirestore(data));
   } catch (e) {
     console.error("Error adding card: ", e);
     throw new Error('Falha ao adicionar cartão no Firestore.');
@@ -144,7 +127,7 @@ export async function addStoredCard(userId: string, data: z.infer<typeof AddCard
 
 export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(collection(db, "goals"), where("userId", "==", userId));
+  const q = query(collection(db, "users", userId, "goals"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const goals: Goal[] = [];
@@ -169,12 +152,11 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
   try {
     const goalData = {
         ...data,
-        userId: userId,
         targetAmount: Number(data.targetAmount),
         currentAmount: Number(data.currentAmount),
         deadline: Timestamp.fromDate(new Date(data.deadline)),
     };
-    await addDoc(collection(db, "goals"), cleanDataForFirestore(goalData));
+    await addDoc(collection(db, "users", userId, "goals"), cleanDataForFirestore(goalData));
   } catch (e) {
     console.error("Error adding goal: ", e);
     throw new Error('Falha ao adicionar meta no Firestore.');
@@ -185,7 +167,7 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
 
 export function onCommissionsUpdate(userId: string, callback: (commissions: Commission[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(collection(db, "commissions"), where("userId", "==", userId));
+  const q = query(collection(db, "users", userId, "commissions"));
 
   const unsubscribe = onSnapshot(q, (querySnapshot) => {
     const commissions: Commission[] = [];
@@ -206,7 +188,6 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
   return unsubscribe;
 }
 
-// Helper to add a corresponding income transaction for a received commission
 async function addCommissionAsTransaction(userId: string, commission: z.infer<typeof AddCommissionFormSchema>) {
   const transactionData = {
     description: `Comissão: ${commission.description}`,
@@ -215,10 +196,8 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
     type: 'income' as 'income',
     category: 'Comissão' as const,
     paid: true,
-    userId: userId, // Ensure transaction has userId
   };
   
-  // Use a simplified object for addStoredTransaction schema
   const formSchemaCompliantData = {
       description: transactionData.description,
       amount: transactionData.amount,
@@ -239,11 +218,10 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
   try {
     const commissionData = {
       ...data,
-      userId: userId,
       amount: Number(data.amount),
       date: Timestamp.fromDate(new Date(data.date)),
     };
-    await addDoc(collection(db, "commissions"), cleanDataForFirestore(commissionData));
+    await addDoc(collection(db, "users", userId, "commissions"), cleanDataForFirestore(commissionData));
     
     if (data.status === 'received') {
       await addCommissionAsTransaction(userId, data);
@@ -255,7 +233,7 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
 }
 
 export async function updateStoredCommissionStatus(userId: string, commission: Commission) {
-  const commissionRef = doc(db, 'commissions', commission.id);
+  const commissionRef = doc(db, 'users', userId, 'commissions', commission.id);
   const newStatus = commission.status === 'received' ? 'pending' : 'received';
   
   await updateDoc(commissionRef, { status: newStatus });
@@ -267,10 +245,9 @@ export async function updateStoredCommissionStatus(userId: string, commission: C
 }
 
 export async function updateStoredCommission(userId: string, commissionId: string, data: z.infer<typeof EditCommissionFormSchema>) {
-  const commissionRef = doc(db, 'commissions', commissionId);
+  const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
   const commissionData = {
     ...data,
-    userId: userId,
     amount: Number(data.amount),
     date: Timestamp.fromDate(new Date(data.date)),
   };
@@ -278,12 +255,6 @@ export async function updateStoredCommission(userId: string, commissionId: strin
 }
 
 export async function deleteStoredCommission(userId: string, commissionId: string) {
-    const commissionRef = doc(db, 'commissions', commissionId);
-    // Security check on client-side although rules should prevent this
-    const docSnap = await getDoc(commissionRef);
-    if (docSnap.exists() && docSnap.data().userId === userId) {
-        await deleteDoc(commissionRef);
-    } else {
-        throw new Error("User is not authorized to delete this document or document does not exist.");
-    }
+    const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
+    await deleteDoc(commissionRef);
 }
