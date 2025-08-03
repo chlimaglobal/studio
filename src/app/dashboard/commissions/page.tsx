@@ -26,7 +26,7 @@ import { z } from 'zod';
 import { addStoredCommission, onCommissionsUpdate, updateStoredCommissionStatus, deleteStoredCommission } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '../layout';
+import { useAuth } from '@/app/layout';
 import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
@@ -210,7 +210,7 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
         if (!user) return;
         const newStatus = commission.status === 'received' ? 'pending' : 'received';
         try {
-            await updateStoredCommissionStatus(user.uid, commission);
+            await updateStoredCommissionStatus(user.uid, commission.id, newStatus);
             let description = `Comissão marcada como ${newStatus === 'received' ? 'recebida' : 'pendente'}.`;
             if (newStatus === 'received') {
                 description += ' Uma transação de receita foi criada.';

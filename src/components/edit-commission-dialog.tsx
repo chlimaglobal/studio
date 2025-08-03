@@ -27,7 +27,7 @@ import { EditCommissionFormSchema, type Commission } from '@/lib/commission-type
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { updateStoredCommission } from '@/lib/storage';
-import { useAuth } from '@/app/dashboard/layout';
+import { useAuth } from '@/app/layout';
 import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
 import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';

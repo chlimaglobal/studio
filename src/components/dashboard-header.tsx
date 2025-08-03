@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransactions } from '@/app/dashboard/layout';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
-import { useAuth } from '@/app/dashboard/layout';
+import { useAuth } from '@/app/layout';
 
 
 const Logo = () => (

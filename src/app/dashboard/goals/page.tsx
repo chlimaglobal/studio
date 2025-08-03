@@ -14,7 +14,7 @@ import { onGoalsUpdate } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../layout';
+import { useAuth } from '@/app/layout';
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);

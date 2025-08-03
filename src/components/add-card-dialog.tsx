@@ -29,7 +29,7 @@ import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { addStoredCard } from '@/lib/storage';
-import { useAuth } from '@/app/dashboard/layout';
+import { useAuth } from '@/app/layout';
 
 type AddCardDialogProps = {
   children: React.ReactNode;
@@ -144,7 +144,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                   <FormItem>
                     <FormLabel>Dia do Fechamento</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" max="31" {...field} />
+                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10))}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,7 +157,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                   <FormItem>
                     <FormLabel>Dia do Vencimento</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" max="31" {...field} />
+                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10))}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
