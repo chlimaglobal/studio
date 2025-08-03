@@ -75,7 +75,7 @@ export default function LoginPage() {
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    const auth = getAuth(app); // Ensure fresh auth instance
+    const auth = getAuth(app);
 
     try {
         await setPersistence(auth, browserLocalPersistence);
@@ -276,3 +276,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+    
