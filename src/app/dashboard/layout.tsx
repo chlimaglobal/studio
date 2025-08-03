@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import type { Transaction } from '@/lib/types';
-import { addStoredTransaction, onTransactionsUpdate, initializeUser, deleteStoredTransaction, updateStoredTransaction, getCurrentUserId } from '@/lib/storage';
+import { addStoredTransaction, onTransactionsUpdate, initializeUser, deleteStoredTransaction, updateStoredTransaction } from '@/lib/storage';
 import { z } from 'zod';
 import type { TransactionFormSchema } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -99,7 +99,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
-    const userId = getCurrentUserId();
+    const userId = user?.uid;
     if (!userId) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
       throw new Error("User not authenticated");
@@ -124,10 +124,10 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         });
         throw error;
     }
-  }, [toast]);
+  }, [toast, user]);
 
   const updateTransaction = useCallback(async (id: string, data: z.infer<typeof TransactionFormSchema>) => {
-    const userId = getCurrentUserId();
+    const userId = user?.uid;
     if (!userId) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
       throw new Error("User not authenticated");
@@ -139,10 +139,10 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erro ao Atualizar', description: "Não foi possível atualizar a transação." });
       throw error;
     }
-  }, [toast]);
+  }, [toast, user]);
 
   const deleteTransaction = useCallback(async (id: string) => {
-    const userId = getCurrentUserId();
+    const userId = user?.uid;
     if (!userId) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
       throw new Error("User not authenticated");
@@ -154,7 +154,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       toast({ variant: 'destructive', title: 'Erro ao Excluir', description: "Não foi possível excluir a transação." });
       throw error;
     }
-  }, [toast]);
+  }, [toast, user]);
 
   return (
     <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction, isLoading }}>
