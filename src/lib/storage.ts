@@ -73,7 +73,6 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
         amount: Number(data.amount),
         date: Timestamp.fromDate(new Date(data.date))
     };
-    // No need to add userId to the data itself anymore
     await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
 }
 
