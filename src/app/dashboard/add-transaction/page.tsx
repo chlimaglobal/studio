@@ -216,11 +216,12 @@ function AddTransactionForm() {
                                         <FormItem>
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                type="number" 
-                                                step="0.01" 
+                                            <Input
+                                                type="number"
+                                                step="0.01"
                                                 placeholder="0,00"
                                                 {...field}
+                                                onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -472,5 +473,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
