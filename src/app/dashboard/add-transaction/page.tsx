@@ -221,10 +221,6 @@ function AddTransactionForm() {
                                                 step="0.01" 
                                                 placeholder="0,00"
                                                 {...field}
-                                                onChange={e => {
-                                                    const value = e.target.value;
-                                                    field.onChange(value === '' ? '' : parseFloat(value));
-                                                }}
                                             />
                                         </FormControl>
                                         <FormMessage />
