@@ -16,12 +16,14 @@ import {
     Bell,
     Fingerprint,
     Loader2,
-    ShieldCheck
+    ShieldCheck,
+    Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
+import { useSubscription } from '@/app/layout';
 
 const menuItems = [
     { 
@@ -29,61 +31,70 @@ const menuItems = [
         title: 'Meu perfil', 
         subtitle: 'Atualize seus dados pessoais, como nome, foto, renda e outros.',
         type: 'link',
-        href: '/dashboard/settings'
+        href: '/dashboard/settings',
+        premium: false,
     },
     { 
         icon: MessageCircle, 
         title: 'Assistente IA no WhatsApp', 
         subtitle: 'Registre receitas, despesas e muito mais diretamente no WhatsApp ✨',
         type: 'link',
-        href: '/dashboard/whatsapp'
+        href: '/dashboard/whatsapp',
+        premium: true,
     },
     { 
         icon: Upload, 
         title: 'Importar extratos', 
         subtitle: 'Arquivos suportados: OFX, CSV, PDF.',
         type: 'link',
-        href: '/dashboard/import'
+        href: '/dashboard/import',
+        premium: true,
     },
     { 
         icon: ShieldCheck, 
         title: 'Meus Orçamentos', 
         subtitle: 'Defina limites de gastos para categorias específicas.',
         type: 'link',
-        href: '/dashboard/budgets'
+        href: '/dashboard/budgets',
+        premium: true,
     },
     { 
         icon: LayoutGrid, 
         title: 'Minhas categorias', 
         subtitle: null,
         type: 'link',
-        href: '/dashboard/categories'
+        href: '/dashboard/categories',
+        premium: false,
     },
     { 
         icon: Wallet, 
         title: 'Minhas contas e cartões', 
         subtitle: null,
         type: 'link',
-        href: '/dashboard/cards'
+        href: '/dashboard/cards',
+        premium: false,
     },
      { 
         icon: Target, 
         title: 'Minhas metas', 
         subtitle: null,
         type: 'link',
-        href: '/dashboard/goals'
+        href: '/dashboard/goals',
+        premium: true,
     },
     { 
         icon: Bell, 
         title: 'Configurar notificações', 
         subtitle: null,
         type: 'link',
-        href: '/dashboard/settings'
+        href: '/dashboard/settings',
+        premium: false,
     },
 ];
 
 const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
     const { toast } = useToast();
+    const { isSubscribed } = useSubscription();
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (item.href === '#') {
@@ -101,7 +112,10 @@ const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
                 <div className="flex items-center gap-4">
                     <item.icon className="h-6 w-6 text-primary" />
                     <div className="flex flex-col">
-                        <span className="font-semibold">{item.title}</span>
+                        <div className="flex items-center gap-2">
+                           <span className="font-semibold">{item.title}</span>
+                           {item.premium && !isSubscribed && <Star className="h-4 w-4 text-amber-500 fill-amber-400" />}
+                        </div>
                         {item.subtitle && <span className="text-sm text-muted-foreground">{item.subtitle}</span>}
                     </div>
                 </div>

@@ -7,11 +7,13 @@ import { CheckCircle, Loader2, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { createCheckoutSession, createCustomerPortalSession } from './actions';
-import { useAuth } from '@/app/layout';
+import { useAuth, useSubscription } from '@/app/layout';
+import Link from 'next/link';
 
 const features = [
     "Análises com IA ilimitadas",
     "Orçamentos personalizados",
+    "Metas Financeiras",
     "Sincronização com WhatsApp",
     "Importação de extratos",
     "Sem anúncios"
@@ -20,23 +22,23 @@ const features = [
 const PricingCard = ({ title, price, description, priceId, isYearly = false }: { title: string, price: string, description: string, priceId: string, isYearly?: boolean }) => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const handleSubscribe = async () => {
         setIsLoading(true);
-        try {
-            // Because we cannot securely get user on server action, we show a toast for now.
-            // In a real app, the commented out code in actions.ts would be used.
-            toast({
-                title: 'Funcionalidade em Demonstração',
-                description: 'A criação de assinatura está desabilitada neste ambiente.',
-            });
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Você não está logado.', description: 'Faça login para poder assinar.' });
             setIsLoading(false);
-            // const { url } = await createCheckoutSession(priceId);
-            // if (url) {
-            //     window.location.href = url;
-            // } else {
-            //     throw new Error("Não foi possível criar a sessão de checkout.");
-            // }
+            return;
+        }
+
+        try {
+            const { url } = await createCheckoutSession(priceId);
+            if (url) {
+                window.location.href = url;
+            } else {
+                throw new Error("Não foi possível criar a sessão de checkout.");
+            }
         } catch (error) {
             console.error(error);
             const errorMessage = (error instanceof Error) ? error.message : 'Não foi possível iniciar o processo de assinatura. Tente novamente.';
@@ -81,6 +83,7 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
 
 export default function PricingPage() {
     const { user } = useAuth();
+    const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { toast } = useToast();
     const [isPortalLoading, setIsPortalLoading] = useState(false);
 
@@ -90,19 +93,12 @@ export default function PricingPage() {
     const handleManageSubscription = async () => {
         setIsPortalLoading(true);
         try {
-            // Similar to subscribe, this is disabled for demonstration.
-            toast({
-                title: 'Funcionalidade em Demonstração',
-                description: 'O portal de gerenciamento de assinaturas está desabilitado neste ambiente.',
-            });
-            setIsPortalLoading(false);
-
-            // const { url } = await createCustomerPortalSession();
-            // if (url) {
-            //     window.location.href = url;
-            // } else {
-            //     throw new Error("Não foi possível criar a sessão do portal.");
-            // }
+            const { url } = await createCustomerPortalSession();
+            if (url) {
+                window.location.href = url;
+            } else {
+                throw new Error("Não foi possível criar a sessão do portal.");
+            }
         } catch (error) {
             console.error(error);
              const errorMessage = (error instanceof Error) ? error.message : 'Não foi possível acessar o portal de gerenciamento. Tente novamente.';
@@ -123,28 +119,48 @@ export default function PricingPage() {
                     Escolha o plano que melhor se adapta às suas necessidades e desbloqueie todo o potencial do FinanceFlow.
                 </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <PricingCard
-                    title="Mensal"
-                    price="R$14,90"
-                    description="Acesso completo com flexibilidade."
-                    priceId={monthlyPriceId}
-                />
-                <PricingCard
-                    title="Anual"
-                    price="R$99,90"
-                    description="O melhor custo-benefício, economize 2 meses!"
-                    priceId={yearlyPriceId}
-                    isYearly
-                />
-            </div>
             
-             <div className="text-center mt-12">
-                <p className="text-muted-foreground mb-2">Já é assinante?</p>
-                <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
-                    {isPortalLoading ? <Loader2 className="animate-spin mr-2"/> : <Star className="mr-2"/>}
-                    Gerenciar minha assinatura
+             {isSubscriptionLoading ? (
+                <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+            ) : isSubscribed ? (
+                 <Card className="text-center p-8">
+                    <CardHeader>
+                        <CardTitle className="flex justify-center items-center gap-2">
+                            <CheckCircle className="h-8 w-8 text-green-500" />
+                            Você já é um Assinante!
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground mb-4">
+                            Obrigado por apoiar o FinanceFlow. Use o botão abaixo para gerenciar sua assinatura.
+                        </p>
+                        <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
+                            {isPortalLoading ? <Loader2 className="animate-spin mr-2"/> : <Star className="mr-2"/>}
+                            Gerenciar minha assinatura
+                        </Button>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <PricingCard
+                        title="Mensal"
+                        price="R$14,90"
+                        description="Acesso completo com flexibilidade."
+                        priceId={monthlyPriceId}
+                    />
+                    <PricingCard
+                        title="Anual"
+                        price="R$99,90"
+                        description="O melhor custo-benefício, economize 2 meses!"
+                        priceId={yearlyPriceId}
+                        isYearly
+                    />
+                </div>
+            )}
+            
+             <div className="mt-8 text-center">
+                 <Button variant="link" asChild>
+                    <Link href="/dashboard">Voltar para o painel</Link>
                 </Button>
             </div>
         </div>

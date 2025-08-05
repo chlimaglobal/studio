@@ -20,7 +20,7 @@ const cleanDataForFirestore = (data: Record<string, any>) => {
 };
 
 
-// ======== USER DOCUMENT HELPER ========
+// ======== USER DOCUMENT & SUBSCRIPTION ========
 export const initializeUser = async (user: User) => {
     if (!user) return;
     const userDocRef = doc(db, 'users', user.uid);
@@ -33,12 +33,37 @@ export const initializeUser = async (user: User) => {
                 displayName: user.displayName,
                 photoURL: user.photoURL,
                 createdAt: Timestamp.now(),
+                stripeSubscriptionStatus: 'inactive', // Default status
             }, { merge: true });
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
     }
 };
+
+export function onUserSubscriptionUpdate(userId: string, callback: (status: string) => void): () => void {
+    if (!userId) {
+        console.error("onUserSubscriptionUpdate called without a userId.");
+        callback('inactive');
+        return () => {};
+    }
+    const userDocRef = doc(db, 'users', userId);
+    
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+            const status = doc.data()?.stripeSubscriptionStatus || 'inactive';
+            callback(status);
+        } else {
+            callback('inactive');
+        }
+    }, (error) => {
+        console.error("Error fetching user subscription status:", error);
+        callback('inactive');
+    });
+
+    return unsubscribe;
+}
+
 
 
 // ======== TRANSACTIONS ========

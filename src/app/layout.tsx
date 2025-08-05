@@ -6,9 +6,10 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from '@/components/theme-provider';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initializeUser } from '@/lib/storage';
+import { initializeUser, onUserSubscriptionUpdate } from '@/lib/storage';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -26,6 +27,22 @@ export function useAuth() {
   }
   return context;
 }
+
+// 2. Subscription Context
+interface SubscriptionContextType {
+  isSubscribed: boolean;
+  isLoading: boolean;
+}
+const SubscriptionContext = createContext<SubscriptionContextType>({ isSubscribed: false, isLoading: true });
+
+export function useSubscription() {
+  const context = useContext(SubscriptionContext);
+  if (context === undefined) {
+    throw new Error('useSubscription must be used within a SubscriptionProvider');
+  }
+  return context;
+}
+
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -53,6 +70,31 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SubscriptionProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const [isSubscribed, setIsSubscribed] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            const unsubscribe = onUserSubscriptionUpdate(user.uid, (status) => {
+                setIsSubscribed(status === 'active' || status === 'trialing');
+                setIsLoading(false);
+            });
+            return () => unsubscribe();
+        } else if (!user) {
+            setIsSubscribed(false);
+            setIsLoading(false);
+        }
+    }, [user]);
+
+    return (
+        <SubscriptionContext.Provider value={{ isSubscribed, isLoading }}>
+            {children}
+        </SubscriptionContext.Provider>
+    );
+}
+
 
 export default function RootLayout({
   children,
@@ -69,8 +111,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
-            <Toaster />
+            <SubscriptionProvider>
+                {children}
+                <Toaster />
+            </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

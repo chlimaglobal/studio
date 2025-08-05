@@ -3,14 +3,39 @@
 
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '../layout';
 import { useRouter } from 'next/navigation';
+import { useSubscription } from '@/app/layout';
+
+const PremiumBlocker = () => (
+    <Card className="text-center">
+        <CardHeader>
+            <CardTitle className="flex items-center justify-center gap-2">
+                <Star className="h-6 w-6 text-amber-500" />
+                Recurso Premium
+            </CardTitle>
+            <CardDescription>
+                A Análise Financeira com IA é um recurso exclusivo para assinantes.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+                Faça o upgrade do seu plano para obter diagnósticos, dicas personalizadas e muito mais.
+            </p>
+            <Button asChild>
+                <a href="/dashboard/pricing">Ver Planos</a>
+            </Button>
+        </CardContent>
+    </Card>
+);
+
 
 export default function AnalysisPage() {
+  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const { transactions: allTransactions, isLoading: isLoadingTransactions } = useTransactions();
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
@@ -21,6 +46,7 @@ export default function AnalysisPage() {
   }, [allTransactions]);
 
   const runAnalysis = useCallback(async (force = false) => {
+    if (!isSubscribed) return; // Don't run if not subscribed
     setIsAnalyzing(true);
     
     if (!force) {
@@ -49,15 +75,15 @@ export default function AnalysisPage() {
         localStorage.removeItem('financialAnalysisHash');
     }
     setIsAnalyzing(false);
-  }, [allTransactions, transactionsHash]);
+  }, [allTransactions, transactionsHash, isSubscribed]);
 
   useEffect(() => {
-    if (!isLoadingTransactions) {
+    if (!isLoadingTransactions && !isSubscriptionLoading) {
       runAnalysis();
     }
-  }, [isLoadingTransactions, runAnalysis]);
+  }, [isLoadingTransactions, isSubscriptionLoading, runAnalysis]);
 
-  if (isLoadingTransactions || isAnalyzing) {
+  if (isLoadingTransactions || isSubscriptionLoading || (isAnalyzing && isSubscribed)) {
     return (
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -67,6 +93,11 @@ export default function AnalysisPage() {
         </div>
     );
   }
+
+  if (!isSubscribed) {
+    return <PremiumBlocker />;
+  }
+
 
   if (!analysis) {
      return (
