@@ -35,24 +35,14 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.string().transform((val, ctx) => {
-    const parsed = parseFloat(val.replace(',', '.'));
-    if (isNaN(parsed)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "O valor deve ser um número válido.",
-        });
-        return z.NEVER;
-    }
-     if (parsed <= 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'O valor deve ser positivo.',
-      });
-      return z.NEVER;
-    }
-    return parsed;
-  }),
+  amount: z.string()
+    .refine((val) => /^[0-9,.]+$/.test(val), {
+        message: "O valor deve conter apenas números, vírgulas ou pontos."
+    })
+    .transform(val => parseFloat(val.replace('.', '').replace(',', '.')))
+    .refine(val => val > 0, {
+        message: "O valor deve ser positivo."
+    }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {

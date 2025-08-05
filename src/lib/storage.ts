@@ -98,7 +98,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
     if (!userId) throw new Error("User not authenticated");
     const transactionData = {
         ...data,
-        amount: parseFloat(String(data.amount)),
+        amount: data.amount, // Amount is already a number from Zod transform
         date: Timestamp.fromDate(new Date(data.date))
     };
     await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
@@ -109,7 +109,7 @@ export async function updateStoredTransaction(userId: string, transactionId: str
     const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
     const transactionData = {
         ...data,
-        amount: parseFloat(String(data.amount)),
+        amount: data.amount, // Amount is already a number from Zod transform
         date: Timestamp.fromDate(new Date(data.date))
     };
     await updateDoc(transactionRef, cleanDataForFirestore(transactionData));
@@ -231,7 +231,7 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
   
   const formSchemaCompliantData = {
       description: transactionData.description,
-      amount: transactionData.amount,
+      amount: String(transactionData.amount),
       date: transactionData.date,
       type: transactionData.type,
       category: transactionData.category,
