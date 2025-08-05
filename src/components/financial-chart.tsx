@@ -5,7 +5,7 @@ import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { formatCurrency } from '@/lib/utils';
 
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
         return (
@@ -15,17 +15,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                     <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
                         <span className="text-muted-foreground">A receber:</span>
-                        <span className="font-semibold">{formatCurrency(data.aReceber)}</span>
+                        <span className="font-semibold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(data.aReceber)}</span>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
                         <span className="text-muted-foreground">A pagar:</span>
-                        <span className="font-semibold">{formatCurrency(data.aPagar)}</span>
+                        <span className="font-semibold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(data.aPagar)}</span>
                     </div>
                      <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-3))]"></div>
                         <span className="text-muted-foreground">Resultado:</span>
-                        <span className="font-semibold">{formatCurrency(data.resultado)}</span>
+                        <span className="font-semibold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(data.resultado)}</span>
                     </div>
                 </div>
             </div>
@@ -49,10 +49,12 @@ interface FinancialChartProps {
         aPagar: number;
         resultado: number;
     }[];
+    isPrivacyMode: boolean;
 }
 
-export default function FinancialChart({ data }: FinancialChartProps) {
+export default function FinancialChart({ data, isPrivacyMode }: FinancialChartProps) {
     const yAxisFormatter = (value: number) => {
+        if (isPrivacyMode) return '••••';
         if (value === 0) return 'R$0';
         const absValue = Math.abs(value);
         if (absValue >= 1000) {
@@ -74,7 +76,7 @@ export default function FinancialChart({ data }: FinancialChartProps) {
                 <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} />
                 <Tooltip
-                    content={<CustomTooltip />}
+                    content={<CustomTooltip isPrivacyMode={isPrivacyMode} />}
                     cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '3 3' }}
                 />
                 <Legend 

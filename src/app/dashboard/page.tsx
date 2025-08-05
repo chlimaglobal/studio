@@ -105,7 +105,7 @@ const AiTipsCard = () => {
   );
 };
 
-const BudgetCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
+const BudgetCard = ({ budgetItems, isPrivacyMode }: { budgetItems: BudgetItem[], isPrivacyMode: boolean }) => {
     if (budgetItems.length === 0) {
         return (
             <div>
@@ -138,9 +138,9 @@ const BudgetCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
                                 <span className="font-medium">{item.name}</span>
                                 <div className="text-muted-foreground">
                                     <span className={cn("font-semibold", item.progress > 100 ? 'text-destructive' : 'text-foreground')}>
-                                        {formatCurrency(item.spent)}
+                                        {isPrivacyMode ? 'R$ ••••••' : formatCurrency(item.spent)}
                                     </span>
-                                    <span> / {formatCurrency(item.budget)}</span>
+                                    <span> / {isPrivacyMode ? 'R$ ••••••' : formatCurrency(item.budget)}</span>
                                 </div>
                             </div>
                             <Progress value={item.progress} className="h-2" />
@@ -152,7 +152,7 @@ const BudgetCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
     );
 };
 
-const BudgetAlertsCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
+const BudgetAlertsCard = ({ budgetItems, isPrivacyMode }: { budgetItems: BudgetItem[], isPrivacyMode: boolean }) => {
     const alerts = budgetItems
         .map(item => {
             if (item.progress > 100) {
@@ -179,7 +179,7 @@ const BudgetAlertsCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
                             <ShieldAlert className={cn("h-4 w-4", alert!.type === 'exceeded' ? 'text-destructive' : 'text-amber-500')} />
                             <AlertDescription className={cn('text-xs', alert!.type === 'exceeded' ? 'text-destructive' : 'text-amber-500/90')}>
                                 {alert!.type === 'exceeded'
-                                    ? `Você ultrapassou em ${formatCurrency(alert!.spent - alert!.budget)} o orçamento de ${alert!.name}.`
+                                    ? `Você ultrapassou em ${isPrivacyMode ? 'R$ ••••••' : formatCurrency(alert!.spent - alert!.budget)} o orçamento de ${alert!.name}.`
                                     : `Você já usou ${alert!.progress.toFixed(0)}% do seu orçamento para ${alert!.name}.`
                                 }
                             </AlertDescription>
@@ -194,7 +194,7 @@ const BudgetAlertsCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
 
 const DashboardLoadingSkeleton = () => (
     <div className="space-y-6">
-        <DashboardHeader />
+        <DashboardHeader isPrivacyMode={false} onTogglePrivacyMode={() => {}} />
         <Skeleton className="h-24 w-full" />
         <div className="flex items-center justify-center gap-2">
             <Skeleton className="h-8 w-8" />
@@ -224,7 +224,19 @@ export default function DashboardPage() {
     const { user } = useAuth();
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
+    const [isPrivacyMode, setIsPrivacyMode] = useState(false);
     const EXPENSE_LIMIT = 2000;
+
+    useEffect(() => {
+        const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
+        setIsPrivacyMode(storedPrivacyMode);
+    }, []);
+
+    const handleTogglePrivacyMode = () => {
+        const newMode = !isPrivacyMode;
+        setIsPrivacyMode(newMode);
+        localStorage.setItem('privacyMode', String(newMode));
+    };
 
     const handlePrevMonth = () => {
         setCurrentMonth(subMonths(currentMonth, 1));
@@ -335,7 +347,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <DashboardHeader />
+      <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
       <NotificationPermission />
       
@@ -374,7 +386,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="font-bold text-[hsl(var(--chart-1))] break-words text-base md:text-lg">{formatCurrency(summary.recebidos)}</p>
+                 <p className="font-bold text-[hsl(var(--chart-1))] break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
@@ -387,7 +399,7 @@ export default function DashboardPage() {
                      "font-bold break-words text-base md:text-lg",
                      isExpenseLimitExceeded ? "text-destructive" : "text-[hsl(var(--chart-2))]"
                  )}>
-                    {formatCurrency(summary.despesas)}
+                    {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}
                  </p>
             </CardContent>
         </Card>
@@ -397,7 +409,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className="font-bold text-primary break-words text-base md:text-lg">{formatCurrency(summary.previsto)}</p>
+                 <p className="font-bold text-primary break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}</p>
             </CardContent>
         </Card>
       </div>
@@ -406,13 +418,13 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
           <div className="h-[250px] w-full">
-              <FinancialChart data={chartData} />
+              <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
           </div>
         </div>
 
-        <BudgetAlertsCard budgetItems={budgetItems} />
+        <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
-        <BudgetCard budgetItems={budgetItems} />
+        <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
         <div>
             <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
@@ -422,7 +434,7 @@ export default function DashboardPage() {
                   <div key={item.name} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{item.name}</span>
-                      <span className="font-medium">{formatCurrency(item.value)}</span>
+                      <span className="font-medium">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(item.value)}</span>
                     </div>
                     <Progress value={(item.value / summary.despesas) * 100} className="h-2" />
                   </div>

@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -34,7 +34,12 @@ const Logo = () => (
     </div>
 );
 
-export default function DashboardHeader() {
+type DashboardHeaderProps = {
+    isPrivacyMode: boolean;
+    onTogglePrivacyMode: () => void;
+};
+
+export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: DashboardHeaderProps) {
   const { transactions } = useTransactions();
   const { user } = useAuth();
   const [totalBalance, setTotalBalance] = useState(0);
@@ -136,8 +141,8 @@ export default function DashboardHeader() {
         </DropdownMenu>
 
         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={showPlaceholderToast}>
-                <History className="h-6 w-6" />
+            <Button variant="ghost" size="icon" onClick={onTogglePrivacyMode}>
+              {isPrivacyMode ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
             </Button>
             <Logo />
         </div>
@@ -145,7 +150,7 @@ export default function DashboardHeader() {
        <div className="flex items-center justify-between">
             <div className='flex flex-col'>
                 <span className="text-sm text-muted-foreground">Saldo total em contas</span>
-                <span className="text-2xl font-bold">{formatCurrency(totalBalance)}</span>
+                <span className="text-2xl font-bold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(totalBalance)}</span>
             </div>
        </div>
     </header>
