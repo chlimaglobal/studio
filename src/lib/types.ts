@@ -35,7 +35,7 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.coerce.number({invalid_type_error: "Por favor, insira um valor válido."}).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
+  amount: z.number({required_error: "O valor é obrigatório.", invalid_type_error: "Por favor, insira um valor válido."}).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
@@ -111,5 +111,3 @@ export const ExtractFromFileOutputSchema = z.object({
   transactions: z.array(ExtractedTransactionSchema).describe('A list of transactions extracted from the file.'),
 });
 export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
-
-    

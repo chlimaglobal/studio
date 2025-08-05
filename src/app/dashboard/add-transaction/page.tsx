@@ -59,7 +59,7 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : ('' as any),
+            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : undefined,
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
@@ -221,7 +221,8 @@ function AddTransactionForm() {
                                                 step="0.01"
                                                 placeholder="0,00"
                                                 {...field}
-                                                onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
+                                                onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -473,5 +474,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
