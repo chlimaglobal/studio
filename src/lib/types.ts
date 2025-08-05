@@ -32,12 +32,19 @@ export type TransactionCategory = typeof transactionCategories[number];
 
 
 const amountPreprocess = (val: unknown) => {
-    if (typeof val === 'string') {
-        const cleaned = val.replace(/\./g, '').replace(',', '.');
-        return cleaned;
+    if (!val || typeof val !== 'string') {
+        return 0; // Return 0 or some other default if input is invalid
     }
-    return val;
+    // Remove R$, spaces, and dots. Replace comma with dot.
+    const cleaned = val
+        .replace('R$', '')
+        .trim()
+        .replace(/\./g, '')
+        .replace(',', '.');
+
+    return parseFloat(cleaned) || 0;
 };
+
 
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
@@ -137,3 +144,5 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
+
+    

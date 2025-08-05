@@ -33,6 +33,27 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
+const formatCurrencyInput = (value: string): string => {
+  if (!value) return '';
+  // Remove all non-digit characters
+  let num = value.replace(/\D/g, '');
+  if (!num) return '';
+
+  // Pad with zeros if necessary
+  num = num.padStart(3, '0');
+
+  // Format to R$ 1.234,56
+  const cents = num.slice(-2);
+  const integers = num.slice(0, -2);
+  const formattedIntegers = integers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  return `R$ ${formattedIntegers},${cents}`;
+};
+
+const getRawValueFromFormatted = (formattedValue: string): string => {
+  return formattedValue.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+}
+
 
 function AddTransactionForm() {
     const router = useRouter();
@@ -52,7 +73,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount,
+                    amount: transactionToEdit.amount.toString(),
                 };
             }
         }
@@ -77,7 +98,10 @@ function AddTransactionForm() {
     });
 
     useEffect(() => {
-        form.reset(initialValues);
+        form.reset({
+             ...initialValues,
+             amount: initialValues.amount ? formatCurrencyInput(initialValues.amount.replace(/\D/g, '')) : ''
+        });
     }, [initialValues, form]);
     
     const watchedDescription = form.watch('description');
@@ -129,14 +153,21 @@ function AddTransactionForm() {
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
+            const submissionData = {
+                ...values,
+                amount: parseFloat(getRawValueFromFormatted(values.amount as unknown as string))
+            };
+
             if (isEditing && transactionId) {
-                await updateTransaction(transactionId, values);
+                // @ts-ignore
+                await updateTransaction(transactionId, submissionData);
                  toast({
                     title: 'Sucesso!',
                     description: 'Transação atualizada.'
                 });
             } else {
-                await addTransaction(values);
+                // @ts-ignore
+                await addTransaction(submissionData);
                 toast({
                     title: 'Sucesso!',
                     description: 'Transação salva.'
@@ -217,10 +248,12 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="text"
-                                                inputMode="decimal"
-                                                placeholder="0,00"
+                                                placeholder="R$ 0,00"
                                                 {...field}
+                                                onChange={(e) => {
+                                                    const formattedValue = formatCurrencyInput(e.target.value);
+                                                    field.onChange(formattedValue);
+                                                }}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -471,3 +504,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
