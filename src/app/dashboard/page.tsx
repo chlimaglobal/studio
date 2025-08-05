@@ -225,7 +225,6 @@ export default function DashboardPage() {
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
-    const EXPENSE_LIMIT = 2000;
 
     useEffect(() => {
         const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
@@ -301,8 +300,6 @@ export default function DashboardPage() {
             budgetItems
         };
     }, [transactions, currentMonth, budgets]);
-
-    const isExpenseLimitExceeded = summary.despesas > EXPENSE_LIMIT;
     
     const generateChartData = (transactions: Transaction[]) => {
         const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
@@ -351,22 +348,6 @@ export default function DashboardPage() {
 
       <NotificationPermission />
       
-      {isExpenseLimitExceeded && (
-        <Card className="border-destructive bg-destructive/5 text-destructive-foreground">
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-                <div>
-                    <CardTitle className="text-destructive text-lg">Limite de Gastos Excedido</CardTitle>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-destructive/90">
-                    Você ultrapassou o seu limite de despesas de {formatCurrency(EXPENSE_LIMIT)} para este mês.
-                </p>
-            </CardContent>
-        </Card>
-      )}
-
       <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
           <ChevronLeft className="h-5 w-5" />
@@ -395,12 +376,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
             </CardHeader>
             <CardContent className="p-1">
-                 <p className={cn(
-                     "font-bold break-words text-base md:text-lg",
-                     isExpenseLimitExceeded ? "text-destructive" : "text-[hsl(var(--chart-2))]"
-                 )}>
-                    {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}
-                 </p>
+                 <p className="font-bold text-[hsl(var(--chart-2))] break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
             </CardContent>
         </Card>
          <Card className="bg-secondary p-2">
@@ -452,3 +428,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
