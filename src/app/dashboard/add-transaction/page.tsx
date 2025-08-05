@@ -51,7 +51,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount || 0,
+                    amount: transactionToEdit.amount || '',
                     installments: transactionToEdit.installments || '',
                 };
             }
@@ -59,13 +59,13 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : 0,
+            amount: searchParams.get('amount') || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
-            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : '',
+            installments: searchParams.get('installments') || '',
             observations: searchParams.get('observations') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
@@ -73,19 +73,11 @@ function AddTransactionForm() {
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
         resolver: zodResolver(TransactionFormSchema),
-        defaultValues: {
-            ...initialValues,
-            amount: initialValues.amount || '',
-            installments: initialValues.installments || '',
-        }
+        defaultValues: initialValues,
     });
-
+    
     useEffect(() => {
-        form.reset({
-             ...initialValues,
-             amount: initialValues.amount || '',
-             installments: initialValues.installments || '',
-        });
+        form.reset(initialValues);
     }, [initialValues, form]);
     
     const watchedDescription = form.watch('description');
@@ -227,11 +219,11 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="5770.16"
+                                                type="text"
+                                                inputMode="decimal"
+                                                placeholder="5770,16"
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.valueAsNumber || '')}
+                                                onChange={e => field.onChange(e.target.value)}
                                                 value={field.value ?? ''}
                                             />
                                         </FormControl>
@@ -485,5 +477,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    

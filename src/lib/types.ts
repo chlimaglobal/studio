@@ -35,10 +35,16 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.coerce.number({
+  amount: z.preprocess((val) => {
+      if (typeof val === 'string') {
+          // Replace comma with dot for decimal conversion
+          return parseFloat(val.replace(',', '.'));
+      }
+      return val;
+  }, z.coerce.number({
     required_error: "O valor é obrigatório.",
     invalid_type_error: "O valor deve ser um número.",
-  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
+  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." })),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
