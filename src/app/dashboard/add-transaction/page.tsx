@@ -217,12 +217,15 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="number"
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="0,00"
                                                 {...field}
-                                                onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                                                value={field.value ?? ''}
+                                                onChange={e => {
+                                                    const value = e.target.value.replace(',', '.');
+                                                    field.onChange(parseFloat(value) || 0);
+                                                }}
+                                                value={String(field.value ?? '').replace('.', ',')}
                                             />
                                         </FormControl>
                                         <FormMessage />
