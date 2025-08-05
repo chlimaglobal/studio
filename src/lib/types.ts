@@ -4,11 +4,11 @@ import { z } from "zod";
 export const categoryData = {
   "Alimentação": ["Padaria", "Cafeteria", "Delivery", "Restaurante", "Supermercado"],
   "Assinaturas/Serviços": ["Jogos", "Aplicativos", "Streamings", "Telefone/Celular", "Televisão", "Internet"],
-  "Moradia": ["Luz", "Eletrodomésticos", "Condomínio", "Aluguel/Prestação", "Reformas", "Água"],
+  "Moradia": ["Luz", "Eletrodomésticos", "Condomínio", "Aluguel/Prestação", "Reformas", "Água", "Casa"],
   "Transporte": ["IPVA", "Manutenção", "Táxi/Uber", "Licenciamento", "Combustível", "Multa"],
   "Saúde": ["Plano de Saúde", "Plano Odontológico", "Consultas", "Dentista", "Exames", "Farmácia"],
   "Lazer/Hobbies": ["Teatro", "Parques", "Bares", "Cinema", "Shows e Eventos", "Esportes"],
-  "Dívidas/Empréstimos": ["Empréstimo", "Cartão de Crédito", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos"],
+  "Dívidas/Empréstimos": ["Cartão de Crédito", "Empréstimo", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos"],
   "Educação": ["Cursos", "Faculdade", "Materiais e Livros", "Escola"],
   "Impostos/Taxas": ["Imposto de Renda", "Tarifa Bancária", "Anuidade Cartão", "Tributos"],
   "Investimentos e Reservas": ["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Proventos", "Aplicação", "Rendimentos", "Retirada", "Juros"],
@@ -35,7 +35,7 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.number({required_error: "O valor é obrigatório.", invalid_type_error: "Por favor, insira um valor válido."}).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
+  amount: z.coerce.number().min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
@@ -111,3 +111,13 @@ export const ExtractFromFileOutputSchema = z.object({
   transactions: z.array(ExtractedTransactionSchema).describe('A list of transactions extracted from the file.'),
 });
 export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
+
+
+// Types for Budgeting
+export const BudgetSchema = z.object({
+  Supermercado: z.coerce.number().min(0).optional(),
+  Casa: z.coerce.number().min(0).optional(),
+  'Cartão de Crédito': z.coerce.number().min(0).optional(),
+});
+
+export type Budget = z.infer<typeof BudgetSchema>;

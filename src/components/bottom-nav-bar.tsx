@@ -1,15 +1,16 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, HandCoins } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, HandCoins, ShieldCheck } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações' },
+  { href: '/dashboard/budgets', icon: ShieldCheck, label: 'Orçamentos' },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios' },
-  { href: '/dashboard/commissions', icon: HandCoins, label: 'Comissões' },
   { href: '/dashboard/profile', icon: UserCircle, label: 'Perfil' },
 ];
 

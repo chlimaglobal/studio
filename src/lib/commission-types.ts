@@ -22,4 +22,5 @@ export const EditCommissionFormSchema = z.object({
 
 export type Commission = {
   id: string;
+  transactionId?: string;
 } & z.infer<typeof AddCommissionFormSchema>;

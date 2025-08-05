@@ -8,7 +8,7 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory } from '@/lib/types';
+import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
@@ -18,6 +18,8 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { useTransactions } from './layout';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
+import { onBudgetsUpdate } from '@/lib/storage';
+import { useAuth } from '../layout';
 
 interface SummaryData {
   recebidos: number;
@@ -94,6 +96,99 @@ const AiTipsCard = () => {
     </Card>
   );
 };
+
+const BudgetCard = ({ categorySpending, currentMonth }: { categorySpending: {name: TransactionCategory, value: number}[], currentMonth: Date }) => {
+    const { user } = useAuth();
+    const [budgets, setBudgets] = useState<Budget>({});
+    const [isLoading, setIsLoading] = useState(true);
+
+    const monthId = format(currentMonth, 'yyyy-MM');
+
+    useEffect(() => {
+        if (user) {
+            setIsLoading(true);
+            const unsubscribe = onBudgetsUpdate(user.uid, monthId, (newBudgets) => {
+                setBudgets(newBudgets || {});
+                setIsLoading(false);
+            });
+            return () => unsubscribe();
+        }
+    }, [user, monthId]);
+
+    const budgetItems = Object.entries(budgets)
+        .map(([category, budgetAmount]) => {
+            if (!budgetAmount || budgetAmount === 0) return null;
+            const spent = categorySpending.find(s => s.name === category)?.value || 0;
+            const progress = (spent / budgetAmount) * 100;
+            return {
+                name: category,
+                spent,
+                budget: budgetAmount,
+                progress,
+            };
+        })
+        .filter(Boolean) as {name: string, spent: number, budget: number, progress: number}[];
+
+    if (isLoading) {
+        return (
+            <div>
+                <h2 className="text-lg font-semibold mb-2">Orçamentos do Mês</h2>
+                <Card className="bg-secondary/50">
+                    <CardContent className="pt-6 space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+    
+    if (budgetItems.length === 0) {
+        return (
+            <div>
+                <h2 className="text-lg font-semibold mb-2">Orçamentos do Mês</h2>
+                <Card className="bg-secondary/50">
+                    <CardContent className="pt-6 text-center text-muted-foreground">
+                        <p>Você ainda não definiu nenhum orçamento para este mês.</p>
+                        <Link href="/dashboard/budgets" passHref>
+                            <Button variant="link" className="mt-2">Definir Orçamento</Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold">Orçamentos do Mês</h2>
+                <Link href="/dashboard/budgets" passHref>
+                    <Button variant="ghost" size="sm">Ver todos</Button>
+                </Link>
+            </div>
+            <Card className="bg-secondary/50">
+                <CardContent className="pt-6 space-y-4">
+                    {budgetItems.map(item => (
+                        <div key={item.name} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="font-medium">{item.name}</span>
+                                <div className="text-muted-foreground">
+                                    <span className={cn("font-semibold", item.progress > 100 ? 'text-destructive' : 'text-foreground')}>
+                                        {formatCurrency(item.spent)}
+                                    </span>
+                                    <span> / {formatCurrency(item.budget)}</span>
+                                </div>
+                            </div>
+                            <Progress value={item.progress} className="h-2" />
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 
 const DashboardLoadingSkeleton = () => (
     <div className="space-y-6">
@@ -280,6 +375,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <BudgetCard categorySpending={categorySpending} currentMonth={currentMonth} />
+
         <div>
             <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
             <Card className="bg-secondary/50">
@@ -306,5 +403,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

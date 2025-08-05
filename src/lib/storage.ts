@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs } from "firebase/firestore";
-import type { Transaction, TransactionFormSchema } from './types';
+import type { Transaction, TransactionFormSchema, Budget } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -210,10 +210,12 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
       date: transactionData.date,
       type: transactionData.type,
       category: transactionData.category,
-      paid: transactionData.paid
+      paid: transactionData.paid,
+      paymentMethod: 'one-time' as const
   }
 
   try {
+    // @ts-ignore
     await addStoredTransaction(userId, formSchemaCompliantData);
   } catch (error) {
     console.error("Failed to add commission as transaction:", error);
@@ -268,6 +270,33 @@ export async function deleteStoredCommission(userId: string, commissionId: strin
     await deleteDoc(commissionRef);
 }
 
+
+// ======== BUDGETS ========
+
+export function onBudgetsUpdate(userId: string, monthId: string, callback: (budgets: Budget | null) => void): () => void {
+    if (!userId) return () => {};
+    const budgetDocRef = doc(db, 'users', userId, 'budgets', monthId);
+
+    const unsubscribe = onSnapshot(budgetDocRef, (doc) => {
+        if (doc.exists()) {
+            callback(doc.data() as Budget);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Error fetching budgets:", error);
+    });
+
+    return unsubscribe;
+}
+
+export async function saveBudgets(userId: string, monthId: string, data: Budget) {
+    if (!userId) throw new Error("User not authenticated");
+    const budgetDocRef = doc(db, 'users', userId, 'budgets', monthId);
+    await setDoc(budgetDocRef, cleanDataForFirestore(data), { merge: true });
+}
+
+
 // ======== BACKUP ========
 const collectionsToBackup = ['transactions', 'cards', 'goals', 'commissions'];
 
@@ -297,7 +326,14 @@ export async function getAllUserDataForBackup(userId: string) {
         }));
     }
 
+    // Also back up budgets
+    const budgetsCollectionRef = collection(db, 'users', userId, 'budgets');
+    const budgetsSnapshot = await getDocs(budgetsCollectionRef);
+    backupData['budgets'] = budgetsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...serializeFirestoreData(doc.data()),
+    }));
+
+
     return backupData;
 }
-
-    

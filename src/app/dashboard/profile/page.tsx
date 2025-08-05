@@ -15,7 +15,8 @@ import {
     Target, 
     Bell,
     Fingerprint,
-    Loader2
+    Loader2,
+    ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -45,11 +46,11 @@ const menuItems = [
         href: '/dashboard/import'
     },
     { 
-        icon: BellRing, 
-        title: 'Importar via notificações', 
-        subtitle: 'Encaminhe alertas de bancos para a IA no WhatsApp.',
+        icon: ShieldCheck, 
+        title: 'Meus Orçamentos', 
+        subtitle: 'Defina limites de gastos para categorias específicas.',
         type: 'link',
-        href: '/dashboard/whatsapp'
+        href: '/dashboard/budgets'
     },
     { 
         icon: LayoutGrid, 
@@ -67,7 +68,7 @@ const menuItems = [
     },
      { 
         icon: Target, 
-        title: 'Minhas metas e limites', 
+        title: 'Minhas metas', 
         subtitle: null,
         type: 'link',
         href: '/dashboard/goals'
