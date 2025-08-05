@@ -465,22 +465,6 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" /> Plano e Assinatura</CardTitle>
-          <CardDescription>
-            Gerencie seu plano, veja faturas e altere sua forma de pagamento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button asChild className="w-full">
-            <Link href="/dashboard/pricing">
-                Ver Planos e Gerenciar Assinatura
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>

@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff, Palette } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff, Palette, Star } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -56,7 +56,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   }, [transactions]);
   
   useEffect(() => {
-    // This could be used to fetch profile pic from a user profile document in Firestore
     if (user?.photoURL) {
       setProfilePic(user.photoURL);
     }
@@ -123,10 +122,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                     </Link>
                   </DropdownMenuItem>
                  <DropdownMenuItem onClick={showPlaceholderToast}>
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    <span>Planos</span>
-                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={showPlaceholderToast}>
                     <XCircle className="mr-2 h-4 w-4" />
                     <span>Cancelar assinatura</span>
                  </DropdownMenuItem>
@@ -140,7 +135,12 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
 
         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onTogglePrivacyMode}>
-              {isPrivacyMode ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+              {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/dashboard/pricing">
+                <Star className="h-5 w-5" />
+              </Link>
             </Button>
             <Logo />
         </div>
