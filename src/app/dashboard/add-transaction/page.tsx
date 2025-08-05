@@ -230,8 +230,8 @@ function AddTransactionForm() {
                                                 step="0.01"
                                                 placeholder="5770,16"
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.valueAsNumber || e.target.value)}
-                                                value={field.value || ''}
+                                                onChange={e => field.onChange(e.target.valueAsNumber || '')}
+                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -374,8 +374,8 @@ function AddTransactionForm() {
                                                         min="2" 
                                                         placeholder="Ex: 12" 
                                                         {...field}
-                                                        onChange={e => field.onChange(e.target.valueAsNumber || e.target.value)}
-                                                        value={field.value || ''}
+                                                        onChange={e => field.onChange(e.target.valueAsNumber || '')}
+                                                        value={field.value ?? ''}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
