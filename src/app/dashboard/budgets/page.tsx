@@ -65,6 +65,7 @@ export default function BudgetsPage() {
                 title: 'Sucesso!',
                 description: 'Seus orçamentos foram salvos.',
             });
+            router.back();
         } catch (error) {
             console.error('Failed to save budgets', error);
             toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar os orçamentos.' });

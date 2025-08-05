@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
-import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,12 +20,20 @@ import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate } from '@/lib/storage';
 import { useAuth } from '../layout';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SummaryData {
   recebidos: number;
   despesas: number;
   previsto: number;
 }
+
+type BudgetItem = {
+    name: string;
+    spent: number;
+    budget: number;
+    progress: number;
+};
 
 const AiTipsCard = () => {
   const { transactions } = useTransactions();
@@ -97,52 +105,7 @@ const AiTipsCard = () => {
   );
 };
 
-const BudgetCard = ({ categorySpending, currentMonth }: { categorySpending: {name: TransactionCategory, value: number}[], currentMonth: Date }) => {
-    const { user } = useAuth();
-    const [budgets, setBudgets] = useState<Budget>({});
-    const [isLoading, setIsLoading] = useState(true);
-
-    const monthId = format(currentMonth, 'yyyy-MM');
-
-    useEffect(() => {
-        if (user) {
-            setIsLoading(true);
-            const unsubscribe = onBudgetsUpdate(user.uid, monthId, (newBudgets) => {
-                setBudgets(newBudgets || {});
-                setIsLoading(false);
-            });
-            return () => unsubscribe();
-        }
-    }, [user, monthId]);
-
-    const budgetItems = Object.entries(budgets)
-        .map(([category, budgetAmount]) => {
-            if (!budgetAmount || budgetAmount === 0) return null;
-            const spent = categorySpending.find(s => s.name === category)?.value || 0;
-            const progress = (spent / budgetAmount) * 100;
-            return {
-                name: category,
-                spent,
-                budget: budgetAmount,
-                progress,
-            };
-        })
-        .filter(Boolean) as {name: string, spent: number, budget: number, progress: number}[];
-
-    if (isLoading) {
-        return (
-            <div>
-                <h2 className="text-lg font-semibold mb-2">Orçamentos do Mês</h2>
-                <Card className="bg-secondary/50">
-                    <CardContent className="pt-6 space-y-4">
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
-    
+const BudgetCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
     if (budgetItems.length === 0) {
         return (
             <div>
@@ -189,6 +152,45 @@ const BudgetCard = ({ categorySpending, currentMonth }: { categorySpending: {nam
     );
 };
 
+const BudgetAlertsCard = ({ budgetItems }: { budgetItems: BudgetItem[] }) => {
+    const alerts = budgetItems
+        .map(item => {
+            if (item.progress > 100) {
+                return { ...item, type: 'exceeded' as const };
+            }
+            if (item.progress > 80) {
+                return { ...item, type: 'approaching' as const };
+            }
+            return null;
+        })
+        .filter(Boolean);
+
+    if (alerts.length === 0) {
+        return null;
+    }
+
+    return (
+        <div>
+            <h2 className="text-lg font-semibold mb-2">Alertas de Orçamento</h2>
+            <Card className="bg-secondary/50">
+                <CardContent className="pt-6 space-y-3">
+                    {alerts.map(alert => (
+                         <Alert key={alert!.name} variant={alert!.type === 'exceeded' ? 'destructive' : 'default'} className={cn(alert!.type === 'approaching' && 'border-amber-500/50 text-amber-500')}>
+                            <ShieldAlert className={cn("h-4 w-4", alert!.type === 'exceeded' ? 'text-destructive' : 'text-amber-500')} />
+                            <AlertDescription className={cn('text-xs', alert!.type === 'exceeded' ? 'text-destructive' : 'text-amber-500/90')}>
+                                {alert!.type === 'exceeded'
+                                    ? `Você ultrapassou em ${formatCurrency(alert!.spent - alert!.budget)} o orçamento de ${alert!.name}.`
+                                    : `Você já usou ${alert!.progress.toFixed(0)}% do seu orçamento para ${alert!.name}.`
+                                }
+                            </AlertDescription>
+                        </Alert>
+                    ))}
+                </CardContent>
+            </Card>
+        </div>
+    )
+};
+
 
 const DashboardLoadingSkeleton = () => (
     <div className="space-y-6">
@@ -218,7 +220,10 @@ const DashboardLoadingSkeleton = () => (
 
 export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const { transactions, isLoading } = useTransactions();
+    const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+    const { user } = useAuth();
+    const [budgets, setBudgets] = useState<Budget>({});
+    const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const EXPENSE_LIMIT = 2000;
 
     const handlePrevMonth = () => {
@@ -229,7 +234,21 @@ export default function DashboardPage() {
         setCurrentMonth(addMonths(currentMonth, 1));
     };
     
-    const { summary, categorySpending } = useMemo(() => {
+    const monthId = format(currentMonth, 'yyyy-MM');
+
+    useEffect(() => {
+        if (user) {
+            setIsLoadingBudgets(true);
+            const unsubscribe = onBudgetsUpdate(user.uid, monthId, (newBudgets) => {
+                setBudgets(newBudgets || {});
+                setIsLoadingBudgets(false);
+            });
+            return () => unsubscribe();
+        }
+    }, [user, monthId]);
+
+
+    const { summary, categorySpending, budgetItems } = useMemo(() => {
         const monthTransactions = transactions.filter(t => {
             const tDate = new Date(t.date);
             return tDate.getMonth() === currentMonth.getMonth() && tDate.getFullYear() === currentMonth.getFullYear();
@@ -245,15 +264,31 @@ export default function DashboardPage() {
           .forEach(t => {
             spendingMap.set(t.category, (spendingMap.get(t.category) || 0) + t.amount);
           });
+          
         const categorySpending = Array.from(spendingMap.entries())
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value);
 
+        const budgetItems = Object.entries(budgets)
+            .map(([category, budgetAmount]) => {
+                if (!budgetAmount || budgetAmount === 0) return null;
+                const spent = spendingMap.get(category as TransactionCategory) || 0;
+                const progress = (spent / budgetAmount) * 100;
+                return {
+                    name: category,
+                    spent,
+                    budget: budgetAmount,
+                    progress,
+                };
+            })
+            .filter(Boolean) as BudgetItem[];
+
         return { 
             summary: { recebidos, despesas, previsto },
-            categorySpending
+            categorySpending,
+            budgetItems
         };
-    }, [transactions, currentMonth]);
+    }, [transactions, currentMonth, budgets]);
 
     const isExpenseLimitExceeded = summary.despesas > EXPENSE_LIMIT;
     
@@ -293,7 +328,7 @@ export default function DashboardPage() {
     
     const chartData = useMemo(() => generateChartData(transactions), [transactions]);
     
-    if (isLoading) {
+    if (isLoadingTransactions || isLoadingBudgets) {
         return <DashboardLoadingSkeleton />;
     }
 
@@ -375,7 +410,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <BudgetCard categorySpending={categorySpending} currentMonth={currentMonth} />
+        <BudgetAlertsCard budgetItems={budgetItems} />
+
+        <BudgetCard budgetItems={budgetItems} />
 
         <div>
             <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
