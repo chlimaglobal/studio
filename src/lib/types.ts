@@ -31,28 +31,14 @@ export const transactionCategories = Object.values(categoryData).flat();
 export type TransactionCategory = typeof transactionCategories[number];
 
 
-const amountPreprocess = (val: unknown) => {
-    if (!val || typeof val !== 'string') {
-        return 0; // Return 0 or some other default if input is invalid
-    }
-    // Remove R$, spaces, and dots. Replace comma with dot.
-    const cleaned = val
-        .replace('R$', '')
-        .trim()
-        .replace(/\./g, '')
-        .replace(',', '.');
-
-    return parseFloat(cleaned) || 0;
-};
-
-
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.preprocess(amountPreprocess, z.coerce.number({
+  amount: z.coerce.number({
+    required_error: "O valor é obrigatório.",
     invalid_type_error: "O valor deve ser um número.",
-  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." })),
+  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
@@ -61,7 +47,7 @@ export const TransactionFormSchema = z.object({
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
   paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
-  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional().or(z.literal('')),
+  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional(),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
@@ -73,7 +59,7 @@ export const TransactionFormSchema = z.object({
             path: ["creditCard"],
         });
     }
-    if (data.paymentMethod === 'installments' && (data.installments === '' || (typeof data.installments === 'number' && data.installments < 2))) {
+    if (data.paymentMethod === 'installments' && (data.installments === undefined || data.installments < 2)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
@@ -144,5 +130,3 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
-
-    

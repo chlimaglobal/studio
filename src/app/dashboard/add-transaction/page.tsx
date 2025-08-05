@@ -33,28 +33,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-const formatCurrencyInput = (value: string): string => {
-  if (!value) return '';
-  // Remove all non-digit characters
-  let num = value.replace(/\D/g, '');
-  if (!num) return '';
-
-  // Pad with zeros if necessary
-  num = num.padStart(3, '0');
-
-  // Format to R$ 1.234,56
-  const cents = num.slice(-2);
-  const integers = num.slice(0, -2);
-  const formattedIntegers = integers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-  return `R$ ${formattedIntegers},${cents}`;
-};
-
-const getRawValueFromFormatted = (formattedValue: string): string => {
-  return formattedValue.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
-}
-
-
 function AddTransactionForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -73,20 +51,20 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount.toString(),
+                    amount: transactionToEdit.amount,
                 };
             }
         }
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') || '',
+            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : undefined,
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
-            installments: searchParams.get('installments') || '',
+            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : undefined,
             observations: searchParams.get('observations') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
@@ -94,13 +72,18 @@ function AddTransactionForm() {
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
         resolver: zodResolver(TransactionFormSchema),
-        defaultValues: initialValues
+        defaultValues: {
+            ...initialValues,
+            amount: initialValues.amount || undefined,
+            installments: initialValues.installments || undefined,
+        }
     });
 
     useEffect(() => {
         form.reset({
              ...initialValues,
-             amount: initialValues.amount ? formatCurrencyInput(initialValues.amount.replace(/\D/g, '')) : ''
+             amount: initialValues.amount || undefined,
+             installments: initialValues.installments || undefined,
         });
     }, [initialValues, form]);
     
@@ -153,20 +136,15 @@ function AddTransactionForm() {
 
     async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
         try {
-            const submissionData = {
-                ...values,
-                amount: parseFloat(getRawValueFromFormatted(values.amount as unknown as string))
-            };
+            const submissionData = { ...values };
 
             if (isEditing && transactionId) {
-                // @ts-ignore
                 await updateTransaction(transactionId, submissionData);
                  toast({
                     title: 'Sucesso!',
                     description: 'Transação atualizada.'
                 });
             } else {
-                // @ts-ignore
                 await addTransaction(submissionData);
                 toast({
                     title: 'Sucesso!',
@@ -248,12 +226,11 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="R$ 0,00"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="5770.16"
                                                 {...field}
-                                                onChange={(e) => {
-                                                    const formattedValue = formatCurrencyInput(e.target.value);
-                                                    field.onChange(formattedValue);
-                                                }}
+                                                onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -396,6 +373,7 @@ function AddTransactionForm() {
                                                         min="2" 
                                                         placeholder="Ex: 12" 
                                                         {...field}
+                                                        onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -504,5 +482,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
