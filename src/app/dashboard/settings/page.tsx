@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,9 +66,10 @@ const ThemeSelector = () => {
     const { theme, setTheme } = useTheme();
 
     const themes = [
-        { name: 'light', label: 'Claro', gradient: 'from-blue-400 to-white' },
-        { name: 'dark', label: 'Escuro', gradient: 'from-gray-700 to-gray-900' },
-        { name: 'gold', label: 'Dourado', gradient: 'from-yellow-600 to-amber-800' },
+        { name: 'light', label: 'Claro', icon: Sun, gradient: 'from-sky-300 to-white' },
+        { name: 'dark', label: 'Escuro', icon: Moon, gradient: 'from-slate-800 to-slate-900' },
+        { name: 'gold', label: 'Dourado', icon: Sparkles, gradient: 'from-yellow-600 to-amber-800' },
+        { name: 'system', label: 'Padrão do Sistema', icon: Laptop, gradient: 'from-slate-400 to-slate-600' },
     ];
 
     return (
@@ -90,7 +91,8 @@ const ThemeSelector = () => {
                         >
                             <div className={cn('absolute inset-0 bg-gradient-to-r', t.gradient)}></div>
                             <div className="relative z-10 flex items-center justify-between">
-                                 <span className={cn('font-semibold', (t.name === 'light') ? 'text-black' : 'text-white')}>
+                                 <span className={cn('font-semibold flex items-center gap-2', (t.name === 'light') ? 'text-black' : 'text-white')}>
+                                    <t.icon className="h-5 w-5" />
                                     {t.label}
                                 </span>
                                 {theme === t.name && (

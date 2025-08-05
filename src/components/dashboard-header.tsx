@@ -3,7 +3,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff, Palette } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -76,10 +76,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
     }
   };
 
-  const toggleTheme = () => {
-      setTheme(theme === 'dark' ? 'light' : 'dark');
-  }
-
   const showPlaceholderToast = () => {
     toast({
       title: 'Funcionalidade em Breve',
@@ -120,6 +116,12 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                         <span>Segurança</span>
                     </Link>
                   </DropdownMenuItem>
+                   <DropdownMenuItem asChild>
+                     <Link href="/dashboard/settings">
+                        <Palette className="mr-2 h-4 w-4" />
+                        <span>Aparência</span>
+                    </Link>
+                  </DropdownMenuItem>
                  <DropdownMenuItem onClick={showPlaceholderToast}>
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Planos</span>
@@ -127,10 +129,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                  <DropdownMenuItem onClick={showPlaceholderToast}>
                     <XCircle className="mr-2 h-4 w-4" />
                     <span>Cancelar assinatura</span>
-                 </DropdownMenuItem>
-                  <DropdownMenuItem onClick={toggleTheme}>
-                    <Sun className="mr-2 h-4 w-4" />
-                    <span>{theme === 'dark' ? 'Light' : 'Dark'} tema</span>
                  </DropdownMenuItem>
                  <DropdownMenuSeparator />
                  <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
