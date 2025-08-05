@@ -361,12 +361,10 @@ function AddTransactionForm() {
                                                 <FormLabel>Número de Parcelas</FormLabel>
                                                 <FormControl>
                                                     <Input 
-                                                        type="number" 
-                                                        min="2" 
+                                                        type="text" 
+                                                        inputMode="numeric"
                                                         placeholder="Ex: 12" 
                                                         {...field}
-                                                        onChange={e => field.onChange(e.target.valueAsNumber || '')}
-                                                        value={field.value ?? ''}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
