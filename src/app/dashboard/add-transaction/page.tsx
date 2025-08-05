@@ -58,13 +58,13 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : undefined,
+            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
-            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : undefined,
+            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : '',
             observations: searchParams.get('observations') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
@@ -74,16 +74,16 @@ function AddTransactionForm() {
         resolver: zodResolver(TransactionFormSchema),
         defaultValues: {
             ...initialValues,
-            amount: initialValues.amount || undefined,
-            installments: initialValues.installments || undefined,
+            amount: initialValues.amount || '',
+            installments: initialValues.installments || '',
         }
     });
 
     useEffect(() => {
         form.reset({
              ...initialValues,
-             amount: initialValues.amount || undefined,
-             installments: initialValues.installments || undefined,
+             amount: initialValues.amount || '',
+             installments: initialValues.installments || '',
         });
     }, [initialValues, form]);
     
@@ -228,9 +228,10 @@ function AddTransactionForm() {
                                             <Input
                                                 type="number"
                                                 step="0.01"
-                                                placeholder="5770.16"
+                                                placeholder="5770,16"
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
+                                                onChange={e => field.onChange(e.target.valueAsNumber || e.target.value)}
+                                                value={field.value || ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -373,7 +374,8 @@ function AddTransactionForm() {
                                                         min="2" 
                                                         placeholder="Ex: 12" 
                                                         {...field}
-                                                        onChange={e => field.onChange(e.target.value === '' ? undefined : +e.target.value)}
+                                                        onChange={e => field.onChange(e.target.valueAsNumber || e.target.value)}
+                                                        value={field.value || ''}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
