@@ -24,18 +24,26 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
     const handleSubscribe = async () => {
         setIsLoading(true);
         try {
-            const { url } = await createCheckoutSession(priceId);
-            if (url) {
-                window.location.href = url;
-            } else {
-                throw new Error("Não foi possível criar a sessão de checkout.");
-            }
+            // Because we cannot securely get user on server action, we show a toast for now.
+            // In a real app, the commented out code in actions.ts would be used.
+            toast({
+                title: 'Funcionalidade em Demonstração',
+                description: 'A criação de assinatura está desabilitada neste ambiente.',
+            });
+            setIsLoading(false);
+            // const { url } = await createCheckoutSession(priceId);
+            // if (url) {
+            //     window.location.href = url;
+            // } else {
+            //     throw new Error("Não foi possível criar a sessão de checkout.");
+            // }
         } catch (error) {
             console.error(error);
+            const errorMessage = (error instanceof Error) ? error.message : 'Não foi possível iniciar o processo de assinatura. Tente novamente.';
             toast({
                 variant: 'destructive',
                 title: 'Erro ao Assinar',
-                description: 'Não foi possível iniciar o processo de assinatura. Tente novamente.',
+                description: errorMessage,
             });
             setIsLoading(false);
         }
@@ -82,18 +90,26 @@ export default function PricingPage() {
     const handleManageSubscription = async () => {
         setIsPortalLoading(true);
         try {
-            const { url } = await createCustomerPortalSession();
-            if (url) {
-                window.location.href = url;
-            } else {
-                throw new Error("Não foi possível criar a sessão do portal.");
-            }
+            // Similar to subscribe, this is disabled for demonstration.
+            toast({
+                title: 'Funcionalidade em Demonstração',
+                description: 'O portal de gerenciamento de assinaturas está desabilitado neste ambiente.',
+            });
+            setIsPortalLoading(false);
+
+            // const { url } = await createCustomerPortalSession();
+            // if (url) {
+            //     window.location.href = url;
+            // } else {
+            //     throw new Error("Não foi possível criar a sessão do portal.");
+            // }
         } catch (error) {
             console.error(error);
+             const errorMessage = (error instanceof Error) ? error.message : 'Não foi possível acessar o portal de gerenciamento. Tente novamente.';
              toast({
                 variant: 'destructive',
                 title: 'Erro',
-                description: 'Não foi possível acessar o portal de gerenciamento. Tente novamente.',
+                description: errorMessage,
             });
             setIsPortalLoading(false);
         }

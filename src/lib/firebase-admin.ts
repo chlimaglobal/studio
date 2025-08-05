@@ -1,22 +1,23 @@
 
 import * as admin from 'firebase-admin';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : undefined;
+const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    console.error('Firebase Admin initialization error', e);
+  if (serviceAccountString) {
+    try {
+      const serviceAccount = JSON.parse(serviceAccountString);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    } catch (e) {
+      console.error('Firebase Admin initialization error: Invalid service account credentials.', e);
+    }
+  } else {
+    console.warn('Firebase Admin SDK not initialized. FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
   }
 }
 
-export const adminApp = admin.app();
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
-
-    
+export const adminApp = admin.apps.length > 0 ? admin.app() : undefined;
+export const adminAuth = admin.apps.length > 0 ? admin.auth() : undefined;
+export const adminDb = admin.apps.length > 0 ? admin.firestore() : undefined;
