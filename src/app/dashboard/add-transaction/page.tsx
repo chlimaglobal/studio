@@ -223,8 +223,6 @@ function AddTransactionForm() {
                                                 inputMode="decimal"
                                                 placeholder="5770,16"
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.value)}
-                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -477,5 +475,7 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
