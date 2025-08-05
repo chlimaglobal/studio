@@ -51,7 +51,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount || '',
+                    amount: transactionToEdit.amount || 0,
                     installments: transactionToEdit.installments || '',
                 };
             }
@@ -59,7 +59,7 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : '',
+            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : 0,
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
@@ -227,10 +227,12 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="text"
-                                                inputMode="decimal"
+                                                type="number"
+                                                step="0.01"
                                                 placeholder="5770.16"
                                                 {...field}
+                                                onChange={e => field.onChange(e.target.valueAsNumber || '')}
+                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -483,3 +485,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    

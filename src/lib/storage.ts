@@ -73,7 +73,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
     if (!userId) throw new Error("User not authenticated");
     const transactionData = {
         ...data,
-        amount: Number(data.amount),
+        amount: parseFloat(String(data.amount)),
         date: Timestamp.fromDate(new Date(data.date))
     };
     await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
@@ -84,7 +84,7 @@ export async function updateStoredTransaction(userId: string, transactionId: str
     const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
     const transactionData = {
         ...data,
-        amount: Number(data.amount),
+        amount: parseFloat(String(data.amount)),
         date: Timestamp.fromDate(new Date(data.date))
     };
     await updateDoc(transactionRef, cleanDataForFirestore(transactionData));
@@ -337,3 +337,5 @@ export async function getAllUserDataForBackup(userId: string) {
 
     return backupData;
 }
+
+    
