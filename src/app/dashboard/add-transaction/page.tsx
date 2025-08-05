@@ -227,12 +227,10 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="number"
-                                                step="0.01"
+                                                type="text"
+                                                inputMode="decimal"
                                                 placeholder="5770.16"
                                                 {...field}
-                                                onChange={e => field.onChange(e.target.valueAsNumber || '')}
-                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
