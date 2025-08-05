@@ -220,7 +220,7 @@ function AddTransactionForm() {
                                         <FormControl>
                                             <Input
                                                 type="text"
-                                                inputMode="decimal"
+                                                inputMode="text"
                                                 placeholder="5770,16"
                                                 {...field}
                                             />
@@ -473,6 +473,8 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
 
