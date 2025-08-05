@@ -51,7 +51,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount || '',
+                    amount: String(transactionToEdit.amount).replace('.', ',') || '',
                     installments: transactionToEdit.installments || '',
                 };
             }
@@ -59,7 +59,7 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') || '',
+            amount: searchParams.get('amount')?.replace('.', ',') || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
@@ -473,11 +473,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
-
-    

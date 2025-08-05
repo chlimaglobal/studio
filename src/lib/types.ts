@@ -16,7 +16,7 @@ export const categoryData = {
   "Salário": ["Férias", "Hora extra", "Comissão", "13º Salário", "Aposentadoria", "Trabalho", "Bônus"],
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
   "Viagens": ["Hotel", "Passagem", "Passeio"],
-  "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maquiagem"],
+  "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maagem"],
   "Finanças": ["Financiamento", "Renegociação", "Seguros", "Fitness"],
   "Outros": ["Presentes", "Compras", "Outros"],
 } as const;
@@ -35,16 +35,24 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.preprocess((val) => {
-      if (typeof val === 'string') {
-          // Replace comma with dot for decimal conversion
-          return parseFloat(val.replace(',', '.'));
-      }
-      return val;
-  }, z.coerce.number({
-    required_error: "O valor é obrigatório.",
-    invalid_type_error: "O valor deve ser um número.",
-  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." })),
+  amount: z.string().transform((val, ctx) => {
+    const parsed = parseFloat(val.replace(',', '.'));
+    if (isNaN(parsed)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O valor deve ser um número válido.",
+        });
+        return z.NEVER;
+    }
+     if (parsed <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'O valor deve ser positivo.',
+      });
+      return z.NEVER;
+    }
+    return parsed;
+  }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
