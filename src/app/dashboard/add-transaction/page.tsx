@@ -51,7 +51,8 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: transactionToEdit.amount,
+                    amount: transactionToEdit.amount || '',
+                    installments: transactionToEdit.installments || '',
                 };
             }
         }
@@ -228,7 +229,7 @@ function AddTransactionForm() {
                                             <Input
                                                 type="number"
                                                 step="0.01"
-                                                placeholder="5770,16"
+                                                placeholder="5770.16"
                                                 {...field}
                                                 onChange={e => field.onChange(e.target.valueAsNumber || '')}
                                                 value={field.value ?? ''}
