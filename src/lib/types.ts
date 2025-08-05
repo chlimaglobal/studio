@@ -31,11 +31,20 @@ export const transactionCategories = Object.values(categoryData).flat();
 export type TransactionCategory = typeof transactionCategories[number];
 
 
+const amountPreprocess = (val: unknown) => {
+    if (typeof val === 'string') {
+        return val.replace(',', '.');
+    }
+    return val;
+};
+
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.coerce.number({invalid_type_error: "O valor deve ser um número."}).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." }),
+  amount: z.preprocess(amountPreprocess, z.coerce.number({
+    invalid_type_error: "O valor deve ser um número.",
+  }).min(0.01, { message: "O valor deve ser de pelo menos R$0,01." })),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {

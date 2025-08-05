@@ -222,10 +222,9 @@ function AddTransactionForm() {
                                                 placeholder="0,00"
                                                 {...field}
                                                 onChange={e => {
-                                                    const value = e.target.value.replace(',', '.');
-                                                    field.onChange(parseFloat(value) || 0);
+                                                    const value = e.target.value.replace(/[^0-9,.]/g, '');
+                                                    field.onChange(value);
                                                 }}
-                                                value={String(field.value ?? '').replace('.', ',')}
                                             />
                                         </FormControl>
                                         <FormMessage />
