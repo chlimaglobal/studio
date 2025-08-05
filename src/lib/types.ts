@@ -33,7 +33,8 @@ export type TransactionCategory = typeof transactionCategories[number];
 
 const amountPreprocess = (val: unknown) => {
     if (typeof val === 'string') {
-        return val.replace(',', '.');
+        const cleaned = val.replace(/\./g, '').replace(',', '.');
+        return cleaned;
     }
     return val;
 };
@@ -53,7 +54,7 @@ export const TransactionFormSchema = z.object({
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
   paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
-  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional(),
+  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional().or(z.literal('')),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
@@ -65,7 +66,7 @@ export const TransactionFormSchema = z.object({
             path: ["creditCard"],
         });
     }
-    if (data.paymentMethod === 'installments' && (!data.installments || data.installments < 2)) {
+    if (data.paymentMethod === 'installments' && (data.installments === '' || (typeof data.installments === 'number' && data.installments < 2))) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
@@ -136,5 +137,3 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
-
-    

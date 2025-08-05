@@ -59,13 +59,13 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') ? parseFloat(searchParams.get('amount')!) : undefined,
+            amount: searchParams.get('amount') || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
-            installments: searchParams.get('installments') ? parseInt(searchParams.get('installments')!) : undefined,
+            installments: searchParams.get('installments') || '',
             observations: searchParams.get('observations') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
@@ -221,10 +221,6 @@ function AddTransactionForm() {
                                                 inputMode="decimal"
                                                 placeholder="0,00"
                                                 {...field}
-                                                onChange={e => {
-                                                    const value = e.target.value.replace(/[^0-9,.]/g, '');
-                                                    field.onChange(value);
-                                                }}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -366,8 +362,7 @@ function AddTransactionForm() {
                                                         type="number" 
                                                         min="2" 
                                                         placeholder="Ex: 12" 
-                                                        {...field} 
-                                                        onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
+                                                        {...field}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -476,5 +471,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
