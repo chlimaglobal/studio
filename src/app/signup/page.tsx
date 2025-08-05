@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { initializeUser } from '@/lib/storage';
 
 const Logo = () => (
     <div className="p-4 bg-secondary/50 rounded-2xl inline-block shadow-inner">
@@ -53,6 +54,13 @@ export default function SignUpPage() {
         await updateProfile(userCredential.user, {
             displayName: name,
         });
+
+        // Initialize user document in Firestore
+        await initializeUser(userCredential.user);
+
+        // Store user info in localStorage
+        localStorage.setItem('userName', name);
+        localStorage.setItem('userEmail', email);
       }
       
       toast({

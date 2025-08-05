@@ -337,5 +337,3 @@ export async function getAllUserDataForBackup(userId: string) {
 
     return backupData;
 }
-
-    

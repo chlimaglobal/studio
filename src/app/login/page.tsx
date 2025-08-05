@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '../layout';
 
@@ -62,12 +62,16 @@ export default function LoginPage() {
     }
   }, [user, isAuthLoading, router]);
 
-  const handleSuccessfulLogin = (userCredential: UserCredential) => {
+  const handleSuccessfulLogin = (loggedInUser: User) => {
     if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedEmail', loggedInUser.email || '');
     } else {
         localStorage.removeItem('rememberedEmail');
     }
+    // Store user info for biometrics and settings page
+    localStorage.setItem('userName', loggedInUser.displayName || '');
+    localStorage.setItem('userEmail', loggedInUser.email || '');
+    
     // The AuthProvider in layout will handle the user state update
     // and the redirection will be handled by the effect above.
   };
@@ -80,7 +84,7 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        handleSuccessfulLogin(userCredential);
+        handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro ao fazer login.';
@@ -102,13 +106,20 @@ export default function LoginPage() {
     setIsBiometricLoading(true);
     const auth = getAuth(app);
     try {
+        // This is a simplified simulation. A real implementation would:
+        // 1. Send the assertion to your backend.
+        // 2. The backend verifies the assertion.
+        // 3. The backend creates a custom token for the user.
+        // 4. The client signs in with the custom token `signInWithCustomToken`.
+        // For this demo, we'll check if a user is already cached and assume it's the right one.
+        
         await setPersistence(auth, browserLocalPersistence);
         const credentialId = localStorage.getItem('webauthn-credential-id');
         if (!credentialId) {
             toast({
                 variant: 'destructive',
                 title: 'Impressão Digital não Cadastrada',
-                description: 'Por favor, cadastre sua impressão digital nas configurações do perfil primeiro.',
+                description: 'Por favor, faça login com e-mail/senha e cadastre sua biometria nas configurações.',
             });
             return;
         }
@@ -130,11 +141,22 @@ export default function LoginPage() {
         const credential = await navigator.credentials.get({ publicKey: options });
 
         if (credential) {
-            // In a real app, this assertion would be sent to the server for verification,
-            // which would then sign the user in, triggering onAuthStateChanged.
-            // For this simulation, we'll assume success and let the auth provider handle it.
-            toast({ title: 'Login Biométrico Bem-Sucedido!' });
-            // The onAuthStateChanged listener in AuthProvider will do the rest.
+            // In a real app, this assertion would be sent to a backend for verification
+            // and then a session/token would be established.
+            // For this app, we rely on the onAuthStateChanged listener which should
+            // pick up the persisted user session.
+            toast({ title: 'Login Biométrico Bem-Sucedido!', description: 'Redirecionando para o painel...' });
+            // The AuthProvider listener will trigger the redirect. If not already logged in,
+            // this would require a backend to validate and issue a token.
+            // Since we persist auth state, this will work if the user was previously logged in.
+             if (auth.currentUser) {
+                handleSuccessfulLogin(auth.currentUser);
+             } else {
+                 // This case happens if the user is not persisted.
+                 // It would require a backend flow which is outside the scope of this implementation.
+                 toast({ variant: 'destructive', title: 'Sessão Expirada', description: 'Por favor, faça login com e-mail e senha novamente.' });
+             }
+
         } else {
              throw new Error('Falha ao obter credencial biométrica.');
         }
@@ -158,7 +180,7 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithPopup(auth, provider);
-        handleSuccessfulLogin(userCredential);
+        handleSuccessfulLogin(userCredential.user);
     } catch (error) {
          toast({
             variant: 'destructive',
@@ -278,5 +300,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
-    
