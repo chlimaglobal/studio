@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop, Star } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,6 +18,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/layout';
 import { getAllUserDataForBackup } from '@/lib/storage';
+import Link from 'next/link';
 
 
 type FabPosition = 'left' | 'right';
@@ -467,6 +468,22 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Star className="h-5 w-5" /> Plano e Assinatura</CardTitle>
+          <CardDescription>
+            Gerencie seu plano, veja faturas e altere sua forma de pagamento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/dashboard/pricing">
+                Ver Planos e Gerenciar Assinatura
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" /> Backup e Exportação</CardTitle>
           <CardDescription>
             Exporte todos os seus dados para um arquivo JSON como medida de segurança ou para migração.
@@ -622,6 +639,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-
-    
