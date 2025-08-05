@@ -7,18 +7,18 @@ export const categoryData = {
   "Moradia": ["Luz", "Eletrodomésticos", "Condomínio", "Aluguel/Prestação", "Reformas", "Água", "Casa"],
   "Transporte": ["IPVA", "Manutenção", "Táxi/Uber", "Licenciamento", "Combustível", "Multa"],
   "Saúde": ["Plano de Saúde", "Plano Odontológico", "Consultas", "Dentista", "Exames", "Farmácia"],
-  "Lazer/Hobbies": ["Teatro", "Parques", "Bares", "Cinema", "Shows e Eventos", "Esportes"],
+  "Lazer/Hobbies": ["Teatro", "Parques", "Bares", "Cinema", "Shows e Eventos", "Esportes", "Entretenimento"],
   "Dívidas/Empréstimos": ["Cartão de Crédito", "Empréstimo", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos"],
   "Educação": ["Cursos", "Faculdade", "Materiais e Livros", "Escola"],
   "Impostos/Taxas": ["Imposto de Renda", "Tarifa Bancária", "Anuidade Cartão", "Tributos"],
   "Investimentos e Reservas": ["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Proventos", "Aplicação", "Rendimentos", "Retirada", "Juros"],
-  "Pets": ["Banho/Tosa", "Acessórios Pet", "Alimentação Pet", "Medicamentos", "Veterinário"],
+  "Pets": ["Banho/Tosa", "Acessórios Pet", "Alimentação Pet", "Medicamentos", "Veterinário", "Pet"],
   "Salário": ["Férias", "Hora extra", "Comissão", "13º Salário", "Aposentadoria", "Trabalho", "Bônus"],
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
   "Viagens": ["Hotel", "Passagem", "Passeio"],
   "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maquiagem"],
-  "Finanças": ["Financiamento", "Renegociação", "Seguros"],
-  "Outros": ["Presentes", "Compras"],
+  "Finanças": ["Financiamento", "Renegociação", "Seguros", "Fitness"],
+  "Outros": ["Presentes", "Compras", "Outros"],
 } as const;
 
 
@@ -117,7 +117,13 @@ export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
 export const BudgetSchema = z.object({
   Supermercado: z.coerce.number().min(0).optional(),
   Casa: z.coerce.number().min(0).optional(),
-  'Cartão de Crédito': z.coerce.number().min(0).optional(),
+  Pet: z.coerce.number().min(0).optional(),
+  Farmácia: z.coerce.number().min(0).optional(),
+  Restaurante: z.coerce.number().min(0).optional(),
+  Entretenimento: z.coerce.number().min(0).optional(),
+  Fitness: z.coerce.number().min(0).optional(),
+  Educação: z.coerce.number().min(0).optional(),
+  Outros: z.coerce.number().min(0).optional(),
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Banknote, CreditCard, Loader2, Save, ShoppingCart, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Banknote, BookOpen, Dumbbell, GraduationCap, HeartPulse, Loader2, PawPrint, Pizza, Popcorn, Save, ShoppingCart, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,12 +16,20 @@ import { Budget, BudgetSchema } from '@/lib/types';
 import { useAuth } from '@/app/layout';
 import { onBudgetsUpdate, saveBudgets } from '@/lib/storage';
 import { format } from 'date-fns';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const budgetCategories = [
     { id: 'Supermercado', label: 'Supermercado', icon: ShoppingCart },
     { id: 'Casa', label: 'Casa (Contas e Manutenção)', icon: Banknote },
-    { id: 'Cartão de Crédito', label: 'Cartão de Crédito', icon: CreditCard },
+    { id: 'Pet', label: 'Pet', icon: PawPrint },
+    { id: 'Farmácia', label: 'Farmácia', icon: HeartPulse },
+    { id: 'Restaurante', label: 'Restaurante', icon: Pizza },
+    { id: 'Entretenimento', label: 'Entretenimento', icon: Popcorn },
+    { id: 'Fitness', label: 'Fitness', icon: Dumbbell },
+    { id: 'Educação', label: 'Educação', icon: GraduationCap },
+    { id: 'Outros', label: 'Outros', icon: BookOpen },
 ] as const;
+
 
 export default function BudgetsPage() {
     const router = useRouter();
@@ -36,7 +44,13 @@ export default function BudgetsPage() {
         defaultValues: {
             Supermercado: 0,
             Casa: 0,
-            'Cartão de Crédito': 0
+            Pet: 0,
+            Farmácia: 0,
+            Restaurante: 0,
+            Entretenimento: 0,
+            Fitness: 0,
+            Educação: 0,
+            Outros: 0
         },
     });
 
@@ -115,37 +129,41 @@ export default function BudgetsPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            {budgetCategories.map((category) => (
-                                <FormField
-                                    key={category.id}
-                                    control={form.control}
-                                    name={category.id}
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-2">
-                                                <category.icon className="h-5 w-5 text-muted-foreground" />
-                                                {category.label}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        placeholder="0,00"
-                                                        className="pl-9"
-                                                        {...field}
-                                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                                        value={field.value || ''}
-                                                    />
-                                                </div>
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            ))}
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                             <ScrollArea className="h-[calc(100vh-22rem)]">
+                                <div className="space-y-6 p-1">
+                                    {budgetCategories.map((category) => (
+                                        <FormField
+                                            key={category.id}
+                                            control={form.control}
+                                            name={category.id}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="flex items-center gap-2">
+                                                        <category.icon className="h-5 w-5 text-muted-foreground" />
+                                                        {category.label}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <div className="relative">
+                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                placeholder="0,00"
+                                                                className="pl-9"
+                                                                {...field}
+                                                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                                value={field.value || ''}
+                                                            />
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                             </ScrollArea>
                         </form>
                     </Form>
                 </CardContent>
