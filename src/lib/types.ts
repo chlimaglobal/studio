@@ -73,7 +73,7 @@ export const TransactionFormSchema = z.object({
             path: ["creditCard"],
         });
     }
-    if (data.paymentMethod === 'installments' && (data.installments === undefined || data.installments === '' || data.installments < 2)) {
+    if (data.paymentMethod === 'installments' && (!data.installments || data.installments < 2)) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
