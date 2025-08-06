@@ -10,6 +10,7 @@ import { app, db } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initializeUser, onUserSubscriptionUpdate } from '@/lib/storage';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -103,6 +104,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+       <head>
+        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+      </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
