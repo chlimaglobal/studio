@@ -1,0 +1,15 @@
+{
+  "name": "FinanceFlow",
+  "short_name": "FinanceFlow",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#2a2d3e",
+  "theme_color": "#3f51b5"
+}
