@@ -66,7 +66,7 @@ export const TransactionFormSchema = z.object({
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
 }).superRefine((data, ctx) => {
-    if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
+    if (data.type === 'expense' && data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "O nome do cartão é obrigatório para a categoria 'Cartão de Crédito'.",
@@ -144,5 +144,3 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
-
-    
