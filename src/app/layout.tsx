@@ -106,7 +106,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
        <head>
         <link rel="icon" href="/Favicon.ico" type="image/x-icon" />
-        <link rel="apple-touch-icon" href="/Favicon.ico" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ThemeProvider
