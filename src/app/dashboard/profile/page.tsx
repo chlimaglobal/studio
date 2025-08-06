@@ -17,7 +17,8 @@ import {
     Fingerprint,
     Loader2,
     ShieldCheck,
-    Star
+    Star,
+    LineChart
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +57,14 @@ const menuItems = [
         subtitle: 'Defina limites de gastos para categorias específicas.',
         type: 'link',
         href: '/dashboard/budgets',
+        premium: true,
+    },
+     { 
+        icon: LineChart, 
+        title: 'Meus Investimentos', 
+        subtitle: 'Controle seus ativos e veja a evolução do seu patrimônio.',
+        type: 'link',
+        href: '/dashboard/investments',
         premium: true,
     },
     { 

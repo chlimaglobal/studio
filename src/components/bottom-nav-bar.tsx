@@ -4,13 +4,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, HandCoins, ShieldCheck, Star } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, HandCoins, ShieldCheck, Star, LineChart } from 'lucide-react';
 import { useSubscription } from '@/components/client-providers';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações', premium: false },
-  { href: '/dashboard/budgets', icon: ShieldCheck, label: 'Orçamentos', premium: true },
+  { href: '/dashboard/investments', icon: LineChart, label: 'Investimentos', premium: true },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios', premium: false },
   { href: '/dashboard/profile', icon: UserCircle, label: 'Perfil', premium: false },
 ];
