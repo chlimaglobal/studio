@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
 import { ClientProviders } from '@/components/client-providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
@@ -28,7 +27,6 @@ export default function RootLayout({
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ClientProviders>
           {children}
-          <Toaster />
         </ClientProviders>
       </body>
     </html>

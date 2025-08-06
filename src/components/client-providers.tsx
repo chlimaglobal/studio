@@ -5,6 +5,7 @@ import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initializeUser, onUserSubscriptionUpdate } from '@/lib/storage';
+import { Toaster } from "@/components/ui/toaster";
 
 // 1. Auth Context
 interface AuthContextType {
@@ -98,6 +99,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
           <AuthProvider>
             <SubscriptionProvider>
                 {children}
+                <Toaster />
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
