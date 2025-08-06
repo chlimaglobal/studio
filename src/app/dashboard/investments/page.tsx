@@ -152,91 +152,89 @@ export default function InvestmentsPage() {
     }
     
     return (
-        <div className="flex flex-col h-full">
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                            <ArrowLeft className="h-6 w-6" />
-                        </Button>
-                        <div>
-                            <h1 className="text-2xl font-semibold flex items-center gap-2">
-                                <LineChart className="h-6 w-6" />
-                                Meus Investimentos
-                            </h1>
-                            <p className="text-muted-foreground">Acompanhe a evolução do seu patrimônio.</p>
-                        </div>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                        <ArrowLeft className="h-6 w-6" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-semibold flex items-center gap-2">
+                            <LineChart className="h-6 w-6" />
+                            Meus Investimentos
+                        </h1>
+                        <p className="text-muted-foreground">Acompanhe a evolução do seu patrimônio.</p>
                     </div>
-                    { (isSubscribed || isAdmin) && (
-                        <Button onClick={() => router.push('/dashboard/add-transaction?type=expense&category=Ações')}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Adicionar Investimento
-                        </Button>
-                    )}
                 </div>
-
-                {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Total Investido</CardTitle>
-                                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold">{formatCurrency(investmentData.netInvested)}</div>
-                                    <p className="text-xs text-muted-foreground">Valor líquido aplicado.</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Rendimentos</CardTitle>
-                                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-green-500">{formatCurrency(investmentData.totalReturns)}</div>
-                                    <p className="text-xs text-muted-foreground">Lucro total com dividendos, juros, etc.</p>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium">Patrimônio Atual</CardTitle>
-                                    <Landmark className="h-4 w-4 text-muted-foreground" />
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-primary">{formatCurrency(investmentData.currentPatrimony)}</div>
-                                    <p className="text-xs text-muted-foreground">Soma do investido com rendimentos.</p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                        
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Evolução do Patrimônio</CardTitle>
-                                <CardDescription>
-                                    Crescimento dos seus investimentos ao longo do tempo.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[300px]">
-                                 <FinancialChart data={chartData} isPrivacyMode={false} />
-                            </CardContent>
-                        </Card>
-
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Histórico de Movimentações</CardTitle>
-                                <CardDescription>
-                                    Todas as suas transações de investimento, incluindo aportes e rendimentos.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <TransactionsTable transactions={investmentData.investmentTransactions} />
-                            </CardContent>
-                        </Card>
-                    </>
+                { (isSubscribed || isAdmin) && (
+                    <Button onClick={() => router.push('/dashboard/add-transaction?type=expense&category=Ações')}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Investimento
+                    </Button>
                 )}
             </div>
+
+            {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Investido</CardTitle>
+                                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{formatCurrency(investmentData.netInvested)}</div>
+                                <p className="text-xs text-muted-foreground">Valor líquido aplicado.</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Rendimentos</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-green-500">{formatCurrency(investmentData.totalReturns)}</div>
+                                <p className="text-xs text-muted-foreground">Lucro total com dividendos, juros, etc.</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Patrimônio Atual</CardTitle>
+                                <Landmark className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-primary">{formatCurrency(investmentData.currentPatrimony)}</div>
+                                <p className="text-xs text-muted-foreground">Soma do investido com rendimentos.</p>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Evolução do Patrimônio</CardTitle>
+                            <CardDescription>
+                                Crescimento dos seus investimentos ao longo do tempo.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="h-[300px]">
+                                <FinancialChart data={chartData} isPrivacyMode={false} />
+                        </CardContent>
+                    </Card>
+
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Histórico de Movimentações</CardTitle>
+                            <CardDescription>
+                                Todas as suas transações de investimento, incluindo aportes e rendimentos.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <TransactionsTable transactions={investmentData.investmentTransactions} />
+                        </CardContent>
+                    </Card>
+                </>
+            )}
         </div>
     )
 }
