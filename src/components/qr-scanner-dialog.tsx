@@ -66,7 +66,7 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
                 stopCamera();
                 toast({
                   title: 'QR Code Lido!',
-                  description: `A IA agora processaria a URL para extrair os detalhes da compra.`,
+                  description: `A Lúmina agora processaria a URL para extrair os detalhes da compra.`,
                 });
 
                 // Simula a extração de dados da URL e passa para o formulário

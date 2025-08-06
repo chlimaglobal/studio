@@ -29,7 +29,7 @@ export async function extractTransactionInfoFromText(text: string) {
     return { error: 'Não foi possível extrair os detalhes da transação.' };
   } catch (e) {
     console.error(e);
-    return { error: 'Falha ao processar o comando de voz com a IA.' };
+    return { error: 'Falha ao processar o comando de voz com a Lúmina.' };
   }
 }
 
@@ -46,12 +46,12 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
       return { category: result.category, error: null };
     }
     // If the category is invalid or not returned, fail silently without user-facing error.
-    console.warn(`AI returned invalid or no category for: "${description}"`);
+    console.warn(`Lúmina returned invalid or no category for: "${description}"`);
     return { category: null, error: 'Não foi possível determinar uma categoria válida.' };
   } catch (e) {
-    console.error("AI suggestion failed:", e);
+    console.error("Lúmina suggestion failed:", e);
     // Fail silently on the UI, but log the error.
-    return { category: null, error: 'Falha ao obter sugestão da IA.' };
+    return { category: null, error: 'Falha ao obter sugestão da Lúmina.' };
   }
 }
 

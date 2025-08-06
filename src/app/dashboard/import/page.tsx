@@ -24,7 +24,7 @@ const PremiumBlocker = () => (
                     Recurso Premium
                 </CardTitle>
                 <CardDescription>
-                    A importação de extratos com IA é um recurso exclusivo para assinantes.
+                    A importação de extratos com a Lúmina é um recurso exclusivo para assinantes.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -56,7 +56,7 @@ export default function ImportPage() {
     if (file) {
       toast({
         title: 'Arquivo Selecionado',
-        description: `Processando ${file.name} com a IA...`,
+        description: `Processando ${file.name} com a Lúmina...`,
       });
 
       const reader = new FileReader();
@@ -72,7 +72,7 @@ export default function ImportPage() {
                 description: `${result.transactions.length} transações foram extraídas. Revise e salve.`,
               });
             } else {
-              throw new Error('A IA não conseguiu extrair transações.');
+              throw new Error('A Lúmina não conseguiu extrair transações.');
             }
           } catch (error) {
             toast({
@@ -137,7 +137,7 @@ export default function ImportPage() {
               Use o botão abaixo para selecionar o seu extrato exportado do banco.
             </p>
             <p className="text-sm text-muted-foreground">
-              Arquivos suportados: OFX, CSV, PDF. A IA tentará entender o formato.
+              Arquivos suportados: OFX, CSV, PDF. A Lúmina tentará entender o formato.
             </p>
             <div className="w-full max-w-sm pt-4">
               <Input

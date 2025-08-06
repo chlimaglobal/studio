@@ -11,7 +11,7 @@ import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
 
 const features = [
-    "Análises com IA ilimitadas",
+    "Análises com a Lúmina ilimitadas",
     "Orçamentos personalizados",
     "Metas Financeiras",
     "Sincronização com WhatsApp",

@@ -36,7 +36,7 @@ const menuItems = [
     },
     { 
         icon: MessageCircle, 
-        title: 'Assistente IA no WhatsApp', 
+        title: 'Assistente Lúmina no WhatsApp', 
         subtitle: 'Registre receitas, despesas e muito mais diretamente no WhatsApp ✨',
         type: 'link',
         href: '/dashboard/whatsapp',

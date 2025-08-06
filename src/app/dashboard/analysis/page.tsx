@@ -18,7 +18,7 @@ const PremiumBlocker = () => (
                 Recurso Premium
             </CardTitle>
             <CardDescription>
-                A Análise Financeira com IA é um recurso exclusivo para assinantes.
+                A Análise Financeira com a Lúmina é um recurso exclusivo para assinantes.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,7 +87,7 @@ export default function AnalysisPage() {
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Analisando suas finanças com IA...</span>
+                <span>Analisando suas finanças com a Lúmina...</span>
             </div>
         </div>
     );
@@ -119,7 +119,7 @@ export default function AnalysisPage() {
                 Análise Financeira
               </h1>
               <p className="text-muted-foreground">
-                Sua saúde financeira e dicas personalizadas pela nossa IA.
+                Sua saúde financeira e dicas personalizadas pela nossa IA Lúmina.
               </p>
             </div>
         </div>
@@ -133,7 +133,7 @@ export default function AnalysisPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
             <Sparkles />
-            Diagnóstico da IA
+            Diagnóstico da Lúmina
           </CardTitle>
           <CardDescription>
             Um resumo da sua situação financeira no período.

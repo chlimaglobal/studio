@@ -60,7 +60,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         onOpenChange(false); // Fecha o diálogo de áudio
       }
     } catch (e) {
-      const errorMessage = 'Ocorreu um erro ao falar com a IA. Tente novamente.';
+      const errorMessage = 'Ocorreu um erro ao falar com a Lúmina. Tente novamente.';
       toast({ variant: 'destructive', title: 'Erro de Processamento', description: errorMessage });
       setError(errorMessage);
     } finally {
@@ -145,7 +145,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         <DialogHeader className="text-center">
           <DialogTitle>Adicionar por Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Diga o que você gastou ou recebeu.")}
+            {isProcessing ? "Analisando..." : (isRecording ? "Lúmina está ouvindo..." : "Diga o que você gastou ou recebeu.")}
           </DialogDescription>
         </DialogHeader>
 

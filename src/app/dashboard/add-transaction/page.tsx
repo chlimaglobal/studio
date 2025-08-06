@@ -92,7 +92,7 @@ function AddTransactionForm() {
             if (category) {
                 form.setValue('category', category, { shouldValidate: true });
                 toast({
-                    title: 'Sugestão da IA',
+                    title: 'Sugestão da Lúmina',
                     description: `Categorizamos isso como "${category}".`,
                 });
             }
@@ -221,7 +221,7 @@ function AddTransactionForm() {
                                             <Input
                                                 type="text"
                                                 inputMode="decimal"
-                                                placeholder="10.000,50"
+                                                placeholder="10.000,00"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -303,7 +303,7 @@ function AddTransactionForm() {
                                                 </Button>
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                <p>Categorizar com IA</p>
+                                                <p>Categorizar com Lúmina</p>
                                             </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
@@ -363,7 +363,7 @@ function AddTransactionForm() {
                                                     <Input 
                                                         type="text" 
                                                         inputMode="numeric"
-                                                        placeholder="Ex: 12" 
+                                                        placeholder="Ex: 12x" 
                                                         {...field}
                                                     />
                                                 </FormControl>
@@ -473,5 +473,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    

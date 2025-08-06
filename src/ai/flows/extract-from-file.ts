@@ -26,7 +26,7 @@ const prompt = ai.definePrompt({
   name: 'extractFromFilePrompt',
   input: { schema: ExtractFromFileInputSchema },
   output: { schema: ExtractFromFileOutputSchema },
-  prompt: `Você é um especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
+  prompt: `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
 
   **Instruções de Processamento:**
   1.  **Analise o Conteúdo:** O conteúdo do arquivo será fornecido como uma string. Identifique o formato (mesmo que a extensão seja genérica) e a estrutura dos dados.
@@ -67,7 +67,7 @@ const extractFromFileFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     if (!output) {
-      throw new Error('A IA não conseguiu processar o arquivo.');
+      throw new Error('A Lúmina não conseguiu processar o arquivo.');
     }
     return output;
   }

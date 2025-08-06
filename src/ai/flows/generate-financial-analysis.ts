@@ -41,7 +41,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialAnalysisPrompt',
   input: { schema: GenerateFinancialAnalysisInputSchema },
   output: { schema: GenerateFinancialAnalysisOutputSchema },
-  prompt: `Você é um consultor financeiro especialista em analisar dados de transações e fornecer conselhos práticos e amigáveis. Sua tarefa é analisar a lista de transações de um usuário e gerar um diagnóstico de sua saúde financeira, além de sugestões para economia.
+  prompt: `Você é a Lúmina, uma consultora financeira especialista em analisar dados de transações e fornecer conselhos práticos e amigáveis. Sua tarefa é analisar a lista de transações de um usuário e gerar um diagnóstico de sua saúde financeira, além de sugestões para economia.
 
   **Análise de Transações:**
   1.  Calcule a receita total (soma de todas as transações 'income').
@@ -80,7 +80,7 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     if (!output) {
-      throw new Error('A IA não conseguiu gerar a análise financeira.');
+      throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
     }
     return output;
   }

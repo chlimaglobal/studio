@@ -28,7 +28,7 @@ const PremiumBlocker = () => (
                 Recurso Premium
             </CardTitle>
             <CardDescription>
-                O Assistente IA no WhatsApp é um recurso exclusivo para assinantes.
+                A assistente Lúmina no WhatsApp é um recurso exclusivo para assinantes.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -44,7 +44,7 @@ const PremiumBlocker = () => (
 
 export default function WhatsAppPage() {
   const router = useRouter();
-  const whatsappLink = "https://wa.me/14155238886?text=join%20smitten-chose";
+  const whatsappLink = "https://wa.me/5585997635718";
   const { isSubscribed, isLoading } = useSubscription();
 
   if (isLoading) {
@@ -92,9 +92,9 @@ export default function WhatsAppPage() {
                 </div>
 
                 <div className="space-y-4">
-                    <h1 className="text-3xl font-bold tracking-tight">Um assistente no <span className="text-primary">WhatsApp</span>?</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Sua assistente Lúmina no <span className="text-primary">WhatsApp</span></h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                        Isso mesmo. Uma inteligência artificial sempre disponível para você diretamente no WhatsApp!
+                        Isso mesmo. A Lúmina está sempre disponível para você diretamente no WhatsApp!
                     </p>
                     <p className="text-muted-foreground max-w-md mx-auto">
                         Você pode enviar mensagens, áudios, fotos de comprovantes e muito mais. Tudo que você cadastrar no assistente aparecerá no aplicativo no celular e vice-versa.

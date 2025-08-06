@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'extractTransactionPrompt',
   input: { schema: ExtractTransactionInputSchema },
   output: { schema: ExtractTransactionOutputSchema },
-  prompt: `Você é um assistente financeiro especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
+  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
   Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor e o tipo de transação (receita ou despesa).
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
   O valor deve ser um número. Interprete valores como "cento e cinquenta e 75" como 150.75.
@@ -86,7 +86,7 @@ const extractTransactionFlow = ai.defineFlow(
   async (input) => {
     const { output } = await prompt(input);
     if (!output || !output.amount || !output.description || !output.type) {
-      throw new Error('A IA não conseguiu processar a solicitação ou os dados estão incompletos.');
+      throw new Error('A Lúmina não conseguiu processar a solicitação ou os dados estão incompletos.');
     }
     return output;
   }
