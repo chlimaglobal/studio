@@ -36,12 +36,12 @@ export const TransactionFormSchema = z.object({
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
   amount: z.string()
-    .refine((val) => /^[0-9,.]+$/.test(val), {
+    .refine((val) => /^\s*[\d.,]+\s*$/.test(val), {
         message: "O valor deve conter apenas números, vírgulas ou pontos."
     })
-    .transform(val => parseFloat(val.replace('.', '').replace(',', '.')))
-    .refine(val => val > 0, {
-        message: "O valor deve ser positivo."
+    .transform(val => parseFloat(val.replace(/\./g, '').replace(',', '.')))
+    .refine(val => !isNaN(val) && val > 0, {
+        message: "O valor deve ser um número positivo."
     }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   type: z.enum(['income', 'expense']),
