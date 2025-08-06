@@ -153,26 +153,32 @@ export default function InvestmentsPage() {
     
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
-                    <div>
-                        <h1 className="text-2xl font-semibold flex items-center gap-2">
-                            <LineChart className="h-6 w-6" />
-                            Meus Investimentos
-                        </h1>
-                        <p className="text-muted-foreground">Acompanhe a evolução do seu patrimônio.</p>
-                    </div>
+            <div className="flex w-full items-center">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft className="h-6 w-6" />
+                </Button>
+                <div className="flex-1 text-center">
+                     <h1 className="text-2xl font-semibold flex items-center justify-center gap-2">
+                        <LineChart className="h-6 w-6" />
+                        Meus Investimentos
+                    </h1>
                 </div>
-                { (isSubscribed || isAdmin) && (
+                <div className="w-10"></div> {/* Spacer to balance the back button */}
+            </div>
+
+             <div className="text-center">
+                 <p className="text-muted-foreground">Acompanhe a evolução do seu patrimônio.</p>
+             </div>
+
+             { (isSubscribed || isAdmin) && (
+                <div className="text-center">
                     <Button onClick={() => router.push('/dashboard/add-transaction?type=expense&category=Ações')}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Adicionar Investimento
                     </Button>
-                )}
-            </div>
+                </div>
+            )}
+
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <>
