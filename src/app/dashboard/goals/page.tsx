@@ -40,13 +40,14 @@ export default function GoalsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   useEffect(() => {
     if (!user) {
       setIsLoading(false);
       return;
     }
-    if (isSubscribed) {
+    if (isSubscribed || isAdmin) {
         setIsLoading(true);
         const unsubscribe = onGoalsUpdate(user.uid, (newGoals) => {
         setGoals(newGoals);
@@ -56,7 +57,7 @@ export default function GoalsPage() {
     } else {
         setIsLoading(false);
     }
-  }, [user, isSubscribed]);
+  }, [user, isSubscribed, isAdmin]);
   
   const calculateProgress = (current: number, target: number) => {
     if (target <= 0) return 0;
@@ -97,7 +98,7 @@ export default function GoalsPage() {
               <p className="text-muted-foreground">Acompanhe seu progresso em direção aos seus sonhos.</p>
             </div>
         </div>
-        {isSubscribed && (
+        {(isSubscribed || isAdmin) && (
             <AddGoalDialog>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
@@ -107,7 +108,7 @@ export default function GoalsPage() {
         )}
       </div>
       
-      {!isSubscribed ? <PremiumBlocker /> : 
+      {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : 
         goals.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {goals.map((goal) => {

@@ -7,7 +7,7 @@ import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Spark
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTransactions, useSubscription } from '@/components/client-providers';
+import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 const PremiumBlocker = () => (
@@ -34,18 +34,21 @@ const PremiumBlocker = () => (
 
 
 export default function AnalysisPage() {
+  const { user } = useAuth();
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const { transactions: allTransactions, isLoading: isLoadingTransactions } = useTransactions();
   const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const router = useRouter();
 
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+
   const transactionsHash = useMemo(() => {
     return JSON.stringify(allTransactions.map(t => t.id).sort());
   }, [allTransactions]);
 
   const runAnalysis = useCallback(async (force = false) => {
-    if (!isSubscribed) return; // Don't run if not subscribed
+    if (!isSubscribed && !isAdmin) return; // Don't run if not subscribed (and not admin)
     setIsAnalyzing(true);
     
     if (!force) {
@@ -74,7 +77,7 @@ export default function AnalysisPage() {
         localStorage.removeItem('financialAnalysisHash');
     }
     setIsAnalyzing(false);
-  }, [allTransactions, transactionsHash, isSubscribed]);
+  }, [allTransactions, transactionsHash, isSubscribed, isAdmin]);
 
   useEffect(() => {
     if (!isLoadingTransactions && !isSubscriptionLoading) {
@@ -82,7 +85,7 @@ export default function AnalysisPage() {
     }
   }, [isLoadingTransactions, isSubscriptionLoading, runAnalysis]);
 
-  if (isLoadingTransactions || isSubscriptionLoading || (isAnalyzing && isSubscribed)) {
+  if (isLoadingTransactions || isSubscriptionLoading || (isAnalyzing && (isSubscribed || isAdmin))) {
     return (
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -93,7 +96,7 @@ export default function AnalysisPage() {
     );
   }
 
-  if (!isSubscribed) {
+  if (!isSubscribed && !isAdmin) {
     return <PremiumBlocker />;
   }
 

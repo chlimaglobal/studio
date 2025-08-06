@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSubscription, useTransactions } from '@/components/client-providers';
+import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
@@ -46,6 +46,8 @@ export default function InvestmentsPage() {
     const router = useRouter();
     const { transactions, isLoading: isLoadingTransactions } = useTransactions();
     const { isSubscribed, isLoading: isLoadingSubscription } = useSubscription();
+    const { user } = useAuth();
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     const investmentData = useMemo(() => {
         const investmentTransactions = transactions.filter(t => allInvestmentCategories.has(t.category));
@@ -84,7 +86,7 @@ export default function InvestmentsPage() {
         );
     }
 
-    if (!isSubscribed) {
+    if (!isSubscribed && !isAdmin) {
         return (
             <div className="flex flex-col h-full space-y-6">
                 <div className="flex items-center justify-between">

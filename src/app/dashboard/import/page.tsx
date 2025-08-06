@@ -9,7 +9,7 @@ import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
 import { extractFromFile } from '@/ai/flows/extract-from-file';
 import type { ExtractedTransaction } from '@/lib/types';
-import { useTransactions, useSubscription } from '@/components/client-providers';
+import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,8 @@ export default function ImportPage() {
   const [isProcessing, startProcessingTransition] = useTransition();
   const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();
@@ -130,7 +132,7 @@ export default function ImportPage() {
         <h1 className="text-xl font-semibold">Importar extratos</h1>
       </header>
 
-      {!isSubscribed ? <PremiumBlocker /> : 
+      {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : 
         !extractedData || extractedData.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
             <p className="text-muted-foreground">

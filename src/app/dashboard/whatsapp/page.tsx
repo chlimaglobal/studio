@@ -7,7 +7,7 @@ import { Check, Fuel, MessageCircle, Wallet, ArrowLeft, Star, Loader2 } from 'lu
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSubscription } from '@/components/client-providers';
+import { useSubscription, useAuth } from '@/components/client-providers';
 
 
 const Logo = () => (
@@ -46,6 +46,8 @@ export default function WhatsAppPage() {
   const router = useRouter();
   const whatsappLink = "https://wa.me/5585997635718";
   const { isSubscribed, isLoading } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -62,7 +64,7 @@ export default function WhatsAppPage() {
 
         <Logo />
 
-        {!isSubscribed ? <PremiumBlocker /> : (
+        {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
             <>
                 <div className="w-full max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-secondary/30" style={{ 
                     backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-4c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63-2c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm54-3c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM28 63c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-6-22c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z' fill='%232e2e2e' fill-opacity='0.08' fill-rule='evenodd'/%3E%3C/svg%3E")`

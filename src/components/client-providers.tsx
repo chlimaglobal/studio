@@ -93,8 +93,14 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     useEffect(() => {
+        if (isAdmin) {
+            setIsSubscribed(true);
+            setIsLoading(false);
+            return;
+        }
         if (user) {
             const unsubscribe = onUserSubscriptionUpdate(user.uid, (status) => {
                 setIsSubscribed(status === 'active' || status === 'trialing');
@@ -105,7 +111,7 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
             setIsSubscribed(false);
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, isAdmin]);
 
     return (
         <SubscriptionContext.Provider value={{ isSubscribed, isLoading }}>

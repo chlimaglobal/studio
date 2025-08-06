@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
-import { useSubscription } from '@/components/client-providers';
+import { useSubscription, useAuth } from '@/components/client-providers';
 
 const menuItems = [
     { 
@@ -104,6 +104,8 @@ const menuItems = [
 const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
     const { toast } = useToast();
     const { isSubscribed } = useSubscription();
+    const { user } = useAuth();
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (item.href === '#') {
@@ -123,7 +125,7 @@ const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
                     <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                            <span className="font-semibold">{item.title}</span>
-                           {item.premium && !isSubscribed && <Star className="h-4 w-4 text-amber-500 fill-amber-400" />}
+                           {item.premium && !isSubscribed && !isAdmin && <Star className="h-4 w-4 text-amber-500 fill-amber-400" />}
                         </div>
                         {item.subtitle && <span className="text-sm text-muted-foreground">{item.subtitle}</span>}
                     </div>

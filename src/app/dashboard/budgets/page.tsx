@@ -60,6 +60,7 @@ export default function BudgetsPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const [isLoading, setIsLoading] = useState(true);
 
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const monthId = format(new Date(), 'yyyy-MM');
 
     const form = useForm<z.infer<typeof BudgetSchema>>({
@@ -78,7 +79,7 @@ export default function BudgetsPage() {
     });
 
     useEffect(() => {
-        if (user && isSubscribed) {
+        if (user && (isSubscribed || isAdmin)) {
             setIsLoading(true);
             const unsubscribe = onBudgetsUpdate(user.uid, monthId, (budgets) => {
                 if (budgets) {
@@ -87,10 +88,10 @@ export default function BudgetsPage() {
                 setIsLoading(false);
             });
             return () => unsubscribe();
-        } else if (!isSubscribed) {
+        } else if (!isSubscribed && !isAdmin) {
             setIsLoading(false);
         }
-    }, [user, monthId, form, isSubscribed]);
+    }, [user, monthId, form, isSubscribed, isAdmin]);
 
     async function onSubmit(values: z.infer<typeof BudgetSchema>) {
         if (!user) {
@@ -134,7 +135,7 @@ export default function BudgetsPage() {
                         <p className="text-muted-foreground">Defina seus limites de gastos mensais.</p>
                     </div>
                 </div>
-                 {isSubscribed && (
+                 {(isSubscribed || isAdmin) && (
                     <Button onClick={form.handleSubmit(onSubmit)} disabled={form.formState.isSubmitting}>
                         {form.formState.isSubmitting ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -145,7 +146,7 @@ export default function BudgetsPage() {
                     </Button>
                 )}
             </div>
-             {!isSubscribed ? <PremiumBlocker /> : (
+             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <Card>
                     <CardHeader>
                         <CardTitle>Definir Orçamentos</CardTitle>
