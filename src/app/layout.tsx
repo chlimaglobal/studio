@@ -105,7 +105,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <link rel="icon" href="/Favicon.ico" type="image/x-icon" />
       </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ThemeProvider
