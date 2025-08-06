@@ -7,7 +7,7 @@ import { Check, Fuel, MessageCircle, Wallet, ArrowLeft, Star, Loader2 } from 'lu
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSubscription } from '@/app/layout';
+import { useSubscription } from '@/components/client-providers';
 
 
 const Logo = () => (

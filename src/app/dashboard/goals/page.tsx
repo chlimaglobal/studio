@@ -14,7 +14,7 @@ import { onGoalsUpdate } from '@/lib/storage';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { useAuth, useSubscription } from '@/app/layout';
+import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
 
 const PremiumBlocker = () => (

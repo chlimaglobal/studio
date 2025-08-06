@@ -12,7 +12,7 @@ import { onCardsUpdate } from '@/lib/storage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/app/layout';
+import { useAuth } from '@/components/client-providers';
 
 
 export default function CardsPage() {

@@ -23,7 +23,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
-import { useSubscription } from '@/app/layout';
+import { useSubscription } from '@/components/client-providers';
 
 const menuItems = [
     { 

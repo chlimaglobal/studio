@@ -36,7 +36,7 @@ import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/app/layout';
+import { useAuth } from '@/components/client-providers';
 
 type AddGoalDialogProps = {
   children: React.ReactNode;

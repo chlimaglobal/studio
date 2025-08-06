@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions } from '../layout';
 import { useRouter } from 'next/navigation';
-import { useSubscription } from '@/app/layout';
+import { useSubscription } from '@/components/client-providers';
 
 const PremiumBlocker = () => (
     <Card className="text-center">

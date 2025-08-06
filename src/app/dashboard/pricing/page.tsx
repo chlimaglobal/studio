@@ -7,7 +7,7 @@ import { CheckCircle, Loader2, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { createCheckoutSession, createCustomerPortalSession } from './actions';
-import { useAuth, useSubscription } from '@/app/layout';
+import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
 
 const features = [

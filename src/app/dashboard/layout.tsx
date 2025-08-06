@@ -13,7 +13,7 @@ import { sendWhatsAppNotification } from '../actions';
 import { formatCurrency } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '../layout'; // Import from Root Layout
+import { useAuth } from '@/components/client-providers'; 
 
 // 1. Transactions Context
 interface TransactionsContextType {

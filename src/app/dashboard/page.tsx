@@ -19,7 +19,7 @@ import { useTransactions } from './layout';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate } from '@/lib/storage';
-import { useAuth } from '../layout';
+import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SummaryData {

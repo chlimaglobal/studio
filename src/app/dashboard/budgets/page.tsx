@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Budget, BudgetSchema } from '@/lib/types';
-import { useAuth, useSubscription } from '@/app/layout';
+import { useAuth, useSubscription } from '@/components/client-providers';
 import { onBudgetsUpdate, saveBudgets } from '@/lib/storage';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';

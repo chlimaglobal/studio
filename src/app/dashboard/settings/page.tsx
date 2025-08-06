@@ -16,7 +16,7 @@ import { bufferToBase64Url, cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/layout';
+import { useAuth } from '@/components/client-providers';
 import { getAllUserDataForBackup } from '@/lib/storage';
 import Link from 'next/link';
 
