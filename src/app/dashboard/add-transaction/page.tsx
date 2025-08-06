@@ -26,7 +26,7 @@ import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { z } from 'zod';
-import { useTransactions } from '@/app/dashboard/layout';
+import { useTransactions } from '@/components/client-providers';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useSearchParams } from 'next/navigation';

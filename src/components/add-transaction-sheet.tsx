@@ -35,7 +35,7 @@ import { Calendar } from './ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Switch } from './ui/switch';
-import { useTransactions } from '@/app/dashboard/layout';
+import { useTransactions } from '@/components/client-providers';
 
 type AddTransactionSheetProps = {
   open: boolean;

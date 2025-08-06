@@ -6,7 +6,7 @@ import type { Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ArrowRightLeft, Download, ArrowLeft } from 'lucide-react';
-import { useTransactions } from '../layout';
+import { useTransactions } from '@/components/client-providers';
 import { Button } from '@/components/ui/button';
 import Papa from 'papaparse';
 import { format } from 'date-fns';

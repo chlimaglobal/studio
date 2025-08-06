@@ -9,11 +9,10 @@ import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
 import { extractFromFile } from '@/ai/flows/extract-from-file';
 import type { ExtractedTransaction } from '@/lib/types';
-import { useTransactions } from '../layout';
+import { useTransactions, useSubscription } from '@/components/client-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { useSubscription } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const PremiumBlocker = () => (

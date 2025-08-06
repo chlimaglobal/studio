@@ -36,7 +36,7 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from './ui/button';
-import { useTransactions } from '@/app/dashboard/layout';
+import { useTransactions } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil } from 'lucide-react';
 

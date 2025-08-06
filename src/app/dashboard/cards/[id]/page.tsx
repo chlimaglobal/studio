@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { AddTransactionSheet } from '@/components/add-transaction-sheet';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
-import { useTransactions } from '../../layout';
+import { useTransactions } from '@/components/client-providers';
 
 
 export default function CardDetailsPage({ params }: { params: { id: string } }) {

@@ -10,7 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useTransactions } from '../layout';
+import { useTransactions } from '@/components/client-providers';
 
 interface CategorySpending {
   name: TransactionCategory;

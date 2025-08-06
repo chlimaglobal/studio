@@ -7,9 +7,8 @@ import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Spark
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTransactions } from '../layout';
+import { useTransactions, useSubscription } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-import { useSubscription } from '@/components/client-providers';
 
 const PremiumBlocker = () => (
     <Card className="text-center">

@@ -15,7 +15,7 @@ import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysi
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
 import { formatCurrency, cn } from '@/lib/utils';
-import { useTransactions } from './layout';
+import { useTransactions } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate } from '@/lib/storage';
@@ -428,5 +428,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

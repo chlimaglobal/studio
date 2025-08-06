@@ -3,9 +3,14 @@
 import { ThemeProvider } from '@/components/theme-provider';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initializeUser, onUserSubscriptionUpdate } from '@/lib/storage';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { addStoredTransaction, deleteStoredTransaction, initializeUser, onTransactionsUpdate, onUserSubscriptionUpdate, updateStoredTransaction } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
+import type { Transaction, TransactionFormSchema } from '@/lib/types';
+import { z } from 'zod';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
+import { sendWhatsAppNotification } from '@/app/actions';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -36,6 +41,27 @@ export function useSubscription() {
   }
   return context;
 }
+
+// 3. Transactions Context
+interface TransactionsContextType {
+  transactions: Transaction[];
+  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  isLoading: boolean;
+}
+
+const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
+
+export function useTransactions() {
+  const context = useContext(TransactionsContext);
+  if (!context) {
+    throw new Error('useTransactions must be used within a TransactionsProvider');
+  }
+  return context;
+}
+
+// PROVIDER COMPONENTS
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -88,6 +114,92 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+function TransactionsProvider({ children }: { children: React.ReactNode }) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.uid) {
+      setIsLoading(true);
+      const unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
+        setTransactions(newTransactions);
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    } else if (!user) {
+      // If no user, clear transactions and stop loading.
+      setTransactions([]);
+      setIsLoading(false);
+    }
+  }, [user]);
+  
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
+    const userId = user?.uid;
+    if (!userId) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
+      throw new Error("User not authenticated");
+    }
+    
+    try {
+        await addStoredTransaction(userId, data);
+        const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
+        if (userWhatsAppNumber) {
+            const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+            const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
+            // Do not await this, let it run in the background
+            sendWhatsAppNotification(messageBody, userWhatsAppNumber);
+        }
+
+    } catch (error) {
+        console.error("Failed to save transaction:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar Transação',
+            description: "Não foi possível salvar a transação no banco de dados. Tente novamente.",
+        });
+        throw error;
+    }
+  }, [toast, user]);
+
+  const updateTransaction = useCallback(async (id: string, data: z.infer<typeof TransactionFormSchema>) => {
+    const userId = user?.uid;
+    if (!userId) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      throw new Error("User not authenticated");
+    }
+    try {
+      await updateStoredTransaction(userId, id, data);
+    } catch (error) {
+      console.error("Failed to update transaction:", error);
+      toast({ variant: 'destructive', title: 'Erro ao Atualizar', description: "Não foi possível atualizar a transação." });
+      throw error;
+    }
+  }, [toast, user]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    const userId = user?.uid;
+    if (!userId) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      throw new Error("User not authenticated");
+    }
+    try {
+      await deleteStoredTransaction(userId, id);
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      toast({ variant: 'destructive', title: 'Erro ao Excluir', description: "Não foi possível excluir a transação." });
+      throw error;
+    }
+  }, [toast, user]);
+
+  return (
+    <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction, isLoading }}>
+      {children}
+    </TransactionsContext.Provider>
+  );
+}
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider
@@ -98,8 +210,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         >
           <AuthProvider>
             <SubscriptionProvider>
+              <TransactionsProvider>
                 {children}
                 <Toaster />
+              </TransactionsProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
