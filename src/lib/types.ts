@@ -35,12 +35,22 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.string()
-    .refine((val) => /^\s*[\d.,]+\s*$/.test(val), {
-        message: "O valor deve conter apenas números, vírgulas ou pontos."
+  amount: z.union([z.string(), z.number()])
+    .transform((val, ctx) => {
+        if (typeof val === 'number') return val;
+        // Clean the string: remove thousand separators (.) and then replace comma (,) with a dot (.)
+        const cleanedVal = val.replace(/\./g, '').replace(',', '.');
+        const parsed = parseFloat(cleanedVal);
+        if (isNaN(parsed)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "O valor deve ser um número válido.",
+            });
+            return z.NEVER;
+        }
+        return parsed;
     })
-    .transform(val => parseFloat(val.replace(/\./g, '').replace(',', '.')))
-    .refine(val => !isNaN(val) && val > 0, {
+    .refine((val) => val > 0, {
         message: "O valor deve ser um número positivo."
     }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
@@ -134,3 +144,5 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
+
+    
