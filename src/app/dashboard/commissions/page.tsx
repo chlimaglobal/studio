@@ -113,12 +113,11 @@ function CommissionForm() {
                                     <FormItem>
                                     <FormLabel>Valor (R$)</FormLabel>
                                     <FormControl>
-                                        <Input 
-                                            type="number" 
-                                            step="0.01" 
-                                            placeholder="0,00" 
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            placeholder="10.000,00"
                                             {...field}
-                                            onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                                         />
                                     </FormControl>
                                     <FormMessage />
@@ -259,7 +258,7 @@ function CommissionList({ commissions }: { commissions: Commission[] }) {
                                             <div>
                                                 <p className="font-semibold">{commission.description}</p>
                                                 {commission.client && <p className="text-sm text-muted-foreground">{commission.client}</p>}
-                                                <p className="text-xs text-muted-foreground">{format(commission.date, 'dd/MM/yyyy', { locale: ptBR })}</p>
+                                                <p className="text-xs text-muted-foreground">{format(new Date(commission.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1">
