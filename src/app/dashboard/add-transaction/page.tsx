@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark } from 'lucide-react';
 import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -32,6 +32,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
+const institutions = [
+    "Nubank", "Inter", "XP Investimentos", "Itaú", "Bradesco", "Santander", "Caixa", "Banco do Brasil", "BTG Pactual", "Outro"
+];
+
 
 function AddTransactionForm() {
     const router = useRouter();
@@ -83,6 +88,7 @@ function AddTransactionForm() {
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
             installments: searchParams.get('installments') || '',
             observations: searchParams.get('observations') || '',
+            institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
     }, [isEditing, transactionId, transactions, searchParams]);
@@ -98,7 +104,9 @@ function AddTransactionForm() {
     
     const watchedDescription = form.watch('description');
     const watchedType = form.watch('type');
+    const watchedCategory = form.watch('category');
     const watchedPaymentMethod = form.watch('paymentMethod');
+    const formIsInvestment = watchedCategory && allInvestmentCategories.has(watchedCategory);
 
     const handleAiCategorize = useCallback(async (description: string) => {
         if (!description || form.formState.dirtyFields.category) return;
@@ -220,7 +228,7 @@ function AddTransactionForm() {
                                 <FormItem>
                                     <FormLabel>Descrição</FormLabel>
                                     <FormControl>
-                                    <Input placeholder="ex: Café com amigos" {...field} />
+                                    <Input placeholder="ex: Ações da Apple, Fundo Imobiliário" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -328,6 +336,31 @@ function AddTransactionForm() {
                                     </FormItem>
                                 )}
                             />
+
+                             {formIsInvestment && (
+                                <FormField
+                                    control={form.control}
+                                    name="institution"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel className="flex items-center gap-2"><Landmark className="h-4 w-4" /> Instituição Financeira (Opcional)</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecione a corretora ou banco" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {institutions.map(inst => (
+                                                    <SelectItem key={inst} value={inst}>{inst}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                             {watchedType === 'expense' && (
                                 <div className="space-y-4">
@@ -489,5 +522,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    

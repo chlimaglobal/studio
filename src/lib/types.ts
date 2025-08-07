@@ -62,6 +62,7 @@ export const TransactionFormSchema = z.object({
   }),
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
+  institution: z.string().optional(),
   paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
   installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional().or(z.literal('')),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
@@ -101,6 +102,7 @@ export type Transaction = {
   category: TransactionCategory;
   paid?: boolean;
   creditCard?: string;
+  institution?: string;
   paymentMethod?: 'one-time' | 'installments' | 'recurring';
   installments?: number;
   recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';
@@ -146,5 +148,3 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
-
-    

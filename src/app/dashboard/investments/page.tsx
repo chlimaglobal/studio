@@ -153,7 +153,7 @@ export default function InvestmentsPage() {
     
     return (
         <div className="space-y-6">
-            <div className="flex w-full items-center">
+            <div className="flex w-full items-center justify-between">
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
@@ -236,7 +236,7 @@ export default function InvestmentsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <TransactionsTable transactions={investmentData.investmentTransactions} />
+                            <TransactionsTable transactions={investmentData.investmentTransactions} showExtraDetails />
                         </CardContent>
                     </Card>
                 </>

@@ -38,14 +38,15 @@ import { ptBR } from 'date-fns/locale';
 import { Button } from './ui/button';
 import { useTransactions } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, Landmark } from 'lucide-react';
 
 
 interface TransactionsTableProps {
   transactions: Transaction[];
+  showExtraDetails?: boolean;
 }
 
-export default function TransactionsTable({ transactions }: TransactionsTableProps) {
+export default function TransactionsTable({ transactions, showExtraDetails = false }: TransactionsTableProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { deleteTransaction } = useTransactions();
@@ -102,6 +103,9 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                   <TableCell>
                     <div className="font-medium">{transaction.description}</div>
                     <div className="text-xs text-muted-foreground space-x-2">
+                        {showExtraDetails && transaction.institution && (
+                            <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {transaction.institution}</span>
+                        )}
                         {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
                             <span>{transaction.creditCard}</span>
                         )}
@@ -173,6 +177,12 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                     <p className="font-medium">{selectedTransaction.creditCard}</p>
                 </div>
               )}
+               {selectedTransaction.institution && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">Instituição</p>
+                    <p className="font-medium">{selectedTransaction.institution}</p>
+                </div>
+              )}
                {selectedTransaction.installmentNumber && selectedTransaction.totalInstallments && (
                  <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Parcela</p>
@@ -183,6 +193,12 @@ export default function TransactionsTable({ transactions }: TransactionsTablePro
                 <p className="text-sm text-muted-foreground">Data</p>
                 <p className="font-medium">{format(new Date(selectedTransaction.date), 'dd/MM/yyyy', { locale: ptBR })}</p>
               </div>
+               {selectedTransaction.observations && (
+                 <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Observações</p>
+                    <p className="text-sm font-medium p-3 bg-muted rounded-md whitespace-pre-wrap">{selectedTransaction.observations}</p>
+                </div>
+              )}
             </div>
           )}
            <DialogFooter className="grid grid-cols-2 gap-2">
