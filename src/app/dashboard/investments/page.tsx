@@ -8,17 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { categoryData } from '@/lib/types';
+import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import Link from 'next/link';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import FinancialChart from '@/components/financial-chart';
-
-const investmentApplicationCategories = new Set(categoryData["Investimentos e Reservas"].filter(c => ['Ações', 'Fundos Imobiliários', 'Renda Fixa', 'Aplicação'].includes(c)));
-const investmentReturnCategories = new Set(categoryData["Investimentos e Reservas"].filter(c => ['Proventos', 'Juros', 'Rendimentos'].includes(c)));
-const investmentWithdrawalCategories = new Set(categoryData["Investimentos e Reservas"].filter(c => ['Retirada'].includes(c)));
-const allInvestmentCategories = new Set([...investmentApplicationCategories, ...investmentReturnCategories, ...investmentWithdrawalCategories]);
-
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -183,36 +177,42 @@ export default function InvestmentsPage() {
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="h-full">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Investido</CardTitle>
-                                <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{formatCurrency(investmentData.netInvested)}</div>
-                                <p className="text-xs text-muted-foreground">Valor líquido aplicado.</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="h-full">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Rendimentos</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-500">{formatCurrency(investmentData.totalReturns)}</div>
-                                <p className="text-xs text-muted-foreground">Lucro total com dividendos, juros, etc.</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="h-full">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Patrimônio Atual</CardTitle>
-                                <Landmark className="h-4 w-4 text-muted-foreground" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">{formatCurrency(investmentData.currentPatrimony)}</div>
-                                <p className="text-xs text-muted-foreground">Soma do investido com rendimentos.</p>
-                            </CardContent>
-                        </Card>
+                        <Link href="/dashboard/investments/aportes" passHref>
+                            <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Investido</CardTitle>
+                                    <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatCurrency(investmentData.netInvested)}</div>
+                                    <p className="text-xs text-muted-foreground">Valor líquido aplicado.</p>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                        <Link href="/dashboard/investments/rendimentos" passHref>
+                            <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Rendimentos</CardTitle>
+                                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-500">{formatCurrency(investmentData.totalReturns)}</div>
+                                    <p className="text-xs text-muted-foreground">Lucro total com dividendos, juros, etc.</p>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                        <Link href="/dashboard/investments/patrimonio" passHref>
+                            <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Patrimônio Atual</CardTitle>
+                                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-primary">{formatCurrency(investmentData.currentPatrimony)}</div>
+                                    <p className="text-xs text-muted-foreground">Soma do investido com rendimentos.</p>
+                                </CardContent>
+                            </Card>
+                        </Link>
                     </div>
                     
                     <Card>
