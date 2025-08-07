@@ -22,6 +22,7 @@ import { useTransactions } from '@/components/client-providers';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '@/components/client-providers';
+import { allInvestmentCategories } from '@/lib/types';
 
 
 const Logo = () => (
@@ -49,7 +50,8 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   const { toast } = useToast();
 
   useEffect(() => {
-    const balance = transactions.reduce((acc, t) => {
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+    const balance = operationalTransactions.reduce((acc, t) => {
         return t.type === 'income' ? acc + t.amount : acc - t.amount;
     }, 0);
     setTotalBalance(balance);

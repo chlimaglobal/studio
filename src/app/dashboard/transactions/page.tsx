@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -11,13 +11,20 @@ import { Button } from '@/components/ui/button';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import { allInvestmentCategories } from '@/lib/types';
 
 export default function TransactionsPage() {
   const { transactions, isLoading } = useTransactions();
   const router = useRouter();
 
+  const operationalTransactions = useMemo(() => {
+    return transactions.filter(t => !allInvestmentCategories.has(t.category));
+  }, [transactions]);
+
   const handleExport = () => {
-    const dataToExport = transactions.map(t => ({
+    if (operationalTransactions.length === 0) return;
+    
+    const dataToExport = operationalTransactions.map(t => ({
       Data: format(new Date(t.date), 'yyyy-MM-dd'),
       Descrição: t.description,
       Valor: t.type === 'income' ? t.amount : -t.amount,
@@ -59,7 +66,7 @@ export default function TransactionsPage() {
                 </p>
             </div>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={transactions.length === 0}>
+        <Button variant="outline" onClick={handleExport} disabled={operationalTransactions.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Exportar para CSV
         </Button>
@@ -72,7 +79,7 @@ export default function TransactionsPage() {
             </CardDescription>
         </CardHeader>
         <CardContent>
-          <TransactionsTable transactions={transactions} />
+          <TransactionsTable transactions={operationalTransactions} />
         </CardContent>
       </Card>
     </div>

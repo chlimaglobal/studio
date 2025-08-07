@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate } from '@/lib/storage';
 import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { allInvestmentCategories } from '@/lib/types';
 
 interface SummaryData {
   recebidos: number;
@@ -46,9 +47,11 @@ const AiTipsCard = () => {
     const storedName = localStorage.getItem('userName') || 'Usuário';
     setUserName(storedName.split(' ')[0]); // Get first name
 
-    if (transactions.length > 2) { // Only run if there's some data
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+
+    if (operationalTransactions.length > 2) { // Only run if there's some data
         try {
-            const result = await generateFinancialAnalysis({ transactions });
+            const result = await generateFinancialAnalysis({ transactions: operationalTransactions });
             setTips(result);
         } catch (error) {
             console.error("Failed to fetch AI tips:", error);
@@ -84,7 +87,7 @@ const AiTipsCard = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Sparkles className="h-5 w-5 text-primary" />
-          Dicas Importantes
+          Dicas da Lúmina
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
@@ -260,7 +263,9 @@ export default function DashboardPage() {
 
 
     const { summary, categorySpending, budgetItems } = useMemo(() => {
-        const monthTransactions = transactions.filter(t => {
+        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+        
+        const monthTransactions = operationalTransactions.filter(t => {
             const tDate = new Date(t.date);
             return tDate.getMonth() === currentMonth.getMonth() && tDate.getFullYear() === currentMonth.getFullYear();
         });
@@ -311,8 +316,10 @@ export default function DashboardPage() {
             const monthKey = format(date, 'MM/yy');
             dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
+        
+        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
 
-        transactions.forEach(t => {
+        operationalTransactions.forEach(t => {
             const tDate = new Date(t.date);
             if (tDate >= sevenMonthsAgo) {
                 const monthKey = format(tDate, 'MM/yy');

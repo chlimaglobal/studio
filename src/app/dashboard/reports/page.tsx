@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useTransactions } from '@/components/client-providers';
+import { allInvestmentCategories } from '@/lib/types';
 
 interface CategorySpending {
   name: TransactionCategory;
@@ -25,7 +26,7 @@ export default function ReportsPage() {
     const spendingMap = new Map<TransactionCategory, number>();
 
     transactions
-      .filter(t => t.type === 'expense' && !t.hideFromReports)
+      .filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category))
       .forEach(t => {
         spendingMap.set(t.category, (spendingMap.get(t.category) || 0) + t.amount);
       });
