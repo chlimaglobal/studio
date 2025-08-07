@@ -123,14 +123,14 @@ export default function PricingPage() {
              {isSubscriptionLoading ? (
                 <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
             ) : isSubscribed ? (
-                 <Card className="text-center p-8">
-                    <CardHeader>
+                 <Card className="p-8">
+                    <CardHeader className="text-center">
                         <CardTitle className="flex justify-center items-center gap-2">
                             <CheckCircle className="h-8 w-8 text-green-500" />
                             Você já é um Assinante!
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="text-center">
                         <p className="text-muted-foreground mb-4">
                             Obrigado por apoiar o FinanceFlow. Use o botão abaixo para gerenciar sua assinatura.
                         </p>
