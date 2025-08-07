@@ -27,6 +27,8 @@ export type Subcategory = typeof categoryData[Category][number];
 
 // Flatten the structure to get a simple array of all categories/subcategories
 export const transactionCategories = Object.values(categoryData).flat();
+export const allInvestmentCategories = new Set(Object.values(categoryData["Investimentos e Reservas"]));
+
 
 export type TransactionCategory = typeof transactionCategories[number];
 
@@ -144,3 +146,5 @@ export const BudgetSchema = z.object({
 });
 
 export type Budget = z.infer<typeof BudgetSchema>;
+
+    

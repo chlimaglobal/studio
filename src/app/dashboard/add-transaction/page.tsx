@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
-import { TransactionFormSchema, categoryData, TransactionCategory } from '@/lib/types';
+import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -44,6 +44,22 @@ function AddTransactionForm() {
     const transactionId = searchParams.get('id');
     const isEditing = !!transactionId;
 
+    const initialCategory = (searchParams.get('category') as TransactionCategory) || undefined;
+    const isInvestment = initialCategory && allInvestmentCategories.has(initialCategory);
+
+    const getPageTitle = () => {
+        if (isEditing) return 'Editar Transação';
+        if (isInvestment) {
+             // @ts-ignore
+            if (['Proventos', 'Juros', 'Rendimentos'].includes(initialCategory)) {
+                 return 'Adicionar Rendimento';
+            }
+            return 'Adicionar Investimento';
+        }
+        return 'Adicionar Transação';
+    };
+
+
     const initialValues = useMemo(() => {
         if (isEditing) {
             const transactionToEdit = transactions.find(t => t.id === transactionId);
@@ -51,7 +67,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
-                    amount: String(transactionToEdit.amount).replace('.', ',') || '',
+                    amount: String(transactionToEdit.amount) || '',
                     installments: transactionToEdit.installments || '',
                 };
             }
@@ -59,7 +75,7 @@ function AddTransactionForm() {
         // Values from query params (e.g., from voice command) or defaults
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount')?.replace('.', ',') || '',
+            amount: searchParams.get('amount') || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
@@ -157,7 +173,7 @@ function AddTransactionForm() {
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
-                <h1 className="text-xl font-semibold">{isEditing ? 'Editar Transação' : 'Adicionar Transação'}</h1>
+                <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
             </header>
 
             <Form {...form}>
@@ -473,3 +489,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
