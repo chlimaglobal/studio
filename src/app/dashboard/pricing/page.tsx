@@ -112,10 +112,10 @@ export default function PricingPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-4xl py-12">
-            <div className="text-center space-y-4 mb-12">
-                <h1 className="text-4xl font-bold tracking-tight">Planos e Preços</h1>
-                <p className="text-lg text-muted-foreground">
+        <div className="space-y-6">
+            <div className="text-center space-y-2 mb-8">
+                <h1 className="text-3xl font-bold tracking-tight">Planos e Preços</h1>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
                     Escolha o plano que melhor se adapta às suas necessidades e desbloqueie todo o potencial do FinanceFlow.
                 </p>
             </div>
@@ -123,7 +123,7 @@ export default function PricingPage() {
              {isSubscriptionLoading ? (
                 <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
             ) : isSubscribed ? (
-                 <Card className="p-8">
+                 <Card className="max-w-2xl mx-auto">
                     <CardHeader className="text-center">
                         <CardTitle className="flex justify-center items-center gap-2">
                             <CheckCircle className="h-8 w-8 text-green-500" />
@@ -141,7 +141,7 @@ export default function PricingPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                     <PricingCard
                         title="Mensal"
                         price="R$14,90"
