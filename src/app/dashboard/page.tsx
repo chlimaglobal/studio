@@ -42,26 +42,45 @@ const AiTipsCard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
 
+  const transactionsHash = useMemo(() => {
+    return JSON.stringify(transactions.map(t => t.id).sort());
+  }, [transactions]);
+
+
   const getTips = useCallback(async () => {
     setIsLoading(true);
     const storedName = localStorage.getItem('userName') || 'Usuário';
-    setUserName(storedName.split(' ')[0]); // Get first name
+    setUserName(storedName.split(' ')[0]);
+
+    const cachedAnalysis = localStorage.getItem('financialAnalysis');
+    const cachedHash = localStorage.getItem('financialAnalysisHash');
+
+    if (cachedAnalysis && cachedHash === transactionsHash) {
+        setTips(JSON.parse(cachedAnalysis));
+        setIsLoading(false);
+        return;
+    }
 
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
 
-    if (operationalTransactions.length > 2) { // Only run if there's some data
+    if (operationalTransactions.length > 2) {
         try {
             const result = await generateFinancialAnalysis({ transactions: operationalTransactions });
             setTips(result);
+            localStorage.setItem('financialAnalysis', JSON.stringify(result));
+            localStorage.setItem('financialAnalysisHash', transactionsHash);
         } catch (error) {
             console.error("Failed to fetch AI tips:", error);
             setTips(null);
         }
     } else {
         setTips(null);
+        localStorage.removeItem('financialAnalysis');
+        localStorage.removeItem('financialAnalysisHash');
     }
     setIsLoading(false);
-  }, [transactions]);
+  }, [transactions, transactionsHash]);
+
 
   useEffect(() => {
     getTips();
