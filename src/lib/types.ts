@@ -27,7 +27,12 @@ export type Subcategory = typeof categoryData[Category][number];
 
 // Flatten the structure to get a simple array of all categories/subcategories
 export const transactionCategories = Object.values(categoryData).flat();
+
+// Investment Category Sets
 export const allInvestmentCategories = new Set(Object.values(categoryData["Investimentos e Reservas"]));
+export const investmentApplicationCategories = new Set(["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação"]);
+export const investmentReturnCategories = new Set(["Proventos", "Rendimentos", "Juros"]);
+export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 
 export type TransactionCategory = typeof transactionCategories[number];
