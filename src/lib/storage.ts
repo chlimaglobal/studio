@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs } from "firebase/firestore";
-import type { Transaction, TransactionFormSchema, Budget } from './types';
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy } from "firebase/firestore";
+import type { Transaction, TransactionFormSchema, Budget, ChatMessage } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -319,6 +319,39 @@ export async function saveBudgets(userId: string, monthId: string, data: Budget)
     if (!userId) throw new Error("User not authenticated");
     const budgetDocRef = doc(db, 'users', userId, 'budgets', monthId);
     await setDoc(budgetDocRef, cleanDataForFirestore(data), { merge: true });
+}
+
+// ======== MURAL CHAT ========
+export function onChatUpdate(userId: string, callback: (messages: ChatMessage[]) => void): () => void {
+    if (!userId) return () => {};
+    // For now, we'll use the user's UID for the chat. In a multi-user scenario, this would be a shared account ID.
+    const q = query(collection(db, 'users', userId, 'chat'), orderBy('timestamp', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const messages: ChatMessage[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            messages.push({
+                id: doc.id,
+                ...data,
+                timestamp: (data.timestamp as Timestamp)?.toDate(),
+            } as ChatMessage);
+        });
+        callback(messages);
+    }, (error) => {
+        console.error("Error fetching chat messages:", error);
+    });
+    
+    return unsubscribe;
+}
+
+export async function addChatMessage(userId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) {
+    if (!userId) throw new Error("User not authenticated");
+    const chatMessage = {
+        ...message,
+        timestamp: Timestamp.now(),
+    };
+    await addDoc(collection(db, 'users', userId, 'chat'), chatMessage);
 }
 
 

@@ -192,11 +192,21 @@ export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'partner', 'lumina']),
   text: z.string(),
+  authorName: z.string().optional(),
+  authorPhotoUrl: z.string().optional(),
 });
-export type ChatMessage = z.infer<typeof ChatMessageSchema> & { time: string };
+
+// Type for client-side state, which includes a JS Date object and an optional ID
+export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
+    id?: string;
+    timestamp: Date;
+};
 
 export const MuralChatInputSchema = z.object({
-  chatHistory: z.array(ChatMessageSchema).describe('The recent history of the conversation.'),
+  chatHistory: z.array(z.object({ // Can't use ChatMessageSchema because of the Date object
+    role: z.enum(['user', 'partner', 'lumina']),
+    text: z.string(),
+  })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
 });
