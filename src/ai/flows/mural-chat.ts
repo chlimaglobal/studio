@@ -11,27 +11,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Transaction } from '@/lib/types';
-
-
-// Represents a single message in the chat history
-const ChatMessageSchema = z.object({
-    role: z.enum(['user', 'partner', 'lumina']),
-    text: z.string(),
-});
-
-export const MuralChatInputSchema = z.object({
-  chatHistory: z.array(ChatMessageSchema).describe('The recent history of the conversation.'),
-  userQuery: z.string().describe('The new message from the user.'),
-  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-});
-export type MuralChatInput = z.infer<typeof MuralChatInputSchema>;
-
-
-export const MuralChatOutputSchema = z.object({
-  response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
-});
-export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;
+import type { Transaction, MuralChatInput, MuralChatOutput } from '@/lib/types';
+import { MuralChatInputSchema, MuralChatOutputSchema } from '@/lib/types';
 
 
 export async function generateSuggestion(input: MuralChatInput): Promise<MuralChatOutput> {

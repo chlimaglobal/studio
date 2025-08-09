@@ -187,3 +187,23 @@ export const InvestorProfileOutputSchema = z.object({
   recommendations: z.array(z.string()).describe('Uma lista de 2 a 3 recomendações ou próximos passos práticos para o investidor.'),
 });
 export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
+
+// Types for Mural Chat Flow
+export const ChatMessageSchema = z.object({
+  role: z.enum(['user', 'partner', 'lumina']),
+  text: z.string(),
+});
+export type ChatMessage = z.infer<typeof ChatMessageSchema> & { time: string };
+
+export const MuralChatInputSchema = z.object({
+  chatHistory: z.array(ChatMessageSchema).describe('The recent history of the conversation.'),
+  userQuery: z.string().describe('The new message from the user.'),
+  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
+});
+export type MuralChatInput = z.infer<typeof MuralChatInputSchema>;
+
+
+export const MuralChatOutputSchema = z.object({
+  response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
+});
+export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;

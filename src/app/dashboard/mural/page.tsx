@@ -12,12 +12,8 @@ import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { generateSuggestion } from '@/ai/flows/mural-chat';
+import type { ChatMessage } from '@/lib/types';
 
-type Message = {
-    from: 'user' | 'partner' | 'lumina';
-    text: string;
-    time: string;
-};
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -49,10 +45,10 @@ export default function MuralPage() {
     const { user } = useAuth();
     const { transactions } = useTransactions();
     const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState<Message[]>([
-        { from: 'user', text: 'Amor, viu o gasto com o iFood ontem? Acho que precisamos rever nosso orçamento de delivery.', time: '14:30' },
-        { from: 'lumina', text: 'Analisando seus gastos, vocês gastaram R$ 280 com delivery nos últimos 30 dias. Reduzir em 2 pedidos por semana poderia economizar cerca de R$ 150 por mês. Que tal definirmos uma meta de R$ 120 para o próximo mês?', time: '14:31' },
-        { from: 'partner', text: 'Ótima ideia, Lúmina! Eu topo. Podemos cozinhar mais em casa no fim de semana.', time: '14:35' },
+    const [messages, setMessages] = useState<ChatMessage[]>([
+        { role: 'user', text: 'Amor, viu o gasto com o iFood ontem? Acho que precisamos rever nosso orçamento de delivery.', time: '14:30' },
+        { role: 'lumina', text: 'Analisando seus gastos, vocês gastaram R$ 280 com delivery nos últimos 30 dias. Reduzir em 2 pedidos por semana poderia economizar cerca de R$ 150 por mês. Que tal definirmos uma meta de R$ 120 para o próximo mês?', time: '14:31' },
+        { role: 'partner', text: 'Ótima ideia, Lúmina! Eu topo. Podemos cozinhar mais em casa no fim de semana.', time: '14:35' },
     ]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
@@ -67,11 +63,11 @@ export default function MuralPage() {
     }, [messages]);
 
 
-    const handleSendMessage = (content: string, from: 'user' | 'lumina' = 'user') => {
+    const handleSendMessage = (content: string, from: 'user' | 'lumina' | 'partner' = 'user') => {
         if (!content.trim()) return;
 
-        const newMessage: Message = {
-            from,
+        const newMessage: ChatMessage = {
+            role: from,
             text: content,
             time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         };
@@ -93,7 +89,7 @@ export default function MuralPage() {
         setIsLuminaThinking(true);
         try {
             const chatHistoryForLumina = messages.map(msg => ({
-                role: msg.from,
+                role: msg.role,
                 text: msg.text
             }));
 
@@ -146,21 +142,21 @@ export default function MuralPage() {
                     <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
                             {messages.map((msg, index) => (
-                                <div key={index} className={`flex items-end gap-3 ${msg.from === 'user' ? 'justify-end' : ''}`}>
-                                    {msg.from !== 'user' && (
+                                <div key={index} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                                    {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
-                                            <AvatarImage src={msg.from === 'lumina' ? '/lumina-avatar.png' : '/partner-avatar.png'} />
-                                            <AvatarFallback>{msg.from === 'lumina' ? 'L' : 'P'}</AvatarFallback>
+                                            <AvatarImage src={msg.role === 'lumina' ? '/lumina-avatar.png' : '/partner-avatar.png'} />
+                                            <AvatarFallback>{msg.role === 'lumina' ? 'L' : 'P'}</AvatarFallback>
                                         </Avatar>
                                     )}
                                     <div className={`rounded-lg p-3 max-w-xs lg:max-w-md ${
-                                        msg.from === 'user' ? 'bg-primary text-primary-foreground' : 
-                                        msg.from === 'lumina' ? 'bg-secondary' : 'bg-muted'
+                                        msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
+                                        msg.role === 'lumina' ? 'bg-secondary' : 'bg-muted'
                                     }`}>
                                         <p className="text-sm">{msg.text}</p>
                                         <p className="text-xs opacity-70 mt-1 text-right">{msg.time}</p>
                                     </div>
-                                    {msg.from === 'user' && (
+                                    {msg.role === 'user' && (
                                         <Avatar className="h-8 w-8">
                                             <AvatarImage src={user?.photoURL || undefined} />
                                             <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
@@ -206,4 +202,3 @@ export default function MuralPage() {
         </div>
     );
 }
-
