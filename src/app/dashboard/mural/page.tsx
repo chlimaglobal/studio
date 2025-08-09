@@ -64,34 +64,8 @@ export default function MuralPage() {
       }
     }, [messages]);
 
-    const saveAndClearMessage = async (role: 'user' | 'partner' | 'lumina', text: string) => {
-        if (!user || !text.trim()) return;
-
-        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
-            role,
-            text,
-            authorName: user.displayName,
-            authorPhotoUrl: user.photoURL,
-        };
-
-        await addChatMessage(user.uid, newMessage);
-
-        if (role === 'user') {
-            setMessage('');
-        }
-    };
-
-    const handleSendMessage = (e: React.FormEvent) => {
-        e.preventDefault();
-        saveAndClearMessage('user', message);
-    };
-
-    const handleAskLumina = async () => {
-        const currentQuery = message.trim() || "Lúmina, poderia nos dar alguma sugestão com base em nossas finanças recentes?";
-        
-        await saveAndClearMessage('user', currentQuery);
+    const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
-
         try {
             const chatHistoryForLumina = messages.map(msg => ({
                 role: msg.role,
@@ -107,15 +81,48 @@ export default function MuralPage() {
             const luminaResponse = await generateSuggestion(luminaInput);
 
             if (luminaResponse.response) {
-                await saveAndClearMessage('lumina', luminaResponse.response);
+                await saveMessage('lumina', luminaResponse.response);
             }
-
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
-            await saveAndClearMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?");
+            await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?");
         } finally {
             setIsLuminaThinking(false);
         }
+    }
+
+    const saveMessage = async (role: 'user' | 'partner' | 'lumina', text: string) => {
+        if (!user || !text.trim()) return;
+
+        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+            role,
+            text,
+            authorName: user.displayName || 'Usuário',
+            authorPhotoUrl: user.photoURL || '',
+        };
+
+        await addChatMessage(user.uid, newMessage);
+
+        if (role === 'user') {
+            setMessage('');
+        }
+    };
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const currentMessage = message.trim();
+        if (!currentMessage) return;
+
+        await saveMessage('user', currentMessage);
+        await callLumina(currentMessage);
+    };
+
+    const handleAskLumina = async () => {
+        const currentQuery = message.trim() || "Lúmina, poderia nos dar alguma sugestão com base em nossas finanças recentes?";
+        if (message.trim()) {
+            await saveMessage('user', currentQuery);
+        }
+        await callLumina(currentQuery);
     };
     
     if (isSubscriptionLoading) {
