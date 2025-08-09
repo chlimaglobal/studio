@@ -20,12 +20,11 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     const value = payload[0].value;
-    const percentage = (payload[0].percent * 100).toFixed(2);
     
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm text-sm">
         <p className="font-medium">{data.name}</p>
-        <p className="text-muted-foreground">{`${formatCurrency(value)} (${percentage}%)`}</p>
+        <p className="text-muted-foreground">{`${value}%`}</p>
       </div>
     );
   }
