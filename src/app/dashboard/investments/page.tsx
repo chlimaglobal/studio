@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -252,8 +251,8 @@ export default function InvestmentsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button className="w-full">
-                                Descobrir seu perfil de investidor
+                            <Button className="w-full" asChild>
+                                <Link href="/dashboard/investments/analise-perfil-investidor">Descobrir seu perfil de investidor</Link>
                             </Button>
                         </CardContent>
                     </Card>
