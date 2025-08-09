@@ -4,6 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Landmark, PlusCircle, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AddAccountDialog } from '@/components/add-account-dialog';
 
 export default function BanksPage() {
   const router = useRouter();
@@ -20,13 +21,15 @@ export default function BanksPage() {
                 <Landmark className="h-6 w-6" />
                 Minhas Contas
               </h1>
-              <p className="text-muted-foreground">Gerencie suas contas bancárias em um só lugar.</p>
+              <p className="text-muted-foreground">Gerencie suas contas bancárias e compartilhadas.</p>
             </div>
         </div>
-        <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Banco
-        </Button>
+        <AddAccountDialog>
+            <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Adicionar Conta
+            </Button>
+        </AddAccountDialog>
       </div>
       
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
@@ -35,10 +38,12 @@ export default function BanksPage() {
             <p className="mb-4 mt-2 text-sm text-muted-foreground">
                 Adicione sua primeira conta bancária para começar a organizar.
             </p>
-            <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Adicionar Conta
-            </Button>
+             <AddAccountDialog>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Adicionar Conta
+                </Button>
+            </AddAccountDialog>
         </div>
     </div>
   );
