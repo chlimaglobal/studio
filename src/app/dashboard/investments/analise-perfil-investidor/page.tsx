@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { analyzeInvestorProfile } from '@/ai/flows/analyze-investor-profile';
+import { useToast } from '@/hooks/use-toast';
 
 // Placeholder para as perguntas do questionário
 const questions = [
@@ -43,6 +45,7 @@ const questions = [
 
 export default function InvestorProfilePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -65,13 +68,22 @@ export default function InvestorProfilePage() {
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    // Lógica para enviar as respostas para a IA e obter o perfil
-    console.log('Respostas enviadas:', answers);
-    // Simulação de chamada de API
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    // Redirecionar para a página de resultados (a ser criada)
-    // router.push('/dashboard/investments/analise-perfil-investidor/resultado');
+    try {
+        const result = await analyzeInvestorProfile({ answers });
+        const query = new URLSearchParams({
+            analysisResult: JSON.stringify(result)
+        }).toString();
+        router.push(`/dashboard/investments/analise-perfil-investidor/resultado?${query}`);
+    } catch (error) {
+        console.error("Analysis failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Erro na Análise",
+            description: "Não foi possível gerar seu perfil. Tente novamente."
+        })
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -100,7 +112,7 @@ export default function InvestorProfilePage() {
               <Button
                 key={answer.id}
                 variant={answers[currentQuestion.id] === answer.id ? 'default' : 'outline'}
-                className="w-full justify-start h-auto py-3"
+                className="w-full justify-start h-auto py-3 text-left"
                 onClick={() => handleAnswer(currentQuestion.id, answer.id)}
               >
                 {answer.text}
