@@ -4,13 +4,22 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { addStoredTransaction, deleteStoredTransaction, initializeUser, onTransactionsUpdate, onUserSubscriptionUpdate, updateStoredTransaction } from '@/lib/storage';
+import { 
+  addStoredTransaction, 
+  deleteStoredTransaction, 
+  initializeUser, 
+  onTransactionsUpdate, 
+  onUserSubscriptionUpdate, 
+  updateStoredTransaction,
+  onChatUpdate 
+} from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema } from '@/lib/types';
+import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { sendWhatsAppNotification } from '@/app/actions';
+import { usePathname } from 'next/navigation';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -59,6 +68,21 @@ export function useTransactions() {
     throw new Error('useTransactions must be used within a TransactionsProvider');
   }
   return context;
+}
+
+// 4. Mural Unread Context
+interface MuralContextType {
+  hasUnread: boolean;
+  setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
+}
+const MuralContext = createContext<MuralContextType | undefined>(undefined);
+
+export function useMural() {
+    const context = useContext(MuralContext);
+    if (context === undefined) {
+        throw new Error('useMural must be used within a ClientProviders');
+    }
+    return context;
 }
 
 // PROVIDER COMPONENTS
@@ -206,6 +230,38 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MuralProvider({ children }: { children: React.ReactNode }) {
+    const [hasUnread, setHasUnread] = useState(false);
+    const { user } = useAuth();
+    const pathname = usePathname();
+    const { isSubscribed } = useSubscription();
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+
+    useEffect(() => {
+        if (pathname === '/dashboard/mural') {
+            setHasUnread(false);
+        }
+    }, [pathname]);
+
+    useEffect(() => {
+        if (user && (isSubscribed || isAdmin)) {
+            const unsubscribe = onChatUpdate(user.uid, (messages) => {
+                const latestMessage = messages[messages.length - 1];
+                if (latestMessage && latestMessage.role !== 'user' && pathname !== '/dashboard/mural') {
+                    setHasUnread(true);
+                }
+            });
+            return () => unsubscribe();
+        }
+    }, [user, isSubscribed, isAdmin, pathname]);
+
+    return (
+        <MuralContext.Provider value={{ hasUnread, setHasUnread }}>
+            {children}
+        </MuralContext.Provider>
+    );
+}
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider
@@ -217,8 +273,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
           <AuthProvider>
             <SubscriptionProvider>
               <TransactionsProvider>
-                {children}
-                <Toaster />
+                <MuralProvider>
+                    {children}
+                    <Toaster />
+                </MuralProvider>
               </TransactionsProvider>
             </SubscriptionProvider>
           </AuthProvider>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, MessageSquare, LineChart, Star } from 'lucide-react';
-import { useSubscription, useAuth } from '@/components/client-providers';
+import { useSubscription, useAuth, useMural } from '@/components/client-providers';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
@@ -19,6 +19,7 @@ export default function BottomNavBar() {
   const pathname = usePathname();
   const { isSubscribed, isLoading } = useSubscription();
   const { user } = useAuth();
+  const { hasUnread } = useMural();
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   return (
@@ -36,14 +37,16 @@ export default function BottomNavBar() {
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              {item.premium && !isSubscribed && !isAdmin && (
-                <Star className="absolute top-1 right-3 h-3 w-3 text-amber-500 fill-amber-400" />
-              )}
-              <div className={cn(
-                  'p-2 rounded-lg transition-colors duration-200',
-                   isActive ? 'bg-primary/20' : ''
-              )}>
-                 <item.icon className="w-6 h-6" />
+              <div className="relative">
+                <div className={cn(
+                    'p-2 rounded-lg transition-colors duration-200',
+                     isActive ? 'bg-primary/20' : ''
+                )}>
+                   <item.icon className="w-6 h-6" />
+                </div>
+                {item.href === '/dashboard/mural' && hasUnread && (
+                    <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-secondary" />
+                )}
               </div>
               <span className={cn(
                   'text-[10px] mt-1 font-medium transition-colors duration-200',
