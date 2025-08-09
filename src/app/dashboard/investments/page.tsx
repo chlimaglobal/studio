@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
@@ -238,6 +238,23 @@ export default function InvestmentsPage() {
                         </CardHeader>
                         <CardContent className="h-[300px]">
                                 <FinancialChart data={chartData} isPrivacyMode={false} />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-primary" />
+                                Análise de Perfil de Investidor
+                            </CardTitle>
+                            <CardDescription>
+                                Entenda seu perfil de risco e receba sugestões de investimentos alinhadas aos seus objetivos e do seu parceiro(a).
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full">
+                                Descobrir seu perfil de investidor
+                            </Button>
                         </CardContent>
                     </Card>
 
