@@ -16,7 +16,7 @@ export const categoryData = {
   "Salário": ["Férias", "Hora extra", "Comissão", "13º Salário", "Aposentadoria", "Trabalho", "Bônus"],
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
   "Viagens": ["Hotel", "Passagem", "Passeio"],
-  "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maagem"],
+  "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maquiagem"],
   "Finanças": ["Financiamento", "Renegociação", "Seguros", "Fitness"],
   "Outros": ["Presentes", "Compras", "Outros"],
 } as const;

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories } from '@/lib/types';
+import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import Link from 'next/link';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
@@ -38,7 +38,7 @@ const PremiumBlocker = () => (
     </div>
 );
 
-const generateInvestmentChartData = (transactions: any[]) => {
+const generateInvestmentChartData = (transactions: Transaction[]) => {
     const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
     const sixMonthsAgo = subMonths(new Date(), 5);
     sixMonthsAgo.setDate(1);
@@ -51,6 +51,27 @@ const generateInvestmentChartData = (transactions: any[]) => {
 
     let cumulativePatrimony = 0;
     const sortedMonths = Array.from(dataMap.keys()).sort((a, b) => new Date(`01/${a}`).getTime() - new Date(`01/${b}`).getTime());
+
+    // Calculate initial patrimony before the 6-month window
+    const investmentTransactionsBeforeWindow = transactions.filter(t => {
+        const tDate = new Date(t.date);
+        return tDate < startOfMonth(sixMonthsAgo) && allInvestmentCategories.has(t.category);
+    });
+
+    const initialNetInvested = investmentTransactionsBeforeWindow
+        .filter(t => investmentApplicationCategories.has(t.category))
+        .reduce((acc, t) => acc + t.amount, 0)
+        -
+        investmentTransactionsBeforeWindow
+        .filter(t => investmentWithdrawalCategories.has(t.category))
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    const initialReturns = investmentTransactionsBeforeWindow
+        .filter(t => investmentReturnCategories.has(t.category))
+        .reduce((acc, t) => acc + t.amount, 0);
+
+    cumulativePatrimony = initialNetInvested + initialReturns;
+
 
     sortedMonths.forEach(monthKey => {
         const [month, year] = monthKey.split('/');
@@ -77,21 +98,14 @@ const generateInvestmentChartData = (transactions: any[]) => {
         cumulativePatrimony += netMonthInvestment + monthReturns;
         
         dataMap.set(monthKey, {
-            aReceber: monthReturns, // 'A Receber' no gráfico pode ser os rendimentos do mês
-            aPagar: netMonthInvestment < 0 ? Math.abs(netMonthInvestment) : 0, // 'A Pagar' pode ser retiradas líquidas
-            resultado: cumulativePatrimony, // 'Resultado' é o patrimônio acumulado
+            aReceber: monthReturns,
+            aPagar: netMonthInvestment < 0 ? Math.abs(netMonthInvestment) : 0,
+            resultado: cumulativePatrimony,
         });
     });
 
-    // Fill forward for months with no transactions
-    let lastKnownPatrimony = 0;
     const finalData = sortedMonths.map(monthKey => {
         const data = dataMap.get(monthKey)!;
-        if (data.aReceber === 0 && data.aPagar === 0 && data.resultado === 0) {
-            data.resultado = lastKnownPatrimony;
-        } else {
-            lastKnownPatrimony = data.resultado;
-        }
         return { date: monthKey, ...data };
     });
 
