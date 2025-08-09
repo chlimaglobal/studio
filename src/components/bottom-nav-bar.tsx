@@ -4,20 +4,22 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, HandCoins, ShieldCheck, Star, LineChart } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, MessageSquare, LineChart, Star } from 'lucide-react';
 import { useSubscription } from '@/components/client-providers';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações', premium: false },
-  { href: '/dashboard/investments', icon: LineChart, label: 'Investimentos', premium: true },
+  { href: '/dashboard/mural', icon: MessageSquare, label: 'Mural', premium: true },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios', premium: false },
   { href: '/dashboard/profile', icon: UserCircle, label: 'Perfil', premium: false },
 ];
 
 export default function BottomNavBar() {
   const pathname = usePathname();
-  const { isSubscribed } = useSubscription();
+  const { isSubscribed, isLoading } = useSubscription();
+  const { user } = useAuth();
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   return (
     <div className="fixed bottom-0 left-0 z-40 w-full h-20 bg-secondary border-t border-border">
@@ -34,7 +36,7 @@ export default function BottomNavBar() {
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              {item.premium && !isSubscribed && (
+              {item.premium && !isSubscribed && !isAdmin && (
                 <Star className="absolute top-1 right-3 h-3 w-3 text-amber-500 fill-amber-400" />
               )}
               <div className={cn(
