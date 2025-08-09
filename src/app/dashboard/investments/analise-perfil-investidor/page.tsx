@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { analyzeInvestorProfile } from '@/ai/flows/analyze-investor-profile';
 import { useToast } from '@/hooks/use-toast';
+import type { InvestorProfileInput } from '@/lib/types';
 
 // Placeholder para as perguntas do questionário
 const questions = [

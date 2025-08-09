@@ -170,3 +170,20 @@ export type Account = {
   ownerId: string;
   memberIds: string[];
 } & z.infer<typeof AddAccountFormSchema>;
+
+// Types for Investor Profile Analysis
+export const InvestorProfileInputSchema = z.object({
+  answers: z.record(z.string()).describe('Um objeto contendo as respostas do usuário, onde a chave é o ID da pergunta e o valor é o ID da resposta.'),
+});
+export type InvestorProfileInput = z.infer<typeof InvestorProfileInputSchema>;
+
+export const InvestorProfileOutputSchema = z.object({
+  profile: z.enum(['Conservador', 'Moderado', 'Arrojado']).describe('O perfil de investidor resultante (Conservador, Moderado ou Arrojado).'),
+  analysis: z.string().describe('Uma análise textual detalhada (2-3 parágrafos) explicando o perfil, a tolerância ao risco e as implicações para a estratégia de investimento.'),
+  assetAllocation: z.array(z.object({
+    category: z.string().describe('A classe do ativo, ex: "Renda Fixa Pós-Fixada", "Ações Brasileiras", "Fundos Imobiliários (FIIs)".'),
+    percentage: z.number().describe('A porcentagem recomendada para alocar nesta classe de ativo. A soma de todas as porcentagens deve ser 100.'),
+  })).describe('Uma lista de alocações de ativos recomendadas com suas respectivas porcentagens.'),
+  recommendations: z.array(z.string()).describe('Uma lista de 2 a 3 recomendações ou próximos passos práticos para o investidor.'),
+});
+export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;

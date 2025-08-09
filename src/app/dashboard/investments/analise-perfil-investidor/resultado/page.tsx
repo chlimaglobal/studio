@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart2, Lightbulb, PieChartIcon, UserCheck } from 'lucide-react';
-import type { InvestorProfileOutput } from '@/ai/flows/analyze-investor-profile';
+import type { InvestorProfileOutput } from '@/lib/types';
 import CategoryPieChart from '@/components/category-pie-chart';
 
 const ProfileResultContent = () => {
