@@ -14,6 +14,13 @@ export function NotificationPermission() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
+      // Don't show the prompt if the user has already made a choice in a previous session
+      const hasBeenDismissed = localStorage.getItem('notification_prompt_dismissed');
+      if (hasBeenDismissed) {
+          setIsVisible(false);
+          return;
+      }
+
       setPermissionStatus(Notification.permission);
       // Show the card only if permission is default (not yet granted or denied)
       if (Notification.permission === 'default') {
@@ -34,13 +41,19 @@ export function NotificationPermission() {
     const permission = await Notification.requestPermission();
     setPermissionStatus(permission);
     setIsVisible(false); // Hide the card after a decision is made
+    localStorage.setItem('notification_prompt_dismissed', 'true');
+
 
     if (permission === 'granted') {
       toast({
         title: 'Notificações Ativadas!',
-        description: 'Você receberá as últimas atualizações.',
+        description: 'Você receberá os alertas do sistema.',
       });
-      // Optional: send subscription to server
+      new Notification('FinanceFlow', {
+          body: 'Ótimo! Agora você está conectado.',
+          icon: '/icon.png',
+          silent: true,
+      });
     } else {
       toast({
         variant: 'destructive',
@@ -52,6 +65,7 @@ export function NotificationPermission() {
 
   const handleClose = () => {
     setIsVisible(false);
+    localStorage.setItem('notification_prompt_dismissed', 'true');
   }
   
   // Render nothing if permission is not default, or if the component is hidden
@@ -60,18 +74,19 @@ export function NotificationPermission() {
   }
 
   return (
-    <Card className="relative bg-card/80 backdrop-blur-sm border-primary/20">
-        <button onClick={handleClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
+    <Card className="relative bg-card/80 backdrop-blur-sm border-primary/20 animate-in fade-in-50 slide-in-from-bottom-5">
+        <button onClick={handleClose} className="absolute top-2 right-2 p-1 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground">
             <X className="h-5 w-5" />
+            <span className="sr-only">Fechar</span>
         </button>
-      <CardHeader className="flex flex-row items-center gap-4">
+      <CardHeader className="flex flex-row items-center gap-4 pr-10">
          <div className="p-3 rounded-full bg-primary/10 text-primary">
             <BellRing className="h-8 w-8" />
         </div>
         <div>
-            <CardTitle>Vamos ficar mais próximos?</CardTitle>
+            <CardTitle>Receba Alertas Importantes</CardTitle>
             <CardDescription className="mt-1">
-                Ative as notificações e fique por dentro de todas as dicas, novidades e ofertas.
+                Ative as notificações para ser avisado sobre vencimentos e dicas da Lúmina.
             </CardDescription>
         </div>
       </CardHeader>
