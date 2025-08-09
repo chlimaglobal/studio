@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, MessageSquare, LineChart, Star } from 'lucide-react';
-import { useSubscription } from '@/components/client-providers';
+import { useSubscription, useAuth } from '@/components/client-providers';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
