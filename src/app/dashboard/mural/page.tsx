@@ -5,18 +5,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions } from '@/components/client-providers';
 import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { generateSuggestion } from '@/ai/flows/mural-chat';
 
-const exampleMessages = [
-    { from: 'user', text: 'Amor, viu o gasto com o iFood ontem? Acho que precisamos rever nosso orçamento de delivery.', time: '14:30' },
-    { from: 'lumina', text: 'Analisando seus gastos, vocês gastaram R$ 280 com delivery nos últimos 30 dias. Reduzir em 2 pedidos por semana poderia economizar cerca de R$ 150 por mês. Que tal definirmos uma meta de R$ 120 para o próximo mês?', time: '14:31' },
-    { from: 'partner', text: 'Ótima ideia, Lúmina! Eu topo. Podemos cozinhar mais em casa no fim de semana.', time: '14:35' },
-];
+type Message = {
+    from: 'user' | 'partner' | 'lumina';
+    text: string;
+    time: string;
+};
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -46,9 +47,73 @@ const PremiumBlocker = () => (
 export default function MuralPage() {
     const router = useRouter();
     const { user } = useAuth();
+    const { transactions } = useTransactions();
     const [message, setMessage] = useState('');
+    const [messages, setMessages] = useState<Message[]>([
+        { from: 'user', text: 'Amor, viu o gasto com o iFood ontem? Acho que precisamos rever nosso orçamento de delivery.', time: '14:30' },
+        { from: 'lumina', text: 'Analisando seus gastos, vocês gastaram R$ 280 com delivery nos últimos 30 dias. Reduzir em 2 pedidos por semana poderia economizar cerca de R$ 150 por mês. Que tal definirmos uma meta de R$ 120 para o próximo mês?', time: '14:31' },
+        { from: 'partner', text: 'Ótima ideia, Lúmina! Eu topo. Podemos cozinhar mais em casa no fim de semana.', time: '14:35' },
+    ]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const [isLuminaThinking, setIsLuminaThinking] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+
+    useEffect(() => {
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+      }
+    }, [messages]);
+
+
+    const handleSendMessage = (content: string, from: 'user' | 'lumina' = 'user') => {
+        if (!content.trim()) return;
+
+        const newMessage: Message = {
+            from,
+            text: content,
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        };
+
+        setMessages(prev => [...prev, newMessage]);
+
+        if (from === 'user') {
+            setMessage('');
+        }
+    };
+
+    const handleAskLumina = async () => {
+        if (!message.trim()) {
+            handleSendMessage("Lúmina, poderia nos dar alguma sugestão com base em nossas finanças recentes?", 'user');
+        } else {
+            handleSendMessage(message, 'user');
+        }
+
+        setIsLuminaThinking(true);
+        try {
+            const chatHistoryForLumina = messages.map(msg => ({
+                role: msg.from,
+                text: msg.text
+            }));
+
+            const luminaResponse = await generateSuggestion({
+                chatHistory: chatHistoryForLumina,
+                userQuery: message,
+                allTransactions: transactions
+            });
+
+            if (luminaResponse.response) {
+                handleSendMessage(luminaResponse.response, 'lumina');
+            }
+
+        } catch (error) {
+            console.error("Error with Lumina suggestion:", error);
+            handleSendMessage("Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", 'lumina');
+        } finally {
+            setIsLuminaThinking(false);
+        }
+    };
     
     if (isSubscriptionLoading) {
         return (
@@ -78,9 +143,9 @@ export default function MuralPage() {
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                  <div className="flex-1 flex flex-col">
-                    <ScrollArea className="flex-1 p-4">
+                    <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                         <div className="space-y-6">
-                            {exampleMessages.map((msg, index) => (
+                            {messages.map((msg, index) => (
                                 <div key={index} className={`flex items-end gap-3 ${msg.from === 'user' ? 'justify-end' : ''}`}>
                                     {msg.from !== 'user' && (
                                         <Avatar className="h-8 w-8">
@@ -103,23 +168,38 @@ export default function MuralPage() {
                                     )}
                                 </div>
                             ))}
+                             {isLuminaThinking && (
+                                <div className="flex items-end gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={'/lumina-avatar.png'} />
+                                        <AvatarFallback>L</AvatarFallback>
+                                    </Avatar>
+                                    <div className="rounded-lg p-3 bg-secondary">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Lúmina está pensando...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
-                        <div className="flex items-center gap-2">
+                         <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(message, 'user'); }} className="flex items-center gap-2">
                             <Input 
                                 placeholder="Digite sua mensagem ou pergunte para a Lúmina..." 
                                 className="flex-1"
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
+                                disabled={isLuminaThinking}
                             />
-                            <Button>
+                            <Button type="submit" disabled={isLuminaThinking || !message.trim()}>
                                 <Send className="h-5 w-5"/>
                             </Button>
-                             <Button variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary">
+                             <Button type="button" variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleAskLumina} disabled={isLuminaThinking}>
                                 <Sparkles className="h-5 w-5"/>
                             </Button>
-                        </div>
+                        </form>
                     </div>
                  </div>
             )}
