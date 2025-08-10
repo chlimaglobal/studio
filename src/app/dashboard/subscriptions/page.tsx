@@ -103,6 +103,9 @@ export default function SubscriptionsPage() {
                     </p>
                     </div>
                 </div>
+            </div>
+
+            <div className="text-center">
                  <Button onClick={() => router.push('/dashboard/add-transaction?paymentMethod=recurring')}>
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Adicionar Assinatura
