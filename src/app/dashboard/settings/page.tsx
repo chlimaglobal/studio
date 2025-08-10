@@ -431,7 +431,7 @@ export default function SettingsPage() {
 
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Perfil</CardTitle>
+          <CardTitle className="flex items-center gap-2"><UserCircle className="h-5 w-5" /> Meu Perfil</CardTitle>
           <CardDescription>Edite seus dados pessoais e foto.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -506,36 +506,6 @@ export default function SettingsPage() {
             {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
             {isExporting ? 'Gerando Backup...' : 'Fazer Backup Agora'}
           </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
-          <CardDescription>Gerencie o acesso à sua conta.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="space-y-2">
-                <Label>Acesso Biométrico</Label>
-                 {isBiometricSupported ? (
-                    <div className="flex items-center justify-between rounded-md border p-4">
-                    <div>
-                        <p className="font-medium">Login com Impressão Digital</p>
-                        <p className="text-sm text-muted-foreground">
-                        {isBiometricRegistered ? "Acesso biométrico está ativado." : "Cadastre sua digital para um login rápido."}
-                        </p>
-                    </div>
-                    <Button onClick={handleRegisterBiometrics} disabled={isRegistering || isBiometricRegistered}>
-                        {isRegistering ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : ( <Fingerprint className="mr-2 h-4 w-4" />)}
-                        {isBiometricRegistered ? 'Cadastrado' : 'Cadastrar'}
-                    </Button>
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground p-4 border rounded-md">O acesso biométrico não é suportado neste navegador ou dispositivo.</p>
-                )}
-            </div>
         </CardContent>
       </Card>
       
@@ -657,4 +627,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
