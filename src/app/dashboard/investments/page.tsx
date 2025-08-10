@@ -245,6 +245,24 @@ export default function InvestmentsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
+                                <Sparkles className="h-5 w-5 text-primary" />
+                                Análise de Perfil e Projeto de Vida
+                            </CardTitle>
+                            <CardDescription>
+                                Entenda seu perfil de risco e receba sugestões de investimentos e projeções para o futuro, alinhadas aos seus objetivos e do seu parceiro(a).
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full" asChild>
+                                <Link href="/dashboard/investments/analise-perfil-investidor">Analisar meu perfil e projetar meu futuro</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
                                 <Calculator className="h-5 w-5 text-primary" />
                                 Simulador de Investimentos
                             </CardTitle>
@@ -256,41 +274,6 @@ export default function InvestmentsPage() {
                             <InvestmentProjectionCalculator />
                         </CardContent>
                     </Card>
-
-                     <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <ShieldCheck className="h-5 w-5 text-primary" />
-                                Meu Projeto de Vida
-                            </CardTitle>
-                            <CardDescription>
-                                Acompanhe seu progresso em direção à sua aposentadoria e outros objetivos de longo prazo.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full" asChild>
-                                <Link href="/dashboard/retirement-projection">Acompanhar Meu Progresso</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5 text-primary" />
-                                Análise de Perfil de Investidor
-                            </CardTitle>
-                            <CardDescription>
-                                Entenda seu perfil de risco e receba sugestões de investimentos alinhadas aos seus objetivos e do seu parceiro(a).
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full" asChild>
-                                <Link href="/dashboard/investments/analise-perfil-investidor">Descobrir seu perfil de investidor</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
 
                     <Card>
                         <CardHeader>

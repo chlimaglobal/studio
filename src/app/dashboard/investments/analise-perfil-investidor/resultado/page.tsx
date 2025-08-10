@@ -45,7 +45,7 @@ const ProfileResultContent = () => {
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-semibold">Seu Projeto de Vida</h1>
+                  <h1 className="text-2xl font-semibold">Seu Perfil e Sugestões</h1>
                   <p className="text-muted-foreground">Análise e recomendações da Lúmina.</p>
                 </div>
             </div>
