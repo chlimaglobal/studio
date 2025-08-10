@@ -36,7 +36,7 @@ const onboardingSteps = [
         color: "bg-green-500/10 text-green-500"
     },
     {
-        icon: 'BarChart3' as keyof typeof icons,
+        icon: 'PieChart' as keyof typeof icons,
         title: "Relatórios Inteligentes",
         description: "Acesse a aba 'Relatórios' para ver gráficos detalhados sobre seus gastos e entender para onde seu dinheiro está indo.",
         color: "bg-purple-500/10 text-purple-500"
