@@ -93,9 +93,9 @@ export default function GoalsPage() {
             <div>
               <h1 className="text-2xl font-semibold flex items-center gap-2">
                 <Target className="h-6 w-6" />
-                Minhas Metas
+                Meu Progresso
               </h1>
-              <p className="text-muted-foreground">Acompanhe seu progresso em direção aos seus sonhos.</p>
+              <p className="text-muted-foreground">Veja o progresso das suas metas de poupança e garanta seus objetivos.</p>
             </div>
         </div>
         {(isSubscribed || isAdmin) && (
@@ -110,10 +110,9 @@ export default function GoalsPage() {
       
       {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : 
         goals.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
             {goals.map((goal) => {
                 const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
-                const daysRemaining = getDaysRemaining(goal.deadline);
                 const isFinished = isPast(new Date(goal.deadline)) && progress < 100;
 
                 return (
@@ -123,16 +122,16 @@ export default function GoalsPage() {
                             <div className="flex items-center gap-3">
                                 <Icon name={goal.icon as keyof typeof icons} className="h-8 w-8 text-primary" />
                                 <div>
-                                    <CardTitle>{goal.name}</CardTitle>
+                                    <CardTitle>Quanto precisa poupar até a aposentadoria.</CardTitle>
                                     <CardDescription>
-                                        Meta: {formatCurrency(goal.targetAmount)}
+                                        Meta do projeto: {formatCurrency(goal.targetAmount)}
                                     </CardDescription>
                                 </div>
                             </div>
                             <div className={`text-right text-sm flex items-center gap-1.5 ${isFinished ? 'text-destructive' : 'text-muted-foreground'}`}>
                                 <Calendar className="h-4 w-4" />
                                 <span>
-                                    {isFinished ? 'Prazo finalizado' : `${daysRemaining} dias`}
+                                    {format(new Date(goal.deadline), "yyyy")}
                                 </span>
                             </div>
                         </div>
@@ -141,7 +140,7 @@ export default function GoalsPage() {
                         <Progress value={progress} aria-label={`${progress.toFixed(0)}% concluído`}/>
                         <div className="text-sm text-muted-foreground flex justify-between">
                             <span>{formatCurrency(goal.currentAmount)}</span>
-                            <span className="font-medium">{progress.toFixed(0)}%</span>
+                            <span className="font-medium">{progress.toFixed(0)}% Realizado</span>
                         </div>
                     </CardContent>
                     </Card>
