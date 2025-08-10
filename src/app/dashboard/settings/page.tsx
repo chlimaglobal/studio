@@ -617,10 +617,17 @@ export default function SettingsPage() {
                 </div>
             </div>
              <div className="pt-4">
-                <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><BellRing className="h-4 w-4" /> Testar Notificações</h3>
-                <Button variant="outline" onClick={handleSendTestNotification}>
-                    Enviar Notificação de Teste
-                </Button>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base"><BellRing className="h-5 w-5" /> Testar Notificações</CardTitle>
+                        <CardDescription>Clique no botão para enviar uma notificação de teste para este dispositivo e confirmar se está tudo funcionando.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button variant="outline" onClick={handleSendTestNotification} className="w-full">
+                            Enviar Notificação de Teste
+                        </Button>
+                    </CardContent>
+                </Card>
              </div>
         </CardContent>
       </Card>
