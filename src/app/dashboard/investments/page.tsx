@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -5,13 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import Link from 'next/link';
 import { subMonths, format, startOfMonth, endOfMonth } from 'date-fns';
 import FinancialChart from '@/components/financial-chart';
+import InvestmentProjectionCalculator from '@/components/investment-projection-calculator';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -237,6 +239,21 @@ export default function InvestmentsPage() {
                         </CardHeader>
                         <CardContent className="h-[300px]">
                                 <FinancialChart data={chartData} isPrivacyMode={false} />
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Calculator className="h-5 w-5 text-primary" />
+                                Simulador de Investimentos
+                            </CardTitle>
+                            <CardDescription>
+                                Projete o crescimento do seu dinheiro com base no rendimento progressivo do CDI.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <InvestmentProjectionCalculator />
                         </CardContent>
                     </Card>
 
