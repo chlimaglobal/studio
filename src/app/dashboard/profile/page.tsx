@@ -19,7 +19,8 @@ import {
     ShieldCheck,
     Star,
     LineChart,
-    ArrowLeft
+    ArrowLeft,
+    WalletCards
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -60,6 +61,14 @@ const menuItems = [
         type: 'link',
         href: '/dashboard/investments',
         premium: true,
+    },
+    { 
+        icon: WalletCards, 
+        title: 'Contas a Pagar e Recorrentes', 
+        subtitle: 'Gerencie suas contas fixas e variáveis.',
+        type: 'link',
+        href: '/dashboard/bills',
+        premium: false,
     },
     { 
         icon: LayoutGrid, 
