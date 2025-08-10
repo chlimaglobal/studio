@@ -18,23 +18,17 @@ import {
     Loader2,
     ShieldCheck,
     Star,
-    LineChart
+    LineChart,
+    ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
 import { useSubscription, useAuth } from '@/components/client-providers';
+import { useRouter } from 'next/navigation';
 
 const menuItems = [
-    { 
-        icon: UserCircle, 
-        title: 'Meu perfil', 
-        subtitle: 'Atualize seus dados pessoais, como nome, foto, renda e outros.',
-        type: 'link',
-        href: '/dashboard/settings',
-        premium: false,
-    },
     { 
         icon: MessageCircle, 
         title: 'Assistente Lúmina no WhatsApp', 
@@ -258,6 +252,7 @@ const BiometricsCard = () => {
 
 export default function ProfilePage() {
   const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -269,16 +264,35 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-6 w-6" />
+        </Button>
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
-            Configurações
+            Minha Conta e Configurações
           </h1>
           <p className="text-muted-foreground">Gerencie suas preferências e conta.</p>
         </div>
       </div>
       
       <div className="space-y-3">
+        
+        <Link href={'/dashboard/settings'}>
+             <Card className="p-4 flex items-center justify-between hover:border-primary/50 transition-colors">
+                <div className="flex items-center gap-4">
+                    <UserCircle className="h-6 w-6 text-primary" />
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                           <span className="font-semibold">Editar Perfil e Preferências</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">Atualize seus dados, tema e notificações</span>
+                    </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Card>
+        </Link>
+        
         <BiometricsCard />
         
         {menuItems.map((item) => (

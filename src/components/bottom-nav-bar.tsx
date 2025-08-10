@@ -12,7 +12,7 @@ const navItems = [
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações', premium: false },
   { href: '/dashboard/mural', icon: MessageSquare, label: 'Mural', premium: true },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios', premium: false },
-  { href: '/dashboard/profile', icon: UserCircle, label: 'Perfil', premium: false },
+  { href: '/dashboard/investments', icon: LineChart, label: 'Investimentos', premium: true },
 ];
 
 export default function BottomNavBar() {
@@ -28,13 +28,16 @@ export default function BottomNavBar() {
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
+          const isItemDisabled = item.premium && !isSubscribed && !isAdmin;
+
           return (
             <Link
               key={item.label}
-              href={item.href}
+              href={isItemDisabled ? '/dashboard/pricing' : item.href}
               className={cn(
                 'inline-flex flex-col items-center justify-center px-5 hover:bg-muted group relative',
-                isActive ? 'text-primary' : 'text-muted-foreground'
+                isActive ? 'text-primary' : 'text-muted-foreground',
+                isItemDisabled ? 'cursor-not-allowed opacity-60' : ''
               )}
             >
               <div className="relative">
@@ -44,6 +47,9 @@ export default function BottomNavBar() {
                 )}>
                    <item.icon className="w-6 h-6" />
                 </div>
+                 {item.premium && !isSubscribed && !isAdmin && (
+                    <Star className="absolute -top-1 -right-1 h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                 )}
                 {item.href === '/dashboard/mural' && hasUnread && (
                     <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-secondary" />
                 )}

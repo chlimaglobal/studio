@@ -106,21 +106,9 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                  </DropdownMenuLabel>
                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings">
+                    <Link href="/dashboard/profile">
                       <UserCircle className="mr-2 h-4 w-4" />
-                      <span>Perfil</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                     <Link href="/dashboard/settings">
-                        <Fingerprint className="mr-2 h-4 w-4" />
-                        <span>Segurança</span>
-                    </Link>
-                  </DropdownMenuItem>
-                   <DropdownMenuItem asChild>
-                     <Link href="/dashboard/settings">
-                        <Palette className="mr-2 h-4 w-4" />
-                        <span>Aparência</span>
+                      <span>Minha Conta e Configurações</span>
                     </Link>
                   </DropdownMenuItem>
                  <DropdownMenuItem onClick={showPlaceholderToast}>
