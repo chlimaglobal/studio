@@ -23,6 +23,7 @@ import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { OnboardingGuide } from '@/components/OnboardingGuide';
 
 interface SummaryData {
   recebidos: number;
@@ -384,6 +385,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <OnboardingGuide />
       <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
       <NotificationPermission />
