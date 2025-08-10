@@ -1,8 +1,8 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from 'firebase/auth';
+import { getMessaging, isSupported } from "firebase/messaging";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -21,4 +21,10 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { db, auth, app };
+// Initialize Firebase Cloud Messaging and get a reference to the service
+const messaging = async () => {
+    const supported = await isSupported();
+    return supported ? getMessaging(app) : null;
+};
+
+export { db, auth, app, messaging };

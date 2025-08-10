@@ -6,15 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/
 import { Button } from './ui/button';
 import { BellRing, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { messaging } from '@/lib/firebase';
+import { getToken } from 'firebase/messaging';
+import { useAuth } from './client-providers';
+import { saveFcmToken } from '@/lib/storage';
 
 export function NotificationPermission() {
   const [permissionStatus, setPermissionStatus] = useState<NotificationPermission | 'unsupported'>('default');
   const [isVisible, setIsVisible] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
-      // Don't show the prompt if the user has already made a choice in a previous session
       const hasBeenDismissed = localStorage.getItem('notification_prompt_dismissed');
       if (hasBeenDismissed) {
           setIsVisible(false);
@@ -22,9 +26,7 @@ export function NotificationPermission() {
       }
 
       setPermissionStatus(Notification.permission);
-      // Show the card only if permission is default (not yet granted or denied)
       if (Notification.permission === 'default') {
-        // Add a small delay to not bombard the user immediately
         const timer = setTimeout(() => setIsVisible(true), 3000);
         return () => clearTimeout(timer);
       }
@@ -40,9 +42,8 @@ export function NotificationPermission() {
 
     const permission = await Notification.requestPermission();
     setPermissionStatus(permission);
-    setIsVisible(false); // Hide the card after a decision is made
+    setIsVisible(false);
     localStorage.setItem('notification_prompt_dismissed', 'true');
-
 
     if (permission === 'granted') {
       toast({
@@ -54,6 +55,26 @@ export function NotificationPermission() {
           icon: '/icon.png',
           silent: true,
       });
+
+      // Get FCM Token and save it
+      try {
+        const fcm = await messaging();
+        if (fcm && user) {
+            const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+            if (fcmToken) {
+                await saveFcmToken(user.uid, fcmToken);
+                console.log('FCM Token saved successfully.');
+            }
+        }
+      } catch (error) {
+        console.error('An error occurred while retrieving token. ', error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao registrar dispositivo',
+            description: 'Não foi possível registrar seu dispositivo para notificações. Tente novamente mais tarde.',
+        });
+      }
+
     } else {
       toast({
         variant: 'destructive',
@@ -68,7 +89,6 @@ export function NotificationPermission() {
     localStorage.setItem('notification_prompt_dismissed', 'true');
   }
   
-  // Render nothing if permission is not default, or if the component is hidden
   if (permissionStatus !== 'default' || !isVisible) {
     return null;
   }

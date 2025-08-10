@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -62,6 +62,23 @@ export function onUserSubscriptionUpdate(userId: string, callback: (status: stri
     });
 
     return unsubscribe;
+}
+
+export async function saveFcmToken(userId: string, token: string) {
+    if (!userId || !token) return;
+    const userDocRef = doc(db, 'users', userId);
+    try {
+        await updateDoc(userDocRef, {
+            fcmTokens: arrayUnion(token)
+        });
+    } catch (error) {
+        // If the document or the fcmTokens field doesn't exist, set it.
+        if ((error as any).code === 'not-found') {
+            await setDoc(userDocRef, { fcmTokens: [token] }, { merge: true });
+        } else {
+            console.error("Error saving FCM token:", error);
+        }
+    }
 }
 
 
