@@ -22,6 +22,7 @@ import { onBudgetsUpdate } from '@/lib/storage';
 import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface SummaryData {
   recebidos: number;
@@ -247,11 +248,24 @@ export default function DashboardPage() {
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
         setIsPrivacyMode(storedPrivacyMode);
-    }, []);
+
+        const newFeatureShown = localStorage.getItem('feature_mural_shown');
+        if (!newFeatureShown) {
+            setTimeout(() => {
+                toast({
+                    title: 'Nova Funcionalidade: Mural de Mensagens!',
+                    description: 'Converse sobre finanças com seu parceiro(a) e receba dicas da Lúmina. Acesse pelo menu inferior.',
+                    duration: 8000,
+                });
+                localStorage.setItem('feature_mural_shown', 'true');
+            }, 5000);
+        }
+    }, [toast]);
 
     const handleTogglePrivacyMode = () => {
         const newMode = !isPrivacyMode;

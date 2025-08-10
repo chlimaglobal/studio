@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
@@ -174,9 +175,15 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     
     try {
         await addStoredTransaction(userId, data);
+
+        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
+        toast({
+            title: `${messageType} adicionada!`,
+            description: `${data.description} - ${formatCurrency(data.amount)}`,
+        });
+
         const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
         if (userWhatsAppNumber) {
-            const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
             const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
             // Do not await this, let it run in the background
             sendWhatsAppNotification(messageBody, userWhatsAppNumber);
