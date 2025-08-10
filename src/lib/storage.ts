@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion } from "firebase/firestore";
-import type { Transaction, TransactionFormSchema, Budget, ChatMessage } from './types';
+import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -136,6 +136,45 @@ export async function deleteStoredTransaction(userId: string, transactionId: str
     if (!userId) throw new Error("User not authenticated");
     const docRef = doc(db, 'users', userId, "transactions", transactionId);
     await deleteDoc(docRef);
+}
+
+
+// ======== ACCOUNTS ========
+
+export function onAccountsUpdate(userId: string, callback: (accounts: Account[]) => void): () => void {
+  if (!userId) return () => {};
+  const q = query(collection(db, "users", userId, "accounts"));
+
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    const accounts: Account[] = [];
+    querySnapshot.forEach((doc) => {
+        accounts.push({ id: doc.id, ...doc.data() } as Account);
+    });
+    accounts.sort((a, b) => a.name.localeCompare(b.name));
+    callback(accounts);
+  }, (error) => {
+    console.error("Error fetching accounts:", error);
+  });
+
+  return unsubscribe;
+}
+
+export async function addStoredAccount(userId: string, data: z.infer<typeof AddAccountFormSchema>) {
+   if (!userId) throw new Error("User not authenticated");
+   try {
+    const accountData = {
+        ...data,
+        ownerId: userId,
+        memberIds: [userId],
+        isShared: false,
+        currentBalance: data.initialBalance,
+        createdAt: Timestamp.now(),
+    };
+    await addDoc(collection(db, "users", userId, "accounts"), cleanDataForFirestore(accountData));
+  } catch (e) {
+    console.error("Error adding account: ", e);
+    throw new Error('Falha ao adicionar conta no Firestore.');
+  }
 }
 
 

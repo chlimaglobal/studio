@@ -25,20 +25,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-import { AddAccountFormSchema, accountTypes } from '@/lib/types';
+import { AddAccountFormSchema, accountTypes, accountTypeLabels } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useAuth } from '@/components/client-providers';
+import { addStoredAccount } from '@/lib/storage';
 
 type AddAccountDialogProps = {
   children: React.ReactNode;
-};
-
-const accountTypeLabels: Record<typeof accountTypes[number], string> = {
-    checking: 'Conta Corrente',
-    savings: 'Poupança',
-    investment: 'Investimento',
-    other: 'Outra',
 };
 
 export function AddAccountDialog({ children }: AddAccountDialogProps) {
@@ -65,9 +59,7 @@ export function AddAccountDialog({ children }: AddAccountDialogProps) {
         return;
     }
     try {
-        // Placeholder for the actual storage logic
-        console.log("Adding account:", values);
-        // await addStoredAccount(user.uid, values);
+        await addStoredAccount(user.uid, values);
         toast({
             title: 'Sucesso!',
             description: "Conta adicionada com sucesso!",
@@ -153,7 +145,7 @@ export function AddAccountDialog({ children }: AddAccountDialogProps) {
                 )}
               />
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Conta

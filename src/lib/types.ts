@@ -158,6 +158,13 @@ export type Budget = z.infer<typeof BudgetSchema>;
 export const accountTypes = ['checking', 'savings', 'investment', 'other'] as const;
 export type AccountType = (typeof accountTypes)[number];
 
+export const accountTypeLabels: Record<AccountType, string> = {
+    checking: 'Conta Corrente',
+    savings: 'Poupança',
+    investment: 'Investimento',
+    other: 'Outra',
+};
+
 export const AddAccountFormSchema = z.object({
   name: z.string().min(2, 'O nome da conta deve ter pelo menos 2 caracteres.'),
   type: z.enum(accountTypes, { required_error: 'Selecione um tipo de conta.' }),
@@ -168,6 +175,8 @@ export type Account = {
   id: string;
   ownerId: string;
   memberIds: string[];
+  isShared: boolean;
+  currentBalance: number;
 } & z.infer<typeof AddAccountFormSchema>;
 
 // Types for Investor Profile Analysis
