@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator, ShieldCheck, Target } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
@@ -246,15 +246,32 @@ export default function InvestmentsPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Sparkles className="h-5 w-5 text-primary" />
-                                Análise de Perfil e Projeto de Vida
+                                Análise de Perfil de Investidor
                             </CardTitle>
                             <CardDescription>
-                                Entenda seu perfil de risco e receba sugestões de investimentos e projeções para o futuro, alinhadas aos seus objetivos e do seu parceiro(a).
+                                Entenda seu perfil de risco e receba sugestões de investimentos alinhadas aos seus objetivos.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Button className="w-full" asChild>
-                                <Link href="/dashboard/investments/analise-perfil-investidor">Analisar meu perfil e projetar meu futuro</Link>
+                                <Link href="/dashboard/investments/analise-perfil-investidor">Analisar meu perfil com a Lúmina</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Target className="h-5 w-5 text-primary" />
+                                Calculadora de Projeto de Vida
+                            </CardTitle>
+                            <CardDescription>
+                                Descubra quanto você precisa investir mensalmente para alcançar sua aposentadoria dos sonhos.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full" asChild>
+                                <Link href="/dashboard/goals">Calcular Aposentadoria</Link>
                             </Button>
                         </CardContent>
                     </Card>

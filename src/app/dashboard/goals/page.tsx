@@ -2,82 +2,100 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, PlusCircle, Target, ArrowLeft, Loader2, Star } from 'lucide-react';
-import { AddGoalDialog } from '@/components/add-goal-dialog';
-import { Progress } from '@/components/ui/progress';
-import Icon from '@/components/icon';
-import { icons } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import type { Goal } from '@/lib/goal-types';
-import { onGoalsUpdate } from '@/lib/storage';
-import { format, differenceInDays, isPast } from 'date-fns';
-import { formatCurrency } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Loader2, LineChart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useSubscription } from '@/components/client-providers';
-import Link from 'next/link';
+import { useState, useMemo, useEffect } from 'react';
+import { useTransactions } from '@/components/client-providers';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { formatCurrency } from '@/lib/utils';
+import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
+import { allInvestmentCategories } from '@/lib/types';
 
-const PremiumBlocker = () => (
-    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
-        <Target className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold flex items-center gap-2">
-            <Star className="h-5 w-5 text-amber-500" />
-            Recurso Premium
-        </h3>
-        <p className="mb-4 mt-2 text-sm text-muted-foreground">
-            A criação de metas financeiras é um recurso exclusivo para assinantes.
-        </p>
-        <Button asChild>
-            <Link href="/dashboard/pricing">Ver Planos</Link>
-        </Button>
-    </div>
-);
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="rounded-lg border bg-background p-2 shadow-sm text-sm">
+                <p className="font-medium">Ano {new Date().getFullYear() + label}</p>
+                <p className="text-muted-foreground">Patrimônio: {formatCurrency(payload[0].value)}</p>
+            </div>
+        );
+    }
+    return null;
+};
 
 
-export default function GoalsPage() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function RetirementCalculatorPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
-  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
-
-  useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-    if (isSubscribed || isAdmin) {
-        setIsLoading(true);
-        const unsubscribe = onGoalsUpdate(user.uid, (newGoals) => {
-        setGoals(newGoals);
-        setIsLoading(false);
-        });
-        return () => unsubscribe();
-    } else {
-        setIsLoading(false);
-    }
-  }, [user, isSubscribed, isAdmin]);
+  const { transactions, isLoading: isLoadingTransactions } = useTransactions();
   
-  const calculateProgress = (current: number, target: number) => {
-    if (target <= 0) return 0;
-    return Math.min((current / target) * 100, 100);
-  };
+  const [currentAge, setCurrentAge] = useState(30);
+  const [retirementAge, setRetirementAge] = useState(65);
+  const [desiredIncome, setDesiredIncome] = useState(10000);
+  const [currentPatrimony, setCurrentPatrimony] = useState(0);
+  const [realYield, setRealYield] = useState(6); // % ao ano, acima da inflação
 
-  const getDaysRemaining = (deadline: Date | string) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const deadlineDate = new Date(deadline);
-    deadlineDate.setHours(0,0,0,0);
-    return differenceInDays(deadlineDate, today);
-  };
+  // Calculate initial patrimony from transactions once
+  useEffect(() => {
+    if (transactions.length > 0) {
+        const totalInvested = transactions
+            .filter(t => allInvestmentCategories.has(t.category))
+            .reduce((acc, t) => {
+                if (t.type === 'income') return acc + t.amount;
+                if (t.type === 'expense') return acc - t.amount; // Assume retiradas são despesas
+                return acc;
+            }, 0);
+        setCurrentPatrimony(totalInvested > 0 ? totalInvested : 0);
+    }
+  }, [transactions]);
 
-  if (isLoading || isSubscriptionLoading) {
+
+  const { monthlyInvestmentNeeded, projectionData } = useMemo(() => {
+    const lifeExpectancy = 85;
+    const retirementYears = lifeExpectancy - retirementAge;
+    const investmentYears = retirementAge - currentAge;
+
+    if (investmentYears <= 0) return { monthlyInvestmentNeeded: 0, projectionData: [] };
+
+    const monthlyRealYield = Math.pow(1 + realYield / 100, 1 / 12) - 1;
+
+    // A. Quanto precisa ter na aposentadoria (Present Value of an annuity)
+    const totalNestEggNeeded = (desiredIncome * 12 * (1 - Math.pow(1 + monthlyRealYield, -retirementYears * 12))) / monthlyRealYield;
+
+    // B. Quanto já terá no futuro apenas com o patrimônio atual (Future Value)
+    const futureValueOfCurrentPatrimony = currentPatrimony * Math.pow(1 + monthlyRealYield, investmentYears * 12);
+
+    // C. Qual o valor futuro necessário a partir dos aportes mensais
+    const futureValueFromContributions = totalNestEggNeeded - futureValueOfCurrentPatrimony;
+    
+    if (futureValueFromContributions <= 0) {
+        // O patrimônio atual já é suficiente
+        return { monthlyInvestmentNeeded: 0, projectionData: [] };
+    }
+
+    // D. Qual o aporte mensal necessário (Future value of a series)
+    const monthlyInvestment = futureValueFromContributions / ((Math.pow(1 + monthlyRealYield, investmentYears * 12) - 1) / monthlyRealYield);
+    
+    // Gerar dados para o gráfico
+    const projData = [];
+    let accumulated = currentPatrimony;
+    for (let year = 0; year <= investmentYears; year++) {
+        projData.push({ year, value: accumulated });
+        accumulated = accumulated * Math.pow(1 + realYield / 100, 1) + (monthlyInvestment * 12);
+    }
+
+    return { monthlyInvestmentNeeded: monthlyInvestment, projectionData: projData };
+
+  }, [currentAge, retirementAge, desiredIncome, currentPatrimony, realYield]);
+
+
+  if (isLoadingTransactions) {
     return (
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Carregando suas metas...</span>
+                <span>Carregando...</span>
             </div>
         </div>
     );
@@ -85,83 +103,81 @@ export default function GoalsPage() {
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center justify-between">
-         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-6 w-6" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold flex items-center gap-2">
-                <Target className="h-6 w-6" />
-                Meu Progresso
-              </h1>
-              <p className="text-muted-foreground">Veja o progresso das suas metas de poupança e garanta seus objetivos.</p>
-            </div>
+       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-6 w-6" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-semibold">Calculadora de Projeto de Vida</h1>
+          <p className="text-muted-foreground">Descubra quanto investir para alcançar sua aposentadoria.</p>
         </div>
-        {(isSubscribed || isAdmin) && (
-            <AddGoalDialog>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Meta
-                </Button>
-            </AddGoalDialog>
-        )}
       </div>
       
-      {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : 
-        goals.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1">
-            {goals.map((goal) => {
-                const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
-                const isFinished = isPast(new Date(goal.deadline)) && progress < 100;
-
-                return (
-                    <Card key={goal.id} className="flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+                 <Card>
                     <CardHeader>
-                        <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                                <Icon name={goal.icon as keyof typeof icons} className="h-8 w-8 text-primary" />
-                                <div>
-                                    <CardTitle>Quanto precisa poupar até a aposentadoria.</CardTitle>
-                                    <CardDescription>
-                                        Meta do projeto: {formatCurrency(goal.targetAmount)}
-                                    </CardDescription>
-                                </div>
+                        <CardTitle>Parâmetros</CardTitle>
+                        <CardDescription>Ajuste os valores para simular sua aposentadoria.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <Label htmlFor="current-age">Idade Atual</Label>
+                                <Input id="current-age" type="number" value={currentAge} onChange={e => setCurrentAge(Number(e.target.value))} />
                             </div>
-                            <div className={`text-right text-sm flex items-center gap-1.5 ${isFinished ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                <Calendar className="h-4 w-4" />
-                                <span>
-                                    {format(new Date(goal.deadline), "yyyy")}
-                                </span>
+                            <div>
+                                <Label htmlFor="retirement-age">Idade Aposentadoria</Label>
+                                <Input id="retirement-age" type="number" value={retirementAge} onChange={e => setRetirementAge(Number(e.target.value))} />
                             </div>
                         </div>
-                    </CardHeader>
-                    <CardContent className="flex-grow space-y-2">
-                        <Progress value={progress} aria-label={`${progress.toFixed(0)}% concluído`}/>
-                        <div className="text-sm text-muted-foreground flex justify-between">
-                            <span>{formatCurrency(goal.currentAmount)}</span>
-                            <span className="font-medium">{progress.toFixed(0)}% Realizado</span>
+                        <div>
+                            <Label htmlFor="desired-income">Renda Mensal Desejada</Label>
+                            <Input id="desired-income" type="number" value={desiredIncome} onChange={e => setDesiredIncome(Number(e.target.value))} />
+                        </div>
+                        <div>
+                            <Label htmlFor="current-patrimony">Patrimônio Atual</Label>
+                            <Input id="current-patrimony" type="number" value={currentPatrimony} onChange={e => setCurrentPatrimony(Number(e.target.value))} />
+                        </div>
+                         <div>
+                            <Label htmlFor="real-yield">Taxa de Juros Real (anual %)</Label>
+                            <Input id="real-yield" type="number" step="0.1" value={realYield} onChange={e => setRealYield(Number(e.target.value))} />
+                             <p className="text-xs text-muted-foreground mt-1">Seu retorno esperado acima da inflação.</p>
                         </div>
                     </CardContent>
-                    </Card>
-                )
-            })}
+                </Card>
             </div>
-        ) : (
-            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
-                <Target className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">Nenhuma meta criada</h3>
-                <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                    Crie sua primeira meta para começar a planejar seu futuro.
-                </p>
-                <AddGoalDialog>
-                    <Button>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Meta
-                    </Button>
-                </AddGoalDialog>
+
+            <div className="lg:col-span-3 space-y-4">
+                <Card className="bg-gradient-to-br from-primary/10 to-transparent text-center">
+                    <CardHeader>
+                        <CardTitle>Seu Objetivo Mensal</CardTitle>
+                        <CardDescription>Para alcançar sua meta de aposentadoria, você precisa investir:</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-4xl font-bold text-primary">{formatCurrency(monthlyInvestmentNeeded)}</p>
+                        <p className="text-muted-foreground">por mês.</p>
+                    </CardContent>
+                </Card>
+                
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5"/> Projeção de Patrimônio</CardTitle>
+                        <CardDescription>A evolução do seu dinheiro ao longo do tempo se seguir o plano.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[250px]">
+                         <ResponsiveContainer width="100%" height="100%">
+                            <RechartsLineChart data={projectionData}>
+                                <Tooltip content={<CustomTooltip />}/>
+                                <XAxis dataKey="year" fontSize={12} tickFormatter={(val) => `${new Date().getFullYear() + val}`} />
+                                <YAxis fontSize={12} tickFormatter={(val) => `${formatCurrency(val / 1000)}k`} />
+                                <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                            </RechartsLineChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
             </div>
-      )}
+        </div>
     </div>
   );
 }
