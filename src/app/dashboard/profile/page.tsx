@@ -97,8 +97,8 @@ const menuItems = [
     },
      { 
         icon: Target, 
-        title: 'Minhas metas', 
-        subtitle: null,
+        title: 'Planejamento de Aposentadoria', 
+        subtitle: 'Calcule e planeje seu futuro financeiro.',
         type: 'link',
         href: '/dashboard/goals',
         premium: true,
@@ -321,3 +321,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

@@ -263,15 +263,15 @@ export default function InvestmentsPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Target className="h-5 w-5 text-primary" />
-                                Calculadora de Projeto de Vida
+                                Calculadora de Aposentadoria
                             </CardTitle>
                             <CardDescription>
-                                Descubra quanto você precisa investir mensalmente para alcançar sua aposentadoria dos sonhos.
+                                Descubra quanto você precisa investir para alcançar seus objetivos de longo prazo.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <Button className="w-full" asChild>
-                                <Link href="/dashboard/goals">Calcular Aposentadoria</Link>
+                                <Link href="/dashboard/goals">Planejar Aposentadoria</Link>
                             </Button>
                         </CardContent>
                     </Card>
@@ -308,3 +308,5 @@ export default function InvestmentsPage() {
         </div>
     )
 }
+
+    

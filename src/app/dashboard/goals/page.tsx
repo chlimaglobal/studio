@@ -3,22 +3,27 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, LineChart } from 'lucide-react';
+import { ArrowLeft, Loader2, LineChart, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
 import { useTransactions } from '@/components/client-providers';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
-import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line } from 'recharts';
+import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, ReferenceLine } from 'recharts';
 import { allInvestmentCategories } from '@/lib/types';
+import { Separator } from '@/components/ui/separator';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
             <div className="rounded-lg border bg-background p-2 shadow-sm text-sm">
                 <p className="font-medium">Ano {new Date().getFullYear() + label}</p>
-                <p className="text-muted-foreground">Patrimônio: {formatCurrency(payload[0].value)}</p>
+                 {payload.map((p: any) => (
+                    <p key={p.dataKey} style={{ color: p.color }}>
+                        {p.name}: {formatCurrency(p.value)}
+                    </p>
+                ))}
             </div>
         );
     }
@@ -26,24 +31,39 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 
-export default function RetirementCalculatorPage() {
+export default function RetirementPlannerPage() {
   const router = useRouter();
   const { transactions, isLoading: isLoadingTransactions } = useTransactions();
   
-  const [currentAge, setCurrentAge] = useState(30);
-  const [retirementAge, setRetirementAge] = useState(65);
-  const [desiredIncome, setDesiredIncome] = useState(10000);
-  const [currentPatrimony, setCurrentPatrimony] = useState(0);
-  const [realYield, setRealYield] = useState(6); // % ao ano, acima da inflação
+  // Partner 1
+  const [age1, setAge1] = useState(30);
+  const [income1, setIncome1] = useState(5000);
+  
+  // Partner 2
+  const [age2, setAge2] = useState(28);
+  const [income2, setIncome2] = useState(4000);
 
-  // Calculate initial patrimony from transactions once
+  // Shared Goals
+  const [retirementAge, setRetirementAge] = useState(65);
+  const [lifeExpectancy, setLifeExpectancy] = useState(85);
+  const [currentPatrimony, setCurrentPatrimony] = useState(50000);
+  const [monthlySavings, setMonthlySavings] = useState(1500);
+  const [desiredRetirementIncome, setDesiredRetirementIncome] = useState(10000);
+  
+  // Financial Assumptions
+  const [realYield, setRealYield] = useState(4); // Real return % per year
+  const [inflationRate, setInflationRate] = useState(3); // Inflation % per year
+
+  // Auto-fill current patrimony from transactions
   useEffect(() => {
     if (transactions.length > 0) {
         const totalInvested = transactions
             .filter(t => allInvestmentCategories.has(t.category))
             .reduce((acc, t) => {
                 if (t.type === 'income') return acc + t.amount;
-                if (t.type === 'expense') return acc - t.amount; // Assume retiradas são despesas
+                // Treat withdrawals as negative contributions to patrimony
+                if (t.type === 'expense' && investmentWithdrawalCategories.has(t.category)) return acc - t.amount;
+                if (t.type === 'expense') return acc + t.amount;
                 return acc;
             }, 0);
         setCurrentPatrimony(totalInvested > 0 ? totalInvested : 0);
@@ -51,43 +71,57 @@ export default function RetirementCalculatorPage() {
   }, [transactions]);
 
 
-  const { monthlyInvestmentNeeded, projectionData } = useMemo(() => {
-    const lifeExpectancy = 85;
-    const retirementYears = lifeExpectancy - retirementAge;
-    const investmentYears = retirementAge - currentAge;
+  const {
+    futureDesiredIncome,
+    totalNestEggNeeded,
+    projectedPatrimony,
+    isOnTrack,
+    projectionData,
+    difference,
+  } = useMemo(() => {
+    const avgCurrentAge = (age1 + age2) / 2;
+    const investmentYears = retirementAge - avgCurrentAge;
+    if (investmentYears <= 0) return { projectionData: [], isOnTrack: false };
 
-    if (investmentYears <= 0) return { monthlyInvestmentNeeded: 0, projectionData: [] };
+    // 1. Calculate the future value of the desired income due to inflation
+    const futureDesiredIncome = desiredRetirementIncome * Math.pow(1 + inflationRate / 100, investmentYears);
 
+    // 2. Calculate the total capital needed at retirement (Nest Egg)
+    const retirementDuration = lifeExpectancy - retirementAge;
     const monthlyRealYield = Math.pow(1 + realYield / 100, 1 / 12) - 1;
-
-    // A. Quanto precisa ter na aposentadoria (Present Value of an annuity)
-    const totalNestEggNeeded = (desiredIncome * 12 * (1 - Math.pow(1 + monthlyRealYield, -retirementYears * 12))) / monthlyRealYield;
-
-    // B. Quanto já terá no futuro apenas com o patrimônio atual (Future Value)
-    const futureValueOfCurrentPatrimony = currentPatrimony * Math.pow(1 + monthlyRealYield, investmentYears * 12);
-
-    // C. Qual o valor futuro necessário a partir dos aportes mensais
-    const futureValueFromContributions = totalNestEggNeeded - futureValueOfCurrentPatrimony;
     
-    if (futureValueFromContributions <= 0) {
-        // O patrimônio atual já é suficiente
-        return { monthlyInvestmentNeeded: 0, projectionData: [] };
-    }
+    // Using Present Value of an Annuity formula for the nest egg
+    const totalNestEggNeeded = retirementDuration > 0
+        ? (futureDesiredIncome * (1 - Math.pow(1 + monthlyRealYield, -retirementDuration * 12))) / monthlyRealYield * 12
+        : 0;
 
-    // D. Qual o aporte mensal necessário (Future value of a series)
-    const monthlyInvestment = futureValueFromContributions / ((Math.pow(1 + monthlyRealYield, investmentYears * 12) - 1) / monthlyRealYield);
-    
-    // Gerar dados para o gráfico
-    const projData = [];
+    // 3. Project the growth of current savings + future contributions
     let accumulated = currentPatrimony;
-    for (let year = 0; year <= investmentYears; year++) {
-        projData.push({ year, value: accumulated });
-        accumulated = accumulated * Math.pow(1 + realYield / 100, 1) + (monthlyInvestment * 12);
+    const projData = [{ year: 0, patrimony: currentPatrimony, goal: totalNestEggNeeded }];
+    
+    for (let year = 1; year <= investmentYears; year++) {
+      accumulated = accumulated * (1 + realYield / 100) + (monthlySavings * 12);
+      projData.push({ year, patrimony: accumulated, goal: totalNestEggNeeded });
     }
+    const projectedPatrimony = accumulated;
+    
+    // 4. Determine status
+    const isOnTrack = projectedPatrimony >= totalNestEggNeeded;
+    const difference = projectedPatrimony - totalNestEggNeeded;
 
-    return { monthlyInvestmentNeeded: monthlyInvestment, projectionData: projData };
+    return {
+        futureDesiredIncome,
+        totalNestEggNeeded,
+        projectedPatrimony,
+        isOnTrack,
+        projectionData: projData,
+        difference,
+    };
 
-  }, [currentAge, retirementAge, desiredIncome, currentPatrimony, realYield]);
+  }, [
+    age1, age2, retirementAge, lifeExpectancy, currentPatrimony, 
+    monthlySavings, desiredRetirementIncome, realYield, inflationRate
+  ]);
 
 
   if (isLoadingTransactions) {
@@ -108,8 +142,8 @@ export default function RetirementCalculatorPage() {
             <ArrowLeft className="h-6 w-6" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold">Calculadora de Projeto de Vida</h1>
-          <p className="text-muted-foreground">Descubra quanto investir para alcançar sua aposentadoria.</p>
+          <h1 className="text-2xl font-semibold">Calculadora de Aposentadoria</h1>
+          <p className="text-muted-foreground">Planeje o futuro financeiro do casal.</p>
         </div>
       </div>
       
@@ -117,63 +151,125 @@ export default function RetirementCalculatorPage() {
             <div className="lg:col-span-2 space-y-4">
                  <Card>
                     <CardHeader>
-                        <CardTitle>Parâmetros</CardTitle>
-                        <CardDescription>Ajuste os valores para simular sua aposentadoria.</CardDescription>
+                        <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/> Dados do Casal</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                              <div>
-                                <Label htmlFor="current-age">Idade Atual</Label>
-                                <Input id="current-age" type="number" value={currentAge} onChange={e => setCurrentAge(Number(e.target.value))} />
+                                <Label htmlFor="age1">Idade (Parceiro 1)</Label>
+                                <Input id="age1" type="number" value={age1} onChange={e => setAge1(Number(e.target.value))} />
                             </div>
                             <div>
-                                <Label htmlFor="retirement-age">Idade Aposentadoria</Label>
-                                <Input id="retirement-age" type="number" value={retirementAge} onChange={e => setRetirementAge(Number(e.target.value))} />
+                                <Label htmlFor="age2">Idade (Parceiro 2)</Label>
+                                <Input id="age2" type="number" value={age2} onChange={e => setAge2(Number(e.target.value))} />
                             </div>
                         </div>
-                        <div>
-                            <Label htmlFor="desired-income">Renda Mensal Desejada</Label>
-                            <Input id="desired-income" type="number" value={desiredIncome} onChange={e => setDesiredIncome(Number(e.target.value))} />
+                         <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <Label htmlFor="retirementAge">Idade Aposentadoria</Label>
+                                <Input id="retirementAge" type="number" value={retirementAge} onChange={e => setRetirementAge(Number(e.target.value))} />
+                            </div>
+                            <div>
+                                <Label htmlFor="lifeExpectancy">Expectativa de Vida</Label>
+                                <Input id="lifeExpectancy" type="number" value={lifeExpectancy} onChange={e => setLifeExpectancy(Number(e.target.value))} />
+                            </div>
                         </div>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Situação Financeira</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                         <div>
-                            <Label htmlFor="current-patrimony">Patrimônio Atual</Label>
+                            <Label htmlFor="current-patrimony">Economia Atual (R$)</Label>
                             <Input id="current-patrimony" type="number" value={currentPatrimony} onChange={e => setCurrentPatrimony(Number(e.target.value))} />
                         </div>
-                         <div>
-                            <Label htmlFor="real-yield">Taxa de Juros Real (anual %)</Label>
+                        <div>
+                            <Label htmlFor="monthly-savings">Quanto poupam por mês (R$)</Label>
+                            <Input id="monthly-savings" type="number" value={monthlySavings} onChange={e => setMonthlySavings(Number(e.target.value))} />
+                        </div>
+                        <div>
+                            <Label htmlFor="desired-income">Renda Desejada na Aposentadoria (R$)</Label>
+                            <Input id="desired-income" type="number" value={desiredRetirementIncome} onChange={e => setDesiredRetirementIncome(Number(e.target.value))} />
+                        </div>
+                    </CardContent>
+                </Card>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Premissas</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Label htmlFor="real-yield">Taxa de Juros Real (% ao ano)</Label>
                             <Input id="real-yield" type="number" step="0.1" value={realYield} onChange={e => setRealYield(Number(e.target.value))} />
-                             <p className="text-xs text-muted-foreground mt-1">Seu retorno esperado acima da inflação.</p>
+                             <p className="text-xs text-muted-foreground mt-1">Retorno esperado acima da inflação.</p>
+                        </div>
+                         <div>
+                            <Label htmlFor="inflation-rate">Taxa de Inflação (% ao ano)</Label>
+                            <Input id="inflation-rate" type="number" step="0.1" value={inflationRate} onChange={e => setInflationRate(Number(e.target.value))} />
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="lg:col-span-3 space-y-4">
-                <Card className="bg-gradient-to-br from-primary/10 to-transparent text-center">
+                <Card className={`text-center ${isOnTrack ? 'bg-green-500/10' : 'bg-destructive/10'}`}>
                     <CardHeader>
-                        <CardTitle>Seu Objetivo Mensal</CardTitle>
-                        <CardDescription>Para alcançar sua meta de aposentadoria, você precisa investir:</CardDescription>
+                        <CardTitle className={isOnTrack ? 'text-green-600' : 'text-destructive'}>
+                            {isOnTrack ? "Vocês estão no caminho certo!" : "Atenção, ajuste necessário!"}
+                        </CardTitle>
+                        <CardDescription>
+                            Com base nos seus aportes atuais, seu patrimônio projetado na aposentadoria é de {formatCurrency(projectedPatrimony)}.
+                            Sua meta de patrimônio é de {formatCurrency(totalNestEggNeeded)}.
+                            A diferença é de <span className={isOnTrack ? 'text-green-600 font-bold' : 'text-destructive font-bold'}>{formatCurrency(difference)}</span>.
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-4xl font-bold text-primary">{formatCurrency(monthlyInvestmentNeeded)}</p>
-                        <p className="text-muted-foreground">por mês.</p>
-                    </CardContent>
                 </Card>
                 
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2"><LineChart className="h-5 w-5"/> Projeção de Patrimônio</CardTitle>
-                        <CardDescription>A evolução do seu dinheiro ao longo do tempo se seguir o plano.</CardDescription>
+                        <CardDescription>A evolução do seu dinheiro ao longo do tempo.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[250px]">
+                    <CardContent className="h-[300px]">
                          <ResponsiveContainer width="100%" height="100%">
                             <RechartsLineChart data={projectionData}>
                                 <Tooltip content={<CustomTooltip />}/>
                                 <XAxis dataKey="year" fontSize={12} tickFormatter={(val) => `${new Date().getFullYear() + val}`} />
-                                <YAxis fontSize={12} tickFormatter={(val) => `${formatCurrency(val / 1000)}k`} />
-                                <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                                <YAxis fontSize={12} domain={['auto', 'dataMax + 10000']} tickFormatter={(val) => `${formatCurrency(val / 1000)}k`} />
+                                <Legend />
+                                <Line type="monotone" name="Seu Patrimônio" dataKey="patrimony" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                                <ReferenceLine y={totalNestEggNeeded} name="Sua Meta" stroke="hsl(var(--chart-1))" strokeDasharray="3 3" />
                             </RechartsLineChart>
                         </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>Relatório Detalhado</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                         <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Renda desejada (hoje)</span>
+                            <span className="font-semibold">{formatCurrency(desiredRetirementIncome)} /mês</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Renda desejada corrigida</span>
+                            <span className="font-semibold">{formatCurrency(futureDesiredIncome)} /mês</span>
+                        </div>
+                         <Separator />
+                         <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Patrimônio necessário</span>
+                            <span className="font-semibold text-primary">{formatCurrency(totalNestEggNeeded)}</span>
+                        </div>
+                         <Separator />
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Patrimônio projetado</span>
+                            <span className="font-semibold">{formatCurrency(projectedPatrimony)}</span>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -181,3 +277,5 @@ export default function RetirementCalculatorPage() {
     </div>
   );
 }
+
+    
