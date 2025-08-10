@@ -381,6 +381,34 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendTestNotification = () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Seu navegador não suporta notificações.',
+      });
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      new Notification('FinanceFlow - Teste', {
+        body: 'Esta é uma notificação de teste. Tudo funcionando!',
+        icon: '/icon.png',
+      });
+       toast({
+        title: 'Notificação Enviada!',
+        description: 'Verifique a central de notificações do seu dispositivo.',
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Permissão Necessária',
+        description: 'Por favor, ative as notificações primeiro.',
+      });
+    }
+  };
+
 
   if (!isMounted) {
     return null; 
@@ -575,7 +603,7 @@ export default function SettingsPage() {
                     <NotificationSwitch id="futureIncome" label="Recebimentos futuros" checked={notifications.futureIncome} onCheckedChange={handleNotificationChange} />
                     <NotificationSwitch id="futurePayments" label="Pagamentos futuros" checked={notifications.futurePayments} onCheckedChange={handleNotificationChange} />
                 </div>
-              </div>
+            </div>
 
             <div className="pt-4">
                 <Label className="flex items-center gap-2 font-semibold text-muted-foreground"><Music className="h-4 w-4" /> Sons de Notificação</Label>
@@ -617,9 +645,16 @@ export default function SettingsPage() {
                       </div>
                     </div>
                 </div>
-              </div>
+            </div>
+             <div className="pt-4">
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground flex items-center gap-2"><BellRing className="h-4 w-4" /> Testar Notificações</h3>
+                <Button variant="outline" onClick={handleSendTestNotification}>
+                    Enviar Notificação de Teste
+                </Button>
+             </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
