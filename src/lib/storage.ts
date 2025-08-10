@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -143,20 +143,39 @@ export async function deleteStoredTransaction(userId: string, transactionId: str
 
 export function onAccountsUpdate(userId: string, callback: (accounts: Account[]) => void): () => void {
   if (!userId) return () => {};
-  const q = query(collection(db, "users", userId, "accounts"));
 
-  const unsubscribe = onSnapshot(q, (querySnapshot) => {
-    const accounts: Account[] = [];
-    querySnapshot.forEach((doc) => {
-        accounts.push({ id: doc.id, ...doc.data() } as Account);
+  // Listener for owned accounts
+  const ownedQuery = query(collection(db, "users", userId, "accounts"));
+  const unsubscribeOwned = onSnapshot(ownedQuery, async (ownedSnapshot) => {
+    let allAccounts: Account[] = [];
+    ownedSnapshot.forEach((doc) => {
+        allAccounts.push({ id: doc.id, ...doc.data() } as Account);
     });
-    accounts.sort((a, b) => a.name.localeCompare(b.name));
-    callback(accounts);
+
+    // Listener for shared accounts
+    const sharedQuery = query(collection(db, "users", userId, "sharedAccounts"));
+    const sharedSnapshot = await getDocs(sharedQuery);
+    
+    const sharedAccountPromises = sharedSnapshot.docs.map(doc => {
+        const accountRef = doc.data().accountRef as DocumentReference;
+        return getDoc(accountRef);
+    });
+
+    const sharedAccountDocs = await Promise.all(sharedAccountPromises);
+    sharedAccountDocs.forEach(doc => {
+        if(doc.exists()){
+            allAccounts.push({ id: doc.id, ...doc.data() } as Account);
+        }
+    });
+
+    allAccounts.sort((a, b) => a.name.localeCompare(b.name));
+    callback(allAccounts);
+
   }, (error) => {
     console.error("Error fetching accounts:", error);
   });
 
-  return unsubscribe;
+  return unsubscribeOwned;
 }
 
 export async function addStoredAccount(userId: string, data: z.infer<typeof AddAccountFormSchema>) {

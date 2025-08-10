@@ -2,10 +2,10 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Landmark, PlusCircle, ArrowLeft, Loader2, Share2, Users, User } from 'lucide-react';
+import { Landmark, PlusCircle, ArrowLeft, Loader2, Share2, Users, User, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AddAccountDialog } from '@/components/add-account-dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/client-providers';
 import { onAccountsUpdate } from '@/lib/storage';
 import type { Account } from '@/lib/types';
@@ -13,6 +13,68 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { formatCurrency } from '@/lib/utils';
 import { accountTypeLabels } from '@/lib/types';
 import { InviteDialog } from '@/components/invite-dialog';
+import { acceptInviteCode } from './actions';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+
+
+const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
+    const [code, setCode] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { toast } = useToast();
+
+    const handleAccept = async () => {
+        if (!code.trim()) {
+            toast({ variant: 'destructive', description: "Por favor, insira um código." });
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const result = await acceptInviteCode(code);
+            toast({
+                title: 'Sucesso!',
+                description: `Você agora tem acesso à conta "${result.accountName}".`,
+            });
+            setCode('');
+            onInviteAccepted(); // Callback to refresh the accounts list
+        } catch (error) {
+            const errorMessage = (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.';
+            toast({
+                variant: 'destructive',
+                title: 'Falha ao Aceitar Convite',
+                description: errorMessage,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Entrar em uma Conta Compartilhada</CardTitle>
+                <CardDescription>
+                    Se você recebeu um código de convite, insira-o abaixo para ter acesso à conta.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center space-x-2">
+                    <Input 
+                        placeholder="Código do convite" 
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.toUpperCase())}
+                        className="font-mono tracking-widest"
+                        maxLength={8}
+                    />
+                    <Button onClick={handleAccept} disabled={isLoading}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 
 export default function BanksPage() {
   const router = useRouter();
@@ -22,10 +84,10 @@ export default function BanksPage() {
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (!user) {
+  const fetchAccounts = useCallback(() => {
+     if (!user) {
       setIsLoading(false);
-      return;
+      return () => {};
     };
 
     setIsLoading(true);
@@ -34,8 +96,13 @@ export default function BanksPage() {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, [user]);
+
+  useEffect(() => {
+    const unsubscribe = fetchAccounts();
+    return () => unsubscribe();
+  }, [fetchAccounts]);
 
   const handleInviteClick = (account: Account) => {
     setSelectedAccount(account);
@@ -98,7 +165,7 @@ export default function BanksPage() {
                   <p className="text-2xl font-bold">{formatCurrency(account.currentBalance)}</p>
                 </CardContent>
                 <CardFooter className="bg-muted/50 p-3 rounded-b-lg">
-                  <Button variant="outline" className="w-full" onClick={() => handleInviteClick(account)}>
+                  <Button variant="outline" className="w-full" onClick={() => handleInviteClick(account)} disabled={account.isShared && account.ownerId !== user?.uid}>
                       <Share2 className="mr-2 h-4 w-4"/>
                       Convidar
                   </Button>
@@ -121,6 +188,8 @@ export default function BanksPage() {
               </AddAccountDialog>
           </div>
         )}
+
+        <AcceptInviteCard onInviteAccepted={fetchAccounts} />
       </div>
 
       {selectedAccount && (

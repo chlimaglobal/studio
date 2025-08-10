@@ -29,13 +29,12 @@ export async function generateInviteCode(accountId: string) {
         throw new Error("O banco de dados do administrador não foi inicializado.");
     }
 
-    // Generate a user-friendly, unique 8-character code (uppercase letters and numbers)
     const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 8);
     const code = nanoid();
     const expiresAt = Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
 
     try {
-        const inviteRef = await adminDb.collection('invites').add({
+        await adminDb.collection('invites').add({
             code,
             accountId,
             generatedBy: user.uid,
@@ -75,14 +74,11 @@ export async function acceptInviteCode(code: string) {
         await inviteDoc.ref.update({ status: 'expired' });
         throw new Error("Código de convite expirado.");
     }
+    
+    if (inviteData.generatedBy === user.uid) {
+        throw new Error("Você não pode aceitar seu próprio convite.");
+    }
 
-    const accountRef = adminDb.collectionGroup('accounts').where('id', '==', inviteData.accountId);
-    // This is not efficient, but Firestore security rules would prevent this query.
-    // In a real app, the path to the account would be stored in the invite.
-    // For now, let's assume a fixed path structure for simplicity of the query.
-    // This part of the code needs to be adapted based on the actual DB structure.
-    // As we have it, accounts are in /users/{uid}/accounts/{accountId}
-    // We can get the owner UID from the invite.
     const accountDocRef = adminDb.collection('users').doc(inviteData.generatedBy).collection('accounts').doc(inviteData.accountId);
     
     const accountDoc = await accountDocRef.get();
@@ -90,17 +86,29 @@ export async function acceptInviteCode(code: string) {
         throw new Error("A conta associada a este convite não foi encontrada.");
     }
 
-    // Add user to the account and update invite status
-    await accountDocRef.update({
+    // Add user to the account's member list and the shared account to the user's document
+    const batch = adminDb.batch();
+
+    batch.update(accountDocRef, {
         memberIds: FieldValue.arrayUnion(user.uid),
         isShared: true,
     });
     
-    await inviteDoc.ref.update({
+    batch.update(inviteDoc.ref, {
         status: 'accepted',
         acceptedBy: user.uid,
         acceptedAt: Timestamp.now(),
     });
+    
+    // Add a reference to the shared account in the accepting user's document
+    const userSharedAccountRef = adminDb.collection('users').doc(user.uid).collection('sharedAccounts').doc(inviteData.accountId);
+    batch.set(userSharedAccountRef, {
+       accountRef: accountDocRef,
+       ownerId: inviteData.generatedBy,
+       sharedAt: Timestamp.now(),
+    });
+
+    await batch.commit();
 
     return { success: true, accountName: accountDoc.data()?.name };
 }
