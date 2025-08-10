@@ -19,38 +19,35 @@ import {
 } from "@/components/ui/carousel"
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import Image from 'next/image';
+import { LayoutDashboard, Plus, BarChart3, LineChart, Handshake } from 'lucide-react';
+import Icon from './icon';
+import { icons } from 'lucide-react';
 
 const onboardingSteps = [
     {
         title: "Seja bem-vindo ao FinanceFlow!",
         description: "Vamos dar uma olhada rápida nas principais ferramentas para transformar sua vida financeira.",
-        image: "https://placehold.co/600x400.png",
-        imageHint: "welcome handshake",
+        icon: "Handshake",
     },
     {
         title: "Painel Principal",
         description: "Aqui você tem uma visão geral do seu mês: receitas, despesas e o balanço. Acompanhe seus gastos por categoria e orçamentos.",
-        image: "https://placehold.co/600x400.png",
-        imageHint: "dashboard analytics",
+        icon: "LayoutDashboard",
     },
     {
         title: "Adicione Transações Facilmente",
         description: "Use o botão '+' para adicionar despesas e receitas manualmente ou use sua voz com a assistente Lúmina.",
-        image: "https://placehold.co/600x400.png",
-        imageHint: "plus icon",
+        icon: "Plus",
     },
     {
         title: "Relatórios Inteligentes",
         description: "Acesse a aba 'Relatórios' para ver gráficos detalhados sobre seus gastos e entender para onde seu dinheiro está indo.",
-        image: "https://placehold.co/600x400.png",
-        imageHint: "pie chart",
+        icon: "BarChart3",
     },
     {
         title: "Controle seus Investimentos",
         description: "Na aba 'Investimentos', acompanhe a evolução do seu patrimônio, analise seu perfil e planeje seu futuro.",
-        image: "https://placehold.co/600x400.png",
-        imageHint: "investment growth",
+        icon: "LineChart",
     },
 ];
 
@@ -89,34 +86,34 @@ export function OnboardingGuide() {
     };
 
     const isLastStep = current === count;
+    const currentStep = onboardingSteps[current - 1] || onboardingSteps[0];
+
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose(false)}>
             <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>{onboardingSteps[current -1]?.title}</DialogTitle>
-                    <DialogDescription>
-                        {onboardingSteps[current -1]?.description}
-                    </DialogDescription>
-                </DialogHeader>
-
-                <Carousel setApi={setApi} className="w-full">
+                 <Carousel setApi={setApi} className="w-full">
                     <CarouselContent>
-                        {onboardingSteps.map((step, index) => (
-                            <CarouselItem key={index}>
-                                <Card>
-                                    <CardContent className="flex aspect-video items-center justify-center p-0 rounded-lg overflow-hidden">
-                                        <Image 
-                                            src={step.image} 
-                                            alt={step.title}
-                                            width={600}
-                                            height={400}
-                                            data-ai-hint={step.imageHint}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            </CarouselItem>
-                        ))}
+                        {onboardingSteps.map((step, index) => {
+                            const StepIcon = icons[step.icon as keyof typeof icons] || Handshake;
+                            return (
+                                <CarouselItem key={index}>
+                                    <DialogHeader className="text-center h-16">
+                                        <DialogTitle>{step.title}</DialogTitle>
+                                    </DialogHeader>
+                                    <Card className="bg-transparent border-0 shadow-none">
+                                        <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
+                                            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center">
+                                                 <StepIcon className="w-12 h-12 text-primary" />
+                                            </div>
+                                            <p className="text-muted-foreground text-center h-20">
+                                                {step.description}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </CarouselItem>
+                            )
+                        })}
                     </CarouselContent>
                     <CarouselPrevious className="left-2" />
                     <CarouselNext className="right-2"/>
@@ -137,4 +134,3 @@ export function OnboardingGuide() {
         </Dialog>
     )
 }
-
