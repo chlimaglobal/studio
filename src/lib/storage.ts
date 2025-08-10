@@ -1,12 +1,13 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
+import { addMonths } from 'date-fns';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -113,13 +114,38 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
     if (!userId) throw new Error("User not authenticated");
-    const transactionData = {
-        ...data,
-        amount: data.amount, // Amount is already a number from Zod transform
-        date: Timestamp.fromDate(new Date(data.date))
-    };
-    await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
+    
+    if (data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
+        const batch = writeBatch(db);
+        const installmentAmount = data.amount / data.installments;
+
+        for (let i = 0; i < data.installments; i++) {
+            const installmentDate = addMonths(new Date(data.date), i);
+            const transactionData = {
+                ...data,
+                amount: installmentAmount,
+                date: Timestamp.fromDate(installmentDate),
+                installmentNumber: i + 1,
+                totalInstallments: data.installments,
+                paymentMethod: 'installments'
+            };
+            // @ts-ignore
+            delete transactionData.installments; // remove the main installments field
+            const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
+            batch.set(newDocRef, cleanDataForFirestore(transactionData));
+        }
+        await batch.commit();
+
+    } else {
+         const transactionData = {
+            ...data,
+            amount: data.amount,
+            date: Timestamp.fromDate(new Date(data.date))
+        };
+        await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
+    }
 }
+
 
 export async function updateStoredTransaction(userId: string, transactionId: string, data: z.infer<typeof TransactionFormSchema>) {
     if (!userId) throw new Error("User not authenticated");

@@ -101,16 +101,18 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
               transactions.map((transaction) => (
                 <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
                   <TableCell>
-                    <div className="font-medium">{transaction.description}</div>
+                    <div className="font-medium flex items-center gap-2">
+                        <span>{transaction.description}</span>
+                        {transaction.installmentNumber && transaction.totalInstallments && (
+                             <Badge variant="secondary">{`${transaction.installmentNumber}/${transaction.totalInstallments}`}</Badge>
+                        )}
+                    </div>
                     <div className="text-xs text-muted-foreground space-x-2">
                         {showExtraDetails && transaction.institution && (
                             <span className="flex items-center gap-1"><Landmark className="h-3 w-3" /> {transaction.institution}</span>
                         )}
                         {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
                             <span>{transaction.creditCard}</span>
-                        )}
-                        {transaction.installmentNumber && transaction.totalInstallments && (
-                             <Badge variant="secondary">{`${transaction.installmentNumber}/${transaction.totalInstallments}`}</Badge>
                         )}
                     </div>
                   </TableCell>

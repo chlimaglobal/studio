@@ -108,7 +108,6 @@ export type Transaction = {
   creditCard?: string;
   institution?: string;
   paymentMethod?: 'one-time' | 'installments' | 'recurring';
-  installments?: number;
   recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   installmentNumber?: number;
   totalInstallments?: number;
@@ -192,7 +191,7 @@ export const InvestorProfileOutputSchema = z.object({
     category: z.string().describe('A classe do ativo, ex: "RF Pós-Fixado", "Ações Brasil", "Fundos Imobiliários (FIIs)".'),
     percentage: z.number().describe('A porcentagem recomendada para alocar nesta classe de ativo. A soma de todas as porcentagens deve ser 100.'),
   })).describe('Uma lista de alocações de ativos recomendadas com suas respectivas porcentagens.'),
-  recommendations: z.array(z.string()).describe('Uma lista de 2 a 3 recomendações ou próximos passos práticos para o investidor.'),
+  recommendations: z.array(z.string()).describe('Uma lista de 2 a 3 recomendações ou próximos passos práticos para o investor.'),
   expectedReturn: z.string().describe('A rentabilidade anual projetada da carteira, no formato "IPCA + X,XX%".'),
 });
 export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
@@ -226,5 +225,3 @@ export const MuralChatOutputSchema = z.object({
   response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
 });
 export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;
-
-    
