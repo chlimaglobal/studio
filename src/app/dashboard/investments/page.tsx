@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator, ShieldCheck } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
@@ -254,6 +254,23 @@ export default function InvestmentsPage() {
                         </CardHeader>
                         <CardContent>
                             <InvestmentProjectionCalculator />
+                        </CardContent>
+                    </Card>
+
+                     <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <ShieldCheck className="h-5 w-5 text-primary" />
+                                Meu Projeto de Vida
+                            </CardTitle>
+                            <CardDescription>
+                                Acompanhe seu progresso em direção à sua aposentadoria e outros objetivos de longo prazo.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button className="w-full" asChild>
+                                <Link href="/dashboard/retirement-projection">Acompanhar Meu Progresso</Link>
+                            </Button>
                         </CardContent>
                     </Card>
 
