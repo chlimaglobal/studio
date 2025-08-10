@@ -36,7 +36,7 @@ export default function DashboardLayout({
 
   return (
       <div className="flex flex-col min-h-screen w-full bg-background relative">
-        <main className="flex-1 overflow-y-auto pb-24 p-4">
+        <main className="flex-1 overflow-y-auto pb-32 p-4">
           {children}
         </main>
         <AddTransactionFab />
