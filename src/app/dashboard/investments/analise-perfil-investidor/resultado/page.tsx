@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart2, Lightbulb, PieChartIcon, UserCheck } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, PieChartIcon, UserCheck, Info } from 'lucide-react';
 import type { InvestorProfileOutput } from '@/lib/types';
 import CategoryPieChart from '@/components/category-pie-chart';
 
@@ -45,12 +45,12 @@ const ProfileResultContent = () => {
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-semibold">Seu Perfil de Investidor</h1>
+                  <h1 className="text-2xl font-semibold">Seu Projeto de Vida</h1>
                   <p className="text-muted-foreground">Análise e recomendações da Lúmina.</p>
                 </div>
             </div>
 
-            <Card className="border-primary/20">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3">
                         <UserCheck className="h-8 w-8 text-primary" />
@@ -67,19 +67,36 @@ const ProfileResultContent = () => {
             
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><PieChartIcon /> Alocação de Carteira Sugerida</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><PieChartIcon /> Estratégia de Carteira Sugerida</CardTitle>
                     <CardDescription>Uma sugestão de como diversificar seus investimentos com base no seu perfil.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                      <div className="h-[300px]">
                         <CategoryPieChart data={pieChartData} />
+                    </div>
+                     <div className="space-y-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Rentabilidade Real Projetada</CardDescription>
+                                <CardTitle className="text-3xl text-primary">{result.expectedReturn}</CardTitle>
+                            </CardHeader>
+                             <CardContent>
+                                <p className="text-xs text-muted-foreground">
+                                    Esta é a projeção de ganho acima da inflação, com base na sua carteira sugerida e nas condições atuais do mercado.
+                                </p>
+                            </CardContent>
+                        </Card>
+                         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            <Info className="h-4 w-4" />
+                            <span>Esta é uma simulação. A rentabilidade pode variar.</span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Lightbulb /> Próximos Passos</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><TrendingUp /> Próximos Passos</CardTitle>
                     <CardDescription>Recomendações práticas da Lúmina para você começar.</CardDescription>
                 </CardHeader>
                 <CardContent>

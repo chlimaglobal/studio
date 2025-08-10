@@ -15,6 +15,22 @@ import {
     type InvestorProfileInput,
     type InvestorProfileOutput
 } from '@/lib/types';
+import { getFinancialMarketData, type FinancialData } from '@/services/market-data';
+import { z } from 'zod';
+
+const getFinancialMarketDataTool = ai.defineTool(
+    {
+        name: 'getFinancialMarketData',
+        description: 'Obtém dados e taxas atuais do mercado financeiro brasileiro, como SELIC e IPCA.',
+        outputSchema: z.object({
+            selicRate: z.number(),
+            ipcaRate: z.number(),
+        }),
+    },
+    async () => {
+        return getFinancialMarketData();
+    }
+);
 
 
 export async function analyzeInvestorProfile(input: InvestorProfileInput): Promise<InvestorProfileOutput> {
@@ -25,7 +41,8 @@ const prompt = ai.definePrompt({
   name: 'analyzeInvestorProfilePrompt',
   input: { schema: InvestorProfileInputSchema },
   output: { schema: InvestorProfileOutputSchema },
-  prompt: `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário e determinar o perfil de risco do investidor, fornecer uma análise detalhada e sugerir uma alocação de carteira.
+  tools: [getFinancialMarketDataTool],
+  prompt: `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário, buscar dados atuais do mercado financeiro e, com base em tudo isso, determinar o perfil de risco do investidor, fornecer uma análise detalhada, sugerir uma alocação de carteira e projetar uma rentabilidade real.
 
   **Contexto das Perguntas e Respostas:**
   - **q1 (Objetivo):** a1 (Preservar) -> a4 (Maximizar ganhos)
@@ -33,19 +50,23 @@ const prompt = ai.definePrompt({
   - **q3 (Reação à Volatilidade):** c1 (Vende tudo) -> c4 (Compra mais)
 
   **Instruções de Análise:**
-  1.  **Determinar o Perfil:** Com base nas respostas, classifique o perfil como 'Conservador', 'Moderado' ou 'Arrojado'.
-      -   **Conservador:** Prioriza segurança e preservação de capital. Respostas tendem a ser a1, b1, c1/c2.
-      -   **Moderado:** Busca um equilíbrio entre segurança e rentabilidade, aceitando alguma volatilidade. Respostas tendem a ser a2/a3, b2/b3, c2/c3.
-      -   **Arrojado:** Foca em maximizar ganhos, mesmo com alto risco e volatilidade. Respostas tendem a ser a3/a4, b3/b4, c3/c4.
-
-  2.  **Escrever a Análise (analysis):** Elabore um texto claro e didático. Explique o perfil, o que significa a tolerância ao risco do investidor e como isso impacta as escolhas de investimento. Dê um tom encorajador e educativo.
-
-  3.  **Sugerir Alocação de Ativos (assetAllocation):** Crie uma carteira diversificada e adequada ao perfil. A soma das porcentagens deve ser 100.
-      -   **Conservador:** Maior parte em Renda Fixa (Pós-fixada, IPCA+). Pequena parte em Fundos Imobiliários.
-      -   **Moderado:** Equilíbrio entre Renda Fixa, Fundos Imobiliários e Ações (Brasil/Exterior).
-      -   **Arrojado:** Maior parte em Renda Variável (Ações, FIIs, Ativos Internacionais), com uma parcela menor em Renda Fixa para reserva.
-
-  4.  **Fornecer Recomendações (recommendations):** Dê 2 ou 3 dicas práticas. Ex: "Comece estudando sobre Renda Fixa", "Considere abrir conta em uma corretora" ou "Lembre-se de construir sua reserva de emergência antes de tudo".
+  1.  **Buscar Dados de Mercado:** Use a ferramenta \`getFinancialMarketDataTool\` para obter as taxas SELIC e IPCA atuais.
+  2.  **Determinar o Perfil:** Com base nas respostas, classifique o perfil como 'Conservador', 'Moderado' ou 'Arrojado'.
+  3.  **Escrever a Análise (analysis):** Elabore um texto claro e didático. Explique o perfil, o que significa a tolerância ao risco do investidor e como isso impacta as escolhas de investimento.
+  4.  **Sugerir Alocação de Ativos (assetAllocation):** Crie uma carteira diversificada e adequada ao perfil. A soma das porcentagens deve ser 100. Use classes de ativos como "RF Pós-Fixado", "RF Inflação", "Multimercado", "Ações Brasil", "Ações Globais".
+      - **Conservador:** Foco em Renda Fixa (Pós-Fixado, Inflação).
+      - **Moderado:** Equilíbrio entre Renda Fixa e uma porção de Renda Variável (Multimercado, Ações).
+      - **Arrojado:** Maior parte em Renda Variável.
+  5.  **Projetar Rentabilidade Real (expectedReturn):** Com base na alocação sugerida e nos dados de mercado (IPCA), calcule e retorne a rentabilidade anual estimada da carteira acima da inflação. O formato deve ser "IPCA + X,XX%".
+      - Para o cálculo, considere as seguintes premissas de retorno real (acima do IPCA) por classe de ativo:
+        - RF Pós-Fixado: SELIC - IPCA
+        - RF Inflação: 4.5%
+        - RF Pré-Fixado: 5.5%
+        - Multimercado: 6%
+        - Ações Brasil: 8%
+        - Ações Globais: 8.5%
+      - Calcule a média ponderada desses retornos com base na alocação percentual da carteira.
+  6.  **Fornecer Recomendações (recommendations):** Dê 2 ou 3 dicas práticas.
 
   **Respostas do Usuário para Análise:**
   {{{json answers}}}

@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const categoryData = {
@@ -185,6 +184,7 @@ export const InvestorProfileOutputSchema = z.object({
     percentage: z.number().describe('A porcentagem recomendada para alocar nesta classe de ativo. A soma de todas as porcentagens deve ser 100.'),
   })).describe('Uma lista de alocações de ativos recomendadas com suas respectivas porcentagens.'),
   recommendations: z.array(z.string()).describe('Uma lista de 2 a 3 recomendações ou próximos passos práticos para o investidor.'),
+  expectedReturn: z.string().describe('A rentabilidade anual projetada da carteira, no formato "IPCA + X,XX%".'),
 });
 export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 
