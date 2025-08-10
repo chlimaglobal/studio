@@ -20,7 +20,8 @@ import {
     Star,
     LineChart,
     ArrowLeft,
-    WalletCards
+    WalletCards,
+    Repeat
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -71,6 +72,14 @@ const menuItems = [
         premium: false,
     },
     { 
+        icon: Repeat, 
+        title: 'Minhas Assinaturas', 
+        subtitle: 'Gerencie seus serviços de assinatura e seus custos.',
+        type: 'link',
+        href: '/dashboard/subscriptions',
+        premium: false,
+    },
+    { 
         icon: LayoutGrid, 
         title: 'Minhas categorias', 
         subtitle: null,
@@ -80,10 +89,10 @@ const menuItems = [
     },
     { 
         icon: Wallet, 
-        title: 'Minhas contas e cartões', 
+        title: 'Minhas contas bancárias', 
         subtitle: null,
         type: 'link',
-        href: '/dashboard/cards',
+        href: '/dashboard/banks',
         premium: false,
     },
      { 
