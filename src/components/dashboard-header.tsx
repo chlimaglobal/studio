@@ -23,15 +23,12 @@ import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '@/components/client-providers';
 import { allInvestmentCategories } from '@/lib/types';
+import Image from 'next/image';
 
 
 const Logo = () => (
     <div className="p-2 bg-secondary/50 rounded-lg inline-block shadow-inner">
-      <div className="text-xl font-bold tracking-tight" style={{ textShadow: '1px 1px 1px hsl(var(--muted))' }}>
-          <span className="text-foreground">Finance</span>
-          <span className="text-primary"> $ </span>
-          <span className="text-foreground">Flow</span>
-      </div>
+      <Image src="/logo.png" alt="FinanceFlow Logo" width={100} height={28} priority />
     </div>
 );
 
