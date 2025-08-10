@@ -114,7 +114,7 @@ export default function InvestmentProjectionCalculator() {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                        <div className="grid grid-cols-3 gap-4 mt-4 text-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-center">
                             <div>
                                 <p className="text-sm text-muted-foreground">Valor Final</p>
                                 <p className="font-bold text-lg text-primary">{formatCurrency(finalValue)}</p>
@@ -134,4 +134,3 @@ export default function InvestmentProjectionCalculator() {
         </div>
     );
 }
-
