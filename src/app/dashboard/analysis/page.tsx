@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
@@ -134,8 +135,11 @@ export default function AnalysisPage() {
 
       <Card className="bg-gradient-to-br from-primary/10 to-transparent">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-primary">
-            <Sparkles />
+          <CardTitle className="flex items-center gap-3 text-primary">
+            <Avatar>
+                <AvatarImage src="/lumina-avatar.png" alt="Lúmina" />
+                <AvatarFallback>L</AvatarFallback>
+            </Avatar>
             Diagnóstico da Lúmina
           </CardTitle>
           <CardDescription>
