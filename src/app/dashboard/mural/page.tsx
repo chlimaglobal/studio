@@ -39,6 +39,17 @@ const PremiumBlocker = () => (
     </div>
 );
 
+const featureAnnouncements = [
+    {
+        id: 'feature_mural_welcome',
+        text: "Olá! Notei que vocês chegaram ao nosso novo Mural. Este é um espaço para conversarem sobre suas finanças e contarem com minha ajuda para alcançar seus objetivos juntos. O que vocês gostariam de discutir hoje?"
+    },
+    {
+        id: 'feature_budgets_announcement',
+        text: "Novidade! Agora vocês podem definir orçamentos mensais para suas categorias de gastos. Acessem a tela de 'Orçamentos' no menu de perfil para começar a planejar!"
+    }
+];
+
 
 export default function MuralPage() {
     const router = useRouter();
@@ -50,7 +61,6 @@ export default function MuralPage() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
-    const welcomeMessageSent = useRef(false);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
         if (!user || !text.trim()) return;
@@ -69,18 +79,18 @@ export default function MuralPage() {
         }
     }, [user]);
 
-     const sendWelcomeMessageIfNeeded = useCallback((currentMessages: ChatMessage[]) => {
-        if (welcomeMessageSent.current) return;
+     const sendFeatureAnnouncements = useCallback(async () => {
+        if (typeof window === 'undefined') return;
 
-        const hasWelcome = currentMessages.some(msg => msg.text.includes("Olá! Notei que vocês chegaram ao nosso novo Mural."));
-        if (!hasWelcome) {
-            const welcomeText = "Olá! Notei que vocês chegaram ao nosso novo Mural. Este é um espaço para conversarem sobre suas finanças e contarem com minha ajuda para alcançar seus objetivos juntos. O que vocês gostariam de discutir hoje?";
-            saveMessage('lumina', welcomeText, 'Lúmina', '/lumina-avatar.png');
-            welcomeMessageSent.current = true;
-        } else {
-             welcomeMessageSent.current = true;
+        for (const announcement of featureAnnouncements) {
+            const hasBeenSent = localStorage.getItem(announcement.id);
+            if (!hasBeenSent) {
+                // Wait a bit before sending the message to make it feel more natural
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await saveMessage('lumina', announcement.text, 'Lúmina', '/lumina-avatar.png');
+                localStorage.setItem(announcement.id, 'true');
+            }
         }
-
     }, [saveMessage]);
 
 
@@ -88,16 +98,11 @@ export default function MuralPage() {
         if (user && (isSubscribed || isAdmin)) {
             const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
                 setMessages(newMessages);
-                // Send welcome message on initial load if needed
-                if (newMessages.length > 0 && !welcomeMessageSent.current) {
-                    sendWelcomeMessageIfNeeded(newMessages);
-                } else if (newMessages.length === 0 && !welcomeMessageSent.current) {
-                     sendWelcomeMessageIfNeeded([]);
-                }
             });
+            sendFeatureAnnouncements();
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, sendWelcomeMessageIfNeeded]);
+    }, [user, isSubscribed, isAdmin, sendFeatureAnnouncements]);
 
     useEffect(() => {
       if (scrollAreaRef.current) {
