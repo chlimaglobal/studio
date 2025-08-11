@@ -145,6 +145,17 @@ export default function SignUpPage() {
                 </Button>
               </div>
             </div>
+            <div className="text-xs text-muted-foreground">
+              Ao criar sua conta, você concorda com nossos{' '}
+              <Link href="/terms" className="underline hover:text-primary">
+                Termos de Uso
+              </Link>{' '}
+              e{' '}
+              <Link href="/privacy" className="underline hover:text-primary">
+                Política de Privacidade
+              </Link>
+              .
+            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar Conta
