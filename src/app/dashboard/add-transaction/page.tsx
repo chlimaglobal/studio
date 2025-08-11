@@ -295,45 +295,6 @@ function AddTransactionForm() {
                                 />
                             </div>
 
-                             {watchedType === 'expense' && !watchedPaid && (
-                                <FormField
-                                    control={form.control}
-                                    name="dueDate"
-                                    render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>Data de Vencimento</FormLabel>
-                                        <Popover>
-                                        <PopoverTrigger asChild>
-                                            <FormControl>
-                                            <Button
-                                                variant={'outline'}
-                                                className={cn(
-                                                'w-full pl-3 text-left font-normal',
-                                                !field.value && 'text-muted-foreground'
-                                                )}
-                                            >
-                                                {field.value ? format(new Date(field.value), 'PPP', { locale: ptBR }) : <span>Escolha a data de vencimento</span>}
-                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                            </Button>
-                                            </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                            mode="single"
-                                            selected={field.value ? new Date(field.value) : undefined}
-                                            onSelect={field.onChange}
-                                            disabled={(date) => date > new Date("2100-01-01") || date < new Date('1900-01-01')}
-                                            initialFocus
-                                            locale={ptBR}
-                                            />
-                                        </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                    )}
-                                />
-                            )}
-
                             <FormField
                                 control={form.control}
                                 name="category"
@@ -531,6 +492,46 @@ function AddTransactionForm() {
                                         )}
                                     />
                                 )}
+                                
+                                {watchedType === 'expense' && !watchedPaid && (
+                                    <FormField
+                                        control={form.control}
+                                        name="dueDate"
+                                        render={({ field }) => (
+                                        <FormItem className="flex flex-col animate-in fade-in-0 duration-300">
+                                            <FormLabel>Data de Vencimento</FormLabel>
+                                            <Popover>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                <Button
+                                                    variant={'outline'}
+                                                    className={cn(
+                                                    'w-full pl-3 text-left font-normal',
+                                                    !field.value && 'text-muted-foreground'
+                                                    )}
+                                                >
+                                                    {field.value ? format(new Date(field.value), 'PPP', { locale: ptBR }) : <span>Escolha a data de vencimento</span>}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                mode="single"
+                                                selected={field.value ? new Date(field.value) : undefined}
+                                                onSelect={field.onChange}
+                                                disabled={(date) => date > new Date("2100-01-01") || date < new Date('1900-01-01')}
+                                                initialFocus
+                                                locale={ptBR}
+                                                />
+                                            </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                        )}
+                                    />
+                                )}
+
                                 <FormField
                                     control={form.control}
                                     name="hideFromReports"
