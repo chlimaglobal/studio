@@ -246,7 +246,9 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (pathname === '/dashboard/mural') {
+            // When user enters the mural, mark as read and store timestamp
             setHasUnread(false);
+            localStorage.setItem('lastMuralVisit', new Date().toISOString());
         }
     }, [pathname]);
 
@@ -254,7 +256,16 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
         if (user && (isSubscribed || isAdmin)) {
             const unsubscribe = onChatUpdate(user.uid, (messages) => {
                 const latestMessage = messages[messages.length - 1];
-                if (latestMessage && latestMessage.role !== 'user' && pathname !== '/dashboard/mural') {
+                if (!latestMessage) return;
+
+                const lastVisitString = localStorage.getItem('lastMuralVisit');
+                const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
+                
+                // Show notification only if the last message is from someone else,
+                // is newer than the last visit, and the user is not currently on the mural page.
+                if (latestMessage.role !== 'user' && 
+                    new Date(latestMessage.timestamp) > lastVisit && 
+                    pathname !== '/dashboard/mural') {
                     setHasUnread(true);
                 }
             });
