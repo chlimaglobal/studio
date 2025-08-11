@@ -95,7 +95,7 @@ const ThemeSelector = () => {
                                  <span className={cn('font-semibold flex items-center gap-2', (t.name === 'light') ? 'text-black' : 'text-white')}>
                                     <t.icon className="h-5 w-5" />
                                     {t.label}
-                                </span>
+                                 </span>
                                 {theme === t.name && (
                                      <div className={cn('w-6 h-6 rounded-full flex items-center justify-center', (t.name === 'light') ? 'bg-black/20 text-white' : 'bg-white/30 text-white')}>
                                         <Check className="w-4 h-4" />
@@ -183,7 +183,6 @@ export default function SettingsPage() {
       setNotifications(JSON.parse(storedNotifications));
     }
     
-    // Check permission again when tab becomes visible, as user might have changed it in another tab
     const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
             checkNotificationPermission();
@@ -201,29 +200,38 @@ export default function SettingsPage() {
         return;
     }
     
-    // Re-check permission right before requesting to handle edge cases
+    if (Notification.permission === 'granted') {
+        toast({ title: 'Permissão já concedida!', description: 'As notificações já estão ativadas.' });
+        return;
+    }
+
     if (Notification.permission === 'denied') {
         toast({
             variant: 'destructive',
             title: 'Permissão Bloqueada',
-            description: 'Você precisa habilitar as notificações manualmente nas configurações do seu navegador.',
+            description: 'Você precisa habilitar as notificações manualmente nas configurações do seu navegador para este site.',
         });
         return;
     }
-    
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission); // Update state immediately
-     if (permission === 'granted') {
-      toast({
-        title: 'Notificações Ativadas!',
-        description: 'Você receberá os alertas do sistema.',
-      });
-    } else if (permission === 'denied') {
-      toast({
-        variant: 'destructive',
-        title: 'Ativação Necessária',
-        description: 'Você precisa permitir as notificações nas configurações do seu navegador.',
-      });
+
+    try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission); // Update state immediately
+        if (permission === 'granted') {
+            toast({
+                title: 'Notificações Ativadas!',
+                description: 'Você receberá os alertas do sistema.',
+            });
+        } else if (permission === 'denied') {
+            toast({
+                variant: 'destructive',
+                title: 'Ativação Necessária',
+                description: 'Você precisa permitir as notificações nas configurações do seu navegador.',
+            });
+        }
+    } catch (error) {
+        console.error("Error requesting notification permission:", error);
+        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível solicitar a permissão.' });
     }
   };
   
@@ -644,3 +652,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
