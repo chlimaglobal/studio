@@ -159,8 +159,16 @@ export default function MuralPage() {
                                 <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
-                                            <AvatarImage src={msg.role === 'lumina' ? '/lumina-avatar.png' : msg.authorPhotoUrl} />
-                                            <AvatarFallback>{msg.role === 'lumina' ? 'L' : msg.authorName?.charAt(0) || 'P'}</AvatarFallback>
+                                            {msg.role === 'lumina' ? (
+                                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                                    <Sparkles className="h-5 w-5" />
+                                                </AvatarFallback>
+                                            ) : (
+                                                <>
+                                                    <AvatarImage src={msg.authorPhotoUrl} />
+                                                    <AvatarFallback>{msg.authorName?.charAt(0) || 'P'}</AvatarFallback>
+                                                </>
+                                            )}
                                         </Avatar>
                                     )}
                                     <div className={`rounded-lg p-3 max-w-xs lg:max-w-md ${
@@ -183,8 +191,9 @@ export default function MuralPage() {
                              {isLuminaThinking && (
                                 <div className="flex items-end gap-3">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={'/lumina-avatar.png'} />
-                                        <AvatarFallback>L</AvatarFallback>
+                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                            <Sparkles className="h-5 w-5" />
+                                        </AvatarFallback>
                                     </Avatar>
                                     <div className="rounded-lg p-3 bg-secondary">
                                         <div className="flex items-center gap-2 text-sm">

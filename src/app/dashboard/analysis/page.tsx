@@ -137,8 +137,9 @@ export default function AnalysisPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-primary">
             <Avatar>
-                <AvatarImage src="/lumina-avatar.png" alt="Lúmina" />
-                <AvatarFallback>L</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                    <Sparkles className="h-5 w-5" />
+                </AvatarFallback>
             </Avatar>
             Diagnóstico da Lúmina
           </CardTitle>
