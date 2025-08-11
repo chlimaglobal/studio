@@ -16,6 +16,7 @@ const features = [
     "Metas Financeiras",
     "Sincronização com WhatsApp",
     "Importação de extratos",
+    "Acesso Multiplataforma: Use o Finance $ Flow no seu celular (Android, IOS) ou na versão web completa pelo seu computador, a qualquer hora e em qualquer lugar.",
     "Sem anúncios"
 ];
 
