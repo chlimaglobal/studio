@@ -473,24 +473,25 @@ function AddTransactionForm() {
                             />
                             
                             <div className="space-y-4">
-                                <FormField
-                                    control={form.control}
-                                    name="paid"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                            <FormLabel>
-                                                {watchedType === 'expense' ? 'Pago' : 'Recebido'}
-                                            </FormLabel>
-                                            <FormControl>
-                                                <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                                disabled={watchedType === 'income'}
-                                                />
-                                            </FormControl>
-                                        </FormItem>
-                                    )}
-                                />
+                                {watchedType === 'expense' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="paid"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                                <FormLabel>
+                                                    Pago
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <FormField
                                     control={form.control}
                                     name="hideFromReports"
@@ -529,3 +530,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
