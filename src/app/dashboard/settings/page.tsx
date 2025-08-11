@@ -150,7 +150,7 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const checkNotificationPermission = useCallback(() => {
-    if ('Notification' in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotificationPermission(Notification.permission);
     }
   }, []);
@@ -184,8 +184,14 @@ export default function SettingsPage() {
     }
     
     // Check permission again when tab becomes visible, as user might have changed it in another tab
-    document.addEventListener('visibilitychange', checkNotificationPermission);
-    return () => document.removeEventListener('visibilitychange', checkNotificationPermission);
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            checkNotificationPermission();
+        }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
 
   }, [checkNotificationPermission]);
 
@@ -194,8 +200,8 @@ export default function SettingsPage() {
         toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
         return;
     }
-
-    // Re-check permission right before requesting
+    
+    // Re-check permission right before requesting to handle edge cases
     if (Notification.permission === 'denied') {
         toast({
             variant: 'destructive',
@@ -212,7 +218,7 @@ export default function SettingsPage() {
         title: 'Notificações Ativadas!',
         description: 'Você receberá os alertas do sistema.',
       });
-    } else {
+    } else if (permission === 'denied') {
       toast({
         variant: 'destructive',
         title: 'Ativação Necessária',
