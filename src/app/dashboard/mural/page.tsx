@@ -105,7 +105,12 @@ export default function MuralPage() {
 
     useEffect(() => {
       if (scrollAreaViewportRef.current) {
-        scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
+        // Use a timeout to ensure the DOM has updated before scrolling
+        setTimeout(() => {
+            if (scrollAreaViewportRef.current) {
+               scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
+            }
+        }, 0);
       }
     }, [messages]);
 
