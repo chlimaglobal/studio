@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions } from '@/components/client-providers';
 import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { generateSuggestion } from '@/ai/flows/mural-chat';
@@ -50,13 +50,54 @@ export default function MuralPage() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const welcomeMessageSent = useRef(false);
+
+    const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
+        if (!user || !text.trim()) return;
+
+        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+            role,
+            text,
+            authorName: authorName || user.displayName || 'Usuário',
+            authorPhotoUrl: authorPhotoUrl || user.photoURL || '',
+        };
+
+        await addChatMessage(user.uid, newMessage);
+
+        if (role === 'user') {
+            setMessage('');
+        }
+    }, [user]);
+
+     const sendWelcomeMessageIfNeeded = useCallback((currentMessages: ChatMessage[]) => {
+        if (welcomeMessageSent.current) return;
+
+        const hasWelcome = currentMessages.some(msg => msg.text.includes("Olá! Notei que vocês chegaram ao nosso novo Mural."));
+        if (!hasWelcome) {
+            const welcomeText = "Olá! Notei que vocês chegaram ao nosso novo Mural. Este é um espaço para conversarem sobre suas finanças e contarem com minha ajuda para alcançar seus objetivos juntos. O que vocês gostariam de discutir hoje?";
+            saveMessage('lumina', welcomeText, 'Lúmina', '/lumina-avatar.png');
+            welcomeMessageSent.current = true;
+        } else {
+             welcomeMessageSent.current = true;
+        }
+
+    }, [saveMessage]);
+
 
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(user.uid, setMessages);
+            const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
+                setMessages(newMessages);
+                // Send welcome message on initial load if needed
+                if (newMessages.length > 0 && !welcomeMessageSent.current) {
+                    sendWelcomeMessageIfNeeded(newMessages);
+                } else if (newMessages.length === 0 && !welcomeMessageSent.current) {
+                     sendWelcomeMessageIfNeeded([]);
+                }
+            });
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin]);
+    }, [user, isSubscribed, isAdmin, sendWelcomeMessageIfNeeded]);
 
     useEffect(() => {
       if (scrollAreaRef.current) {
@@ -81,32 +122,16 @@ export default function MuralPage() {
             const luminaResponse = await generateSuggestion(luminaInput);
 
             if (luminaResponse.response) {
-                await saveMessage('lumina', luminaResponse.response);
+                await saveMessage('lumina', luminaResponse.response, 'Lúmina', '/lumina-avatar.png');
             }
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
-            await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?");
+            await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", 'Lúmina', '/lumina-avatar.png');
         } finally {
             setIsLuminaThinking(false);
         }
     }
 
-    const saveMessage = async (role: 'user' | 'partner' | 'lumina', text: string) => {
-        if (!user || !text.trim()) return;
-
-        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
-            role,
-            text,
-            authorName: user.displayName || 'Usuário',
-            authorPhotoUrl: user.photoURL || '',
-        };
-
-        await addChatMessage(user.uid, newMessage);
-
-        if (role === 'user') {
-            setMessage('');
-        }
-    };
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
