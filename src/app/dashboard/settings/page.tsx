@@ -162,9 +162,6 @@ export default function SettingsPage() {
     };
     checkNotificationStatus(); // Initial check
 
-    // Add event listener for when the user returns to the tab
-    document.addEventListener('visibilitychange', checkNotificationStatus);
-
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
         PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
             setIsBiometricSupported(supported);
@@ -186,40 +183,7 @@ export default function SettingsPage() {
       setNotifications(JSON.parse(storedNotifications));
     }
 
-    return () => document.removeEventListener('visibilitychange', checkNotificationStatus);
-
   }, []);
-
-  const handleRequestNotificationPermission = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'default') {
-      return;
-    }
-
-    try {
-        const permission = await Notification.requestPermission();
-        setNotificationStatus(permission); // Update state immediately
-        if (permission === 'granted') {
-            toast({
-                title: 'Notificações Ativadas!',
-                description: 'Você receberá os alertas do sistema.',
-            });
-            // FCM Token logic
-             try {
-                const fcm = await messaging();
-                if (fcm && user) {
-                    const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
-                    if (fcmToken) {
-                        await saveFcmToken(user.uid, fcmToken);
-                    }
-                }
-            } catch (error) {
-                console.error('An error occurred while retrieving FCM token. ', error);
-            }
-        }
-    } catch (error) {
-        console.error("Error requesting notification permission:", error);
-    }
-  };
   
   const handleRegisterBiometrics = async () => {
     setIsRegistering(true);
@@ -407,7 +371,7 @@ export default function SettingsPage() {
       toast({
         variant: 'destructive',
         title: 'Permissão Necessária',
-        description: 'Por favor, ative as notificações primeiro.',
+        description: 'Por favor, ative as notificações primeiro. Você pode precisar fazer isso no painel principal ou nas configurações do navegador.',
       });
     }
   };
@@ -417,21 +381,14 @@ export default function SettingsPage() {
     return null; 
   }
 
-  const renderNotificationControl = () => {
+  const renderNotificationStatus = () => {
     switch(notificationStatus) {
         case 'granted':
             return <span className="text-sm font-medium text-primary flex items-center gap-1.5"><CheckCircle className="h-4 w-4" />Ativado</span>;
         case 'denied':
             return <span className="text-sm font-medium text-destructive">Bloqueado no navegador</span>;
-        case 'default':
-            return (
-                <Button onClick={handleRequestNotificationPermission} size="sm" variant="outline">
-                    <BellRing className="mr-2 h-4 w-4" />
-                    Ativar
-                </Button>
-            );
         default:
-            return <span className="text-sm text-muted-foreground">Indisponível</span>;
+            return <span className="text-sm text-muted-foreground">Não solicitado</span>
     }
   };
 
@@ -576,14 +533,14 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-md border bg-background p-4">
                 <div>
                     <p className="font-medium">Notificações Push</p>
-                    <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
-                    {notificationStatus === 'denied' && (
+                    <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu dispositivo.</p>
+                     {notificationStatus === 'denied' && (
                         <p className="text-xs text-destructive mt-1">
-                            As notificações estão bloqueadas. Você precisa habilitá-las nas configurações do seu navegador para este site.
+                            Você bloqueou as notificações. Para reativar, acesse as configurações do seu navegador para este site.
                         </p>
                     )}
                 </div>
-                {renderNotificationControl()}
+                {renderNotificationStatus()}
               </div>
             </div>
 
@@ -644,7 +601,7 @@ export default function SettingsPage() {
                         <CardDescription>Clique no botão para enviar uma notificação de teste para este dispositivo e confirmar se está tudo funcionando.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button variant="outline" onClick={handleSendTestNotification} className="w-full">
+                        <Button variant="outline" onClick={handleSendTestNotification} className="w-full" disabled={notificationStatus !== 'granted'}>
                             Enviar Notificação de Teste
                         </Button>
                     </CardContent>

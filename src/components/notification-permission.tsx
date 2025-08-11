@@ -27,7 +27,7 @@ export function NotificationPermission() {
 
       setPermissionStatus(Notification.permission);
       if (Notification.permission === 'default') {
-        const timer = setTimeout(() => setIsVisible(true), 3000);
+        const timer = setTimeout(() => setIsVisible(true), 5000); // Wait 5 seconds
         return () => clearTimeout(timer);
       }
     } else {
@@ -36,51 +36,44 @@ export function NotificationPermission() {
   }, []);
 
   const handleRequestPermission = async () => {
-    if (permissionStatus === 'unsupported' || permissionStatus === 'granted') {
+    if (permissionStatus !== 'default' || typeof window === 'undefined' || !('Notification' in window)) {
       return;
     }
-
-    const permission = await Notification.requestPermission();
-    setPermissionStatus(permission);
-    setIsVisible(false);
-    localStorage.setItem('notification_prompt_dismissed', 'true');
-
-    if (permission === 'granted') {
-      toast({
-        title: 'Notificações Ativadas!',
-        description: 'Você receberá os alertas do sistema.',
-      });
-      new Notification('FinanceFlow', {
-          body: 'Ótimo! Agora você está conectado.',
-          icon: '/icon.png',
-          silent: true,
-      });
-
-      // Get FCM Token and save it
-      try {
-        const fcm = await messaging();
-        if (fcm && user) {
+  
+    try {
+      const permission = await Notification.requestPermission();
+      setPermissionStatus(permission);
+      setIsVisible(false); // Hide the card after interaction
+      localStorage.setItem('notification_prompt_dismissed', 'true');
+  
+      if (permission === 'granted') {
+        toast({
+          title: 'Notificações Ativadas!',
+          description: 'Você receberá os alertas do sistema.',
+        });
+  
+        // Get FCM Token and save it
+        try {
+          const fcm = await messaging();
+          if (fcm && user) {
             const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
             if (fcmToken) {
-                await saveFcmToken(user.uid, fcmToken);
-                console.log('FCM Token saved successfully.');
+              await saveFcmToken(user.uid, fcmToken);
             }
+          }
+        } catch (error) {
+          console.error('An error occurred while retrieving token. ', error);
         }
-      } catch (error) {
-        console.error('An error occurred while retrieving token. ', error);
+  
+      } else {
         toast({
-            variant: 'destructive',
-            title: 'Erro ao registrar dispositivo',
-            description: 'Não foi possível registrar seu dispositivo para notificações. Tente novamente mais tarde.',
+          variant: 'destructive',
+          title: 'Notificações Bloqueadas',
+          description: 'Você pode ativá-las nas configurações do seu navegador a qualquer momento.',
         });
       }
-
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Notificações Bloqueadas',
-        description: 'Você pode ativá-las nas configurações do seu navegador a qualquer momento.',
-      });
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
     }
   };
 
