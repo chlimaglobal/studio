@@ -60,6 +60,7 @@ export const TransactionFormSchema = z.object({
         message: "O valor deve ser um número positivo."
     }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
+  dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]], {
     errorMap: () => ({ message: "Por favor, selecione uma categoria." }),
@@ -100,6 +101,7 @@ export const TransactionFormSchema = z.object({
 export type Transaction = {
   id: string;
   date: string; // Store as ISO string for serialization
+  dueDate?: string; // Store as ISO string for serialization
   description: string;
   amount: number;
   type: 'income' | 'expense';

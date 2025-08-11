@@ -101,6 +101,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
         id: doc.id,
         ...data,
         date: (data.date as Timestamp)?.toDate()?.toISOString(),
+        dueDate: (data.dueDate as Timestamp)?.toDate()?.toISOString(),
       } as Transaction);
     });
     transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -125,6 +126,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
                 ...data,
                 amount: installmentAmount,
                 date: Timestamp.fromDate(installmentDate),
+                dueDate: data.dueDate ? Timestamp.fromDate(addMonths(new Date(data.dueDate), i)) : undefined,
                 installmentNumber: i + 1,
                 totalInstallments: data.installments,
                 paymentMethod: 'installments'
@@ -140,7 +142,8 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
          const transactionData = {
             ...data,
             amount: data.amount,
-            date: Timestamp.fromDate(new Date(data.date))
+            date: Timestamp.fromDate(new Date(data.date)),
+            dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
         };
         await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
     }
@@ -153,7 +156,8 @@ export async function updateStoredTransaction(userId: string, transactionId: str
     const transactionData = {
         ...data,
         amount: data.amount, // Amount is already a number from Zod transform
-        date: Timestamp.fromDate(new Date(data.date))
+        date: Timestamp.fromDate(new Date(data.date)),
+        dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
     };
     await updateDoc(transactionRef, cleanDataForFirestore(transactionData));
 }

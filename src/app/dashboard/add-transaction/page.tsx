@@ -72,6 +72,7 @@ function AddTransactionForm() {
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
+                    dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
                     amount: String(transactionToEdit.amount) || '',
                     installments: transactionToEdit.installments || '',
                 };
@@ -82,6 +83,7 @@ function AddTransactionForm() {
             description: searchParams.get('description') || '',
             amount: searchParams.get('amount') || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
+            dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
             category: (searchParams.get('category') as TransactionCategory) || undefined,
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
@@ -260,9 +262,7 @@ function AddTransactionForm() {
                                     name="date"
                                     render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>
-                                            {watchedType === 'expense' && !watchedPaid ? 'Data de Vencimento' : 'Data'}
-                                        </FormLabel>
+                                        <FormLabel>Data da Transação</FormLabel>
                                         <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -294,6 +294,45 @@ function AddTransactionForm() {
                                     )}
                                 />
                             </div>
+
+                             {watchedType === 'expense' && !watchedPaid && (
+                                <FormField
+                                    control={form.control}
+                                    name="dueDate"
+                                    render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Data de Vencimento</FormLabel>
+                                        <Popover>
+                                        <PopoverTrigger asChild>
+                                            <FormControl>
+                                            <Button
+                                                variant={'outline'}
+                                                className={cn(
+                                                'w-full pl-3 text-left font-normal',
+                                                !field.value && 'text-muted-foreground'
+                                                )}
+                                            >
+                                                {field.value ? format(new Date(field.value), 'PPP', { locale: ptBR }) : <span>Escolha a data de vencimento</span>}
+                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                            </Button>
+                                            </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                            mode="single"
+                                            selected={field.value ? new Date(field.value) : undefined}
+                                            onSelect={field.onChange}
+                                            disabled={(date) => date > new Date("2100-01-01") || date < new Date('1900-01-01')}
+                                            initialFocus
+                                            locale={ptBR}
+                                            />
+                                        </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                    </FormItem>
+                                    )}
+                                />
+                            )}
 
                             <FormField
                                 control={form.control}
