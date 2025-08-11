@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -60,7 +59,7 @@ export default function MuralPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const scrollAreaViewportRef = useRef<HTMLDivElement>(null);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
         if (!user || !text.trim()) return;
@@ -105,8 +104,8 @@ export default function MuralPage() {
     }, [user, isSubscribed, isAdmin, sendFeatureAnnouncements]);
 
     useEffect(() => {
-      if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
+      if (scrollAreaViewportRef.current) {
+        scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
       }
     }, [messages]);
 
@@ -183,7 +182,7 @@ export default function MuralPage() {
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                  <div className="flex-1 flex flex-col">
-                    <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+                    <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaViewportRef}>
                         <div className="space-y-6">
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
