@@ -107,6 +107,7 @@ function AddTransactionForm() {
     const watchedCategory = form.watch('category');
     const watchedPaymentMethod = form.watch('paymentMethod');
     const formIsInvestment = watchedCategory && allInvestmentCategories.has(watchedCategory);
+    const watchedPaid = form.watch('paid');
 
     const handleAiCategorize = useCallback(async (description: string) => {
         if (!description || form.formState.dirtyFields.category) return;
@@ -147,6 +148,7 @@ function AddTransactionForm() {
     useEffect(() => {
         if (watchedType === 'income') {
             form.setValue('paymentMethod', 'one-time');
+            form.setValue('paid', true);
         }
     }, [watchedType, form]);
 
@@ -258,7 +260,9 @@ function AddTransactionForm() {
                                     name="date"
                                     render={({ field }) => (
                                     <FormItem className="flex flex-col">
-                                        <FormLabel>Data</FormLabel>
+                                        <FormLabel>
+                                            {watchedType === 'expense' && !watchedPaid ? 'Data de Vencimento' : 'Data'}
+                                        </FormLabel>
                                         <Popover>
                                         <PopoverTrigger asChild>
                                             <FormControl>
@@ -474,11 +478,14 @@ function AddTransactionForm() {
                                     name="paid"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                            <FormLabel>Pago</FormLabel>
+                                            <FormLabel>
+                                                {watchedType === 'expense' ? 'Pago' : 'Recebido'}
+                                            </FormLabel>
                                             <FormControl>
                                                 <Switch
                                                 checked={field.value}
                                                 onCheckedChange={field.onChange}
+                                                disabled={watchedType === 'income'}
                                                 />
                                             </FormControl>
                                         </FormItem>
