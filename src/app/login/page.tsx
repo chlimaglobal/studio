@@ -15,11 +15,14 @@ import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '@/components/client-providers';
-import Image from 'next/image';
 
 const Logo = () => (
     <div className="p-4 inline-block">
-        <Image src="/logo.png" alt="FinanceFlow Logo" width={180} height={40} priority />
+        <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
+            <span className="text-foreground">Finance</span>
+            <span className="text-primary"> $ </span>
+            <span className="text-foreground">Flow</span>
+        </div>
     </div>
 );
 
