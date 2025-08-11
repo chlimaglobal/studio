@@ -149,15 +149,17 @@ export default function SettingsPage() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const checkNotificationPermission = useCallback(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission);
+    }
+  }, []);
+
+
   useEffect(() => {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
     
-    const checkNotificationPermission = () => {
-      if ('Notification' in window) {
-        setNotificationPermission(Notification.permission);
-      }
-    };
     checkNotificationPermission();
 
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
@@ -185,14 +187,15 @@ export default function SettingsPage() {
     document.addEventListener('visibilitychange', checkNotificationPermission);
     return () => document.removeEventListener('visibilitychange', checkNotificationPermission);
 
-  }, []);
+  }, [checkNotificationPermission]);
 
   const handleRequestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
         toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
         return;
     }
-    
+
+    // Re-check permission right before requesting
     if (Notification.permission === 'denied') {
         toast({
             variant: 'destructive',
@@ -201,9 +204,9 @@ export default function SettingsPage() {
         });
         return;
     }
-
+    
     const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
+    setNotificationPermission(permission); // Update state immediately
      if (permission === 'granted') {
       toast({
         title: 'Notificações Ativadas!',
@@ -556,11 +559,12 @@ export default function SettingsPage() {
                     <p className="font-medium">Notificações Push</p>
                     <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
                 </div>
-                {notificationPermission === 'granted' && <span className="text-sm font-medium text-green-600">Ativado</span>}
-                {(notificationPermission === 'default' || notificationPermission === 'denied') && (
+                {notificationPermission === 'granted' ? (
+                     <span className="text-sm font-medium text-primary flex items-center gap-1.5"><CheckCircle className="h-4 w-4" />Ativado</span>
+                ) : (
                     <Button onClick={handleRequestNotificationPermission} size="sm" variant={notificationPermission === 'denied' ? 'secondary' : 'outline'}>
                         <BellRing className="mr-2 h-4 w-4" />
-                        Ativar
+                        {notificationPermission === 'denied' ? 'Desbloquear' : 'Ativar'}
                     </Button>
                 )}
               </div>
