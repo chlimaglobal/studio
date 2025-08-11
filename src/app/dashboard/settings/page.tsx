@@ -1,14 +1,13 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, WalletCards, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop, Star } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop, Star } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,9 +18,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/client-providers';
 import { getAllUserDataForBackup } from '@/lib/storage';
 import Link from 'next/link';
+import { messaging } from '@/lib/firebase';
+import { getToken } from 'firebase/messaging';
+import { saveFcmToken } from '@/lib/storage';
 
 
-type FabPosition = 'left' | 'right';
 type NotificationSettings = {
   dailySummary: boolean;
   futureIncome: boolean;
@@ -131,7 +132,7 @@ export default function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
   const [isExporting, setIsExporting] = useState(false);
 
   const [notifications, setNotifications] = useState<NotificationSettings>({
@@ -149,18 +150,20 @@ export default function SettingsPage() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const checkNotificationPermission = useCallback(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-  }, []);
-
-
   useEffect(() => {
     setIsMounted(true);
     if (typeof window === 'undefined') return;
     
-    checkNotificationPermission();
+    // Function to check and update notification status
+    const checkNotificationStatus = () => {
+        if ('Notification' in window) {
+            setNotificationStatus(Notification.permission);
+        }
+    };
+    checkNotificationStatus(); // Initial check
+
+    // Add event listener for when the user returns to the tab
+    document.addEventListener('visibilitychange', checkNotificationStatus);
 
     if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
         PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(supported => {
@@ -182,56 +185,39 @@ export default function SettingsPage() {
     if (storedNotifications) {
       setNotifications(JSON.parse(storedNotifications));
     }
-    
-    const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-            checkNotificationPermission();
-        }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-  }, [checkNotificationPermission]);
+    return () => document.removeEventListener('visibilitychange', checkNotificationStatus);
+
+  }, []);
 
   const handleRequestNotificationPermission = async () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-        toast({ variant: 'destructive', title: 'Navegador não suporta notificações' });
-        return;
-    }
-    
-    if (Notification.permission === 'granted') {
-        toast({ title: 'Permissão já concedida!', description: 'As notificações já estão ativadas.' });
-        return;
-    }
-
-    if (Notification.permission === 'denied') {
-        toast({
-            variant: 'destructive',
-            title: 'Permissão Bloqueada',
-            description: 'Você precisa habilitar as notificações manualmente nas configurações do seu navegador para este site.',
-        });
-        return;
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'default') {
+      return;
     }
 
     try {
         const permission = await Notification.requestPermission();
-        setNotificationPermission(permission); // Update state immediately
+        setNotificationStatus(permission); // Update state immediately
         if (permission === 'granted') {
             toast({
                 title: 'Notificações Ativadas!',
                 description: 'Você receberá os alertas do sistema.',
             });
-        } else if (permission === 'denied') {
-            toast({
-                variant: 'destructive',
-                title: 'Ativação Necessária',
-                description: 'Você precisa permitir as notificações nas configurações do seu navegador.',
-            });
+            // FCM Token logic
+             try {
+                const fcm = await messaging();
+                if (fcm && user) {
+                    const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+                    if (fcmToken) {
+                        await saveFcmToken(user.uid, fcmToken);
+                    }
+                }
+            } catch (error) {
+                console.error('An error occurred while retrieving FCM token. ', error);
+            }
         }
     } catch (error) {
         console.error("Error requesting notification permission:", error);
-        toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível solicitar a permissão.' });
     }
   };
   
@@ -431,6 +417,25 @@ export default function SettingsPage() {
     return null; 
   }
 
+  const renderNotificationControl = () => {
+    switch(notificationStatus) {
+        case 'granted':
+            return <span className="text-sm font-medium text-primary flex items-center gap-1.5"><CheckCircle className="h-4 w-4" />Ativado</span>;
+        case 'denied':
+            return <span className="text-sm font-medium text-destructive">Bloqueado no navegador</span>;
+        case 'default':
+            return (
+                <Button onClick={handleRequestNotificationPermission} size="sm" variant="outline">
+                    <BellRing className="mr-2 h-4 w-4" />
+                    Ativar
+                </Button>
+            );
+        default:
+            return <span className="text-sm text-muted-foreground">Indisponível</span>;
+    }
+  };
+
+
   return (
     <div className="space-y-6">
        <div className="flex items-center justify-between">
@@ -572,15 +577,13 @@ export default function SettingsPage() {
                 <div>
                     <p className="font-medium">Notificações Push</p>
                     <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu celular.</p>
+                    {notificationStatus === 'denied' && (
+                        <p className="text-xs text-destructive mt-1">
+                            As notificações estão bloqueadas. Você precisa habilitá-las nas configurações do seu navegador para este site.
+                        </p>
+                    )}
                 </div>
-                {notificationPermission === 'granted' ? (
-                     <span className="text-sm font-medium text-primary flex items-center gap-1.5"><CheckCircle className="h-4 w-4" />Ativado</span>
-                ) : (
-                    <Button onClick={handleRequestNotificationPermission} size="sm" variant={notificationPermission === 'denied' ? 'secondary' : 'outline'}>
-                        <BellRing className="mr-2 h-4 w-4" />
-                        {notificationPermission === 'denied' ? 'Desbloquear' : 'Ativar'}
-                    </Button>
-                )}
+                {renderNotificationControl()}
               </div>
             </div>
 
@@ -652,5 +655,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
