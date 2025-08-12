@@ -430,7 +430,7 @@ export default function DashboardPage() {
 
        <div className="px-0 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold mb-2">Sua Saúde Financeira</h2>
+          <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
           <div className="h-[250px] w-full">
               <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
           </div>
