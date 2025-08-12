@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -105,12 +106,7 @@ export default function MuralPage() {
 
     useEffect(() => {
       if (scrollAreaViewportRef.current) {
-        // Use a timeout to ensure the DOM has updated before scrolling
-        setTimeout(() => {
-            if (scrollAreaViewportRef.current) {
-               scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
-            }
-        }, 0);
+        scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
       }
     }, [messages]);
 
