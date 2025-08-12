@@ -40,6 +40,10 @@ export function AddTransactionFab() {
       setIsAudioOpen(true);
   }
   
+  if (pathname.includes('/dashboard/mural')) {
+    return null;
+  }
+
   if (pathname.includes('/dashboard/cards/')) {
     return null;
   }
