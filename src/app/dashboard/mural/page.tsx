@@ -110,7 +110,7 @@ export default function MuralPage() {
         if (scrollAreaViewportRef.current) {
             scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [messages, isLuminaThinking]);
 
 
     const callLumina = async (currentQuery: string) => {
@@ -192,7 +192,7 @@ export default function MuralPage() {
                  <div className="flex-1 flex flex-col">
                     <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaViewportRef}>
                         <div className="space-y-6">
-                            {messages.slice().reverse().map((msg) => (
+                            {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
