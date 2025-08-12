@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -427,10 +427,23 @@ export async function saveBudgets(userId: string, monthId: string, data: Budget)
 }
 
 // ======== MURAL CHAT ========
-export function onChatUpdate(userId: string, callback: (messages: ChatMessage[]) => void): () => void {
+export function onChatUpdate(
+    userId: string, 
+    callback: (messages: ChatMessage[], firstVisibleDoc: DocumentSnapshot | null, hasMore: boolean) => void,
+    startAfterDoc: DocumentSnapshot | null = null
+): () => void {
     if (!userId) return () => {};
-    // For now, we'll use the user's UID for the chat. In a multi-user scenario, this would be a shared account ID.
-    const q = query(collection(db, 'users', userId, 'chat'), orderBy('timestamp', 'asc'));
+    
+    const messagesRef = collection(db, 'users', userId, 'chat');
+    let q;
+
+    if (startAfterDoc) {
+        // Query for older messages (pagination)
+        q = query(messagesRef, orderBy('timestamp', 'desc'), startAfter(startAfterDoc), limit(20));
+    } else {
+        // Initial query for the latest messages
+        q = query(messagesRef, orderBy('timestamp', 'desc'), limit(20));
+    }
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const messages: ChatMessage[] = [];
@@ -442,7 +455,13 @@ export function onChatUpdate(userId: string, callback: (messages: ChatMessage[])
                 timestamp: (data.timestamp as Timestamp)?.toDate(),
             } as ChatMessage);
         });
-        callback(messages);
+
+        // Messages from Firestore are desc, so we reverse to get chronological asc
+        const reversedMessages = messages.reverse();
+        const firstVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+        const hasMore = querySnapshot.docs.length === 20;
+
+        callback(reversedMessages, firstVisibleDoc, hasMore);
     }, (error) => {
         console.error("Error fetching chat messages:", error);
     });

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import { generateSuggestion } from '@/ai/flows/mural-chat';
 import type { ChatMessage, MuralChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { AudioMuralDialog } from '@/components/audio-mural-dialog';
+import type { DocumentSnapshot } from 'firebase/firestore';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -40,17 +41,6 @@ const PremiumBlocker = () => (
     </div>
 );
 
-const featureAnnouncements = [
-    {
-        id: 'feature_mural_welcome',
-        text: "Olá! Notei que vocês chegaram ao nosso novo Mural. Este é um espaço para conversarem sobre suas finanças e contarem com minha ajuda para alcançar seus objetivos juntos. O que vocês gostariam de discutir hoje?"
-    },
-    {
-        id: 'feature_budgets_announcement',
-        text: "Novidade! Agora vocês podem definir orçamentos mensais para suas categorias de gastos. Acessem a tela de 'Orçamentos' no menu de perfil para começar a planejar!"
-    }
-];
-
 
 export default function MuralPage() {
     const router = useRouter();
@@ -62,6 +52,24 @@ export default function MuralPage() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
+    
+    // State for pagination and smart scrolling
+    const [firstDoc, setFirstDoc] = useState<DocumentSnapshot | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const isAtBottomRef = useRef(true);
+
+
+    const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTo({
+                top: scrollAreaRef.current.scrollHeight,
+                behavior: behavior,
+            });
+        }
+    }, []);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
         if (!user || !text.trim()) return;
@@ -80,36 +88,39 @@ export default function MuralPage() {
         }
     }, [user]);
 
-     const sendFeatureAnnouncements = useCallback(async () => {
-        if (typeof window === 'undefined') return;
-
-        for (const announcement of featureAnnouncements) {
-            const hasBeenSent = localStorage.getItem(announcement.id);
-            if (!hasBeenSent) {
-                // Wait a bit before sending the message to make it feel more natural
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                await saveMessage('lumina', announcement.text, 'Lúmina', '/lumina-avatar.png');
-                localStorage.setItem(announcement.id, 'true');
-            }
-        }
-    }, [saveMessage]);
-
-
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
-                setMessages(newMessages);
+            setIsLoadingMore(true);
+            const unsubscribe = onChatUpdate(user.uid, (newMessages, firstVisibleDoc, hasMoreMessages) => {
+                setMessages(prev => {
+                    const existingIds = new Set(prev.map(m => m.id));
+                    const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+                    return [...prev, ...uniqueNewMessages];
+                });
+                
+                // Set the first document for pagination of older messages
+                if (!firstDoc || (firstVisibleDoc && firstVisibleDoc.id !== firstDoc.id)) {
+                    setFirstDoc(firstVisibleDoc);
+                }
+
+                setHasMore(hasMoreMessages);
+                setIsLoadingMore(false);
+
+                 if (isAtBottomRef.current) {
+                    setTimeout(() => scrollToBottom('smooth'), 100);
+                 } else {
+                     setShowScrollToBottom(true);
+                 }
             });
-            sendFeatureAnnouncements();
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, sendFeatureAnnouncements]);
+    }, [user, isSubscribed, isAdmin, scrollToBottom, firstDoc]);
 
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
         try {
-            const chatHistoryForLumina = messages.map(msg => ({
+            const chatHistoryForLumina = messages.slice(-10).map(msg => ({ // Send last 10 messages for context
                 role: msg.role,
                 text: msg.text
             }));
@@ -119,7 +130,6 @@ export default function MuralPage() {
                 userQuery: currentQuery,
                 allTransactions: transactions,
             };
-
             const luminaResponse = await generateSuggestion(luminaInput);
 
             if (luminaResponse.response) {
@@ -133,7 +143,6 @@ export default function MuralPage() {
         }
     }
 
-
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         const currentMessage = message.trim();
@@ -142,13 +151,16 @@ export default function MuralPage() {
         await saveMessage('user', currentMessage);
         await callLumina(currentMessage);
     };
-
-    const handleAskLumina = async () => {
-        const currentQuery = message.trim() || "Lúmina, poderia nos dar alguma sugestão com base em nossas finanças recentes?";
-        if (message.trim()) {
-            await saveMessage('user', currentQuery);
+    
+    const handleScroll = () => {
+        const scrollDiv = scrollAreaRef.current;
+        if (scrollDiv) {
+            const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 10;
+            isAtBottomRef.current = isScrolledToBottom;
+             if (isScrolledToBottom) {
+                setShowScrollToBottom(false);
+            }
         }
-        await callLumina(currentQuery);
     };
 
     const handleTranscript = (transcript: string) => {
@@ -182,45 +194,15 @@ export default function MuralPage() {
             </header>
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                 <div className="flex-1 flex flex-col overflow-hidden">
-                     <div className="p-4 border-b bg-background">
-                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                            <Input 
-                                placeholder="Digite sua mensagem..." 
-                                className="flex-1"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                disabled={isLuminaThinking}
-                            />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaThinking}>
-                                <Mic className="h-5 w-5"/>
-                            </Button>
-                            <Button type="submit" size="icon" disabled={isLuminaThinking || !message.trim()}>
-                                <Send className="h-5 w-5"/>
-                            </Button>
-                             <Button type="button" variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleAskLumina} disabled={isLuminaThinking}>
-                                <Sparkles className="h-5 w-5"/>
-                            </Button>
-                        </form>
-                    </div>
-                    <ScrollArea className="flex-1 p-4">
+                <div className="flex-1 flex flex-col overflow-hidden relative">
+                    <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaRef} onScroll={handleScroll}>
+                        {isLoadingMore && (
+                            <div className="flex justify-center my-4">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/>
+                            </div>
+                        )}
                         <div className="space-y-6">
-                            {isLuminaThinking && (
-                                <div className="flex items-end gap-3">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                                            <Sparkles className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="rounded-lg p-3 bg-secondary">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>Lúmina está pensando...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            {messages.slice().reverse().map((msg) => (
+                            {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
@@ -240,7 +222,7 @@ export default function MuralPage() {
                                         msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
                                         msg.role === 'lumina' ? 'bg-secondary' : 'bg-muted'
                                     }`}>
-                                        <p className="text-sm">{msg.text}</p>
+                                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                         <p className="text-xs opacity-70 mt-1 text-right">
                                             {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                         </p>
@@ -253,9 +235,53 @@ export default function MuralPage() {
                                     )}
                                 </div>
                             ))}
+                             {isLuminaThinking && (
+                                <div className="flex items-end gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                            <Sparkles className="h-5 w-5" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="rounded-lg p-3 bg-secondary">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Lúmina está pensando...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </ScrollArea>
-                 </div>
+                    
+                    {showScrollToBottom && (
+                        <Button 
+                            variant="secondary"
+                            size="icon"
+                            className="absolute bottom-20 right-4 z-10 rounded-full animate-in fade-in-0"
+                            onClick={() => scrollToBottom('smooth')}
+                        >
+                            <ArrowDown className="h-5 w-5"/>
+                        </Button>
+                    )}
+
+                    <div className="p-4 border-t bg-background">
+                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                            <Input 
+                                placeholder="Digite sua mensagem..." 
+                                className="flex-1"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                disabled={isLuminaThinking}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaThinking}>
+                                <Mic className="h-5 w-5"/>
+                            </Button>
+                            <Button type="submit" size="icon" disabled={isLuminaThinking || !message.trim()}>
+                                <Send className="h-5 w-5"/>
+                            </Button>
+                        </form>
+                    </div>
+                </div>
             )}
             <AudioMuralDialog
                 open={isAudioDialogOpen}
