@@ -182,8 +182,8 @@ export default function MuralPage() {
             </header>
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                 <div className="flex-1 flex flex-col-reverse overflow-hidden">
-                    <div className="p-4 border-t bg-background">
+                 <div className="flex-1 flex flex-col overflow-hidden">
+                     <div className="p-4 border-b bg-background">
                          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                             <Input 
                                 placeholder="Digite sua mensagem..." 
