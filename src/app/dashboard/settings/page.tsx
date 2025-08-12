@@ -131,7 +131,7 @@ export default function SettingsPage() {
   const [expenseSound, setExpenseSound] = useState('swoosh.mp3');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
-  const [isBiometricRegistered, setIsBiometricRegistered] = useState(false);
+  const [isAppLockEnabled, setIsAppLockEnabled] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -176,7 +176,7 @@ export default function SettingsPage() {
     setPayday(localStorage.getItem('payday') || '');
     setIncomeSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
     setExpenseSound(localStorage.getItem('expenseSound') || 'swoosh.mp3');
-    setIsBiometricRegistered(!!localStorage.getItem('webauthn-credential-id'));
+    setIsAppLockEnabled(localStorage.getItem('appLockEnabled') === 'true');
     
     const storedNotifications = localStorage.getItem('notificationSettings');
     if (storedNotifications) {
@@ -185,67 +185,72 @@ export default function SettingsPage() {
 
   }, []);
   
-  const handleRegisterBiometrics = async () => {
-    setIsRegistering(true);
-    try {
-        const challenge = new Uint8Array(32);
-        window.crypto.getRandomValues(challenge);
+  const handleAppLockToggle = async (enabled: boolean) => {
+    setIsAppLockEnabled(enabled);
 
-        let userId = localStorage.getItem('webauthn-user-id');
-        if (!userId) {
-            const newUserId = new Uint8Array(16);
-            window.crypto.getRandomValues(newUserId);
-            userId = bufferToBase64Url(newUserId);
-            localStorage.setItem('webauthn-user-id', userId);
-        }
-
-        const options: PublicKeyCredentialCreationOptions = {
-            challenge,
-            rp: {
-                name: "FinanceFlow App",
-                id: window.location.hostname,
-            },
-            user: {
-                id: Uint8Array.from(atob(userId.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
-                name: userEmail,
-                displayName: userName,
-            },
-            pubKeyCredParams: [
-                { type: "public-key", alg: -7 }, // ES256
-                { type: "public-key", alg: -257 }, // RS256
-            ],
-            authenticatorSelection: {
-                authenticatorAttachment: "platform",
-                userVerification: "required",
-                requireResidentKey: true,
-            },
-            timeout: 60000,
-            attestation: "direct",
-        };
-
-        const credential = await navigator.credentials.create({ publicKey: options });
-        
-        if (credential && (credential as PublicKeyCredential).rawId) {
-            localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
-            setIsBiometricRegistered(true);
-            toast({
-                title: 'Sucesso!',
-                description: 'Sua impressão digital foi cadastrada com sucesso.',
-            });
-        }
-
-    } catch (err) {
-        console.error("Erro no cadastro biométrico:", err);
-        const error = err as Error;
+    if (!enabled) {
+        localStorage.removeItem('appLockEnabled');
         toast({
-            variant: 'destructive',
-            title: 'Falha no Cadastro',
-            description: `Não foi possível cadastrar a impressão digital. (${error.name}: ${error.message})`,
+            title: 'Bloqueio de Tela Desativado',
+            description: 'O aplicativo não pedirá mais a biometria ao ser aberto.',
         });
-    } finally {
-        setIsRegistering(false);
+        return;
+    }
+
+    // If enabling, check if biometrics are registered first
+    const isRegistered = !!localStorage.getItem('webauthn-credential-id');
+    if (!isRegistered) {
+        setIsRegistering(true);
+        try {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            let userId = localStorage.getItem('webauthn-user-id');
+            if (!userId) {
+                const newUserId = new Uint8Array(16);
+                window.crypto.getRandomValues(newUserId);
+                userId = bufferToBase64Url(newUserId);
+                localStorage.setItem('webauthn-user-id', userId);
+            }
+
+            const options: PublicKeyCredentialCreationOptions = {
+                challenge,
+                rp: { name: "FinanceFlow App", id: window.location.hostname },
+                user: {
+                    id: Uint8Array.from(atob(userId.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)),
+                    name: userEmail,
+                    displayName: userName,
+                },
+                pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+                authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", requireResidentKey: true },
+                timeout: 60000,
+                attestation: "direct",
+            };
+
+            const credential = await navigator.credentials.create({ publicKey: options });
+            
+            if (credential && (credential as PublicKeyCredential).rawId) {
+                localStorage.setItem('webauthn-credential-id', bufferToBase64Url((credential as PublicKeyCredential).rawId));
+                localStorage.setItem('appLockEnabled', 'true');
+                toast({ title: 'Biometria e Bloqueio Ativados!', description: 'Sua impressão digital foi cadastrada e o bloqueio de tela está ativo.' });
+            } else {
+                 setIsAppLockEnabled(false); // Revert switch if credential fails
+            }
+
+        } catch (err) {
+            console.error("Erro no cadastro biométrico:", err);
+            const error = err as Error;
+            toast({ variant: 'destructive', title: 'Falha no Cadastro Biométrico', description: `Não foi possível cadastrar a biometria. O bloqueio não foi ativado. (${error.name})` });
+            setIsAppLockEnabled(false); // Revert switch on failure
+        } finally {
+            setIsRegistering(false);
+        }
+    } else {
+        // Biometrics already registered, just enable the lock
+        localStorage.setItem('appLockEnabled', 'true');
+        toast({ title: 'Bloqueio de Tela Ativado!', description: 'O aplicativo pedirá sua biometria ao ser aberto.' });
     }
   }
+
 
   const handleNotificationChange = (id: keyof NotificationSettings, value: boolean) => {
     setNotifications(prev => ({ ...prev, [id]: value }));
@@ -365,7 +370,7 @@ export default function SettingsPage() {
       });
        toast({
         title: 'Notificação Enviada!',
-        description: 'Verifique a central de notificações do seu dispositivo.',
+        description: 'Verifique a central de notificação do seu dispositivo.',
       });
     } else {
       toast({
@@ -470,6 +475,26 @@ export default function SettingsPage() {
               />
               <p className="text-xs text-muted-foreground mt-1">Inclua o código do país (ex: 55 para Brasil).</p>
           </div>
+        </CardContent>
+      </Card>
+      
+       <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
+            <CardDescription>Aumente a segurança do seu aplicativo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {isBiometricSupported ? (
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                        <Label htmlFor="app-lock" className="font-semibold">Bloqueio de Tela por Biometria</Label>
+                        <p className="text-sm text-muted-foreground">Exigir impressão digital ao abrir o aplicativo.</p>
+                    </div>
+                    {isRegistering ? <Loader2 className="h-5 w-5 animate-spin" /> : <Switch id="app-lock" checked={isAppLockEnabled} onCheckedChange={handleAppLockToggle} />}
+                </div>
+            ) : (
+                <p className="text-sm text-muted-foreground">O bloqueio por biometria não é suportado neste dispositivo ou navegador.</p>
+            )}
         </CardContent>
       </Card>
 
