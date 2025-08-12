@@ -61,7 +61,6 @@ export default function MuralPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
-    const scrollAreaViewportRef = useRef<HTMLDivElement>(null);
     const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
@@ -105,14 +104,6 @@ export default function MuralPage() {
             return () => unsubscribe();
         }
     }, [user, isSubscribed, isAdmin, sendFeatureAnnouncements]);
-
-    useEffect(() => {
-        if (scrollAreaViewportRef.current) {
-            setTimeout(() => {
-                scrollAreaViewportRef.current!.scrollTop = scrollAreaViewportRef.current!.scrollHeight;
-            }, 0);
-        }
-    }, [messages, isLuminaThinking]);
 
 
     const callLumina = async (currentQuery: string) => {
@@ -191,10 +182,45 @@ export default function MuralPage() {
             </header>
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                 <div className="flex-1 flex flex-col">
-                    <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaViewportRef}>
+                 <div className="flex-1 flex flex-col-reverse overflow-hidden">
+                    <div className="p-4 border-t bg-background">
+                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                            <Input 
+                                placeholder="Digite sua mensagem..." 
+                                className="flex-1"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                disabled={isLuminaThinking}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaThinking}>
+                                <Mic className="h-5 w-5"/>
+                            </Button>
+                            <Button type="submit" size="icon" disabled={isLuminaThinking || !message.trim()}>
+                                <Send className="h-5 w-5"/>
+                            </Button>
+                             <Button type="button" variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleAskLumina} disabled={isLuminaThinking}>
+                                <Sparkles className="h-5 w-5"/>
+                            </Button>
+                        </form>
+                    </div>
+                    <ScrollArea className="flex-1 p-4">
                         <div className="space-y-6">
-                            {messages.map((msg) => (
+                            {isLuminaThinking && (
+                                <div className="flex items-end gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                            <Sparkles className="h-5 w-5" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="rounded-lg p-3 bg-secondary">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>Lúmina está pensando...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {messages.slice().reverse().map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
@@ -227,43 +253,8 @@ export default function MuralPage() {
                                     )}
                                 </div>
                             ))}
-                             {isLuminaThinking && (
-                                <div className="flex items-end gap-3">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                                            <Sparkles className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="rounded-lg p-3 bg-secondary">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>Lúmina está pensando...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </ScrollArea>
-                    <div className="p-4 border-t bg-background">
-                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                            <Input 
-                                placeholder="Digite sua mensagem..." 
-                                className="flex-1"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                disabled={isLuminaThinking}
-                            />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaThinking}>
-                                <Mic className="h-5 w-5"/>
-                            </Button>
-                            <Button type="submit" size="icon" disabled={isLuminaThinking || !message.trim()}>
-                                <Send className="h-5 w-5"/>
-                            </Button>
-                             <Button type="button" variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleAskLumina} disabled={isLuminaThinking}>
-                                <Sparkles className="h-5 w-5"/>
-                            </Button>
-                        </form>
-                    </div>
                  </div>
             )}
             <AudioMuralDialog
