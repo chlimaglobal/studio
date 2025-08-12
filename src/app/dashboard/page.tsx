@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -341,33 +341,39 @@ export default function DashboardPage() {
     }, [transactions, currentMonth, budgets]);
     
     const generateChartData = (transactions: Transaction[]) => {
-        const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-        const sevenMonthsAgo = subMonths(new Date(), 6);
-        sevenMonthsAgo.setDate(1);
+        const dataMap = new Map<string, { patrimonio: number }>();
+        const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
-        for (let i = 6; i >= 0; i--) {
+        // Initialize months
+        for (let i = 5; i >= 0; i--) {
             const date = subMonths(new Date(), i);
             const monthKey = format(date, 'MM/yy');
-            dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
+            dataMap.set(monthKey, { patrimonio: 0 });
         }
-        
+
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
 
-        operationalTransactions.forEach(t => {
-            const tDate = new Date(t.date);
-            if (tDate >= sevenMonthsAgo) {
-                const monthKey = format(tDate, 'MM/yy');
-                if(dataMap.has(monthKey)){
-                    const currentData = dataMap.get(monthKey)!;
-                    if(t.type === 'income') {
-                        currentData.aReceber += t.amount;
-                    } else {
-                        currentData.aPagar += t.amount;
-                    }
-                    currentData.resultado = currentData.aReceber - currentData.aPagar;
-                    dataMap.set(monthKey, currentData);
-                }
-            }
+        // Calculate initial patrimony before the 6-month window
+        const initialPatrimony = operationalTransactions
+            .filter(t => new Date(t.date) < sixMonthsAgo)
+            .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+
+        let cumulativePatrimony = initialPatrimony;
+
+        Array.from(dataMap.keys()).forEach(monthKey => {
+            const [month, year] = monthKey.split('/');
+            const startDate = startOfMonth(new Date(parseInt(`20${year}`), parseInt(month) - 1));
+            const endDate = endOfMonth(startDate);
+
+            const monthBalance = operationalTransactions
+                .filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= startDate && tDate <= endDate;
+                })
+                .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+            
+            cumulativePatrimony += monthBalance;
+            dataMap.set(monthKey, { patrimonio: cumulativePatrimony });
         });
         
         return Array.from(dataMap.entries()).map(([date, values]) => ({
@@ -434,7 +440,7 @@ export default function DashboardPage() {
 
        <div className="px-0 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
+          <h2 className="text-lg font-semibold mb-2">Sua Evolução Financeira</h2>
           <div className="h-[250px] w-full">
               <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
           </div>
