@@ -40,18 +40,10 @@ export function AddTransactionFab() {
       setIsAudioOpen(true);
   }
   
-  if (pathname.includes('/dashboard/mural')) {
+  // Only show the FAB on the main dashboard page
+  if (pathname !== '/dashboard') {
     return null;
   }
-
-  if (pathname.includes('/dashboard/cards/')) {
-    return null;
-  }
-  
-  if (pathname.includes('/dashboard/add-transaction')) {
-    return null;
-  }
-
 
   return (
     <>
