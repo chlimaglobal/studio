@@ -23,7 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+      </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ClientProviders>
           {children}
