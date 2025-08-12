@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { generateSuggestion } from '@/ai/flows/mural-chat';
 import type { ChatMessage, MuralChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
+import { AudioMuralDialog } from '@/components/audio-mural-dialog';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -61,6 +62,7 @@ export default function MuralPage() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const scrollAreaViewportRef = useRef<HTMLDivElement>(null);
+    const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
         if (!user || !text.trim()) return;
@@ -105,10 +107,11 @@ export default function MuralPage() {
     }, [user, isSubscribed, isAdmin, sendFeatureAnnouncements]);
 
     useEffect(() => {
-      if (scrollAreaViewportRef.current) {
-        scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
-      }
+        if (scrollAreaViewportRef.current) {
+            scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
+        }
     }, [messages]);
+
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
@@ -153,6 +156,10 @@ export default function MuralPage() {
             await saveMessage('user', currentQuery);
         }
         await callLumina(currentQuery);
+    };
+
+    const handleTranscript = (transcript: string) => {
+        setMessage(prev => prev ? `${prev} ${transcript}` : transcript);
     };
     
     if (isSubscriptionLoading) {
@@ -238,13 +245,16 @@ export default function MuralPage() {
                     <div className="p-4 border-t bg-background">
                          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                             <Input 
-                                placeholder="Digite sua mensagem ou pergunte para a Lúmina..." 
+                                placeholder="Digite sua mensagem..." 
                                 className="flex-1"
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 disabled={isLuminaThinking}
                             />
-                            <Button type="submit" disabled={isLuminaThinking || !message.trim()}>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaThinking}>
+                                <Mic className="h-5 w-5"/>
+                            </Button>
+                            <Button type="submit" size="icon" disabled={isLuminaThinking || !message.trim()}>
                                 <Send className="h-5 w-5"/>
                             </Button>
                              <Button type="button" variant="outline" size="icon" className="border-primary text-primary hover:bg-primary/10 hover:text-primary" onClick={handleAskLumina} disabled={isLuminaThinking}>
@@ -254,6 +264,11 @@ export default function MuralPage() {
                     </div>
                  </div>
             )}
+            <AudioMuralDialog
+                open={isAudioDialogOpen}
+                onOpenChange={setIsAudioDialogOpen}
+                onTranscriptReceived={handleTranscript}
+            />
         </div>
     );
 }
