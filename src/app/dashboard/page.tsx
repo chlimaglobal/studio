@@ -341,39 +341,29 @@ export default function DashboardPage() {
     }, [transactions, currentMonth, budgets]);
     
     const generateChartData = (transactions: Transaction[]) => {
-        const dataMap = new Map<string, { patrimonio: number }>();
-        const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
-
+        const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
+        
         // Initialize months
         for (let i = 5; i >= 0; i--) {
             const date = subMonths(new Date(), i);
             const monthKey = format(date, 'MM/yy');
-            dataMap.set(monthKey, { patrimonio: 0 });
+            dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
 
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
 
-        // Calculate initial patrimony before the 6-month window
-        const initialPatrimony = operationalTransactions
-            .filter(t => new Date(t.date) < sixMonthsAgo)
-            .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
-
-        let cumulativePatrimony = initialPatrimony;
-
-        Array.from(dataMap.keys()).forEach(monthKey => {
-            const [month, year] = monthKey.split('/');
-            const startDate = startOfMonth(new Date(parseInt(`20${year}`), parseInt(month) - 1));
-            const endDate = endOfMonth(startDate);
-
-            const monthBalance = operationalTransactions
-                .filter(t => {
-                    const tDate = new Date(t.date);
-                    return tDate >= startDate && tDate <= endDate;
-                })
-                .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
-            
-            cumulativePatrimony += monthBalance;
-            dataMap.set(monthKey, { patrimonio: cumulativePatrimony });
+        operationalTransactions.forEach(t => {
+            const monthKey = format(new Date(t.date), 'MM/yy');
+            if (dataMap.has(monthKey)) {
+                const current = dataMap.get(monthKey)!;
+                if (t.type === 'income') {
+                    current.aReceber += t.amount;
+                } else {
+                    current.aPagar += t.amount;
+                }
+                current.resultado = current.aReceber - current.aPagar;
+                dataMap.set(monthKey, current);
+            }
         });
         
         return Array.from(dataMap.entries()).map(([date, values]) => ({
@@ -440,7 +430,7 @@ export default function DashboardPage() {
 
        <div className="px-0 space-y-4">
         <div>
-          <h2 className="text-lg font-semibold mb-2">Sua Evolução Financeira</h2>
+          <h2 className="text-lg font-semibold mb-2">Sua Saúde Financeira</h2>
           <div className="h-[250px] w-full">
               <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
           </div>
