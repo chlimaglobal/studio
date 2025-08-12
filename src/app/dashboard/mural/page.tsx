@@ -108,7 +108,9 @@ export default function MuralPage() {
 
     useEffect(() => {
         if (scrollAreaViewportRef.current) {
-            scrollAreaViewportRef.current.scrollTop = scrollAreaViewportRef.current.scrollHeight;
+            setTimeout(() => {
+                scrollAreaViewportRef.current!.scrollTop = scrollAreaViewportRef.current!.scrollHeight;
+            }, 0);
         }
     }, [messages, isLuminaThinking]);
 
