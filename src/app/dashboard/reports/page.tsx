@@ -1,13 +1,13 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { TransactionCategory } from '@/lib/types';
+import { useState, useMemo, useEffect } from 'react';
+import type { TransactionCategory, Transaction } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Sparkles, ArrowUp, ArrowDown } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useTransactions } from '@/components/client-providers';
@@ -15,11 +15,88 @@ import { allInvestmentCategories } from '@/lib/types';
 import { format, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
+import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+
 
 interface CategorySpending {
   name: TransactionCategory;
   value: number;
 }
+
+const TrendAnalysisCard = () => {
+    const { transactions, isLoading: isLoadingTransactions } = useTransactions();
+    const [analysis, setAnalysis] = useState<GenerateFinancialAnalysisOutput['trendAnalysis']>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const runAnalysis = async () => {
+            setIsLoading(true);
+             if (transactions.length > 3) { // Need some data to analyze trends
+                const result = await generateFinancialAnalysis({ transactions });
+                setAnalysis(result.trendAnalysis);
+            } else {
+                setAnalysis(null);
+            }
+            setIsLoading(false);
+        };
+        if (!isLoadingTransactions) {
+            runAnalysis();
+        }
+    }, [transactions, isLoadingTransactions]);
+
+    if (isLoading || isLoadingTransactions) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                         <Sparkles className="h-5 w-5 text-primary" />
+                        Análise de Tendências da Lúmina
+                    </CardTitle>
+                </CardHeader>
+                 <CardContent className="flex items-center justify-center h-24">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                </CardContent>
+            </Card>
+        )
+    }
+
+    if (!analysis) {
+        return null; // Don't show if no analysis is available
+    }
+
+    return (
+        <Card className="bg-gradient-to-br from-primary/5 to-background">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Análise de Tendências da Lúmina
+                </CardTitle>
+                <CardDescription>
+                    {analysis.trendDescription}
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                 <p className="text-sm font-medium text-muted-foreground">Categorias com maiores variações:</p>
+                 <div className="space-y-3">
+                    {analysis.topChangingCategories?.map(item => (
+                        <div key={item.category} className="flex justify-between items-center text-sm p-3 rounded-md bg-background/50 border">
+                            <span className="font-semibold">{item.category}</span>
+                             <div className="text-right">
+                                <div className={cn("flex items-center justify-end font-bold gap-1", item.changePercentage > 0 ? "text-destructive" : "text-green-500")}>
+                                    {item.changePercentage > 0 ? <ArrowUp className="h-4 w-4"/> : <ArrowDown className="h-4 w-4"/>}
+                                    {item.changePercentage.toFixed(0)}%
+                                </div>
+                                <span className="text-xs text-muted-foreground">Gasto atual: {formatCurrency(item.currentMonthSpending)}</span>
+                            </div>
+                        </div>
+                    ))}
+                 </div>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 const MonthlyReportCard = () => {
   const { transactions } = useTransactions();
@@ -183,6 +260,8 @@ export default function ReportsPage() {
           </p>
         </div>
       </div>
+
+      <TrendAnalysisCard />
 
       <MonthlyReportCard />
 
