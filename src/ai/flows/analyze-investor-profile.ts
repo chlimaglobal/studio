@@ -80,6 +80,13 @@ const analyzeInvestorProfileFlow = ai.defineFlow(
     name: 'analyzeInvestorProfileFlow',
     inputSchema: InvestorProfileInputSchema,
     outputSchema: InvestorProfileOutputSchema,
+    retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async (input) => {
     const { output } = await prompt(input);
