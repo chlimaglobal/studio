@@ -4,12 +4,9 @@
 
 import { z } from 'zod';
 
-const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((value, ctx) => {
+const brazilianCurrencySchema = z.union([z.string().min(1, 'O valor é obrigatório.'), z.number()]).transform((value, ctx) => {
     if (typeof value === 'number') {
         return value;
-    }
-    if (typeof value !== 'string' || value.trim() === '') {
-        return undefined;
     }
     // Remove R$, spaces, and thousand separators (.)
     const cleanedValue = value.replace(/R\$\s?/, '').replace(/\./g, '').trim();
@@ -31,9 +28,7 @@ const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((val
 
 export const AddCommissionFormSchema = z.object({
   description: z.string().min(3, 'A descrição deve ter pelo menos 3 caracteres.'),
-  amount: brazilianCurrencySchema
-    .refine((val) => val !== undefined, { message: "O valor é obrigatório." })
-    .refine((val) => val! > 0, { message: "O valor da comissão deve ser positivo." }),
+  amount: brazilianCurrencySchema.refine((val) => val > 0, { message: "O valor da comissão deve ser positivo." }),
   client: z.string().optional(),
   date: z.date({ required_error: 'Por favor, selecione uma data.' }),
   status: z.enum(['received', 'pending']).default('received'),
@@ -42,9 +37,7 @@ export const AddCommissionFormSchema = z.object({
 
 export const EditCommissionFormSchema = z.object({
   description: z.string().min(3, 'A descrição deve ter pelo menos 3 caracteres.'),
-  amount: brazilianCurrencySchema
-    .refine((val) => val !== undefined, { message: "O valor é obrigatório." })
-    .refine((val) => val! > 0, { message: "O valor da comissão deve ser positivo." }),
+  amount: brazilianCurrencySchema.refine((val) => val > 0, { message: "O valor da comissão deve ser positivo." }),
   client: z.string().optional(),
   date: z.date({ required_error: 'Por favor, selecione uma data.' }),
 });

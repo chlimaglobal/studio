@@ -39,12 +39,9 @@ export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 export type TransactionCategory = typeof transactionCategories[number];
 
-const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((value, ctx) => {
+const brazilianCurrencySchema = z.union([z.string().min(1, 'O valor é obrigatório.'), z.number()]).transform((value, ctx) => {
     if (typeof value === 'number') {
         return value;
-    }
-    if (typeof value !== 'string' || value.trim() === '') {
-        return undefined;
     }
     // Remove R$, spaces, and thousand separators (.)
     const cleanedValue = value.replace(/R\$\s?/, '').replace(/\./g, '').trim();
@@ -68,9 +65,7 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: brazilianCurrencySchema
-    .refine((val) => val !== undefined, { message: "O valor é obrigatório." })
-    .refine((val) => val! > 0, { message: "O valor deve ser positivo." }),
+  amount: brazilianCurrencySchema.refine((val) => val > 0, { message: "O valor deve ser positivo." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
