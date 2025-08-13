@@ -113,7 +113,7 @@ export default function InvestorProfilePage() {
               <Button
                 key={answer.id}
                 variant={answers[currentQuestion.id] === answer.id ? 'default' : 'outline'}
-                className="w-full justify-start h-auto py-3 text-left"
+                className="w-full justify-start h-auto py-3 text-left whitespace-normal"
                 onClick={() => handleAnswer(currentQuestion.id, answer.id)}
               >
                 {answer.text}
