@@ -91,7 +91,7 @@ export default function InvestorProfilePage() {
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-6 w-6" />
