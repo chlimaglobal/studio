@@ -22,7 +22,8 @@ import {
     LineChart,
     ArrowLeft,
     WalletCards,
-    Repeat
+    Repeat,
+    LifeBuoy
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -118,6 +119,14 @@ const menuItems = [
         subtitle: null,
         type: 'link',
         href: '/dashboard/settings',
+        premium: false,
+    },
+    { 
+        icon: LifeBuoy, 
+        title: 'Suporte e Ajuda', 
+        subtitle: 'Fale conosco ou consulte a documentação.',
+        type: 'link',
+        href: '#', // Placeholder link
         premium: false,
     },
 ];

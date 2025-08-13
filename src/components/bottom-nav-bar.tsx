@@ -64,9 +64,6 @@ export default function BottomNavBar() {
           );
         })}
       </div>
-        <div className="absolute bottom-1 right-1/2 translate-x-1/2 text-[9px] text-muted-foreground/50 font-mono tracking-widest" style={{ textShadow: '0 0 1px hsl(var(--background))' }}>
-            CH LIMA Tecnologia
-        </div>
     </div>
   );
 }
