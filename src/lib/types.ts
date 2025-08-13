@@ -39,22 +39,38 @@ export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 export type TransactionCategory = typeof transactionCategories[number];
 
+const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((value, ctx) => {
+    if (typeof value === 'number') {
+        return value;
+    }
+    if (typeof value !== 'string' || value.trim() === '') {
+        return undefined;
+    }
+    // Remove R$, spaces, and thousand separators (.)
+    const cleanedValue = value.replace(/R\$\s?/, '').replace(/\./g, '').trim();
+    // Replace the decimal comma (,) with a dot (.)
+    const parsableValue = cleanedValue.replace(',', '.');
+    
+    const parsed = parseFloat(parsableValue);
+
+    if (isNaN(parsed)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O valor deve ser um número válido.",
+        });
+        return z.NEVER;
+    }
+    return parsed;
+});
+
 
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.preprocess((val) => {
-      // Allow empty string to pass for initial state or user clearing the field
-      if (val === '') return '';
-      // If it's already a number (e.g., from initial form values), return it
-      if (typeof val === 'number') return val;
-      // If it's a string, clean it for parsing
-      if (typeof val === 'string') {
-          return val.replace(/\./g, '').replace(',', '.');
-      }
-      return val;
-  }, z.coerce.number({ invalid_type_error: 'O valor deve ser um número.' }).positive('O valor deve ser positivo.')),
+  amount: brazilianCurrencySchema
+    .refine((val) => val !== undefined, { message: "O valor é obrigatório." })
+    .refine((val) => val! > 0, { message: "O valor deve ser positivo." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
@@ -223,5 +239,7 @@ export const MuralChatOutputSchema = z.object({
   response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
 });
 export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;
+
+    
 
     
