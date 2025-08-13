@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator, ShieldCheck, Target } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
@@ -262,24 +262,6 @@ export default function InvestmentsPage() {
                      <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Target className="h-5 w-5 text-primary" />
-                                Calculadora de Aposentadoria
-                            </CardTitle>
-                            <CardDescription>
-                                Descubra quanto você precisa investir para alcançar seus objetivos de longo prazo.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <Button className="w-full" asChild>
-                                <Link href="/dashboard/goals">Planejar Aposentadoria</Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
                                 <Calculator className="h-5 w-5 text-primary" />
                                 Simulador de Investimentos
                             </CardTitle>
@@ -308,5 +290,3 @@ export default function InvestmentsPage() {
         </div>
     )
 }
-
-    
