@@ -44,24 +44,17 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.union([z.string(), z.number()])
-    .transform((val, ctx) => {
-        if (typeof val === 'number') return val;
-        // Clean the string: remove thousand separators (.) and then replace comma (,) with a dot (.)
-        const cleanedVal = val.toString().replace(/\./g, '').replace(',', '.');
-        const parsed = parseFloat(cleanedVal);
-        if (isNaN(parsed)) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "O valor deve ser um número válido.",
-            });
-            return z.NEVER;
-        }
-        return parsed;
-    })
-    .refine((val) => val > 0, {
-        message: "O valor deve ser um número positivo."
-    }),
+  amount: z.preprocess((val) => {
+      // Allow empty string to pass for initial state or user clearing the field
+      if (val === '') return '';
+      // If it's already a number (e.g., from initial form values), return it
+      if (typeof val === 'number') return val;
+      // If it's a string, clean it for parsing
+      if (typeof val === 'string') {
+          return val.replace(/\./g, '').replace(',', '.');
+      }
+      return val;
+  }, z.coerce.number({ invalid_type_error: 'O valor deve ser um número.' }).positive('O valor deve ser positivo.')),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
