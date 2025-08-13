@@ -37,7 +37,7 @@ const prompt = ai.definePrompt({
   prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
   Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor e o tipo de transação (receita ou despesa).
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
-  O valor deve ser um número. Interprete valores como "cento e cinquenta e 75" como 150.75.
+  O valor deve ser um número. Interprete valores como "cento e cinquenta e 75" como 150.75. **SEMPRE** interprete "vírgula" ou "e" como um separador decimal quando apropriado para a moeda.
 
   - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
   - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
@@ -71,6 +71,9 @@ const prompt = ai.definePrompt({
       
   9.  **Texto do Usuário:** "netflix R$ 39.90"
       **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Streamings" }
+
+  10. **Texto do Usuário:** "teste trezentos e treze e trinta"
+      **Saída Esperada:** { "description": "Teste", "amount": 313.30, "type": "expense", "category": "Outros" }
 
   **Texto do usuário para análise:**
   {{{text}}}
