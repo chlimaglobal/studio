@@ -36,7 +36,7 @@ const recommendationActions = [
 
 const getActionForRecommendation = (recommendation: string) => {
     const lowerCaseRec = recommendation.toLowerCase();
-    return recommendationActions.find(action => action.keywords.every(kw => lowerCaseRec.includes(kw)));
+    return recommendationActions.find(action => action.keywords.some(kw => lowerCaseRec.includes(kw)));
 };
 
 
@@ -157,7 +157,7 @@ const ProfileResultContent = () => {
                             </div>
                         )
                     })}
-                </ul-content>
+                </CardContent>
             </Card>
         </div>
     );
