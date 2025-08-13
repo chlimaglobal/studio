@@ -57,7 +57,7 @@ export function EditCommissionDialog({ commission, open, onOpenChange }: EditCom
   React.useEffect(() => {
     form.reset({
       description: commission.description,
-      amount: commission.amount,
+      amount: String(commission.amount).replace('.',','),
       client: commission.client || '',
       date: new Date(commission.date),
     });
@@ -122,11 +122,10 @@ export function EditCommissionDialog({ commission, open, onOpenChange }: EditCom
                         <FormLabel>Valor (R$)</FormLabel>
                         <FormControl>
                             <Input
-                            type="number"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             placeholder="0,00"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                             />
                         </FormControl>
                         <FormMessage />
@@ -196,3 +195,5 @@ export function EditCommissionDialog({ commission, open, onOpenChange }: EditCom
     </Dialog>
   );
 }
+
+    

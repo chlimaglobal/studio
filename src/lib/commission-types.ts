@@ -4,25 +4,39 @@
 
 import { z } from 'zod';
 
-const brazilianCurrencySchema = z.union([z.string().min(1, 'O valor é obrigatório.'), z.number()]).transform((value, ctx) => {
+const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((value, ctx) => {
     if (typeof value === 'number') {
         return value;
     }
-    // Remove R$, spaces, and thousand separators (.)
-    const cleanedValue = value.replace(/R\$\s?/, '').replace(/\./g, '').trim();
-    // Replace the decimal comma (,) with a dot (.)
-    const parsableValue = cleanedValue.replace(',', '.');
-    
-    const parsed = parseFloat(parsableValue);
+    if (typeof value === 'string') {
+        if (value.trim() === '') {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "O valor é obrigatório.",
+            });
+            return z.NEVER;
+        }
+        // Remove R$, spaces, and thousand separators (.)
+        const cleanedValue = value.replace(/R\$\s?/, '').replace(/\./g, '').trim();
+        // Replace the decimal comma (,) with a dot (.)
+        const parsableValue = cleanedValue.replace(',', '.');
+        
+        const parsed = parseFloat(parsableValue);
 
-    if (isNaN(parsed)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "O valor deve ser um número válido.",
-        });
-        return z.NEVER;
+        if (isNaN(parsed)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "O valor deve ser um número válido.",
+            });
+            return z.NEVER;
+        }
+        return parsed;
     }
-    return parsed;
+    ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Entrada inválida.",
+    });
+    return z.NEVER;
 });
 
 
@@ -47,5 +61,7 @@ export type Commission = {
   id: string;
   transactionId?: string;
 } & z.infer<typeof AddCommissionFormSchema>;
+
+    
 
     
