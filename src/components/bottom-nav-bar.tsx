@@ -23,8 +23,8 @@ export default function BottomNavBar() {
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   return (
-    <div className="fixed bottom-0 left-0 z-40 w-full h-20 bg-secondary border-t border-border">
-      <div className="grid h-full max-w-lg grid-cols-5 mx-auto">
+    <div className="fixed bottom-0 left-0 z-40 w-full bg-secondary border-t border-border">
+      <div className="grid h-20 max-w-lg grid-cols-5 mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
           
@@ -64,6 +64,9 @@ export default function BottomNavBar() {
           );
         })}
       </div>
+        <div className="absolute bottom-1 right-1/2 translate-x-1/2 text-[9px] text-muted-foreground/50 font-mono tracking-widest" style={{ textShadow: '0 0 1px hsl(var(--background))' }}>
+            CH LIMA Tecnologia
+        </div>
     </div>
   );
 }

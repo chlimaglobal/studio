@@ -25,11 +25,11 @@ export default function BillsPage() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const upcoming = unpaidExpenses.filter(t => !isPast(new Date(t.date)));
-        const overdue = unpaidExpenses.filter(t => isPast(new Date(t.date)));
+        const upcoming = unpaidExpenses.filter(t => t.dueDate && !isPast(new Date(t.dueDate)));
+        const overdue = unpaidExpenses.filter(t => t.dueDate && isPast(new Date(t.dueDate)));
         
-        upcoming.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        overdue.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        upcoming.sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+        overdue.sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
 
         return { upcomingBills: upcoming, overdueBills: overdue };
     }, [transactions]);
@@ -41,11 +41,9 @@ export default function BillsPage() {
         // Optimistic update can be tricky with partial form schemas
         // For simplicity, we create a compatible object
         const updatedData = {
-            description: transaction.description,
+            ...transaction,
             amount: String(transaction.amount),
             date: new Date(transaction.date),
-            type: transaction.type,
-            category: transaction.category,
             paid: isPaid,
             paymentMethod: transaction.paymentMethod || 'one-time',
         };
@@ -76,7 +74,7 @@ export default function BillsPage() {
     }
 
     const BillCard = ({ bill }: { bill: typeof upcomingBills[0] }) => {
-        const dueDate = new Date(bill.date);
+        const dueDate = new Date(bill.dueDate!);
         const daysLeft = differenceInDays(dueDate, new Date());
         const isBillOverdue = isPast(dueDate) && daysLeft < 0;
 
