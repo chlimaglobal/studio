@@ -1,3 +1,5 @@
+
+      
 import { z } from "zod";
 
 export const categoryData = {
@@ -227,3 +229,5 @@ export const MuralChatOutputSchema = z.object({
   response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
 });
 export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;
+
+    

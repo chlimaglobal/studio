@@ -1,4 +1,5 @@
 
+      
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
 import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, ReferenceLine } from 'recharts';
-import { allInvestmentCategories } from '@/lib/types';
+import { allInvestmentCategories, investmentWithdrawalCategories } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -81,7 +82,7 @@ export default function RetirementPlannerPage() {
   } = useMemo(() => {
     const avgCurrentAge = (age1 + age2) / 2;
     const investmentYears = retirementAge - avgCurrentAge;
-    if (investmentYears <= 0) return { projectionData: [], isOnTrack: false };
+    if (investmentYears <= 0) return { projectionData: [], isOnTrack: false, futureDesiredIncome: 0, totalNestEggNeeded: 0, projectedPatrimony: 0, difference: 0 };
 
     // 1. Calculate the future value of the desired income due to inflation
     const futureDesiredIncome = desiredRetirementIncome * Math.pow(1 + inflationRate / 100, investmentYears);
@@ -92,8 +93,9 @@ export default function RetirementPlannerPage() {
     
     // Using Present Value of an Annuity formula for the nest egg
     const totalNestEggNeeded = retirementDuration > 0
-        ? (futureDesiredIncome * (1 - Math.pow(1 + monthlyRealYield, -retirementDuration * 12))) / monthlyRealYield * 12
+        ? (futureDesiredIncome / monthlyRealYield) * (1 - Math.pow(1 + monthlyRealYield, -retirementDuration * 12))
         : 0;
+
 
     // 3. Project the growth of current savings + future contributions
     let accumulated = currentPatrimony;
