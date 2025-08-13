@@ -1,124 +1,174 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTransactions } from '@/components/client-providers';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth, useSubscription } from '@/components/client-providers';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Info } from 'lucide-react';
-import TransactionsTable from '@/components/transactions-table';
-import { investmentApplicationCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Loader2, PlusCircle, Target, Star, Edit, Trash2 } from 'lucide-react';
+import { formatCurrency, cn } from '@/lib/utils';
+import { formatDistanceToNow, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/utils';
+import type { Goal } from '@/lib/goal-types';
+import { AddGoalDialog } from '@/components/add-goal-dialog';
+import { onGoalsUpdate } from '@/lib/storage';
+import Icon from '@/components/icon';
+import { icons } from 'lucide-react';
+import Link from 'next/link';
 
-export default function RetirementProjectionPage() {
+
+const PremiumBlocker = () => (
+    <Card className="text-center">
+        <CardHeader>
+            <CardTitle className="flex items-center justify-center gap-2">
+                <Star className="h-6 w-6 text-amber-500" />
+                Recurso Premium
+            </CardTitle>
+            <CardDescription>
+                A criação de metas financeiras é um recurso exclusivo para assinantes.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+                Faça o upgrade do seu plano para definir e acompanhar seus objetivos.
+            </p>
+            <Button asChild>
+                <Link href="/dashboard/pricing">Ver Planos</Link>
+            </Button>
+        </CardContent>
+    </Card>
+);
+
+const GoalCard = ({ goal }: { goal: Goal }) => {
+    const progress = (goal.currentAmount / goal.targetAmount) * 100;
+    const timeLeft = formatDistanceToNow(new Date(goal.deadline), { addSuffix: true, locale: ptBR });
+
+    return (
+        <Card className="flex flex-col">
+            <CardHeader>
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 bg-primary/10 rounded-lg">
+                            <Icon name={goal.icon as keyof typeof icons} className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                            <CardTitle>{goal.name}</CardTitle>
+                            <CardDescription>Expira {timeLeft}</CardDescription>
+                        </div>
+                    </div>
+                     <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                        </Button>
+                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-3">
+                <Progress value={progress} />
+                <div className="text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">{formatCurrency(goal.currentAmount)}</span> de {formatCurrency(goal.targetAmount)}
+                </div>
+                 <p className={cn("text-xs font-semibold", progress >= 100 ? "text-green-500" : "text-primary")}>
+                    {progress >= 100 ? "Meta Atingida!" : `${progress.toFixed(1)}% Completo`}
+                </p>
+            </CardContent>
+            <CardFooter className="bg-muted/50 p-2 rounded-b-lg">
+                  <Button variant="secondary" className="w-full">
+                      Adicionar Progresso
+                  </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+
+export default function GoalsPage() {
     const router = useRouter();
-    const { transactions, isLoading } = useTransactions();
-
-    const investmentTransactions = useMemo(() => {
-        return transactions.filter(t => 
-            investmentApplicationCategories.has(t.category) || 
-            investmentWithdrawalCategories.has(t.category)
-        );
-    }, [transactions]);
+    const { user } = useAuth();
+    const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
+    const [goals, setGoals] = useState<Goal[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     
-    // Placeholder data from the image
-    const projectGoal = {
-        label: "2025 a 2050",
-        title: "Quanto precisa poupar até a aposentadoria.",
-        realized: 0,
-        target: 1506302,
-        targetLabel: "Meta do projeto",
-    };
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
-    const yearGoal = {
-        label: "2025",
-        title: "Quanto precisa poupar neste ano.",
-        realized: 0,
-        target: 11102,
-        targetLabel: "Meta do ano",
-    };
-
-    const monthGoal = {
-        label: "Agosto",
-        title: "Quanto precisa poupar neste mês.",
-        realized: 0,
-        target: 2220,
-        targetLabel: "Meta do mês",
-    };
-    
-    const goals = [projectGoal, yearGoal, monthGoal];
+    useEffect(() => {
+        if (user && (isSubscribed || isAdmin)) {
+            setIsLoading(true);
+            const unsubscribe = onGoalsUpdate(user.uid, (newGoals) => {
+                setGoals(newGoals);
+                setIsLoading(false);
+            });
+            return () => unsubscribe();
+        } else if (!isSubscribed && !isAdmin) {
+             setIsLoading(false);
+        }
+    }, [user, isSubscribed, isAdmin]);
 
 
-    if (isLoading) {
+    if (isLoading || isSubscriptionLoading) {
         return (
             <div className="flex justify-center items-center h-full p-8">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Carregando...</span>
+                    <span>Carregando metas...</span>
                 </div>
             </div>
         );
     }
-
-    const ProgressCard = ({ goal }: { goal: typeof goals[0] }) => {
-        const progress = goal.target > 0 ? (goal.realized / goal.target) * 100 : 0;
-        
-        return (
-            <Card>
-                <CardHeader>
-                    <Badge variant="secondary" className="w-fit bg-primary/10 text-primary border-primary/20">{goal.label}</Badge>
-                    <CardTitle className="text-lg pt-2">{goal.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <Progress value={progress} />
-                    <div className="flex justify-between text-sm">
-                        <div>
-                            <p className="text-muted-foreground">{progress.toFixed(0)}% Realizado</p>
-                            <p className="font-bold text-lg">{formatCurrency(goal.realized)}</p>
-                        </div>
-                        <div className="text-right">
-                             <p className="text-muted-foreground">{goal.targetLabel}</p>
-                            <p className="font-bold text-lg">{formatCurrency(goal.target)}</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        )
-    };
-
+    
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="h-6 w-6" />
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-semibold">Meu Progresso</h1>
-                  <p className="text-muted-foreground flex items-center gap-1.5">
-                    Metas do projeto de vida <Info className="h-4 w-4 cursor-pointer" />
-                  </p>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                        <ArrowLeft className="h-6 w-6" />
+                    </Button>
+                    <div>
+                    <h1 className="text-2xl font-semibold flex items-center gap-2">
+                        <Target className="h-6 w-6" />
+                        Minhas Metas
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Defina e acompanhe seus objetivos financeiros.
+                    </p>
+                    </div>
                 </div>
+                {(isSubscribed || isAdmin) && (
+                    <AddGoalDialog>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Adicionar Meta
+                        </Button>
+                    </AddGoalDialog>
+                )}
             </div>
             
-             <p className="text-sm text-muted-foreground">
-                Veja o progresso das suas metas de poupança e garanta seus objetivos.
-            </p>
-
-            <div className="space-y-4">
-                {goals.map(goal => <ProgressCard key={goal.label} goal={goal} />)}
-            </div>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Aplicações e Resgates</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <TransactionsTable transactions={investmentTransactions} showExtraDetails />
-                </CardContent>
-            </Card>
+            {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
+                goals.length > 0 ? (
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {goals.map(goal => <GoalCard key={goal.id} goal={goal} />)}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
+                        <Target className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-semibold">Nenhuma meta cadastrada</h3>
+                        <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                            Crie sua primeira meta para começar a planejar seu futuro.
+                        </p>
+                        <AddGoalDialog>
+                            <Button>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Adicionar Meta
+                            </Button>
+                        </AddGoalDialog>
+                    </div>
+                )
+            )}
         </div>
     );
 }

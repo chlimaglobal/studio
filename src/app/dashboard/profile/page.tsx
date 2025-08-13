@@ -64,6 +64,14 @@ const menuItems = [
         href: '/dashboard/investments',
         premium: true,
     },
+     { 
+        icon: Target, 
+        title: 'Minhas Metas', 
+        subtitle: 'Crie e acompanhe seus objetivos financeiros.',
+        type: 'link',
+        href: '/dashboard/retirement-projection',
+        premium: true,
+    },
     { 
         icon: WalletCards, 
         title: 'Contas a Pagar e Recorrentes', 
@@ -322,5 +330,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-    
