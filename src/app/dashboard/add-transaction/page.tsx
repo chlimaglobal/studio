@@ -37,6 +37,19 @@ const institutions = [
     "Nubank", "Inter", "XP Investimentos", "Itaú", "Bradesco", "Santander", "Caixa", "Banco do Brasil", "BTG Pactual", "Outro"
 ];
 
+const formatAmountForInput = (amount: number | string) => {
+    if (typeof amount === 'number') {
+        return new Intl.NumberFormat('pt-BR', {
+            style: 'decimal',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+            useGrouping: false,
+        }).format(amount);
+    }
+    // If it's already a string, assume it's correctly formatted or will be handled by Zod
+    return amount;
+};
+
 
 function AddTransactionForm() {
     const router = useRouter();
@@ -69,26 +82,20 @@ function AddTransactionForm() {
         if (isEditing) {
             const transactionToEdit = transactions.find(t => t.id === transactionId);
             if (transactionToEdit) {
-                 const formattedAmount = new Intl.NumberFormat('pt-BR', {
-                    style: 'decimal',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                    useGrouping: false, // Avoid thousand separators in the input value itself
-                }).format(transactionToEdit.amount);
-
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
-                    amount: formattedAmount,
+                    amount: formatAmountForInput(transactionToEdit.amount),
                     installments: transactionToEdit.installments || '',
                 };
             }
         }
         // Values from query params (e.g., from voice command) or defaults
+        const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
-            amount: searchParams.get('amount') || '',
+            amount: amountFromParams ? formatAmountForInput(parseFloat(amountFromParams)) : '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
@@ -578,7 +585,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
-
-    
