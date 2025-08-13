@@ -1,4 +1,5 @@
 
+
       
 import { z } from "zod";
 
@@ -47,7 +48,7 @@ export const TransactionFormSchema = z.object({
     .transform((val, ctx) => {
         if (typeof val === 'number') return val;
         // Clean the string: remove thousand separators (.) and then replace comma (,) with a dot (.)
-        const cleanedVal = val.replace(/\./g, '').replace(',', '.');
+        const cleanedVal = val.toString().replace(/\./g, '').replace(',', '.');
         const parsed = parseFloat(cleanedVal);
         if (isNaN(parsed)) {
             ctx.addIssue({

@@ -69,11 +69,17 @@ function AddTransactionForm() {
         if (isEditing) {
             const transactionToEdit = transactions.find(t => t.id === transactionId);
             if (transactionToEdit) {
+                 const formattedAmount = new Intl.NumberFormat('pt-BR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                    useGrouping: false, // Important to avoid thousand separators in the input
+                }).format(transactionToEdit.amount);
+
                 return {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
-                    amount: String(transactionToEdit.amount) || '',
+                    amount: formattedAmount,
                     installments: transactionToEdit.installments || '',
                 };
             }
@@ -94,6 +100,7 @@ function AddTransactionForm() {
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
         };
     }, [isEditing, transactionId, transactions, searchParams]);
+
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
         resolver: zodResolver(TransactionFormSchema),
