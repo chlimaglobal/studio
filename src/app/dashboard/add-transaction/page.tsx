@@ -70,9 +70,10 @@ function AddTransactionForm() {
             const transactionToEdit = transactions.find(t => t.id === transactionId);
             if (transactionToEdit) {
                  const formattedAmount = new Intl.NumberFormat('pt-BR', {
+                    style: 'decimal',
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                    useGrouping: false, // Important to avoid thousand separators in the input
+                    useGrouping: false, // Avoid thousand separators in the input value itself
                 }).format(transactionToEdit.amount);
 
                 return {
@@ -577,5 +578,7 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
