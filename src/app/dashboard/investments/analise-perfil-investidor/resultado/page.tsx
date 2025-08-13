@@ -5,9 +5,40 @@ import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, BarChart2, TrendingUp, PieChartIcon, UserCheck, Info } from 'lucide-react';
+import { ArrowLeft, BarChart2, TrendingUp, PieChartIcon, UserCheck, Info, ChevronRight, PiggyBank, FilePieChart, Repeat } from 'lucide-react';
 import type { InvestorProfileOutput } from '@/lib/types';
 import CategoryPieChart from '@/components/category-pie-chart';
+import Link from 'next/link';
+
+const recommendationActions = [
+    {
+        keywords: ['diversificar', 'renda fixa'],
+        title: "Diversificar Investimentos",
+        description: "Adicione um novo ativo de Renda Fixa à sua carteira.",
+        href: "/dashboard/add-transaction?category=Renda%20Fixa",
+        icon: FilePieChart
+    },
+    {
+        keywords: ['reserva de emergência'],
+        title: "Criar Reserva de Emergência",
+        description: "Comece a construir seu colchão de segurança para imprevistos.",
+        href: "/dashboard/goals",
+        icon: PiggyBank
+    },
+    {
+        keywords: ['revise sua carteira', 'periodicamente'],
+        title: "Revisar Carteira",
+        description: "Acesse seus relatórios para analisar o desempenho e alinhamento.",
+        href: "/dashboard/reports",
+        icon: Repeat
+    }
+];
+
+const getActionForRecommendation = (recommendation: string) => {
+    const lowerCaseRec = recommendation.toLowerCase();
+    return recommendationActions.find(action => action.keywords.every(kw => lowerCaseRec.includes(kw)));
+};
+
 
 const ProfileResultContent = () => {
     const searchParams = useSearchParams();
@@ -99,16 +130,34 @@ const ProfileResultContent = () => {
                     <CardTitle className="flex items-center gap-2"><TrendingUp /> Próximos Passos</CardTitle>
                     <CardDescription>Recomendações práticas da Lúmina para você começar.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <ul className="space-y-3">
-                        {result.recommendations.map((rec, index) => (
-                            <li key={index} className="flex items-start gap-3 p-3 rounded-md bg-muted/50 border">
+                <CardContent className="space-y-3">
+                    {result.recommendations.map((rec, index) => {
+                        const action = getActionForRecommendation(rec);
+                        if (action) {
+                            return (
+                                <Link href={action.href} key={index} passHref>
+                                    <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors rounded-lg border cursor-pointer">
+                                        <div className="flex items-center gap-4">
+                                            <action.icon className="h-6 w-6 text-primary" />
+                                            <div>
+                                                <p className="font-semibold">{action.title}</p>
+                                                <p className="text-sm text-muted-foreground">{rec}</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                </Link>
+                            )
+                        }
+                        // Fallback for non-actionable recommendations
+                        return (
+                            <div key={index} className="flex items-start gap-3 p-3 rounded-md bg-muted/50 border">
                                 <span className="flex h-2 w-2 translate-y-2 rounded-full bg-primary" />
                                 <span className="text-sm">{rec}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </CardContent>
+                            </div>
+                        )
+                    })}
+                </ul-content>
             </Card>
         </div>
     );
