@@ -400,36 +400,6 @@ export default function SettingsPage() {
     }
   };
 
-
-  const handleSendTestNotification = () => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro',
-        description: 'Seu navegador não suporta notificações.',
-      });
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      new Notification('FinanceFlow - Teste', {
-        body: 'Esta é uma notificação de teste. Tudo funcionando!',
-        icon: '/icon.png',
-      });
-       toast({
-        title: 'Notificação Enviada!',
-        description: 'Verifique a central de notificação do seu dispositivo.',
-      });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Permissão Necessária',
-        description: 'Por favor, ative as notificações primeiro. Você pode precisar fazer isso no painel principal ou nas configurações do navegador.',
-      });
-    }
-  };
-
-
   if (!isMounted) {
     return null; 
   }
@@ -678,23 +648,8 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-             <div className="pt-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base"><BellRing className="h-5 w-5" /> Testar Notificações</CardTitle>
-                        <CardDescription>Clique no botão para enviar uma notificação de teste para este dispositivo e confirmar se está tudo funcionando.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button variant="outline" onClick={handleSendTestNotification} className="w-full" disabled={notificationStatus !== 'granted'}>
-                            Enviar Notificação de Teste
-                        </Button>
-                    </CardContent>
-                </Card>
-             </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
