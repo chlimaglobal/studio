@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,8 +56,6 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
       amount: '' as any, 
       date: new Date(),
       type: 'income', // Default to income as per "Adicionar Recebimentos"
-      paymentType: '',
-      receivedFrom: '',
       paid: true,
     },
   });
@@ -69,8 +68,6 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
         date: initialData?.date ? new Date(initialData.date) : new Date(),
         type: initialData?.type || 'income',
         category: initialData?.category,
-        paymentType: initialData?.paymentType || '',
-        receivedFrom: initialData?.receivedFrom || '',
         paid: initialData?.paid ?? true,
       });
     }
@@ -158,8 +155,8 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
                         <FormLabel>Valor*</FormLabel>
                         <FormControl>
                             <Input 
-                                type="number" 
-                                step="0.01" 
+                                type="text" 
+                                inputMode="decimal"
                                 placeholder="R$" 
                                 {...field}
                             />
@@ -169,32 +166,6 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
                     )}
                 />
             </div>
-            <FormField
-              control={form.control}
-              name="paymentType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de pagamento*</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Tipo de pagamento" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="receivedFrom"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Recebido de</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Recebido de" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
              <FormField
                 control={form.control}
                 name="category"

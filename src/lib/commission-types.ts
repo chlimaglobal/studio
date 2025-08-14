@@ -1,5 +1,6 @@
 
 
+
 'use client';
 
 import { z } from 'zod';
@@ -9,7 +10,7 @@ const brazilianCurrencySchema = z.union([z.string(), z.number()]).transform((val
         return value;
     }
     if (typeof value === 'string') {
-        if (value.trim() === '') {
+        if (!value || value.trim() === '') {
              ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 message: "O valor é obrigatório.",

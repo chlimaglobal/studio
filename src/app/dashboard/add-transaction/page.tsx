@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,7 +45,7 @@ const formatAmountForInput = (amount: number | string) => {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
             useGrouping: false,
-        }).format(amount);
+        }).format(amount).replace('.', ',');
     }
     // If it's already a string, assume it's correctly formatted or will be handled by Zod
     return amount;
@@ -431,7 +432,7 @@ function AddTransactionForm() {
                                                     <Input 
                                                         type="text" 
                                                         inputMode="numeric"
-                                                        placeholder="Ex: 12x" 
+                                                        placeholder="Ex: 12" 
                                                         {...field}
                                                     />
                                                 </FormControl>
