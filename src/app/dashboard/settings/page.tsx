@@ -132,8 +132,10 @@ export default function SettingsPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [isAppLockEnabled, setIsAppLockEnabled] = useState(false);
-  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
+  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission | 'unsupported'>('default');
   const [isExporting, setIsExporting] = useState(false);
+  const [isActivatingNotifications, setIsActivatingNotifications] = useState(false);
+
 
   const [notifications, setNotifications] = useState<NotificationSettings>({
     dailySummary: true,
@@ -158,6 +160,8 @@ export default function SettingsPage() {
     const checkNotificationStatus = () => {
         if ('Notification' in window) {
             setNotificationStatus(Notification.permission);
+        } else {
+            setNotificationStatus('unsupported');
         }
     };
     checkNotificationStatus(); // Initial check
@@ -352,6 +356,50 @@ export default function SettingsPage() {
       setIsExporting(false);
     }
   };
+
+  const handleRequestPermission = async () => {
+    if (notificationStatus === 'granted' || typeof window === 'undefined' || !('Notification' in window)) {
+      return;
+    }
+  
+    setIsActivatingNotifications(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationStatus(permission);
+  
+      if (permission === 'granted') {
+        toast({
+          title: 'Notificações Ativadas!',
+          description: 'Você receberá os alertas do sistema.',
+        });
+  
+        // Get FCM Token and save it
+        const fcm = await messaging();
+        if (fcm && user) {
+          const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
+          if (fcmToken) {
+            await saveFcmToken(user.uid, fcmToken);
+          }
+        }
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Notificações Bloqueadas',
+          description: 'Você pode precisar ativá-las manualmente nas configurações do seu navegador.',
+        });
+      }
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+       toast({
+          variant: 'destructive',
+          title: 'Erro',
+          description: 'Não foi possível solicitar a permissão para notificações.',
+        });
+    } finally {
+        setIsActivatingNotifications(false);
+    }
+  };
+
 
   const handleSendTestNotification = () => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -558,7 +606,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between rounded-md border bg-background p-4">
                 <div>
                     <p className="font-medium">Notificações Push</p>
-                    <p className="text-sm text-muted-foreground">Receba alertas diretamente na barra de notificação do seu dispositivo.</p>
+                    <p className="text-sm text-muted-foreground">Receba alertas diretamente no seu dispositivo.</p>
                      {notificationStatus === 'denied' && (
                         <p className="text-xs text-destructive mt-1">
                             Você bloqueou as notificações. Para reativar, acesse as configurações do seu navegador para este site.
@@ -567,6 +615,17 @@ export default function SettingsPage() {
                 </div>
                 {renderNotificationStatus()}
               </div>
+              {notificationStatus === 'default' && (
+                 <Button 
+                    variant="outline"
+                    className="w-full mt-3" 
+                    onClick={handleRequestPermission}
+                    disabled={isActivatingNotifications}
+                 >
+                    {isActivatingNotifications ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <BellRing className="h-4 w-4 mr-2" />}
+                    Ativar Notificações neste Dispositivo
+                </Button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -637,3 +696,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
