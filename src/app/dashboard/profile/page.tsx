@@ -126,7 +126,7 @@ const menuItems = [
         title: 'Suporte e Ajuda', 
         subtitle: 'Fale conosco ou consulte a documentação.',
         type: 'link',
-        href: '#', // Placeholder link
+        href: '/dashboard/support',
         premium: false,
     },
 ];
@@ -148,7 +148,7 @@ const LinkCard = ({ item }: { item: typeof menuItems[0] }) => {
     };
 
     return (
-        <Link href={item.href} key={item.title} onClick={handleClick}>
+        <Link href={item.href} key={item.title} onClick={item.href === '#' ? handleClick : undefined}>
              <Card className="p-4 flex items-center justify-between hover:border-primary/50 transition-colors">
                 <div className="flex items-center gap-4">
                     <item.icon className="h-6 w-6 text-primary" />
