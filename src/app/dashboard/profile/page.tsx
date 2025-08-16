@@ -23,7 +23,8 @@ import {
     ArrowLeft,
     WalletCards,
     Repeat,
-    LifeBuoy
+    LifeBuoy,
+    HandCoins
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -72,6 +73,14 @@ const menuItems = [
         type: 'link',
         href: '/dashboard/retirement-projection',
         premium: true,
+    },
+     { 
+        icon: HandCoins, 
+        title: 'Minhas Comissões', 
+        subtitle: 'Acompanhe seus ganhos de comissões.',
+        type: 'link',
+        href: '/dashboard/commissions',
+        premium: false,
     },
     { 
         icon: WalletCards, 
