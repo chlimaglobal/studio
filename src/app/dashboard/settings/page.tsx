@@ -40,7 +40,6 @@ type NotificationSettings = {
 
 const incomeSounds = [
     { value: 'cash-register.mp3', label: 'Caixa Registradora' },
-    { value: 'coin.mp3', label: 'Moeda' },
     { value: 'none', label: 'Nenhum' },
 ];
 
@@ -653,3 +652,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
