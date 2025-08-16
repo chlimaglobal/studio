@@ -196,5 +196,3 @@ export function EditCommissionDialog({ commission, open, onOpenChange }: EditCom
     </Dialog>
   );
 }
-
-    

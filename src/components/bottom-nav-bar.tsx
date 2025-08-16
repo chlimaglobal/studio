@@ -4,13 +4,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, MessageSquare, LineChart, Star } from 'lucide-react';
+import { LayoutDashboard, ArrowRightLeft, BarChart3, UserCircle, MessageSquare, LineChart, Star, HandCoins } from 'lucide-react';
 import { useSubscription, useAuth, useMural } from '@/components/client-providers';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações', premium: false },
-  { href: '/dashboard/mural', icon: MessageSquare, label: 'Mural', premium: true },
+  { href: '/dashboard/commissions', icon: HandCoins, label: 'Comissões', premium: true },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios', premium: false },
   { href: '/dashboard/investments', icon: LineChart, label: 'Investimentos', premium: true },
 ];
