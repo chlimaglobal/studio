@@ -1,3 +1,4 @@
+
 {
     "theme_color": "#000000",
     "background_color": "#000000",
@@ -6,7 +7,7 @@
     "start_url": "/",
     "name": "FinanceFlow",
     "short_name": "FinanceFlow",
-    "description": "Seu companheiro financeiro pessoal.",
+    "description": "Seu aplicativo de controle financeiro",
     "icons": [
         {
             "src": "/icon-192x192.png",
