@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   description: 'Your personal finance companion.',
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
+    icon: '/icon-512x512.png',
+    shortcut: '/icon-512x512.png',
+    apple: '/icon-512x512.png',
   },
 };
 
