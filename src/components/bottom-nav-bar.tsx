@@ -10,7 +10,7 @@ import { useSubscription, useAuth, useMural } from '@/components/client-provider
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Painel', premium: false },
   { href: '/dashboard/transactions', icon: ArrowRightLeft, label: 'Transações', premium: false },
-  { href: '/dashboard/commissions', icon: HandCoins, label: 'Comissões', premium: true },
+  { href: '/dashboard/mural', icon: MessageSquare, label: 'Mural', premium: true },
   { href: '/dashboard/reports', icon: BarChart3, label: 'Relatórios', premium: false },
   { href: '/dashboard/investments', icon: LineChart, label: 'Investimentos', premium: true },
 ];
