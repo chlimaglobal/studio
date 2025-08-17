@@ -18,8 +18,8 @@ import { useAuth } from '@/components/client-providers';
 import Image from 'next/image';
 
 const Logo = () => (
-    <div className="flex flex-col items-center gap-2">
-        <Image src="/icon-80x80.png" alt="FinanceFlow Logo" width={64} height={64} />
+    <div className="flex flex-col items-center gap-4">
+        <Image src="/icon-80x80.png" alt="FinanceFlow Logo" width={80} height={80} priority />
         <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
             <span className="text-foreground">Finance</span>
             <span className="text-primary"> $ </span>
@@ -210,7 +210,6 @@ export default function LoginPage() {
           <div className="mx-auto mb-6">
             <Logo />
           </div>
-          <CardTitle>Bem-vindo de volta!</CardTitle>
           <CardDescription>Insira seus dados para acessar sua conta.</CardDescription>
         </CardHeader>
         <CardContent>
