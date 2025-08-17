@@ -23,22 +23,10 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-    ],
-    // The new section to add
     unoptimized: false,
-    domains: [],
-    // This allows the PWA icons to be optimized
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Add the PWA icon paths here
     remotePatterns: [
        {
         protocol: 'https',
