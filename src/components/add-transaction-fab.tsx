@@ -15,6 +15,15 @@ export function AddTransactionFab() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const playSound = () => {
+    try {
+      const audio = new Audio('/swoosh.mp3');
+      audio.play().catch(e => console.error("Error playing sound:", e));
+    } catch (e) {
+      console.error("Failed to play audio:", e);
+    }
+  };
+
   const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
     setIsMenuOpen(false);
     
@@ -39,6 +48,11 @@ export function AddTransactionFab() {
       setIsMenuOpen(false);
       setIsAudioOpen(true);
   }
+
+  const toggleMenu = () => {
+    playSound();
+    setIsMenuOpen(!isMenuOpen);
+  };
   
   // Only show the FAB on the main dashboard page
   if (pathname !== '/dashboard') {
@@ -68,7 +82,7 @@ export function AddTransactionFab() {
         <Button 
             size="icon" 
             className="rounded-full h-16 w-16 shadow-2xl bg-primary hover:bg-primary/90 transition-transform duration-300"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={toggleMenu}
         >
           {isMenuOpen ? <X className="h-8 w-8" /> : <Plus className="h-8 w-8" />}
         </Button>
