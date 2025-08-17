@@ -11,8 +11,6 @@ export const metadata: Metadata = {
   description: 'Your personal finance companion.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon-512x512.png',
-    shortcut: '/icon-512x512.png',
     apple: '/icon-512x512.png',
   },
 };
@@ -25,8 +23,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="apple-touch-icon" href="/icon-512x512.png"></link>
+        <meta name="application-name" content="FinanceFlow" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="FinanceFlow" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#000000" />
       </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ClientProviders>
