@@ -19,7 +19,7 @@ import Image from 'next/image';
 
 const Logo = () => (
     <div className="flex flex-col items-center gap-2">
-        <Image src="/icon-80x80.png" alt="FinanceFlow Logo" width={80} height={80} />
+        <Image src="/icon-80x80.png" alt="FinanceFlow Logo" width={64} height={64} />
         <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
             <span className="text-foreground">Finance</span>
             <span className="text-primary"> $ </span>
@@ -207,7 +207,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
+          <div className="mx-auto mb-6">
             <Logo />
           </div>
           <CardTitle>Bem-vindo de volta!</CardTitle>
