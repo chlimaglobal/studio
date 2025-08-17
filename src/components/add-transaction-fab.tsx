@@ -17,7 +17,7 @@ export function AddTransactionFab() {
 
   const playSound = () => {
     try {
-      const audio = new Audio('/swoosh.mp3');
+      const audio = new Audio('/fab-sound.mp3'); // Changed to use the custom FAB sound
       audio.play().catch(e => console.error("Error playing sound:", e));
     } catch (e) {
       console.error("Failed to play audio:", e);
