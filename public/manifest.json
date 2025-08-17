@@ -1,36 +1,22 @@
 {
-  "theme_color": "#18181b",
-  "background_color": "#18181b",
-  "display": "standalone",
-  "scope": "/",
-  "start_url": "/",
   "name": "FinanceFlow",
   "short_name": "FinanceFlow",
-  "description": "Your personal finance companion.",
+  "description": "Sua plataforma de controle financeiro para casais.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0A0A0B",
+  "theme_color": "#FBBF24",
   "icons": [
     {
       "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
