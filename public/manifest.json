@@ -1,13 +1,8 @@
 
 {
-    "theme_color": "#000000",
-    "background_color": "#000000",
-    "display": "standalone",
-    "scope": "/",
-    "start_url": "/",
     "name": "FinanceFlow",
     "short_name": "FinanceFlow",
-    "description": "Seu aplicativo de controle financeiro",
+    "description": "Your personal finance companion.",
     "icons": [
         {
             "src": "/icon-192x192.png",
@@ -19,5 +14,10 @@
             "sizes": "512x512",
             "type": "image/png"
         }
-    ]
+    ],
+    "theme_color": "#3F51B5",
+    "background_color": "#E8EAF6",
+    "start_url": "/dashboard",
+    "display": "standalone",
+    "orientation": "portrait"
 }
