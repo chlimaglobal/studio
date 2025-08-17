@@ -58,15 +58,30 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   }, [transactions]);
   
   useEffect(() => {
+    // Listen for changes from localStorage to update avatar in real-time
+    const handleStorageChange = () => {
+      setProfilePic(localStorage.getItem('profilePic'));
+    };
+
     if (user?.photoURL) {
       setProfilePic(user.photoURL);
     }
+    const localPic = localStorage.getItem('profilePic');
+    if (localPic) {
+      setProfilePic(localPic);
+    }
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+
   }, [user]);
 
   const handleLogout = async () => {
     try {
       const auth = getAuth();
       await signOut(auth);
+      // Clear session-specific data
+      sessionStorage.clear();
       router.push('/login');
     } catch (error) {
       toast({
@@ -87,42 +102,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   return (
     <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background pt-4">
       <div className="flex items-center justify-between">
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-2 cursor-pointer">
-                    <Avatar className="h-10 w-10">
-                        <AvatarImage src={profilePic ?? user?.photoURL ?? undefined} alt="User Avatar" />
-                        <AvatarFallback>{user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}</AvatarFallback>
-                    </Avatar>
-                </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-                 <DropdownMenuLabel>
-                     <div className='flex items-center gap-2'>
-                        <span className="font-semibold capitalize">{user?.displayName || 'Usuário'}</span>
-                        <Badge variant="outline" className='border-green-500 text-green-500'>PLUS</Badge>
-                     </div>
-                     <p className='text-xs text-muted-foreground font-normal'>{user?.email}</p>
-                 </DropdownMenuLabel>
-                 <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/profile">
-                      <UserCircle className="mr-2 h-4 w-4" />
-                      <span>Minha Conta e Configurações</span>
-                    </Link>
-                  </DropdownMenuItem>
-                 <DropdownMenuItem onClick={showPlaceholderToast}>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    <span>Cancelar assinatura</span>
-                 </DropdownMenuItem>
-                 <DropdownMenuSeparator />
-                 <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                 </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-
         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onTogglePrivacyMode}>
               {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -132,7 +111,45 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                 <Star className="h-5 w-5" />
               </Link>
             </Button>
+        </div>
+        
+        <div className="flex items-center gap-2">
             <Logo />
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-pointer">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={profilePic ?? undefined} alt="User Avatar" />
+                            <AvatarFallback>{user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email?.charAt(0).toUpperCase() || 'U')}</AvatarFallback>
+                        </Avatar>
+                    </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>
+                        <div className='flex items-center gap-2'>
+                            <span className="font-semibold capitalize">{user?.displayName || 'Usuário'}</span>
+                            <Badge variant="outline" className='border-green-500 text-green-500'>PLUS</Badge>
+                        </div>
+                        <p className='text-xs text-muted-foreground font-normal'>{user?.email}</p>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard/profile">
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Minha Conta e Configurações</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={showPlaceholderToast}>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        <span>Cancelar assinatura</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Logout</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </div>
        <div className="flex items-center justify-between">
