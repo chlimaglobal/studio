@@ -7,6 +7,7 @@ import { TransactionCategory, transactionCategories } from "@/lib/types";
 import { getAuth } from "firebase-admin/auth";
 import { Twilio } from 'twilio';
 import { adminApp } from "@/lib/firebase-admin";
+import sgMail from '@sendgrid/mail';
 
 export async function extractTransactionInfoFromText(text: string) {
   if (!text) {
@@ -84,6 +85,43 @@ export async function sendWhatsAppNotification(body: string, to: string) {
     console.error('Failed to send WhatsApp message:', error);
     // @ts-ignore
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * This function sends a welcome email using SendGrid. It is designed to be
+ * called from a Firebase Function that triggers on user creation.
+ * @param email The new user's email address.
+ * @param name The new user's name.
+ */
+export async function sendWelcomeEmail(email: string, name: string) {
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const templateId = process.env.SENDGRID_WELCOME_TEMPLATE_ID;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+
+  if (!sendgridApiKey || !templateId || !fromEmail) {
+    console.error('SendGrid environment variables are not fully configured.');
+    return { success: false, error: 'SendGrid environment variables not configured.' };
+  }
+
+  sgMail.setApiKey(sendgridApiKey);
+
+  const msg = {
+    to: email,
+    from: fromEmail,
+    templateId: templateId,
+    dynamicTemplateData: {
+      name: name,
+    },
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Welcome email sent to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    return { success: false, error: 'Failed to send welcome email.' };
   }
 }
     
