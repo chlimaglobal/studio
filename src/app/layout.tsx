@@ -30,7 +30,7 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#FBBF24" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.json?v=1" />
         <link rel="apple-touch-icon" href="/icon-512x512.png" />
       </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
