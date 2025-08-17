@@ -165,6 +165,16 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   }, [user]);
+
+  const playSound = useCallback((soundFile: string) => {
+    if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
+    try {
+      const audio = new Audio(`/${soundFile}`);
+      audio.play().catch(e => console.error("Error playing sound:", e));
+    } catch (e) {
+      console.error("Failed to play audio:", e);
+    }
+  }, []);
   
   const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
     const userId = user?.uid;
@@ -182,6 +192,12 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             description: `${data.description} - ${formatCurrency(data.amount)}`,
         });
 
+        // Play sound based on transaction type
+        const soundToPlay = data.type === 'income'
+          ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
+          : localStorage.getItem('expenseSound') || 'swoosh.mp3';
+        playSound(soundToPlay);
+
         const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
         if (userWhatsAppNumber) {
             const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
@@ -198,7 +214,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         });
         throw error;
     }
-  }, [toast, user]);
+  }, [toast, user, playSound]);
 
   const updateTransaction = useCallback(async (id: string, data: z.infer<typeof TransactionFormSchema>) => {
     const userId = user?.uid;
