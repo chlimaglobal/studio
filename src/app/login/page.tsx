@@ -19,7 +19,7 @@ import Image from 'next/image';
 
 const Logo = () => (
     <div className="flex flex-col items-center gap-2">
-        <Image src="https://placehold.co/80x80.png" alt="FinanceFlow Logo" width={80} height={80} data-ai-hint="logo finance" />
+        <Image src="/icon-80x80.png" alt="FinanceFlow Logo" width={80} height={80} />
         <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
             <span className="text-foreground">Finance</span>
             <span className="text-primary"> $ </span>
