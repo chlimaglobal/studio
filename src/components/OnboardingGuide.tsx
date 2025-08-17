@@ -82,17 +82,16 @@ export function OnboardingGuide() {
         })
     }, [api]);
 
-    const handleClose = (finished: boolean) => {
+    const handleClose = () => {
         setOpen(false);
-        if (finished) {
-            localStorage.setItem('onboardingComplete', 'true');
-        }
+        // Mark as complete regardless of whether it was finished or skipped.
+        localStorage.setItem('onboardingComplete', 'true');
     };
 
     const isLastStep = current === count;
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose(false)}>
+        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
             <DialogContent className="sm:max-w-md p-0 pt-8 flex flex-col justify-between h-[60vh]">
                  <Carousel setApi={setApi} className="w-full">
                     <CarouselContent>
@@ -122,9 +121,9 @@ export function OnboardingGuide() {
                     </div>
                     
                     {isLastStep ? (
-                        <Button onClick={() => handleClose(true)} className="w-full">Começar a Usar!</Button>
+                        <Button onClick={handleClose} className="w-full">Começar a Usar!</Button>
                     ) : (
-                         <Button variant="ghost" onClick={() => handleClose(false)}>Pular Tutorial</Button>
+                         <Button variant="ghost" onClick={handleClose}>Pular Tutorial</Button>
                     )}
                 </div>
             </DialogContent>
