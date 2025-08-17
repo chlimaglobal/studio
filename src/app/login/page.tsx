@@ -15,9 +15,11 @@ import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
 import { useAuth } from '@/components/client-providers';
+import Image from 'next/image';
 
 const Logo = () => (
-    <div className="p-4 inline-block">
+    <div className="flex flex-col items-center gap-2">
+        <Image src="https://placehold.co/80x80.png" alt="FinanceFlow Logo" width={80} height={80} data-ai-hint="logo finance" />
         <div className="text-3xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
             <span className="text-foreground">Finance</span>
             <span className="text-primary"> $ </span>
