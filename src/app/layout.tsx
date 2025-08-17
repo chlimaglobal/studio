@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'FinanceFlow',
-  description: 'Your personal finance companion.',
+  description: 'Sua plataforma de controle financeiro para casais.',
   manifest: '/manifest.json',
   icons: {
     apple: '/icon-512x512.png',
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="application-name" content="FinanceFlow" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
