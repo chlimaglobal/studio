@@ -1,7 +1,7 @@
 
 
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -430,41 +430,33 @@ export async function saveBudgets(userId: string, monthId: string, data: Budget)
 // ======== MURAL CHAT ========
 export function onChatUpdate(
     userId: string, 
-    callback: (messages: ChatMessage[], firstVisibleDoc: DocumentSnapshot | null, hasMore: boolean) => void,
-    startAfterDoc: DocumentSnapshot | null = null
+    callback: (messages: ChatMessage[]) => void,
+    lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null = null
 ): () => void {
     if (!userId) return () => {};
     
     const messagesRef = collection(db, 'users', userId, 'chat');
-    let q;
-
-    if (startAfterDoc) {
-        // Query for older messages (pagination)
-        q = query(messagesRef, orderBy('timestamp', 'desc'), startAfter(startAfterDoc), limit(20));
-    } else {
-        // Initial query for the latest messages
-        q = query(messagesRef, orderBy('timestamp', 'desc'), limit(20));
-    }
+    // Listen for new messages added after the last document we've seen
+    const q = lastVisibleDoc 
+        ? query(messagesRef, orderBy('timestamp'), startAfter(lastVisibleDoc))
+        : query(messagesRef, orderBy('timestamp'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const messages: ChatMessage[] = [];
+        const newMessages: ChatMessage[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            messages.push({
+            newMessages.push({
                 id: doc.id,
                 ...data,
                 timestamp: (data.timestamp as Timestamp)?.toDate(),
             } as ChatMessage);
         });
 
-        // Messages from Firestore are desc, so we reverse to get chronological asc
-        const reversedMessages = messages.reverse();
-        const firstVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
-        const hasMore = querySnapshot.docs.length === 20;
-
-        callback(reversedMessages, firstVisibleDoc, hasMore);
+        if (newMessages.length > 0) {
+            callback(newMessages);
+        }
     }, (error) => {
-        console.error("Error fetching chat messages:", error);
+        console.error("Error fetching new chat messages:", error);
     });
     
     return unsubscribe;

@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { sendWhatsAppNotification } from '@/app/actions';
 import { usePathname } from 'next/navigation';
+import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -259,10 +260,10 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const lastMessageTimestampRef = React.useRef<Date | null>(null);
 
     useEffect(() => {
         if (pathname === '/dashboard/mural') {
-            // When user enters the mural, mark as read and store timestamp
             setHasUnread(false);
             localStorage.setItem('lastMuralVisit', new Date().toISOString());
         }
@@ -270,21 +271,33 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(user.uid, (messages) => {
-                const latestMessage = messages[messages.length - 1];
-                if (!latestMessage) return;
+            // This listener only gets new messages
+            const unsubscribe = onChatUpdate(
+                user.uid, 
+                (newMessages) => {
+                    const latestMessage = newMessages[newMessages.length - 1];
+                    if (!latestMessage) return;
 
-                const lastVisitString = localStorage.getItem('lastMuralVisit');
-                const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
-                
-                // Show notification only if the last message is from someone else,
-                // is newer than the last visit, and the user is not currently on the mural page.
-                if (latestMessage.role !== 'user' && 
-                    new Date(latestMessage.timestamp) > lastVisit && 
-                    pathname !== '/dashboard/mural') {
-                    setHasUnread(true);
-                }
-            });
+                    const lastVisitString = localStorage.getItem('lastMuralVisit');
+                    const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
+                    
+                    if (
+                        latestMessage.role !== 'user' && 
+                        latestMessage.timestamp > lastVisit && 
+                        pathname !== '/dashboard/mural'
+                    ) {
+                        setHasUnread(true);
+                    }
+                    
+                    // Update the ref to the very last message timestamp
+                    lastMessageTimestampRef.current = latestMessage.timestamp;
+                }, 
+                // We use a ref to the timestamp to avoid re-subscribing on every new message
+                lastMessageTimestampRef.current ? { 
+                    id: '', // Dummy id
+                    timestamp: lastMessageTimestampRef.current 
+                } : null
+            );
             return () => unsubscribe();
         }
     }, [user, isSubscribed, isAdmin, pathname]);

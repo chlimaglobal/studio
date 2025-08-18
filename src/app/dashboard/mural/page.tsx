@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions, useMural } from '@/components/client-providers';
 import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -15,7 +15,7 @@ import { generateSuggestion } from '@/ai/flows/mural-chat';
 import type { ChatMessage, MuralChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { AudioMuralDialog } from '@/components/audio-mural-dialog';
-import type { DocumentSnapshot } from 'firebase/firestore';
+import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -46,6 +46,7 @@ export default function MuralPage() {
     const router = useRouter();
     const { user } = useAuth();
     const { transactions } = useTransactions();
+    const { hasUnread, setHasUnread } = useMural();
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
@@ -54,18 +55,18 @@ export default function MuralPage() {
     const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
     
     // State for pagination and smart scrolling
-    const [firstDoc, setFirstDoc] = useState<DocumentSnapshot | null>(null);
+    const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
     const [hasMore, setHasMore] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const scrollViewportRef = useRef<HTMLDivElement>(null);
     const isAtBottomRef = useRef(true);
 
 
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        if (scrollAreaRef.current) {
-            scrollAreaRef.current.scrollTo({
-                top: scrollAreaRef.current.scrollHeight,
+        if (scrollViewportRef.current) {
+            scrollViewportRef.current.scrollTo({
+                top: scrollViewportRef.current.scrollHeight,
                 behavior: behavior,
             });
         }
@@ -87,33 +88,27 @@ export default function MuralPage() {
             setMessage('');
         }
     }, [user]);
-
+    
+    // Effect for initial load and real-time updates
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            setIsLoadingMore(true);
-            const unsubscribe = onChatUpdate(user.uid, (newMessages, firstVisibleDoc, hasMoreMessages) => {
-                setMessages(prev => {
-                    const existingIds = new Set(prev.map(m => m.id));
-                    const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                    return [...uniqueNewMessages, ...prev];
-                });
-                
-                if (firstVisibleDoc) {
-                    setFirstDoc(firstVisibleDoc);
-                }
-
-                setHasMore(hasMoreMessages);
-                setIsLoadingMore(false);
-
-                 if (isAtBottomRef.current) {
-                    setTimeout(() => scrollToBottom('smooth'), 100);
-                 } else {
-                     setShowScrollToBottom(true);
-                 }
-            });
+            const unsubscribe = onChatUpdate(
+                user.uid, 
+                (newMessages) => {
+                    // This listener only gets new messages. We add them to the end.
+                    setMessages(prev => [...prev, ...newMessages]);
+                    
+                    if (isAtBottomRef.current) {
+                       setTimeout(() => scrollToBottom('smooth'), 100);
+                    } else {
+                       setShowScrollToBottom(true);
+                    }
+                }, 
+                lastDoc // Pass the last known document to listen for messages after it
+            );
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, scrollToBottom]);
+    }, [user, isSubscribed, isAdmin, lastDoc, scrollToBottom]);
 
 
     const callLumina = async (currentQuery: string) => {
@@ -152,24 +147,12 @@ export default function MuralPage() {
     };
     
     const handleScroll = () => {
-        const scrollDiv = scrollAreaRef.current;
+        const scrollDiv = scrollViewportRef.current;
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 10;
             isAtBottomRef.current = isScrolledToBottom;
              if (isScrolledToBottom) {
                 setShowScrollToBottom(false);
-            }
-             // Load more when reaching the top
-            if (scrollDiv.scrollTop === 0 && hasMore && !isLoadingMore) {
-                setIsLoadingMore(true);
-                onChatUpdate(user!.uid, (olderMessages, nextFirstDoc, hasMoreNext) => {
-                    setMessages(prev => [...olderMessages, ...prev]);
-                    if (nextFirstDoc) {
-                        setFirstDoc(nextFirstDoc);
-                    }
-                    setHasMore(hasMoreNext);
-                    setIsLoadingMore(false);
-                }, firstDoc);
             }
         }
     };
@@ -206,7 +189,7 @@ export default function MuralPage() {
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
-                    <ScrollArea className="flex-1 p-4" viewportRef={scrollAreaRef} onScroll={handleScroll}>
+                    <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef} onScroll={handleScroll}>
                         {isLoadingMore && (
                             <div className="flex justify-center my-4">
                                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/>
