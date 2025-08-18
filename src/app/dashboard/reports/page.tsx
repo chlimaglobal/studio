@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -32,8 +33,9 @@ const TrendAnalysisCard = () => {
     useEffect(() => {
         const runAnalysis = async () => {
             setIsLoading(true);
-             if (transactions.length > 3) { // Need some data to analyze trends
-                const result = await generateFinancialAnalysis({ transactions });
+             const operationalTransactions = transactions.filter(t => !t.hideFromReports && !allInvestmentCategories.has(t.category));
+             if (operationalTransactions.length > 3) { // Need some data to analyze trends
+                const result = await generateFinancialAnalysis({ transactions: operationalTransactions });
                 setAnalysis(result.trendAnalysis);
             } else {
                 setAnalysis(null);

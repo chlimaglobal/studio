@@ -89,6 +89,7 @@ function AddTransactionForm() {
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
                     amount: formatAmountForInput(transactionToEdit.amount),
                     installments: transactionToEdit.installments || '',
+                    hideFromReports: transactionToEdit.hideFromReports || false,
                 };
             }
         }
@@ -553,7 +554,12 @@ function AddTransactionForm() {
                                     name="hideFromReports"
                                     render={({ field }) => (
                                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                                            <FormLabel>Ocultar transação dos relatórios</FormLabel>
+                                            <div className="space-y-0.5">
+                                                <FormLabel>Ocultar dos Relatórios</FormLabel>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Ideal para presentes ou despesas que não devem entrar na análise.
+                                                </p>
+                                            </div>
                                             <FormControl>
                                                 <Switch
                                                 checked={field.value}

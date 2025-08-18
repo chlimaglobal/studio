@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -63,7 +64,7 @@ const AiTipsCard = () => {
         return;
     }
 
-    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
 
     if (operationalTransactions.length > 2) {
         try {
@@ -297,7 +298,7 @@ export default function DashboardPage() {
 
 
     const { summary, categorySpending, budgetItems } = useMemo(() => {
-        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
         
         const monthTransactions = operationalTransactions.filter(t => {
             const tDate = new Date(t.date);
@@ -350,7 +351,7 @@ export default function DashboardPage() {
             dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
 
-        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category));
+        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
 
         operationalTransactions.forEach(t => {
             const monthKey = format(new Date(t.date), 'MM/yy');
