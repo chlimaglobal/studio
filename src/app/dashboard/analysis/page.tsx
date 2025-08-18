@@ -11,6 +11,7 @@ import { useTransactions, useSubscription, useAuth } from '@/components/client-p
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
@@ -28,7 +29,7 @@ const PremiumBlocker = () => (
                 Faça o upgrade do seu plano para obter diagnósticos, dicas personalizadas e muito mais.
             </p>
             <Button asChild>
-                <a href="/dashboard/pricing">Ver Planos</a>
+                <Link href="/dashboard/pricing">Ver Planos</Link>
             </Button>
         </CardContent>
     </Card>
@@ -161,7 +162,7 @@ export default function AnalysisPage() {
         </Button>
       </div>
 
-      <Card className={cn("bg-gradient-to-br from-primary/10 to-transparent", statusConfig.bgColor, statusConfig.borderColor)}>
+      <Card className={cn("bg-gradient-to-br from-transparent", statusConfig.bgColor, statusConfig.borderColor)}>
         <CardHeader>
           <CardTitle className={cn("flex items-center gap-3", statusConfig.color)}>
             <StatusIcon className="h-8 w-8" />
