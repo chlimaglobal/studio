@@ -30,8 +30,8 @@ const TrendAnalysisSchema = z.object({
 
 
 const GenerateFinancialAnalysisOutputSchema = z.object({
-  diagnosis: z.string().describe('Um diagnóstico textual curto e amigável sobre a saúde financeira do usuário.'),
-  isSurvivalMode: z.boolean().describe('Verdadeiro se os gastos do usuário forem significativamente maiores que suas receitas.'),
+  healthStatus: z.enum(['Saudável', 'Atenção', 'Crítico']).describe('A pontuação geral da saúde financeira do usuário.'),
+  diagnosis: z.string().describe('Um diagnóstico textual curto e amigável sobre a saúde financeira do usuário, explicando o status.'),
   suggestions: z.array(z.string()).describe('Uma lista de 2 a 4 dicas de economia acionáveis e personalizadas com base nos gastos.'),
   trendAnalysis: TrendAnalysisSchema.describe('Uma análise das tendências de gastos do usuário ao longo do tempo.'),
 });
@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateFinancialAnalysisInputSchema },
   output: { schema: GenerateFinancialAnalysisOutputSchema },
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em analisar dados de transações e fornecer conselhos práticos, amigáveis e personalizados. Sua tarefa é dupla:
-  1. Gerar um diagnóstico da saúde financeira atual.
+  1. Gerar um diagnóstico completo da saúde financeira, incluindo um 'Status de Saúde Financeira'.
   2. Analisar as tendências de gastos de longo prazo.
 
   **Sua Personalidade:**
@@ -72,15 +72,18 @@ const prompt = ai.definePrompt({
   - Calcule o balanço (receita - despesa).
   - Identifique as 3 categorias com maiores gastos.
 
-  **2. Geração do Diagnóstico (diagnosis):**
-  - Escreva um parágrafo curto e pessoal (2-3 frases) que resuma a situação financeira.
-  - Se o balanço for positivo, elogie o usuário. Ex: "Ótimo trabalho! Você fechou o mês no azul e está no controle."
-  - Se o balanço for negativo, motive-o. Ex: "Fique atento. Suas despesas superaram suas receitas este mês. Vamos ajustar isso juntos?"
-  - Sempre mencione as categorias com maiores gastos para dar contexto. Ex: "Seus maiores gastos foram com Restaurante e Compras."
+  **2. Determinação do Status de Saúde Financeira (healthStatus):**
+  - Com base na análise, classifique a saúde financeira como 'Saudável', 'Atenção' ou 'Crítico'.
+  - **'Saudável':** O balanço é significativamente positivo. Os gastos estão controlados e alinhados com a renda.
+  - **'Atenção':** O balanço é próximo de zero ou ligeiramente negativo. Existem alguns pontos de descontrole que precisam ser observados.
+  - **'Crítico':** As despesas são significativamente maiores que as receitas. A situação exige ação imediata.
 
-  **3. Modo Sobrevivência (isSurvivalMode):**
-  - Defina como 'true' se a despesa total for significativamente maior que a receita total.
-  - Caso contrário, defina como 'false'.
+  **3. Geração do Diagnóstico (diagnosis):**
+  - Escreva um parágrafo curto e pessoal (2-3 frases) que resuma a situação financeira, justificando o 'healthStatus'.
+  - Se for 'Saudável', elogie. Ex: "Ótimo trabalho! Você fechou o mês no azul e está no controle."
+  - Se for 'Atenção', alerte. Ex: "Fique atento. Suas despesas estão muito próximas de suas receitas. Vamos ajustar isso juntos?"
+  - Se for 'Crítico', seja direto, mas encorajador. Ex: "Sinal vermelho. Suas despesas superaram suas receitas este mês. É hora de agir, e estou aqui para ajudar."
+  - Sempre mencione as categorias com maiores gastos para dar contexto.
 
   **4. Geração de Sugestões (suggestions):**
   - Crie de 2 a 4 sugestões de economia. Elas DEVEM ser acionáveis, específicas e baseadas nas despesas reais do usuário.

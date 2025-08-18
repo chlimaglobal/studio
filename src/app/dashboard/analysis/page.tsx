@@ -3,13 +3,14 @@
 
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star } from 'lucide-react';
+import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
@@ -32,6 +33,30 @@ const PremiumBlocker = () => (
         </CardContent>
     </Card>
 );
+
+const healthStatusConfig = {
+    'Saudável': {
+        icon: ShieldCheck,
+        color: 'text-green-500',
+        bgColor: 'bg-green-500/10',
+        borderColor: 'border-green-500/20',
+        title: "Saúde Financeira: Saudável"
+    },
+    'Atenção': {
+        icon: ShieldAlert,
+        color: 'text-amber-500',
+        bgColor: 'bg-amber-500/10',
+        borderColor: 'border-amber-500/20',
+        title: "Saúde Financeira: Requer Atenção"
+    },
+    'Crítico': {
+        icon: ShieldX,
+        color: 'text-destructive',
+        bgColor: 'bg-destructive/10',
+        borderColor: 'border-destructive/20',
+        title: "Saúde Financeira: Crítica"
+    }
+}
 
 
 export default function AnalysisPage() {
@@ -68,9 +93,9 @@ export default function AnalysisPage() {
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', transactionsHash);
     } else {
-        const defaultState = {
+        const defaultState: GenerateFinancialAnalysisOutput = {
+          healthStatus: "Atenção",
           diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
-          isSurvivalMode: false,
           suggestions: []
         };
         setAnalysis(defaultState);
@@ -109,6 +134,9 @@ export default function AnalysisPage() {
         </div>
     );
   }
+  
+  const statusConfig = healthStatusConfig[analysis.healthStatus] || healthStatusConfig['Atenção'];
+  const StatusIcon = statusConfig.icon;
 
   return (
     <div className="space-y-6">
@@ -133,17 +161,13 @@ export default function AnalysisPage() {
         </Button>
       </div>
 
-      <Card className="bg-gradient-to-br from-primary/10 to-transparent">
+      <Card className={cn("bg-gradient-to-br from-primary/10 to-transparent", statusConfig.bgColor, statusConfig.borderColor)}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-primary">
-            <Avatar>
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                    <Sparkles className="h-5 w-5" />
-                </AvatarFallback>
-            </Avatar>
-            Diagnóstico da Lúmina
+          <CardTitle className={cn("flex items-center gap-3", statusConfig.color)}>
+            <StatusIcon className="h-8 w-8" />
+            {statusConfig.title}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className={cn(statusConfig.color, "opacity-90")}>
             Um resumo da sua situação financeira no período.
           </CardDescription>
         </CardHeader>
@@ -152,21 +176,6 @@ export default function AnalysisPage() {
         </CardContent>
       </Card>
       
-      {analysis.isSurvivalMode && (
-         <Card className="border-destructive/50 bg-destructive/5">
-            <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertCircle />
-                Modo Sobrevivência Ativado
-            </CardTitle>
-            <CardDescription className="text-destructive/90">
-                Seus gastos estão superando suas receitas. Aqui estão algumas sugestões emergenciais para reverter a situação.
-            </CardDescription>
-            </CardHeader>
-         </Card>
-      )}
-
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -174,7 +183,7 @@ export default function AnalysisPage() {
             Plano de Ação Sugerido
           </CardTitle>
           <CardDescription>
-            Dicas práticas e personalizadas para você economizar mais.
+            Dicas práticas e personalizadas da Lúmina para você economizar mais.
           </CardDescription>
         </CardHeader>
         <CardContent>
