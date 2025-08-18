@@ -117,11 +117,14 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
     if (!userId) throw new Error("User not authenticated");
     
-    if (data.paymentMethod === 'installments' && data.installments && data.installments > 1) {
-        const batch = writeBatch(db);
-        const installmentAmount = data.amount / data.installments;
+    const installments = typeof data.installments === 'number' ? data.installments : 0;
 
-        for (let i = 0; i < data.installments; i++) {
+    if (data.paymentMethod === 'installments' && installments > 1) {
+        const batch = writeBatch(db);
+        const installmentAmount = data.amount / installments;
+        const originalDocId = doc(collection(db, 'users', userId, 'transactions')).id; // Generate a base ID for grouping
+
+        for (let i = 0; i < installments; i++) {
             const installmentDate = addMonths(new Date(data.date), i);
             const transactionData = {
                 ...data,
@@ -129,7 +132,8 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
                 date: Timestamp.fromDate(installmentDate),
                 dueDate: data.dueDate ? Timestamp.fromDate(addMonths(new Date(data.dueDate), i)) : undefined,
                 installmentNumber: i + 1,
-                totalInstallments: data.installments,
+                totalInstallments: installments,
+                installmentGroupId: originalDocId, // Group installments together
                 paymentMethod: 'installments'
             };
             // @ts-ignore
