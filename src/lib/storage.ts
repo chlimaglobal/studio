@@ -304,6 +304,25 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
   }
 }
 
+export async function updateStoredGoal(userId: string, goalId: string, data: z.infer<typeof AddGoalFormSchema>) {
+    if (!userId) throw new Error("User not authenticated");
+    const goalRef = doc(db, 'users', userId, 'goals', goalId);
+    const goalData = {
+        ...data,
+        targetAmount: Number(data.targetAmount),
+        currentAmount: Number(data.currentAmount),
+        deadline: Timestamp.fromDate(new Date(data.deadline)),
+    };
+    await updateDoc(goalRef, cleanDataForFirestore(goalData));
+}
+
+export async function deleteStoredGoal(userId: string, goalId: string) {
+    if (!userId) throw new Error("User not authenticated");
+    const goalRef = doc(db, 'users', userId, 'goals', goalId);
+    await deleteDoc(goalRef);
+}
+
+
 // ======== COMMISSIONS ========
 
 export function onCommissionsUpdate(userId: string, callback: (commissions: Commission[]) => void): () => void {

@@ -15,11 +15,24 @@ import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
 import type { Goal } from '@/lib/goal-types';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
-import { onGoalsUpdate } from '@/lib/storage';
+import { onGoalsUpdate, deleteStoredGoal } from '@/lib/storage';
 import Icon from '@/components/icon';
 import { icons } from 'lucide-react';
 import Link from 'next/link';
 import Confetti from 'react-confetti';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
+import { EditGoalDialog } from '@/components/edit-goal-dialog';
 
 
 const PremiumBlocker = () => (
@@ -44,7 +57,7 @@ const PremiumBlocker = () => (
     </Card>
 );
 
-const GoalCard = ({ goal }: { goal: Goal }) => {
+const GoalCard = ({ goal, onEdit, onDelete }: { goal: Goal, onEdit: () => void, onDelete: () => void }) => {
     const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
     const timeLeft = formatDistanceToNow(new Date(goal.deadline), { addSuffix: true, locale: ptBR });
     const isCompleted = progress >= 100;
@@ -73,12 +86,30 @@ const GoalCard = ({ goal }: { goal: Goal }) => {
                         </div>
                     </div>
                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
                             <Edit className="h-4 w-4" />
                         </Button>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </AlertDialogTrigger>
+                             <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a meta.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={onDelete} className="bg-destructive hover:bg-destructive/90">
+                                        Sim, excluir
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </div>
             </CardHeader>
@@ -107,6 +138,8 @@ export default function GoalsPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const [goals, setGoals] = useState<Goal[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
+    const { toast } = useToast();
     
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
@@ -123,6 +156,23 @@ export default function GoalsPage() {
         }
     }, [user, isSubscribed, isAdmin]);
 
+    const handleDeleteGoal = async (goalId: string) => {
+        if (!user) return;
+        try {
+            await deleteStoredGoal(user.uid, goalId);
+            toast({
+                title: 'Meta Excluída!',
+                description: 'Seu objetivo foi removido com sucesso.',
+            });
+        } catch (error) {
+             toast({
+                variant: 'destructive',
+                title: 'Erro ao Excluir',
+                description: 'Não foi possível remover a meta.',
+            });
+        }
+    }
+
 
     if (isLoading || isSubscriptionLoading) {
         return (
@@ -136,53 +186,73 @@ export default function GoalsPage() {
     }
     
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-6 w-6" />
-                    </Button>
-                    <div>
-                    <h1 className="text-2xl font-semibold flex items-center gap-2">
-                        <Target className="h-6 w-6" />
-                        Minhas Metas
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Defina e acompanhe seus objetivos financeiros.
-                    </p>
-                    </div>
-                </div>
-                {(isSubscribed || isAdmin) && (
-                    <AddGoalDialog>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Adicionar Meta
+        <>
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-6 w-6" />
                         </Button>
-                    </AddGoalDialog>
-                )}
-            </div>
-            
-            {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                goals.length > 0 ? (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {goals.map(goal => <GoalCard key={goal.id} goal={goal} />)}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
-                        <Target className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-4 text-lg font-semibold">Nenhuma meta cadastrada</h3>
-                        <p className="mb-4 mt-2 text-sm text-muted-foreground">
-                            Crie sua primeira meta para começar a planejar seu futuro.
+                        <div>
+                        <h1 className="text-2xl font-semibold flex items-center gap-2">
+                            <Target className="h-6 w-6" />
+                            Minhas Metas
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Defina e acompanhe seus objetivos financeiros.
                         </p>
+                        </div>
+                    </div>
+                    {(isSubscribed || isAdmin) && (
                         <AddGoalDialog>
                             <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Adicionar Meta
                             </Button>
                         </AddGoalDialog>
-                    </div>
-                )
+                    )}
+                </div>
+                
+                {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
+                    goals.length > 0 ? (
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {goals.map(goal => (
+                                <GoalCard 
+                                    key={goal.id} 
+                                    goal={goal}
+                                    onEdit={() => setEditingGoal(goal)}
+                                    onDelete={() => handleDeleteGoal(goal.id)}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 text-center">
+                            <Target className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-semibold">Nenhuma meta cadastrada</h3>
+                            <p className="mb-4 mt-2 text-sm text-muted-foreground">
+                                Crie sua primeira meta para começar a planejar seu futuro.
+                            </p>
+                            <AddGoalDialog>
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Adicionar Meta
+                                </Button>
+                            </AddGoalDialog>
+                        </div>
+                    )
+                )}
+            </div>
+            {editingGoal && (
+                <EditGoalDialog
+                    goal={editingGoal}
+                    open={!!editingGoal}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) {
+                            setEditingGoal(null);
+                        }
+                    }}
+                />
             )}
-        </div>
+        </>
     );
 }
