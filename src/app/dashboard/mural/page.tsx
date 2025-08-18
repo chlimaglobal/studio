@@ -95,8 +95,12 @@ export default function MuralPage() {
             const unsubscribe = onChatUpdate(
                 user.uid, 
                 (newMessages) => {
-                    // This listener only gets new messages. We add them to the end.
-                    setMessages(prev => [...prev, ...newMessages]);
+                    // Prevent adding duplicate messages
+                    setMessages(prev => {
+                        const existingIds = new Set(prev.map(m => m.id));
+                        const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+                        return [...prev, ...uniqueNewMessages];
+                    });
                     
                     if (isAtBottomRef.current) {
                        setTimeout(() => scrollToBottom('smooth'), 100);
