@@ -4,12 +4,25 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTransactions } from '@/components/client-providers';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Repeat, PlusCircle, CalendarCheck, DollarSign } from 'lucide-react';
+import { ArrowLeft, Loader2, Repeat, PlusCircle, CalendarCheck, DollarSign, Edit, Trash2 } from 'lucide-react';
 import { formatCurrency, cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
+
 
 const recurrenceLabels: Record<string, string> = {
     weekly: 'Semanal',
@@ -21,7 +34,8 @@ const recurrenceLabels: Record<string, string> = {
 
 export default function SubscriptionsPage() {
     const router = useRouter();
-    const { transactions, isLoading } = useTransactions();
+    const { transactions, isLoading, deleteTransaction } = useTransactions();
+    const { toast } = useToast();
     
     const { subscriptions, totalMonthlyCost } = useMemo(() => {
         const recurringTransactions = transactions.filter(
@@ -56,35 +70,81 @@ export default function SubscriptionsPage() {
             </div>
         );
     }
+    
+    const handleDelete = async (transactionId: string) => {
+        try {
+            await deleteTransaction(transactionId);
+            toast({
+                title: 'Assinatura Excluída!',
+                description: 'O registro da assinatura foi removido com sucesso.',
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao Excluir',
+                description: 'Não foi possível remover a assinatura.',
+            });
+        }
+    }
+
 
     const SubscriptionCard = ({ subscription }: { subscription: typeof subscriptions[0] }) => {
         const lastPaymentDate = new Date(subscription.date);
 
         return (
-             <Card 
-                onClick={() => router.push(`/dashboard/add-transaction?id=${subscription.id}`)}
-                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 cursor-pointer hover:border-primary/50 transition-colors"
-             >
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                        <Repeat className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                        <p className="font-semibold">{subscription.description}</p>
-                        <p className="text-sm text-muted-foreground capitalize">
-                            {subscription.recurrence ? recurrenceLabels[subscription.recurrence] : 'Recorrente'}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-6 sm:gap-4 ml-auto w-full sm:w-auto">
-                    <div className="text-right flex-1">
-                        <p className="font-bold text-lg">{formatCurrency(subscription.amount)}</p>
-                        <div className="text-xs flex items-center justify-end gap-1.5 text-muted-foreground">
-                           <CalendarCheck className="h-3 w-3" />
-                           <span>Último pagto. em {format(lastPaymentDate, 'dd/MM/yyyy', { locale: ptBR })}</span>
+             <Card className="flex flex-col">
+                <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-primary/10 rounded-lg">
+                                <Repeat className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-lg">{subscription.description}</p>
+                                <p className="text-sm text-muted-foreground capitalize">
+                                    {subscription.recurrence ? recurrenceLabels[subscription.recurrence] : 'Recorrente'}
+                                </p>
+                            </div>
+                        </div>
+                         <div className="text-right">
+                            <p className="font-bold text-2xl">{formatCurrency(subscription.amount)}</p>
                         </div>
                     </div>
-                </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-xs flex items-center justify-start gap-1.5 text-muted-foreground">
+                        <CalendarCheck className="h-3 w-3" />
+                        <span>Último pagto. em {format(lastPaymentDate, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                    </div>
+                </CardContent>
+                <CardFooter className="bg-muted/50 p-2 grid grid-cols-2 gap-2">
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da assinatura.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(subscription.id)} className="bg-destructive hover:bg-destructive/90">
+                                Sim, excluir
+                            </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    <Button variant="ghost" onClick={() => router.push(`/dashboard/add-transaction?id=${subscription.id}`)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                    </Button>
+                </CardFooter>
             </Card>
         )
     };
