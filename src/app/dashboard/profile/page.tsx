@@ -24,7 +24,8 @@ import {
     WalletCards,
     Repeat,
     LifeBuoy,
-    HandCoins
+    HandCoins,
+    Calculator
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -115,7 +116,7 @@ const menuItems = [
         premium: false,
     },
      { 
-        icon: Target, 
+        icon: Calculator, 
         title: 'Planejamento de Aposentadoria', 
         subtitle: 'Calcule e planeje seu futuro financeiro.',
         type: 'link',
