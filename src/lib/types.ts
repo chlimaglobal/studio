@@ -74,8 +74,8 @@ export const TransactionFormSchema = z.object({
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
   institution: z.string().optional(),
-  paymentMethod: z.enum(['one-time', 'installments', 'recurring']).optional().default('one-time'),
-  installments: z.coerce.number().int().min(2, "O número de parcelas deve ser pelo menos 2.").optional().or(z.literal('')),
+  paymentMethod: z.enum(['one-time', 'installments', 'recurring']).default('one-time'),
+  installments: z.string().optional(),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
@@ -87,12 +87,15 @@ export const TransactionFormSchema = z.object({
             path: ["creditCard"],
         });
     }
-    if (data.paymentMethod === 'installments' && (typeof data.installments !== 'number' || data.installments < 2)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "O número de parcelas é obrigatório e deve ser no mínimo 2.",
-            path: ["installments"],
-        });
+    if (data.paymentMethod === 'installments') {
+        const installmentsNum = parseInt(data.installments || '0', 10);
+        if (isNaN(installmentsNum) || installmentsNum < 2) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "O número de parcelas deve ser no mínimo 2.",
+                path: ["installments"],
+            });
+        }
     }
     if (data.paymentMethod === 'recurring' && !data.recurrence) {
          ctx.addIssue({

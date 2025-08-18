@@ -88,7 +88,7 @@ function AddTransactionForm() {
                     date: new Date(transactionToEdit.date),
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
                     amount: formatAmountForInput(transactionToEdit.amount),
-                    installments: transactionToEdit.installments || '',
+                    installments: transactionToEdit.totalInstallments ? String(transactionToEdit.totalInstallments) : '',
                     hideFromReports: transactionToEdit.hideFromReports || false,
                 };
             }
@@ -396,25 +396,31 @@ function AddTransactionForm() {
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
                                                         defaultValue={field.value}
-                                                        className="flex space-x-4"
+                                                        className="grid grid-cols-3 gap-4"
                                                     >
-                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                        <FormItem className="flex items-center">
                                                             <FormControl>
-                                                                <RadioGroupItem value="one-time" />
+                                                                <RadioGroupItem value="one-time" id="one-time" className="sr-only peer" />
                                                             </FormControl>
-                                                            <FormLabel className="font-normal">À Vista</FormLabel>
+                                                            <FormLabel htmlFor="one-time" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary w-full cursor-pointer text-sm font-semibold">
+                                                                À Vista
+                                                            </FormLabel>
                                                         </FormItem>
-                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                         <FormItem className="flex items-center">
                                                             <FormControl>
-                                                                <RadioGroupItem value="installments" />
+                                                                <RadioGroupItem value="installments" id="installments" className="sr-only peer" />
                                                             </FormControl>
-                                                            <FormLabel className="font-normal">Parcelado</FormLabel>
+                                                            <FormLabel htmlFor="installments" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary w-full cursor-pointer text-sm font-semibold">
+                                                                Parcelado
+                                                            </FormLabel>
                                                         </FormItem>
-                                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                                         <FormItem className="flex items-center">
                                                             <FormControl>
-                                                                <RadioGroupItem value="recurring" />
+                                                                <RadioGroupItem value="recurring" id="recurring" className="sr-only peer" />
                                                             </FormControl>
-                                                            <FormLabel className="font-normal">Recorrente</FormLabel>
+                                                            <FormLabel htmlFor="recurring" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary w-full cursor-pointer text-sm font-semibold">
+                                                                Recorrente
+                                                            </FormLabel>
                                                         </FormItem>
                                                     </RadioGroup>
                                                 </FormControl>
@@ -428,7 +434,7 @@ function AddTransactionForm() {
                                             control={form.control}
                                             name="installments"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="animate-in fade-in-0 duration-300">
                                                 <FormLabel>Número de Parcelas</FormLabel>
                                                 <FormControl>
                                                     <Input 
@@ -449,7 +455,7 @@ function AddTransactionForm() {
                                             control={form.control}
                                             name="recurrence"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="animate-in fade-in-0 duration-300">
                                                 <FormLabel>Frequência</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                     <FormControl>

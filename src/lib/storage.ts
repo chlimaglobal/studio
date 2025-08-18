@@ -117,7 +117,7 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
 export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
     if (!userId) throw new Error("User not authenticated");
     
-    const installments = typeof data.installments === 'number' ? data.installments : 0;
+    const installments = data.installments ? parseInt(data.installments, 10) : 0;
 
     if (data.paymentMethod === 'installments' && installments > 1) {
         const batch = writeBatch(db);
