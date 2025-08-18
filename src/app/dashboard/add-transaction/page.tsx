@@ -129,7 +129,7 @@ function AddTransactionForm() {
     const watchedPaid = form.watch('paid');
 
     const handleAiCategorize = useCallback(async (description: string) => {
-        if (!description || form.formState.dirtyFields.category) return;
+        if (!description) return;
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion(description);
@@ -152,7 +152,8 @@ function AddTransactionForm() {
         if (suggestionTimeoutRef.current) {
             clearTimeout(suggestionTimeoutRef.current);
         }
-        if (watchedDescription && !isEditing) { // Only auto-suggest for new transactions
+        // Only auto-suggest for new transactions where the category hasn't been manually set yet
+        if (watchedDescription && !isEditing && !form.formState.dirtyFields.category) {
             suggestionTimeoutRef.current = setTimeout(() => {
                 handleAiCategorize(watchedDescription);
             }, 1000); // 1s debounce
@@ -162,7 +163,7 @@ function AddTransactionForm() {
                 clearTimeout(suggestionTimeoutRef.current);
             }
         };
-    }, [watchedDescription, handleAiCategorize, isEditing]);
+    }, [watchedDescription, isEditing, form.formState.dirtyFields.category, handleAiCategorize]);
 
     useEffect(() => {
         if (watchedType === 'income') {
