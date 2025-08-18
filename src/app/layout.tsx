@@ -26,12 +26,12 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="application-name" content="FinanceFlow" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="apple-mobile-web-app-title" content="FinanceFlow" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#FBBF24" />
-        <link rel="apple-touch-icon" href="/icon-512x512.png" />
+        <meta name="theme-color" content="#000000" />
       </head>
       <body className={`font-sans ${inter.variable} antialiased`}>
         <ClientProviders>
