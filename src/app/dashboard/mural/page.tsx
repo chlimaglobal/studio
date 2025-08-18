@@ -95,11 +95,10 @@ export default function MuralPage() {
                 setMessages(prev => {
                     const existingIds = new Set(prev.map(m => m.id));
                     const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                    return [...prev, ...uniqueNewMessages];
+                    return [...uniqueNewMessages, ...prev];
                 });
                 
-                // Set the first document for pagination of older messages
-                if (!firstDoc || (firstVisibleDoc && firstVisibleDoc.id !== firstDoc.id)) {
+                if (firstVisibleDoc) {
                     setFirstDoc(firstVisibleDoc);
                 }
 
@@ -114,7 +113,7 @@ export default function MuralPage() {
             });
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, scrollToBottom, firstDoc]);
+    }, [user, isSubscribed, isAdmin, scrollToBottom]);
 
 
     const callLumina = async (currentQuery: string) => {
@@ -159,6 +158,18 @@ export default function MuralPage() {
             isAtBottomRef.current = isScrolledToBottom;
              if (isScrolledToBottom) {
                 setShowScrollToBottom(false);
+            }
+             // Load more when reaching the top
+            if (scrollDiv.scrollTop === 0 && hasMore && !isLoadingMore) {
+                setIsLoadingMore(true);
+                onChatUpdate(user!.uid, (olderMessages, nextFirstDoc, hasMoreNext) => {
+                    setMessages(prev => [...olderMessages, ...prev]);
+                    if (nextFirstDoc) {
+                        setFirstDoc(nextFirstDoc);
+                    }
+                    setHasMore(hasMoreNext);
+                    setIsLoadingMore(false);
+                }, firstDoc);
             }
         }
     };
