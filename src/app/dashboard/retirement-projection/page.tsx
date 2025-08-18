@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth, useSubscription } from '@/components/client-providers';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, Loader2, PlusCircle, Target, Star, Edit, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { formatCurrency, cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,6 +19,7 @@ import { onGoalsUpdate } from '@/lib/storage';
 import Icon from '@/components/icon';
 import { icons } from 'lucide-react';
 import Link from 'next/link';
+import Confetti from 'react-confetti';
 
 
 const PremiumBlocker = () => (
@@ -42,11 +45,22 @@ const PremiumBlocker = () => (
 );
 
 const GoalCard = ({ goal }: { goal: Goal }) => {
-    const progress = (goal.currentAmount / goal.targetAmount) * 100;
+    const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
     const timeLeft = formatDistanceToNow(new Date(goal.deadline), { addSuffix: true, locale: ptBR });
+    const isCompleted = progress >= 100;
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    useEffect(() => {
+        if (isCompleted) {
+            setShowConfetti(true);
+            const timer = setTimeout(() => setShowConfetti(false), 8000); // Confetti for 8 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [isCompleted]);
 
     return (
-        <Card className="flex flex-col">
+        <Card className="flex flex-col relative overflow-hidden">
+            {showConfetti && <Confetti recycle={false} numberOfPieces={200} />}
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -73,8 +87,8 @@ const GoalCard = ({ goal }: { goal: Goal }) => {
                 <div className="text-sm text-muted-foreground">
                     <span className="font-bold text-foreground">{formatCurrency(goal.currentAmount)}</span> de {formatCurrency(goal.targetAmount)}
                 </div>
-                 <p className={cn("text-xs font-semibold", progress >= 100 ? "text-green-500" : "text-primary")}>
-                    {progress >= 100 ? "Meta Atingida!" : `${progress.toFixed(1)}% Completo`}
+                 <p className={cn("text-xs font-semibold", isCompleted ? "text-green-500" : "text-primary")}>
+                    {isCompleted ? "Meta Atingida!" : `${progress.toFixed(1)}% Completo`}
                 </p>
             </CardContent>
             <CardFooter className="bg-muted/50 p-2 rounded-b-lg">
