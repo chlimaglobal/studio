@@ -61,7 +61,10 @@ export default function SubscriptionsPage() {
         const lastPaymentDate = new Date(subscription.date);
 
         return (
-             <Card className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+             <Card 
+                onClick={() => router.push(`/dashboard/add-transaction?id=${subscription.id}`)}
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 cursor-pointer hover:border-primary/50 transition-colors"
+             >
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-primary/10 rounded-lg">
                         <Repeat className="h-6 w-6 text-primary" />
