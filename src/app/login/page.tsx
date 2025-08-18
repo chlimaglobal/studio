@@ -87,14 +87,16 @@ export default function LoginPage() {
         handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
         const errorCode = error.code;
-        let errorMessage = 'Ocorreu um erro ao fazer login.';
-        if (errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password' || errorCode === 'auth/invalid-credential') {
-            errorMessage = 'E-mail ou senha inválidos.';
+        let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
+        
+        if (errorCode === 'auth/invalid-credential') {
+            errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
         }
+        
         console.error("Login Error:", error);
         toast({
           variant: 'destructive',
-          title: 'Login Falhou',
+          title: 'Falha no Login',
           description: errorMessage,
         });
     } finally {
@@ -205,9 +207,6 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-            <Logo />
-          </div>
           <CardTitle>Bem-vindo de volta!</CardTitle>
           <CardDescription>Insira seus dados para acessar sua conta.</CardDescription>
         </CardHeader>
