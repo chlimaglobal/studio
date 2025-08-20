@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from 'firebase/auth';
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 // Your web app's Firebase configuration
@@ -20,6 +21,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
+const functions = getFunctions(app, 'us-central1'); // Specify region if not us-central1
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const messaging = async () => {
@@ -27,4 +29,4 @@ const messaging = async () => {
     return supported ? getMessaging(app) : null;
 };
 
-export { db, auth, app, messaging };
+export { db, auth, app, functions, httpsCallable, messaging };

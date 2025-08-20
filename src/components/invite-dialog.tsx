@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateInviteCode } from '@/app/dashboard/banks/actions';
+import { generateInviteCode } from '@/lib/firebase-functions';
 import { useAuth } from '@/components/client-providers';
 
 interface InviteDialogProps {
@@ -30,7 +30,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth(); // Getting user from auth context
+  const { user } = useAuth();
 
   if (!account) return null;
 
@@ -46,8 +46,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     
     setIsLoading(true);
     try {
-      // Pass accountId to the server action
-      const result = await generateInviteCode(account.id);
+      const result = await generateInviteCode({ accountId: account.id });
       if (result.code) {
         setInviteCode(result.code);
       } else {

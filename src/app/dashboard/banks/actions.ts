@@ -27,7 +27,7 @@ async function getUserIdFromSessionCookie() {
 
 export async function generateInviteCode(accountId: string) {
     if (!adminDb) {
-        return { error: "O banco de dados do administrador não foi inicializado." };
+        return { error: "O banco de dados do administrador não está inicializado. Verifique as credenciais do servidor." };
     }
 
     const userId = await getUserIdFromSessionCookie();
