@@ -120,7 +120,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                 <FormItem>
                   <FormLabel>Apelido do Cartão</FormLabel>
                   <FormControl>
-                    <>
+                    <div>
                       <Input 
                         {...field}
                         placeholder="Selecione ou digite um apelido" 
@@ -131,7 +131,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                           <option key={name} value={name} />
                         ))}
                       </datalist>
-                    </>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
