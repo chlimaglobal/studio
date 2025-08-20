@@ -169,7 +169,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                   <FormItem>
                     <FormLabel>Dia do Fechamento</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10))}/>
+                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -182,7 +182,7 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
                   <FormItem>
                     <FormLabel>Dia do Vencimento</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10))}/>
+                      <Input type="number" min="1" max="31" {...field} onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
