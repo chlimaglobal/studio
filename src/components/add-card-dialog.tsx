@@ -23,16 +23,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Check, ChevronsUpDown } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { addStoredCard } from '@/lib/storage';
 import { useAuth, useTransactions } from '@/components/client-providers';
-import { Popover, PopoverTrigger, PopoverContent } from './ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
-import { cn } from '@/lib/utils';
 
 type AddCardDialogProps = {
   children: React.ReactNode;
@@ -56,7 +53,9 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
   const { transactions } = useTransactions();
 
   const unsavedCardNames = useMemo(() => {
-    const savedCardNames = new Set(); // In a real app, this would come from the cards list
+    // In a real app with card editing, you would get the list of saved cards.
+    // For now, we assume no cards are saved yet.
+    const savedCardNames = new Set<string>(); 
     const transactionCardNames = new Set(
         transactions
             .filter(t => t.category === 'Cartão de Crédito' && t.creditCard)
@@ -118,52 +117,22 @@ export function AddCardDialog({ children }: AddCardDialogProps) {
               control={form.control}
               name="name"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Apelido do Cartão</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn(
-                                    "w-full justify-between",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value || "Selecione ou digite um apelido"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput placeholder="Procurar ou criar..." />
-                                <CommandList>
-                                <CommandEmpty>Nenhum cartão encontrado.</CommandEmpty>
-                                <CommandGroup>
-                                    {unsavedCardNames.map((cardName) => (
-                                    <CommandItem
-                                        value={cardName}
-                                        key={cardName}
-                                        onSelect={() => {
-                                            form.setValue("name", cardName)
-                                        }}
-                                    >
-                                        <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            cardName === field.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                        />
-                                        {cardName}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
+                  <FormControl>
+                    <>
+                      <Input 
+                        {...field}
+                        placeholder="Selecione ou digite um apelido" 
+                        list="card-name-suggestions"
+                      />
+                      <datalist id="card-name-suggestions">
+                        {unsavedCardNames.map((name) => (
+                          <option key={name} value={name} />
+                        ))}
+                      </datalist>
+                    </>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
