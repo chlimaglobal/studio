@@ -6,10 +6,10 @@ import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { headers } from 'next/headers';
 
-async function getAuthenticatedUser() {
+async function getAuthenticatedUser(request: Request) {
     const auth = getAuth(adminApp);
     try {
-        const token = headers().get('Authorization')?.split('Bearer ')[1];
+        const token = request.headers.get('Authorization')?.split('Bearer ')[1];
         if (!token) {
              console.error('Authorization header missing or malformed');
              return null;
@@ -27,8 +27,8 @@ async function getAuthenticatedUser() {
 }
 
 
-export async function createCheckoutSession(priceId: string) {
-  const currentUser = await getAuthenticatedUser(); 
+export async function createCheckoutSession(priceId: string, request: Request) {
+  const currentUser = await getAuthenticatedUser(request); 
 
   if (!currentUser) {
     throw new Error('Usuário não autenticado.');
@@ -78,8 +78,8 @@ export async function createCheckoutSession(priceId: string) {
   }
 }
 
-export async function createCustomerPortalSession() {
-  const currentUser = await getAuthenticatedUser();
+export async function createCustomerPortalSession(request: Request) {
+  const currentUser = await getAuthenticatedUser(request);
 
   if (!currentUser) {
     throw new Error('Usuário não autenticado.');

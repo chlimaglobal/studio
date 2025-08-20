@@ -8,10 +8,10 @@ import { getAuth } from 'firebase-admin/auth';
 import { headers } from 'next/headers';
 
 
-async function getAuthenticatedUser() {
+async function getAuthenticatedUser(request: Request) {
     const auth = getAuth(adminApp);
     try {
-        const token = headers().get('Authorization')?.split('Bearer ')[1];
+        const token = request.headers.get('Authorization')?.split('Bearer ')[1];
         if (!token) return null;
         const decodedToken = await auth.verifyIdToken(token);
         return {
@@ -25,8 +25,8 @@ async function getAuthenticatedUser() {
 }
 
 
-export async function generateInviteCode(accountId: string) {
-    const currentUser = await getAuthenticatedUser();
+export async function generateInviteCode(accountId: string, request: Request) {
+    const currentUser = await getAuthenticatedUser(request);
     if (!currentUser) {
         throw new Error("Usuário não autenticado.");
     }
@@ -54,8 +54,8 @@ export async function generateInviteCode(accountId: string) {
     }
 }
 
-export async function acceptInviteCode(code: string) {
-    const acceptingUser = await getAuthenticatedUser();
+export async function acceptInviteCode(code: string, request: Request) {
+    const acceptingUser = await getAuthenticatedUser(request);
     if (!acceptingUser) {
         throw new Error("Usuário não autenticado.");
     }

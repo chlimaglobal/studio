@@ -16,6 +16,7 @@ import { InviteDialog } from '@/components/invite-dialog';
 import { acceptInviteCode } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { getAuth } from 'firebase/auth';
 
 
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
@@ -23,6 +24,8 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const { user } = useAuth();
+    const auth = getAuth();
+
 
     const handleAccept = async () => {
         if (!code.trim()) {
@@ -35,7 +38,14 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
         }
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode(code);
+            const token = await auth.currentUser?.getIdToken();
+            if (!token) throw new Error("Não foi possível obter o token de autenticação.");
+            
+            const request = new Request('http://localhost', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const result = await acceptInviteCode(code, request);
             toast({
                 title: 'Sucesso!',
                 description: `Você agora tem acesso à conta "${result.accountName}".`,

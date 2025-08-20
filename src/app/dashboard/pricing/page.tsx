@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { createCheckoutSession, createCustomerPortalSession } from './actions';
 import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
+import { getAuth } from 'firebase/auth';
 
 const features = [
     "Análises com a Lúmina ilimitadas",
@@ -24,6 +25,7 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const { user } = useAuth();
+    const auth = getAuth();
 
     const handleSubscribe = async () => {
         setIsLoading(true);
@@ -34,7 +36,14 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
         }
 
         try {
-            const { url } = await createCheckoutSession(priceId);
+            const token = await auth.currentUser?.getIdToken();
+            if (!token) throw new Error("Não foi possível obter o token de autenticação.");
+
+            const request = new Request('http://localhost', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const { url } = await createCheckoutSession(priceId, request);
             if (url) {
                 window.location.href = url;
             } else {
@@ -87,6 +96,7 @@ export default function PricingPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { toast } = useToast();
     const [isPortalLoading, setIsPortalLoading] = useState(false);
+    const auth = getAuth();
 
     const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!;
     const yearlyPriceId = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID!;
@@ -94,7 +104,14 @@ export default function PricingPage() {
     const handleManageSubscription = async () => {
         setIsPortalLoading(true);
         try {
-            const { url } = await createCustomerPortalSession();
+            const token = await auth.currentUser?.getIdToken();
+            if (!token) throw new Error("Não foi possível obter o token de autenticação.");
+            
+            const request = new Request('http://localhost', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const { url } = await createCustomerPortalSession(request);
+
             if (url) {
                 window.location.href = url;
             } else {

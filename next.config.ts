@@ -36,21 +36,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async headers() {
-    return [
-      {
-        // Apply this header to all routes in your application.
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Permissions-Policy',
-            // This policy allows the creation of public-key credentials.
-            value: 'publickey-credentials-create=*',
-          },
-        ],
-      },
-    ];
-  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
