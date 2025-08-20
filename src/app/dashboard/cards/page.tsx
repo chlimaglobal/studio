@@ -63,7 +63,10 @@ export default function CardsPage() {
                 <p className="text-muted-foreground">Gerencie seus cartões de crédito em um só lugar.</p>
             </div>
           </div>
-          <AddCardDialog>
+        </div>
+
+        <div className="text-center">
+            <AddCardDialog>
               <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Adicionar Cartão
@@ -109,12 +112,6 @@ export default function CardsPage() {
               <p className="mb-4 mt-2 text-sm text-muted-foreground">
                   Adicione seu primeiro cartão de crédito para começar a organizar.
               </p>
-              <AddCardDialog>
-                  <Button>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Adicionar Cartão
-                  </Button>
-              </AddCardDialog>
           </div>
         )}
       </div>
