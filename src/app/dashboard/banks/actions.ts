@@ -8,25 +8,28 @@ import { getAuth } from 'firebase-admin/auth';
 import { headers } from 'next/headers';
 
 
-async function getAuthenticatedUser(request: Request) {
+async function getAuthenticatedUser(token: string) {
     const auth = getAuth(adminApp);
     try {
-        const token = request.headers.get('Authorization')?.split('Bearer ')[1];
-        if (!token) return null;
+        if (!token) {
+             console.error('Authorization token missing');
+             return null;
+        }
         const decodedToken = await auth.verifyIdToken(token);
         return {
             uid: decodedToken.uid,
             email: decodedToken.email,
+            displayName: decodedToken.name,
         };
     } catch (error) {
-        console.error('Error verifying auth token:', error);
+        console.error('Error verifying auth token in Server Action:', error);
         return null;
     }
 }
 
 
-export async function generateInviteCode(accountId: string, request: Request) {
-    const currentUser = await getAuthenticatedUser(request);
+export async function generateInviteCode(accountId: string, token: string) {
+    const currentUser = await getAuthenticatedUser(token);
     if (!currentUser) {
         throw new Error("Usuário não autenticado.");
     }
@@ -54,8 +57,8 @@ export async function generateInviteCode(accountId: string, request: Request) {
     }
 }
 
-export async function acceptInviteCode(code: string, request: Request) {
-    const acceptingUser = await getAuthenticatedUser(request);
+export async function acceptInviteCode(code: string, token: string) {
+    const acceptingUser = await getAuthenticatedUser(token);
     if (!acceptingUser) {
         throw new Error("Usuário não autenticado.");
     }

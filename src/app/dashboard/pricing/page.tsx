@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -38,12 +37,8 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
         try {
             const token = await auth.currentUser?.getIdToken();
             if (!token) throw new Error("Não foi possível obter o token de autenticação.");
-
-            const request = new Request('http://localhost', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const { url } = await createCheckoutSession(priceId, request);
+            
+            const { url } = await createCheckoutSession(priceId, token);
             if (url) {
                 window.location.href = url;
             } else {
@@ -107,10 +102,7 @@ export default function PricingPage() {
             const token = await auth.currentUser?.getIdToken();
             if (!token) throw new Error("Não foi possível obter o token de autenticação.");
             
-            const request = new Request('http://localhost', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const { url } = await createCustomerPortalSession(request);
+            const { url } = await createCustomerPortalSession(token);
 
             if (url) {
                 window.location.href = url;

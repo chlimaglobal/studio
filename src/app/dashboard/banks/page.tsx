@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -41,11 +40,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
             const token = await auth.currentUser?.getIdToken();
             if (!token) throw new Error("Não foi possível obter o token de autenticação.");
             
-            const request = new Request('http://localhost', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const result = await acceptInviteCode(code, request);
+            const result = await acceptInviteCode(code, token);
             toast({
                 title: 'Sucesso!',
                 description: `Você agora tem acesso à conta "${result.accountName}".`,

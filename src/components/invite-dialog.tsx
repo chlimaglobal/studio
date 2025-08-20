@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -46,17 +45,14 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("Não foi possível obter o token de autenticação.");
 
-      const request = new Request('http://localhost', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const result = await generateInviteCode(account.id, request);
+      const result = await generateInviteCode(account.id, token);
       setInviteCode(result.code);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido";
       toast({
         variant: 'destructive',
         title: 'Erro ao Gerar Convite',
-        description: 'Não foi possível gerar o código. Tente novamente.',
+        description: `Não foi possível gerar o código. ${errorMessage}`,
       });
     } finally {
       setIsLoading(false);
