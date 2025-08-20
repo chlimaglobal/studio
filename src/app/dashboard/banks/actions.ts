@@ -5,7 +5,7 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
-import { getAuth } from 'firebase/auth/next';
+import { getAuth } from 'firebase-admin/auth';
 import { cookies } from 'next/headers';
 import { nextApp } from '@/lib/firebase-server';
 
