@@ -17,8 +17,7 @@ import { Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateInviteCode } from '@/app/dashboard/banks/actions';
-import { getAuth } from 'firebase/auth';
-import { useAuth } from '../client-providers';
+import { useAuth } from '@/components/client-providers';
 
 interface InviteDialogProps {
   account: Account | null;
