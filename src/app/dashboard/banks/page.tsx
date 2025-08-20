@@ -22,15 +22,20 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     const handleAccept = async () => {
         if (!code.trim()) {
             toast({ variant: 'destructive', description: "Por favor, insira um código." });
             return;
         }
+        if (!user) {
+            toast({ variant: 'destructive', description: "Você precisa estar logado para aceitar um convite." });
+            return;
+        }
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode(code);
+            const result = await acceptInviteCode(user.uid, code);
             toast({
                 title: 'Sucesso!',
                 description: `Você agora tem acesso à conta "${result.accountName}".`,
