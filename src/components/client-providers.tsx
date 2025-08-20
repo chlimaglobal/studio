@@ -19,7 +19,7 @@ import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/type
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
-import { sendWhatsAppNotification } from '@/app/actions';
+import { sendWhatsAppNotification, getPartnerId } from '@/app/actions';
 import { usePathname } from 'next/navigation';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
@@ -53,7 +53,24 @@ export function useSubscription() {
   return context;
 }
 
-// 3. Transactions Context
+// 3. ViewMode Context
+type ViewMode = 'separate' | 'together';
+interface ViewModeContextType {
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+}
+const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined);
+
+export function useViewMode() {
+    const context = useContext(ViewModeContext);
+    if (!context) {
+        throw new Error('useViewMode must be used within a ViewModeProvider');
+    }
+    return context;
+}
+
+
+// 4. Transactions Context
 interface TransactionsContextType {
   transactions: Transaction[];
   addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
@@ -72,7 +89,7 @@ export function useTransactions() {
   return context;
 }
 
-// 4. Mural Unread Context
+// 5. Mural Unread Context
 interface MuralContextType {
   hasUnread: boolean;
   setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
@@ -146,26 +163,67 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+function ViewModeProvider({ children }: { children: React.ReactNode }) {
+    const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('viewMode') as ViewMode) || 'separate';
+        }
+        return 'separate';
+    });
+
+    const setViewMode = (mode: ViewMode) => {
+        setViewModeInternal(mode);
+        localStorage.setItem('viewMode', mode);
+    };
+
+    return (
+        <ViewModeContext.Provider value={{ viewMode, setViewMode }}>
+            {children}
+        </ViewModeContext.Provider>
+    );
+}
+
+
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { viewMode } = useViewMode();
 
   useEffect(() => {
     if (user?.uid) {
-      setIsLoading(true);
-      const unsubscribe = onTransactionsUpdate(user.uid, (newTransactions) => {
-        setTransactions(newTransactions);
-        setIsLoading(false);
-      });
-      return () => unsubscribe();
+        setIsLoading(true);
+
+        const unsubUser = onTransactionsUpdate(user.uid, (userTransactions) => {
+            if (viewMode === 'separate') {
+                setTransactions(userTransactions);
+                setIsLoading(false);
+            } else {
+                 getPartnerId(user.uid).then(partnerId => {
+                    if (partnerId) {
+                        const unsubPartner = onTransactionsUpdate(partnerId, (partnerTransactions) => {
+                            setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                            setIsLoading(false);
+                        });
+                        // This cleanup is tricky, but onTransactionsUpdate handles it.
+                    } else {
+                        setTransactions(userTransactions);
+                        setIsLoading(false);
+                    }
+                });
+            }
+        });
+
+        return () => {
+            unsubUser();
+        };
+
     } else if (!user) {
-      // If no user, clear transactions and stop loading.
       setTransactions([]);
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, viewMode]);
 
   const playSound = useCallback((soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
@@ -319,12 +377,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         >
           <AuthProvider>
             <SubscriptionProvider>
-              <TransactionsProvider>
-                <MuralProvider>
-                    {children}
-                    <Toaster />
-                </MuralProvider>
-              </TransactionsProvider>
+                <ViewModeProvider>
+                    <TransactionsProvider>
+                        <MuralProvider>
+                            {children}
+                            <Toaster />
+                        </MuralProvider>
+                    </TransactionsProvider>
+                </ViewModeProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>

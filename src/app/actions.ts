@@ -6,7 +6,7 @@ import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-
 import { TransactionCategory, transactionCategories } from "@/lib/types";
 import { getAuth } from "firebase-admin/auth";
 import { Twilio } from 'twilio';
-import { adminApp } from "@/lib/firebase-admin";
+import { adminApp, adminDb } from "@/lib/firebase-admin";
 import sgMail from '@sendgrid/mail';
 
 export async function extractTransactionInfoFromText(text: string) {
@@ -123,5 +123,40 @@ export async function sendWelcomeEmail(email: string, name: string) {
     console.error('Error sending welcome email:', error);
     return { success: false, error: 'Failed to send welcome email.' };
   }
+}
+
+export async function getPartnerId(userId: string): Promise<string | null> {
+    if (!adminDb) {
+        console.error("O banco de dados do administrador não foi inicializado.");
+        return null;
+    }
+    if (!userId) {
+        console.error("userId não fornecido para getPartnerId.");
+        return null;
+    }
+
+    try {
+        const sharedAccountsRef = adminDb.collection('users').doc(userId).collection('sharedAccounts');
+        const querySnapshot = await sharedAccountsRef.limit(1).get();
+
+        if (querySnapshot.empty) {
+            const ownedAccountsRef = adminDb.collection('users').doc(userId).collection('accounts');
+            const ownedQuerySnapshot = await ownedAccountsRef.where('isShared', '==', true).limit(1).get();
+            
+            if (ownedQuerySnapshot.empty) {
+                return null;
+            }
+
+            const accountData = ownedQuerySnapshot.docs[0].data();
+            const partnerId = accountData.memberIds.find((id: string) => id !== userId);
+            return partnerId || null;
+        }
+
+        const sharedAccountData = querySnapshot.docs[0].data();
+        return sharedAccountData.ownerId || null;
+    } catch (error) {
+        console.error("Erro ao buscar ID do parceiro:", error);
+        return null;
+    }
 }
     

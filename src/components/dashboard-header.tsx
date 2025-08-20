@@ -3,9 +3,9 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff, Palette, Star } from 'lucide-react';
+import { History, CreditCard, XCircle, Sun, LogOut, UserCircle, Fingerprint, Eye, EyeOff, Palette, Star, Users, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +18,13 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions, useViewMode } from '@/components/client-providers';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
 import { useAuth } from '@/components/client-providers';
 import { allInvestmentCategories } from '@/lib/types';
+import { Switch } from './ui/switch';
+import { Label } from './ui/label';
 
 
 const Logo = () => (
@@ -42,6 +44,7 @@ type DashboardHeaderProps = {
 
 export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: DashboardHeaderProps) {
   const { transactions } = useTransactions();
+  const { viewMode, setViewMode } = useViewMode();
   const { user } = useAuth();
   const [totalBalance, setTotalBalance] = useState(0);
   const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -158,6 +161,15 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
             <div className='flex flex-col'>
                 <span className="text-sm text-muted-foreground">Saldo total em contas</span>
                 <span className="text-2xl font-bold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(totalBalance)}</span>
+            </div>
+             <div className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <Switch
+                    id="view-mode"
+                    checked={viewMode === 'together'}
+                    onCheckedChange={(checked) => setViewMode(checked ? 'together' : 'separate')}
+                />
+                <Users className="h-4 w-4" />
             </div>
        </div>
     </header>
