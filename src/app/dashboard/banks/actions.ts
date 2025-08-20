@@ -7,14 +7,13 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
 import { cookies } from 'next/headers';
 
-async function getAuthenticatedUser() {
-    const auth = getAuth(adminApp);
+async function getUserIdFromSessionCookie() {
     try {
         const sessionCookie = cookies().get("__session")?.value;
         if (!sessionCookie) return null;
         
-        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
-        return { uid: decodedToken.uid };
+        const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+        return decodedToken.uid;
 
     } catch (error) {
         console.error('Error verifying auth token:', error);
@@ -22,9 +21,8 @@ async function getAuthenticatedUser() {
     }
 }
 
-export async function generateInviteCode(accountId: string) {
-    const user = await getAuthenticatedUser();
-    if (!user) {
+export async function generateInviteCode(userId: string, accountId: string) {
+    if (!userId) {
         throw new Error("Usuário não autenticado.");
     }
     if (!adminDb) {
@@ -39,7 +37,7 @@ export async function generateInviteCode(accountId: string) {
         await adminDb.collection('invites').add({
             code,
             accountId,
-            generatedBy: user.uid,
+            generatedBy: userId,
             expiresAt,
             status: 'pending', // pending, accepted, expired
         });
@@ -52,8 +50,8 @@ export async function generateInviteCode(accountId: string) {
 }
 
 export async function acceptInviteCode(code: string) {
-    const user = await getAuthenticatedUser();
-    if (!user) {
+    const acceptingUserId = await getUserIdFromSessionCookie();
+    if (!acceptingUserId) {
         throw new Error("Usuário não autenticado.");
     }
      if (!adminDb) {
@@ -77,7 +75,7 @@ export async function acceptInviteCode(code: string) {
         throw new Error("Código de convite expirado.");
     }
     
-    if (inviteData.generatedBy === user.uid) {
+    if (inviteData.generatedBy === acceptingUserId) {
         throw new Error("Você não pode aceitar seu próprio convite.");
     }
 
@@ -92,18 +90,18 @@ export async function acceptInviteCode(code: string) {
     const batch = adminDb.batch();
 
     batch.update(accountDocRef, {
-        memberIds: FieldValue.arrayUnion(user.uid),
+        memberIds: FieldValue.arrayUnion(acceptingUserId),
         isShared: true,
     });
     
     batch.update(inviteDoc.ref, {
         status: 'accepted',
-        acceptedBy: user.uid,
+        acceptedBy: acceptingUserId,
         acceptedAt: Timestamp.now(),
     });
     
     // Add a reference to the shared account in the accepting user's document
-    const userSharedAccountRef = adminDb.collection('users').doc(user.uid).collection('sharedAccounts').doc(inviteData.accountId);
+    const userSharedAccountRef = adminDb.collection('users').doc(acceptingUserId).collection('sharedAccounts').doc(inviteData.accountId);
     batch.set(userSharedAccountRef, {
        accountRef: accountDocRef,
        ownerId: inviteData.generatedBy,
