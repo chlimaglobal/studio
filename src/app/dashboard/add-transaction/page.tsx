@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const institutions = [
-    "Nubank", "Inter", "XP Investimentos", "Itaú", "Bradesco", "Santander", "Caixa", "Banco do Brasil", "BTG Pactual", "Outro"
+    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
 ];
 
 const formatAmountForInput = (amount: number | string) => {
@@ -125,7 +125,6 @@ function AddTransactionForm() {
     const watchedType = form.watch('type');
     const watchedCategory = form.watch('category');
     const watchedPaymentMethod = form.watch('paymentMethod');
-    const formIsInvestment = watchedCategory && allInvestmentCategories.has(watchedCategory);
     const watchedPaid = form.watch('paid');
 
     const handleAiCategorize = useCallback(async (description: string) => {
@@ -250,7 +249,7 @@ function AddTransactionForm() {
                                 <FormItem>
                                     <FormLabel>Descrição</FormLabel>
                                     <FormControl>
-                                    <Input placeholder="ex: Ações da Apple, Fundo Imobiliário" {...field} />
+                                    <Input placeholder="ex: Almoço, Salário, Ações da Apple" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -267,7 +266,7 @@ function AddTransactionForm() {
                                             <Input
                                                 type="text"
                                                 inputMode="decimal"
-                                                placeholder="10.000,00"
+                                                placeholder="150,50"
                                                 {...field}
                                             />
                                         </FormControl>
@@ -359,30 +358,28 @@ function AddTransactionForm() {
                                 )}
                             />
 
-                             {formIsInvestment && (
-                                <FormField
-                                    control={form.control}
-                                    name="institution"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                        <FormLabel className="flex items-center gap-2"><Landmark className="h-4 w-4" /> Instituição Financeira (Opcional)</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione a corretora ou banco" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {institutions.map(inst => (
-                                                    <SelectItem key={inst} value={inst}>{inst}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
+                             <FormField
+                                control={form.control}
+                                name="institution"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel className="flex items-center gap-2"><Landmark className="h-4 w-4" /> Instituição Financeira (Opcional)</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione a corretora ou banco" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {institutions.map(inst => (
+                                                <SelectItem key={inst} value={inst}>{inst}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             {watchedType === 'expense' && (
                                 <div className="space-y-4">
