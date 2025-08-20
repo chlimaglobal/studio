@@ -57,19 +57,18 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
                     Se você recebeu um código de convite, insira-o abaixo para ter acesso à conta.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col justify-between h-32">
+            <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                  <Input 
                     placeholder="Código do convite" 
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    className="font-mono tracking-widest text-center"
+                    className="font-mono tracking-widest text-center flex-grow"
                     maxLength={8}
                 />
-                <div className="flex justify-start">
-                    <Button onClick={handleAccept} disabled={isLoading} variant="ghost" size="icon">
-                        {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
-                    </Button>
-                </div>
+                <Button onClick={handleAccept} disabled={isLoading} className="w-full sm:w-auto">
+                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
+                     <span className="sm:hidden ml-2">Aceitar Convite</span>
+                </Button>
             </CardContent>
         </Card>
     )
