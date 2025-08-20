@@ -134,7 +134,8 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
                 installmentNumber: i + 1,
                 totalInstallments: installments,
                 installmentGroupId: originalDocId, // Group installments together
-                paymentMethod: 'installments'
+                paymentMethod: 'installments',
+                ownerId: userId,
             };
             // @ts-ignore
             delete transactionData.installments; // remove the main installments field
@@ -149,6 +150,7 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
             amount: data.amount,
             date: Timestamp.fromDate(new Date(data.date)),
             dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
+            ownerId: userId,
         };
         await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
     }
@@ -534,4 +536,22 @@ export async function getAllUserDataForBackup(userId: string) {
 
 
     return backupData;
+}
+
+
+// ======== PARTNER DATA ========
+
+export async function getPartnerData(partnerId: string): Promise<User | null> {
+    if (!partnerId) return null;
+    const userDocRef = doc(db, 'users', partnerId);
+    try {
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            return userDoc.data() as User;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching partner data:", error);
+        return null;
+    }
 }

@@ -6,7 +6,7 @@ import type { Transaction } from '@/lib/types';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ArrowRightLeft, Download, ArrowLeft } from 'lucide-react';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions, useViewMode } from '@/components/client-providers';
 import { Button } from '@/components/ui/button';
 import Papa from 'papaparse';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ import { allInvestmentCategories } from '@/lib/types';
 
 export default function TransactionsPage() {
   const { transactions, isLoading } = useTransactions();
+  const { partnerData } = useViewMode();
   const router = useRouter();
 
   const operationalTransactions = useMemo(() => {
@@ -79,7 +80,7 @@ export default function TransactionsPage() {
             </CardDescription>
         </CardHeader>
         <CardContent>
-          <TransactionsTable transactions={operationalTransactions} />
+          <TransactionsTable transactions={operationalTransactions} partnerData={partnerData} />
         </CardContent>
       </Card>
     </div>

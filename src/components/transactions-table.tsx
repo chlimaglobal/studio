@@ -37,20 +37,25 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from './ui/button';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions, useAuth, useViewMode } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil, Landmark } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { User } from 'firebase/auth';
 
 
 interface TransactionsTableProps {
   transactions: Transaction[];
   showExtraDetails?: boolean;
+  partnerData?: User | null;
 }
 
-export default function TransactionsTable({ transactions, showExtraDetails = false }: TransactionsTableProps) {
+export default function TransactionsTable({ transactions, showExtraDetails = false, partnerData }: TransactionsTableProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { deleteTransaction } = useTransactions();
+  const { user } = useAuth();
+  const { viewMode } = useViewMode();
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
 
   const handleRowClick = (transaction: Transaction) => {
@@ -85,6 +90,21 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
     }
   }
 
+  const renderOwnerAvatar = (transaction: Transaction) => {
+    if (viewMode !== 'together' || transaction.ownerId === user?.uid) {
+        return null;
+    }
+    
+    return (
+        <Avatar className="h-6 w-6">
+            <AvatarImage src={partnerData?.photoURL || undefined} />
+            <AvatarFallback className="text-xs">
+                {partnerData?.displayName?.charAt(0).toUpperCase() || 'P'}
+            </AvatarFallback>
+        </Avatar>
+    )
+  }
+
   return (
     <>
       <div className="rounded-md border">
@@ -103,6 +123,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                 <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
                   <TableCell>
                     <div className="font-medium flex items-center gap-2">
+                        {renderOwnerAvatar(transaction)}
                         <span>{transaction.description}</span>
                         {transaction.installmentNumber && transaction.totalInstallments && (
                              <Badge variant="secondary">{`${transaction.installmentNumber}/${transaction.totalInstallments}`}</Badge>

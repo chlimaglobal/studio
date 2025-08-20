@@ -109,6 +109,7 @@ export const TransactionFormSchema = z.object({
 
 export type Transaction = {
   id: string;
+  ownerId: string;
   date: string; // Store as ISO string for serialization
   dueDate?: string; // Store as ISO string for serialization
   description: string;

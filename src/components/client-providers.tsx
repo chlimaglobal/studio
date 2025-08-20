@@ -12,7 +12,8 @@ import {
   onTransactionsUpdate, 
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
-  onChatUpdate 
+  onChatUpdate,
+  getPartnerData 
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
 import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/types';
@@ -58,6 +59,7 @@ type ViewMode = 'separate' | 'together';
 interface ViewModeContextType {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  partnerData: User | null;
 }
 const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined);
 
@@ -164,6 +166,8 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
 }
 
 function ViewModeProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const [partnerData, setPartnerData] = useState<User | null>(null);
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
         if (typeof window !== 'undefined') {
             return (localStorage.getItem('viewMode') as ViewMode) || 'separate';
@@ -176,8 +180,26 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('viewMode', mode);
     };
 
+    useEffect(() => {
+        async function fetchPartnerData() {
+            if (user && viewMode === 'together') {
+                const partnerId = await getPartnerId(user.uid);
+                if (partnerId) {
+                    const data = await getPartnerData(partnerId);
+                    setPartnerData(data);
+                } else {
+                    setPartnerData(null);
+                }
+            } else {
+                setPartnerData(null);
+            }
+        }
+        fetchPartnerData();
+    }, [user, viewMode]);
+
+
     return (
-        <ViewModeContext.Provider value={{ viewMode, setViewMode }}>
+        <ViewModeContext.Provider value={{ viewMode, setViewMode, partnerData }}>
             {children}
         </ViewModeContext.Provider>
     );
