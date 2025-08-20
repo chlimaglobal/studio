@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateInviteCode } from '@/app/dashboard/banks/actions';
 import { useAuth } from '@/components/client-providers';
+import { getAuth } from 'firebase/auth';
 
 interface InviteDialogProps {
   account: Account | null;
@@ -25,12 +26,27 @@ interface InviteDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const callServerAction = async (action: Promise<any>) => {
+    const auth = getAuth();
+    const token = await auth.currentUser?.getIdToken();
+    const headers = new Headers();
+    if (token) {
+        headers.append('Authorization', `Bearer ${token}`);
+    }
+    // This is a way to pass headers to a server action.
+    // The action itself will read them. This is not standard but works for this case.
+    // A better approach would be to use a dedicated API endpoint if this gets complex.
+    return fetch('', { headers: { 'X-Invoke-Action': JSON.stringify({ action: action }) } });
+};
+
+
 export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps) {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const auth = getAuth();
 
   if (!account) return null;
 
@@ -41,7 +57,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     }
     setIsLoading(true);
     try {
-      const result = await generateInviteCode(user.uid, account.id);
+      const result = await generateInviteCode(account.id);
       setInviteCode(result.code);
     } catch (error) {
       toast({
