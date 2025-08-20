@@ -17,7 +17,7 @@ import { Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateInviteCode } from '@/app/dashboard/banks/actions';
-import { useAuth } from '@/components/client-providers';
+import { getAuth } from 'firebase/auth';
 
 interface InviteDialogProps {
   account: Account | null;
@@ -30,18 +30,17 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const auth = getAuth();
 
   if (!account) return null;
 
   const handleGenerateCode = async () => {
-    if (!user) {
+    if (!auth.currentUser) {
         toast({ variant: 'destructive', title: 'Erro de autenticação' });
         return;
     }
     setIsLoading(true);
     try {
-      // The server action will get the user context on its own.
       const result = await generateInviteCode(account.id);
       setInviteCode(result.code);
     } catch (error) {

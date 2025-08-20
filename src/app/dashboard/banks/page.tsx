@@ -16,13 +16,14 @@ import { InviteDialog } from '@/components/invite-dialog';
 import { acceptInviteCode } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { getAuth } from 'firebase/auth';
 
 
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
-    const { user } = useAuth();
+    const auth = getAuth();
 
 
     const handleAccept = async () => {
@@ -30,13 +31,13 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
             toast({ variant: 'destructive', description: "Por favor, insira um código." });
             return;
         }
-        if (!user) {
+        if (!auth.currentUser) {
             toast({ variant: 'destructive', description: "Você precisa estar logado para aceitar um convite." });
             return;
         }
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode(code, user.uid);
+            const result = await acceptInviteCode(code);
             toast({
                 title: 'Sucesso!',
                 description: `Você agora tem acesso à conta "${result.accountName}".`,

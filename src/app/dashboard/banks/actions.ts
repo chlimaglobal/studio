@@ -1,31 +1,38 @@
 
 'use server';
 
-import { adminDb, adminAuth } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
-import { getAuth } from 'firebase/auth';
 import { headers } from 'next/headers';
+import { getAuth } from 'firebase-admin/auth';
+import { adminApp } from '@/lib/firebase-admin';
+
+
+async function getAuthenticatedUser() {
+    const auth = getAuth(adminApp);
+    const idToken = headers().get('Authorization')?.split('Bearer ')[1];
+    
+    if (!idToken) {
+        console.error('No ID token provided.');
+        return null;
+    }
+
+    try {
+        const decodedToken = await auth.verifyIdToken(idToken);
+        return decodedToken;
+    } catch (error) {
+        console.error('Error verifying ID token:', error);
+        return null;
+    }
+}
 
 
 export async function generateInviteCode(accountId: string) {
-    // This will now correctly use the session from the server-side context
-    const auth = adminAuth;
-    if (!auth) {
-        throw new Error("A autenticação do administrador não foi inicializada.");
+    const user = await getAuthenticatedUser();
+    if (!user) {
+        throw new Error("Usuário não autenticado.");
     }
-    
-    // We assume the user is authenticated via server-side session management
-    // For this environment, we may need to rely on other mechanisms if headers are not reliable.
-    // As a fallback for this specific environment, let's assume a user for now, but in prod this needs a real auth check.
-    // const currentUser = { uid: 'test-user-id' }; // Placeholder for dev if auth context is not available
-    // A more robust solution involves a proper session handling.
-    // Given the context, we will rely on the framework to provide user identity.
-    // Let's assume there is a way to get the UID, if not, this will fail.
-    // For now, let's proceed assuming the auth context will eventually be resolved by the environment.
-    // This is a common issue in server actions depending on deployment.
-    // A direct way to get user is not available in server actions without session management.
-    // Let's assume a simplified path for now.
     
     if (!adminDb) {
         throw new Error("O banco de dados do administrador não foi inicializado.");
@@ -36,13 +43,10 @@ export async function generateInviteCode(accountId: string) {
     const expiresAt = Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
 
     try {
-        // Since we can't reliably get the user, we will temporarily allow writing.
-        // THIS IS NOT SECURE FOR PRODUCTION without proper auth checks.
         await adminDb.collection('invites').add({
             code,
             accountId,
-            // In a real scenario, generatedBy would be populated with the user's UID.
-            // generatedBy: currentUser.uid, 
+            generatedBy: user.uid,
             expiresAt,
             status: 'pending', // pending, accepted, expired
         });
@@ -54,10 +58,14 @@ export async function generateInviteCode(accountId: string) {
     }
 }
 
-export async function acceptInviteCode(code: string, acceptingUserId: string) {
-    if (!acceptingUserId) {
-        throw new Error("Usuário não autenticado.");
+export async function acceptInviteCode(code: string) {
+    const user = await getAuthenticatedUser();
+     if (!user) {
+        throw new Error("Usuário não autenticado para aceitar o convite.");
     }
+
+    const acceptingUserId = user.uid;
+    
      if (!adminDb) {
         throw new Error("O banco de dados do administrador não foi inicializado.");
     }
