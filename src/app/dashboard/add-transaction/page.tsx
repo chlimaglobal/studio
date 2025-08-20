@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const institutions = [
-    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
+    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
 ];
 
 const formatAmountForInput = (amount: number | string) => {
