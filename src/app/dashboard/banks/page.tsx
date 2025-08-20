@@ -37,13 +37,17 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode({ code: code });
-            toast({
-                title: 'Sucesso!',
-                description: `Você agora tem acesso à conta "${result.accountName}".`,
-            });
-            setCode('');
-            onInviteAccepted(); // Callback to refresh the accounts list
+            const result = await acceptInviteCode({ code: code.toUpperCase() });
+            if (result.data.success) {
+                toast({
+                    title: 'Sucesso!',
+                    description: `Você agora tem acesso à conta "${result.data.accountName}".`,
+                });
+                setCode('');
+                onInviteAccepted(); // Callback to refresh the accounts list
+            } else {
+                 throw new Error(result.data.error || "Ocorreu um erro desconhecido.");
+            }
         } catch (error) {
             const errorMessage = (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.';
             toast({

@@ -47,10 +47,10 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     setIsLoading(true);
     try {
       const result = await generateInviteCode({ accountId: account.id });
-      if (result.code) {
-        setInviteCode(result.code);
+      if (result.data.code) {
+        setInviteCode(result.data.code);
       } else {
-        throw new Error(result.error || "Ocorreu um erro desconhecido.");
+        throw new Error(result.data.error || "Ocorreu um erro desconhecido.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Não foi possível gerar o código.";
