@@ -2,18 +2,20 @@
 'use server';
 
 import { adminDb, adminAuth, adminApp } from '@/lib/firebase-admin';
-import { headers } from 'next/headers';
+import { getAuth } from "firebase-admin/auth";
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
+import { cookies } from 'next/headers';
 
 async function getAuthenticatedUser() {
-    const auth = adminAuth;
-    if (!auth) return null;
+    const auth = getAuth(adminApp);
     try {
-        const token = headers().get('Authorization')?.split('Bearer ')[1];
-        if (!token) return null;
-        const decodedToken = await auth.verifyIdToken(token);
+        const sessionCookie = cookies().get("__session")?.value;
+        if (!sessionCookie) return null;
+        
+        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
         return { uid: decodedToken.uid };
+
     } catch (error) {
         console.error('Error verifying auth token:', error);
         return null;
