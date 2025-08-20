@@ -26,7 +26,8 @@ import {
     Repeat,
     LifeBuoy,
     HandCoins,
-    Calculator
+    Calculator,
+    CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +37,14 @@ import { useSubscription, useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 const menuItems = [
+    { 
+        icon: CreditCard, 
+        title: 'Meus Cartões', 
+        subtitle: 'Gerencie seus cartões de crédito e faturas.',
+        type: 'link',
+        href: '/dashboard/cards',
+        premium: true,
+    },
     { 
         icon: MessageCircle, 
         title: 'Assistente Lúmina no WhatsApp', 

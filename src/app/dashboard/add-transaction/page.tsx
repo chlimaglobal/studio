@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark } from 'lucide-react';
+import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
 import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories } from '@/lib/types';
-import React, { Suspense, useCallback, useEffect, useMemo } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -27,12 +27,14 @@ import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { z } from 'zod';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions, useAuth } from '@/components/client-providers';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { onCardsUpdate } from '@/lib/storage';
+import { Card as CardType } from '@/lib/card-types';
 
 const institutions = [
     "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
@@ -59,6 +61,16 @@ function AddTransactionForm() {
     const { addTransaction, updateTransaction, transactions } = useTransactions();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
+    const { user } = useAuth();
+    const [cards, setCards] = useState<CardType[]>([]);
+
+
+    useEffect(() => {
+        if (user) {
+            const unsubscribe = onCardsUpdate(user.uid, setCards);
+            return () => unsubscribe();
+        }
+    }, [user]);
 
     const transactionId = searchParams.get('id');
     const isEditing = !!transactionId;
@@ -108,6 +120,7 @@ function AddTransactionForm() {
             observations: searchParams.get('observations') || '',
             institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
+            creditCard: searchParams.get('creditCard') || '',
         };
     }, [isEditing, transactionId, transactions, searchParams]);
 
@@ -357,6 +370,31 @@ function AddTransactionForm() {
                                     </FormItem>
                                 )}
                             />
+
+                             {watchedCategory === 'Cartão de Crédito' && (
+                                <FormField
+                                    control={form.control}
+                                    name="creditCard"
+                                    render={({ field }) => (
+                                        <FormItem className="animate-in fade-in-0 duration-300">
+                                            <FormLabel className="flex items-center gap-2"><CreditCardIcon className="h-4 w-4" /> Cartão de Crédito</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione o cartão" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {cards.map(card => (
+                                                        <SelectItem key={card.id} value={card.name}>{card.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
 
                              <FormField
                                 control={form.control}
