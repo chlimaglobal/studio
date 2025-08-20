@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -17,7 +18,6 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateInviteCode } from '@/app/dashboard/banks/actions';
 import { useAuth } from '@/components/client-providers';
-import { getAuth } from 'firebase/auth';
 
 interface InviteDialogProps {
   account: Account | null;
@@ -31,7 +31,6 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const auth = getAuth();
 
   if (!account) return null;
 
@@ -42,10 +41,8 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     }
     setIsLoading(true);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error("Não foi possível obter o token de autenticação.");
-
-      const result = await generateInviteCode(account.id, token);
+      // The server action will get the user context on its own.
+      const result = await generateInviteCode(account.id);
       setInviteCode(result.code);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro desconhecido";
