@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateInviteCode } from '@/app/dashboard/banks/actions';
 import { getAuth } from 'firebase/auth';
+import { useAuth } from '../client-providers';
 
 interface InviteDialogProps {
   account: Account | null;
@@ -30,12 +31,12 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
-  const auth = getAuth();
+  const { user } = useAuth();
 
   if (!account) return null;
 
   const handleGenerateCode = async () => {
-    if (!auth.currentUser) {
+    if (!user) {
         toast({ variant: 'destructive', title: 'Erro de autenticação' });
         return;
     }

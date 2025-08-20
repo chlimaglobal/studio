@@ -1,35 +1,41 @@
 
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
+// Garante que o SDK do Admin seja inicializado antes de qualquer outra coisa.
+import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
-import { headers } from 'next/headers';
 import { getAuth } from 'firebase-admin/auth';
-import { adminApp } from '@/lib/firebase-admin';
+import { headers } from 'next/headers';
 
 
-async function getAuthenticatedUser() {
+async function getAuthenticatedUser(token: string) {
     const auth = getAuth(adminApp);
-    const idToken = headers().get('Authorization')?.split('Bearer ')[1];
-    
-    if (!idToken) {
-        console.error('No ID token provided.');
-        return null;
-    }
-
     try {
-        const decodedToken = await auth.verifyIdToken(idToken);
-        return decodedToken;
+        if (!token) {
+             console.error('Authorization token missing');
+             return null;
+        }
+        const decodedToken = await auth.verifyIdToken(token);
+        return {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+            displayName: decodedToken.name,
+        };
     } catch (error) {
-        console.error('Error verifying ID token:', error);
+        console.error('Error verifying auth token in Server Action:', error);
         return null;
     }
 }
 
 
 export async function generateInviteCode(accountId: string) {
-    const user = await getAuthenticatedUser();
+    const idToken = headers().get('Authorization')?.split('Bearer ')[1];
+    if (!idToken) {
+        throw new Error("Token de autenticação não fornecido.");
+    }
+    
+    const user = await getAuthenticatedUser(idToken);
     if (!user) {
         throw new Error("Usuário não autenticado.");
     }
@@ -54,12 +60,12 @@ export async function generateInviteCode(accountId: string) {
         return { code };
     } catch (error) {
         console.error("Failed to generate invite code:", error);
-        throw new Error("Não foi possível gerar o código de convite.");
+        throw new Error("Não foi possível gerar o código do convite.");
     }
 }
 
-export async function acceptInviteCode(code: string) {
-    const user = await getAuthenticatedUser();
+export async function acceptInviteCode(code: string, token: string) {
+    const user = await getAuthenticatedUser(token);
      if (!user) {
         throw new Error("Usuário não autenticado para aceitar o convite.");
     }
