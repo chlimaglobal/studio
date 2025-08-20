@@ -35,7 +35,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
         }
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode(user.uid, code);
+            const result = await acceptInviteCode(code);
             toast({
                 title: 'Sucesso!',
                 description: `Você agora tem acesso à conta "${result.accountName}".`,

@@ -5,22 +5,23 @@ import { stripe } from '@/lib/stripe';
 import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 
 async function getAuthenticatedUser() {
     const auth = getAuth(adminApp);
     try {
         const token = headers().get('Authorization')?.split('Bearer ')[1];
-        if (!token) return null;
+        if (!token) {
+             console.error('Authorization header missing or malformed');
+             return null;
+        }
         const decodedToken = await auth.verifyIdToken(token);
-        // We only need a subset of the user data for our actions
         return {
             uid: decodedToken.uid,
             email: decodedToken.email,
             displayName: decodedToken.name,
         };
     } catch (error) {
-        console.error('Error verifying auth token:', error);
+        console.error('Error verifying auth token in Server Action:', error);
         return null;
     }
 }

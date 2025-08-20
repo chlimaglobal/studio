@@ -1,13 +1,33 @@
 
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { customAlphabet } from 'nanoid';
+import { getAuth } from 'firebase-admin/auth';
+import { headers } from 'next/headers';
 
 
-export async function generateInviteCode(userId: string, accountId: string) {
-    if (!userId) {
+async function getAuthenticatedUser() {
+    const auth = getAuth(adminApp);
+    try {
+        const token = headers().get('Authorization')?.split('Bearer ')[1];
+        if (!token) return null;
+        const decodedToken = await auth.verifyIdToken(token);
+        return {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+        };
+    } catch (error) {
+        console.error('Error verifying auth token:', error);
+        return null;
+    }
+}
+
+
+export async function generateInviteCode(accountId: string) {
+    const currentUser = await getAuthenticatedUser();
+    if (!currentUser) {
         throw new Error("Usuário não autenticado.");
     }
     if (!adminDb) {
@@ -22,7 +42,7 @@ export async function generateInviteCode(userId: string, accountId: string) {
         await adminDb.collection('invites').add({
             code,
             accountId,
-            generatedBy: userId,
+            generatedBy: currentUser.uid,
             expiresAt,
             status: 'pending', // pending, accepted, expired
         });
@@ -34,8 +54,9 @@ export async function generateInviteCode(userId: string, accountId: string) {
     }
 }
 
-export async function acceptInviteCode(acceptingUserId: string, code: string) {
-    if (!acceptingUserId) {
+export async function acceptInviteCode(code: string) {
+    const acceptingUser = await getAuthenticatedUser();
+    if (!acceptingUser) {
         throw new Error("Usuário não autenticado.");
     }
      if (!adminDb) {
@@ -59,7 +80,7 @@ export async function acceptInviteCode(acceptingUserId: string, code: string) {
         throw new Error("Código de convite expirado.");
     }
     
-    if (inviteData.generatedBy === acceptingUserId) {
+    if (inviteData.generatedBy === acceptingUser.uid) {
         throw new Error("Você não pode aceitar seu próprio convite.");
     }
 
@@ -73,19 +94,19 @@ export async function acceptInviteCode(acceptingUserId: string, code: string) {
     const batch = adminDb.batch();
 
     batch.update(accountDocRef, {
-        memberIds: FieldValue.arrayUnion(acceptingUserId),
+        memberIds: FieldValue.arrayUnion(acceptingUser.uid),
         isShared: true,
     });
     
     batch.update(inviteDoc.ref, {
         status: 'accepted',
-        acceptedBy: acceptingUserId,
+        acceptedBy: acceptingUser.uid,
         acceptedAt: Timestamp.now(),
     });
     
-    const userSharedAccountRef = adminDb.collection('users').doc(acceptingUserId).collection('sharedAccounts').doc(inviteData.accountId);
+    const userSharedAccountRef = adminDb.collection('users').doc(acceptingUser.uid).collection('sharedAccounts').doc(inviteData.accountId);
     batch.set(userSharedAccountRef, {
-       accountRef: accountDocRef,
+       accountRef: accountDocRef.path,
        ownerId: inviteData.generatedBy,
        sharedAt: Timestamp.now(),
     });

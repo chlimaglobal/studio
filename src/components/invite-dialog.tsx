@@ -41,7 +41,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     }
     setIsLoading(true);
     try {
-      const result = await generateInviteCode(user.uid, account.id);
+      const result = await generateInviteCode(account.id);
       setInviteCode(result.code);
     } catch (error) {
       toast({

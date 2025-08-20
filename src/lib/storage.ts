@@ -1,7 +1,6 @@
 
-
 import { db } from './firebase';
-import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
@@ -179,41 +178,50 @@ export async function deleteStoredTransaction(userId: string, transactionId: str
 // ======== ACCOUNTS ========
 
 export function onAccountsUpdate(userId: string, callback: (accounts: Account[]) => void): () => void {
-  if (!userId) return () => {};
+    if (!userId) return () => {};
 
-  // Listener for owned accounts
-  const ownedQuery = query(collection(db, "users", userId, "accounts"));
-  const unsubscribeOwned = onSnapshot(ownedQuery, async (ownedSnapshot) => {
-    let allAccounts: Account[] = [];
-    ownedSnapshot.forEach((doc) => {
-        allAccounts.push({ id: doc.id, ...doc.data() } as Account);
-    });
+    let combinedAccounts: Record<string, Account> = {};
 
-    // Listener for shared accounts
+    const processAndCallback = () => {
+        const sortedAccounts = Object.values(combinedAccounts).sort((a, b) => a.name.localeCompare(b.name));
+        callback(sortedAccounts);
+    };
+
+    // Listener for owned accounts
+    const ownedQuery = query(collection(db, "users", userId, "accounts"));
+    const unsubscribeOwned = onSnapshot(ownedQuery, (snapshot) => {
+        snapshot.docs.forEach((doc) => {
+            combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
+        });
+        processAndCallback();
+    }, (error) => console.error("Error fetching owned accounts:", error));
+
+    // Listener for shared accounts references
     const sharedQuery = query(collection(db, "users", userId, "sharedAccounts"));
-    const sharedSnapshot = await getDocs(sharedQuery);
-    
-    const sharedAccountPromises = sharedSnapshot.docs.map(doc => {
-        const accountRef = doc.data().accountRef as DocumentReference;
-        return getDoc(accountRef);
-    });
+    const unsubscribeShared = onSnapshot(sharedQuery, (snapshot) => {
+        const promises = snapshot.docs.map(docData => {
+            const accountRefPath = docData.data().accountRef as string;
+            if (!accountRefPath) return Promise.resolve(null);
+            const accountRef = doc(db, accountRefPath);
+            return getDoc(accountRef);
+        });
 
-    const sharedAccountDocs = await Promise.all(sharedAccountPromises);
-    sharedAccountDocs.forEach(doc => {
-        if(doc.exists()){
-            allAccounts.push({ id: doc.id, ...doc.data() } as Account);
-        }
-    });
+        Promise.all(promises).then(sharedAccountDocs => {
+            sharedAccountDocs.forEach(doc => {
+                if (doc && doc.exists()) {
+                    combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
+                }
+            });
+            processAndCallback();
+        });
+    }, (error) => console.error("Error fetching shared accounts:", error));
 
-    allAccounts.sort((a, b) => a.name.localeCompare(b.name));
-    callback(allAccounts);
-
-  }, (error) => {
-    console.error("Error fetching accounts:", error);
-  });
-
-  return unsubscribeOwned;
+    return () => {
+        unsubscribeOwned();
+        unsubscribeShared();
+    };
 }
+
 
 export async function addStoredAccount(userId: string, data: z.infer<typeof AddAccountFormSchema>) {
    if (!userId) throw new Error("User not authenticated");
