@@ -99,7 +99,7 @@ export default function MuralPage() {
                     setMessages(prev => {
                         const existingIds = new Set(prev.map(m => m.id));
                         const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                        return [...prev, ...uniqueNewMessages];
+                        return [...prev, ...uniqueNewMessages].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
                     });
                     
                     if (isAtBottomRef.current) {
@@ -289,3 +289,5 @@ export default function MuralPage() {
         </div>
     );
 }
+
+    
