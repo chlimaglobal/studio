@@ -59,7 +59,7 @@ export default function MuralPage() {
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        // Use setTimeout to ensure the scroll happens after the DOM update
+        // Use setTimeout para garantir que a rolagem aconteça após a renderização do DOM
         setTimeout(() => {
              if (scrollViewportRef.current) {
                 scrollViewportRef.current.scrollTo({
@@ -67,25 +67,30 @@ export default function MuralPage() {
                     behavior: behavior,
                 });
             }
-        }, 100); // A small delay is often safer
+        }, 100); // Um pequeno atraso garante a execução após a renderização
     }, []);
 
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
+                const isNewMessage = newMessages.length > messages.length;
                 setMessages(newMessages);
+
+                if (isAtBottomRef.current || isNewMessage) {
+                    scrollToBottom('smooth');
+                } else {
+                    setShowScrollToBottom(true);
+                }
             });
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, isSubscribed, isAdmin, scrollToBottom]);
 
+    // Rola para o fundo na primeira carga
     useEffect(() => {
-        if (isAtBottomRef.current) {
-            scrollToBottom('smooth');
-        } else {
-            setShowScrollToBottom(true);
-        }
-    }, [messages, scrollToBottom]);
+        scrollToBottom('auto');
+    }, []);
 
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
@@ -145,7 +150,9 @@ export default function MuralPage() {
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
             isAtBottomRef.current = isScrolledToBottom;
-            setShowScrollToBottom(!isScrolledToBottom);
+            if (isScrolledToBottom) {
+                setShowScrollToBottom(false);
+            }
         }
     };
 
@@ -272,3 +279,4 @@ export default function MuralPage() {
             />
         </div>
     );
+}
