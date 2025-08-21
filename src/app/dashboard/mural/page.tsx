@@ -216,14 +216,16 @@ export default function MuralPage() {
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={`relative rounded-xl px-4 py-2 max-w-sm lg:max-w-md ${
+                                    <div className={`relative rounded-xl px-3 pt-2 pb-1 max-w-sm lg:max-w-md ${
                                         msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 
                                         msg.role === 'lumina' ? 'bg-secondary rounded-bl-none' : 'bg-muted rounded-bl-none'
                                     }`}>
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                        <p className="text-xs opacity-70 mt-1.5 text-right">
-                                            {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <div className="text-right">
+                                            <p className="text-xs opacity-70 mt-1">
+                                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        </div>
                                     </div>
                                     {msg.role === 'user' && (
                                         <Avatar className="h-8 w-8">
@@ -290,4 +292,3 @@ export default function MuralPage() {
     );
 }
 
-    
