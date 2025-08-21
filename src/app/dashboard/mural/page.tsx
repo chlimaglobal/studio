@@ -56,37 +56,30 @@ export default function MuralPage() {
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
     
-    // State for smart scrolling
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const isAtBottomRef = useRef(true);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     
-    // 2. Add the scrollToBottom function
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        if (scrollViewportRef.current) {
-            scrollViewportRef.current.scrollTo({
-                top: scrollViewportRef.current.scrollHeight,
-                behavior: behavior,
-            });
-        }
+        setTimeout(() => {
+             if (scrollViewportRef.current) {
+                scrollViewportRef.current.scrollTo({
+                    top: scrollViewportRef.current.scrollHeight,
+                    behavior: behavior,
+                });
+            }
+        }, 100);
     }, []);
 
-    // 1. Correct the listener for new messages
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
-                setMessages(prev => {
-                    const existingIds = new Set(prev.map(m => m.id));
-                    const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                    const combined = [...prev, ...uniqueNewMessages].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-                    return combined;
-                });
+                setMessages(newMessages);
             });
             return () => unsubscribe();
         }
     }, [user, isSubscribed, isAdmin]);
 
-    // 3. Call scrollToBottom when messages change
     useEffect(() => {
         if (isAtBottomRef.current) {
             scrollToBottom('smooth');
@@ -280,3 +273,4 @@ export default function MuralPage() {
     );
 
     
+
