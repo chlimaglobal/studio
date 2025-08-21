@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { formatCurrency } from '@/lib/utils';
 import { accountTypeLabels } from '@/lib/types';
 import { InviteDialog } from '@/components/invite-dialog';
-import { acceptInviteCode } from '@/lib/firebase-functions';
+import { acceptInviteCode } from '@/app/dashboard/banks/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
@@ -37,16 +37,16 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode({ code: code.toUpperCase() });
-            if (result.data.success) {
+            const result = await acceptInviteCode(code.toUpperCase());
+            if (result.success) {
                 toast({
                     title: 'Sucesso!',
-                    description: `Você agora tem acesso à conta "${result.data.accountName}".`,
+                    description: `Você agora tem acesso à conta "${result.accountName}".`,
                 });
                 setCode('');
                 onInviteAccepted(); // Callback to refresh the accounts list
             } else {
-                 throw new Error(result.data.error || "Ocorreu um erro desconhecido.");
+                 throw new Error(result.error || "Ocorreu um erro desconhecido.");
             }
         } catch (error) {
             const errorMessage = (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.';

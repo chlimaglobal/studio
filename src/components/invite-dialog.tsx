@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateInviteCode } from '@/lib/firebase-functions';
+import { generateInviteCode } from '@/app/dashboard/banks/actions';
 import { useAuth } from '@/components/client-providers';
 
 interface InviteDialogProps {
@@ -46,11 +46,11 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     
     setIsLoading(true);
     try {
-      const result = await generateInviteCode({ accountId: account.id });
-      if (result.data.code) {
-        setInviteCode(result.data.code);
+      const result = await generateInviteCode(account.id);
+      if (result.success && result.code) {
+        setInviteCode(result.code);
       } else {
-        throw new Error(result.data.error || "Ocorreu um erro desconhecido.");
+        throw new Error(result.error || "Ocorreu um erro desconhecido.");
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Não foi possível gerar o código.";
