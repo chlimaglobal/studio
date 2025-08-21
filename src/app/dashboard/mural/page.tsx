@@ -88,7 +88,6 @@ export default function MuralPage() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     
-    // Audio recording state
     const [isRecording, setIsRecording] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
     const { toast } = useToast();
@@ -105,7 +104,7 @@ export default function MuralPage() {
                     behavior: behavior,
                 });
             }
-        }, 50); // Small delay to ensure DOM is updated
+        }, 50);
     }, []);
 
     useEffect(() => {
@@ -127,7 +126,6 @@ export default function MuralPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isSubscribed, isAdmin]);
     
-    // Initial scroll and reset unread status
     useEffect(() => {
         scrollToBottom('auto');
         setHasUnread(false);
@@ -155,7 +153,7 @@ export default function MuralPage() {
         setIsLuminaThinking(true);
         try {
             const chatHistoryForLumina = messages.slice(-10).map(msg => ({
-                role: msg.role === 'partner' ? 'user' : msg.role, // Treat partner as user for Lumina's context
+                role: msg.role === 'partner' ? 'user' : msg.role,
                 text: msg.text
             }));
 
@@ -273,14 +271,15 @@ export default function MuralPage() {
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
-                    <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef} onScroll={handleScroll}>
-                        <div className="space-y-6">
-                            {messages.map((msg, index) => {
+                    <ScrollArea className="flex-1" viewportRef={scrollViewportRef} onScroll={handleScroll}>
+                        <div className="space-y-6 p-4">
+                             {messages.map((msg, index) => {
+                                const isUser = msg.role === 'user';
                                 const showAuthor = index === 0 || messages[index - 1].role !== msg.role;
                                 return (
-                                <div key={msg.id} className={cn('flex items-end gap-3 w-full', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                                    {msg.role !== 'user' && (
-                                        <Avatar className={cn("h-10 w-10 border-2 border-border flex-shrink-0", showAuthor ? "visible" : "invisible")}>
+                                <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
+                                    {!isUser && (
+                                        <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             {msg.role === 'lumina' ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                                     <Sparkles className="h-5 w-5" />
@@ -293,21 +292,19 @@ export default function MuralPage() {
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', msg.role === 'user' ? 'items-end' : 'items-start')}>
-                                        {showAuthor && (
-                                            <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
-                                        )}
+                                    <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
+                                        <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
                                         <div className={cn('p-3 rounded-lg border flex flex-col',
-                                            msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 'bg-secondary rounded-bl-none'
+                                            isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                         )}>
                                             <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                            <span className="text-xs self-end mt-1 opacity-70">
-                                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
                                         </div>
+                                         <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
+                                            {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
-                                     {msg.role === 'user' && (
-                                        <Avatar className={cn("h-10 w-10 border-2 border-border flex-shrink-0", showAuthor ? "visible" : "invisible")}>
+                                    {isUser && (
+                                        <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             <AvatarImage src={msg.authorPhotoUrl || undefined} />
                                             <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                         </Avatar>
@@ -315,7 +312,7 @@ export default function MuralPage() {
                                 </div>
                             )})}
                              {isLuminaThinking && (
-                                <div className="flex items-end gap-3 justify-start">
+                                <div className="flex items-start gap-3 justify-start">
                                     <Avatar className="h-10 w-10 border-2 border-border">
                                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                             <Sparkles className="h-5 w-5" />
@@ -323,7 +320,7 @@ export default function MuralPage() {
                                     </Avatar>
                                     <div className="flex flex-col items-start max-w-[80%] md:max-w-[70%]">
                                         <span className="text-xs text-muted-foreground mb-1 px-2">Lúmina</span>
-                                        <div className="p-3 rounded-lg border bg-secondary rounded-bl-none">
+                                        <div className="p-3 rounded-lg border bg-secondary rounded-tl-none">
                                             <div className="flex items-center gap-2 text-sm">
                                                 <Loader2 className="h-4 w-4 animate-spin" />
                                                 <span>Está pensando...</span>
