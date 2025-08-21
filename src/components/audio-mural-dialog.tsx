@@ -168,3 +168,5 @@ export function AudioMuralDialog({ open, onOpenChange, onTranscriptReceived }: A
     </Dialog>
   );
 }
+
+    
