@@ -15,9 +15,7 @@ import { generateSuggestion } from '@/ai/flows/mural-chat';
 import type { ChatMessage, MuralChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { AudioMuralDialog } from '@/components/audio-mural-dialog';
-import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
-import { on } from 'events';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -61,6 +59,7 @@ export default function MuralPage() {
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
+        // Use setTimeout to ensure the scroll happens after the DOM update
         setTimeout(() => {
              if (scrollViewportRef.current) {
                 scrollViewportRef.current.scrollTo({
@@ -68,7 +67,7 @@ export default function MuralPage() {
                     behavior: behavior,
                 });
             }
-        }, 100);
+        }, 100); // A small delay is often safer
     }, []);
 
     useEffect(() => {
@@ -83,6 +82,8 @@ export default function MuralPage() {
     useEffect(() => {
         if (isAtBottomRef.current) {
             scrollToBottom('smooth');
+        } else {
+            setShowScrollToBottom(true);
         }
     }, [messages, scrollToBottom]);
 
@@ -271,7 +272,3 @@ export default function MuralPage() {
             />
         </div>
     );
-
-    
-
-
