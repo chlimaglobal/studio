@@ -16,6 +16,7 @@ import type { ChatMessage, MuralChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { AudioMuralDialog } from '@/components/audio-mural-dialog';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -54,22 +55,19 @@ export default function MuralPage() {
     const [isLuminaThinking, setIsLuminaThinking] = useState(false);
     const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
     
-    // State for pagination and smart scrolling
-    const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [hasMore, setHasMore] = useState(true);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    // State for smart scrolling
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const isAtBottomRef = useRef(true);
 
-
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        if (scrollViewportRef.current) {
-            scrollViewportRef.current.scrollTo({
-                top: scrollViewportRef.current.scrollHeight,
-                behavior: behavior,
-            });
-        }
+        setTimeout(() => {
+            if (scrollViewportRef.current) {
+                scrollViewportRef.current.scrollTo({
+                    top: scrollViewportRef.current.scrollHeight,
+                    behavior: behavior,
+                });
+            }
+        }, 100);
     }, []);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
@@ -95,37 +93,36 @@ export default function MuralPage() {
             const unsubscribe = onChatUpdate(
                 user.uid, 
                 (newMessages) => {
-                    // Prevent adding duplicate messages
                     setMessages(prev => {
                         const existingIds = new Set(prev.map(m => m.id));
                         const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                        return [...prev, ...uniqueNewMessages].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
+                        const combined = [...prev, ...uniqueNewMessages].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
+                        
+                        // Check if we should scroll before setting state
+                        if(isAtBottomRef.current) {
+                           scrollToBottom('smooth');
+                        }
+                        
+                        return combined;
                     });
-                    
-                    if (isAtBottomRef.current) {
-                       setTimeout(() => scrollToBottom('smooth'), 100);
-                    } else {
-                       setShowScrollToBottom(true);
-                    }
-                }, 
-                lastDoc // Pass the last known document to listen for messages after it
+                }
             );
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, lastDoc, scrollToBottom]);
+    }, [user, isSubscribed, isAdmin, scrollToBottom]);
 
-    // Effect to scroll to bottom on initial load
+    // Effect to scroll to bottom on initial load or when messages array changes
     useEffect(() => {
-        if (messages.length > 0) {
+        if (isAtBottomRef.current) {
             scrollToBottom('auto');
         }
-    }, [messages.length, scrollToBottom]);
+    }, [messages, scrollToBottom]);
 
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
         try {
-            const chatHistoryForLumina = messages.slice(-10).map(msg => ({ // Send last 10 messages for context
+            const chatHistoryForLumina = messages.slice(-10).map(msg => ({
                 role: msg.role,
                 text: msg.text
             }));
@@ -160,11 +157,8 @@ export default function MuralPage() {
     const handleScroll = () => {
         const scrollDiv = scrollViewportRef.current;
         if (scrollDiv) {
-            const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 10;
+            const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
             isAtBottomRef.current = isScrolledToBottom;
-             if (isScrolledToBottom) {
-                setShowScrollToBottom(false);
-            }
         }
     };
 
@@ -201,11 +195,6 @@ export default function MuralPage() {
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
                     <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef} onScroll={handleScroll}>
-                        {isLoadingMore && (
-                            <div className="flex justify-center my-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/>
-                            </div>
-                        )}
                         <div className="space-y-4">
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -223,10 +212,10 @@ export default function MuralPage() {
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={`relative rounded-xl px-3 pt-2 pb-1 max-w-sm lg:max-w-md ${
+                                    <div className={cn('flex flex-col max-w-sm lg:max-w-md rounded-xl px-3 pt-2 pb-1',
                                         msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 
                                         msg.role === 'lumina' ? 'bg-secondary rounded-bl-none' : 'bg-muted rounded-bl-none'
-                                    }`}>
+                                    )}>
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                         <div className="text-right">
                                             <p className="text-xs opacity-70 mt-1">
@@ -260,17 +249,6 @@ export default function MuralPage() {
                         </div>
                     </ScrollArea>
                     
-                    {showScrollToBottom && (
-                        <Button 
-                            variant="secondary"
-                            size="icon"
-                            className="absolute bottom-20 right-4 z-10 rounded-full animate-in fade-in-0"
-                            onClick={() => scrollToBottom('smooth')}
-                        >
-                            <ArrowDown className="h-5 w-5"/>
-                        </Button>
-                    )}
-
                     <div className="p-4 border-t bg-background">
                          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                             <Input 
@@ -297,4 +275,5 @@ export default function MuralPage() {
             />
         </div>
     );
-}
+
+    
