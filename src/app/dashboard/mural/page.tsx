@@ -59,7 +59,6 @@ export default function MuralPage() {
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        // Use setTimeout para garantir que a rolagem aconteça após a renderização do DOM
         setTimeout(() => {
              if (scrollViewportRef.current) {
                 scrollViewportRef.current.scrollTo({
@@ -67,7 +66,7 @@ export default function MuralPage() {
                     behavior: behavior,
                 });
             }
-        }, 100); // Um pequeno atraso garante a execução após a renderização
+        }, 100);
     }, []);
 
     useEffect(() => {
@@ -78,7 +77,7 @@ export default function MuralPage() {
 
                 if (isAtBottomRef.current || isNewMessage) {
                     scrollToBottom('smooth');
-                } else {
+                } else if (!isAtBottomRef.current && isNewMessage) {
                     setShowScrollToBottom(true);
                 }
             });
@@ -87,7 +86,6 @@ export default function MuralPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isSubscribed, isAdmin, scrollToBottom]);
 
-    // Rola para o fundo na primeira carga
     useEffect(() => {
         scrollToBottom('auto');
     }, []);
@@ -189,11 +187,11 @@ export default function MuralPage() {
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
                     <ScrollArea className="flex-1 p-4" viewportRef={scrollViewportRef} onScroll={handleScroll}>
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div key={msg.id} className={cn('flex items-start gap-3', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                                     {msg.role !== 'user' && (
-                                        <Avatar className="h-8 w-8">
+                                        <Avatar className="h-10 w-10 border-2 border-border">
                                             {msg.role === 'lumina' ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                                     <Sparkles className="h-5 w-5" />
@@ -206,19 +204,29 @@ export default function MuralPage() {
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={cn('flex flex-col max-w-sm lg:max-w-md rounded-xl px-3 pt-2 pb-1',
-                                        msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 
-                                        msg.role === 'lumina' ? 'bg-secondary rounded-bl-none' : 'bg-muted rounded-bl-none'
-                                    )}>
-                                        <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                        <div className="text-right">
-                                            <p className="text-xs opacity-70 mt-1">
-                                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+                                    <div className={cn('flex flex-col max-w-sm lg:max-w-md w-full', msg.role === 'user' ? 'items-end' : 'items-start')}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            {msg.role === 'user' && (
+                                                <>
+                                                    <span className="text-sm font-semibold">{msg.authorName}</span>
+                                                    <span className="text-xs text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </>
+                                            )}
+                                            {msg.role !== 'user' && (
+                                                 <>
+                                                    <span className="text-sm font-semibold">{msg.authorName}</span>
+                                                    <span className="text-xs text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        <div className={cn('p-3 rounded-lg border',
+                                            msg.role === 'user' ? 'bg-primary/10 border-primary/20 text-foreground' : 'bg-secondary'
+                                        )}>
+                                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                         </div>
                                     </div>
-                                    {msg.role === 'user' && (
-                                        <Avatar className="h-8 w-8">
+                                     {msg.role === 'user' && (
+                                        <Avatar className="h-10 w-10 border-2 border-border">
                                             <AvatarImage src={msg.authorPhotoUrl || undefined} />
                                             <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                         </Avatar>
@@ -226,16 +234,19 @@ export default function MuralPage() {
                                 </div>
                             ))}
                              {isLuminaThinking && (
-                                <div className="flex items-end gap-2.5">
-                                    <Avatar className="h-8 w-8">
+                                <div className="flex items-start gap-3">
+                                    <Avatar className="h-10 w-10 border-2 border-border">
                                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                             <Sparkles className="h-5 w-5" />
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="rounded-xl rounded-bl-none p-3 bg-secondary">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            <span>Lúmina está pensando...</span>
+                                    <div className="flex flex-col items-start w-full max-w-sm lg:max-w-md">
+                                        <span className="text-sm font-semibold mb-1">Lúmina</span>
+                                        <div className="p-3 rounded-lg border bg-secondary">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                <span>Está pensando...</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
