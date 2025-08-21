@@ -114,6 +114,13 @@ export default function MuralPage() {
         }
     }, [user, isSubscribed, isAdmin, lastDoc, scrollToBottom]);
 
+    // Effect to scroll to bottom on initial load
+    useEffect(() => {
+        if (messages.length > 0) {
+            scrollToBottom('auto');
+        }
+    }, [messages.length, scrollToBottom]);
+
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
