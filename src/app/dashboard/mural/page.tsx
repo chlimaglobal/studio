@@ -199,9 +199,9 @@ export default function MuralPage() {
                                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground"/>
                             </div>
                         )}
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                                <div key={msg.id} className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     {msg.role !== 'user' && (
                                         <Avatar className="h-8 w-8">
                                             {msg.role === 'lumina' ? (
@@ -216,31 +216,31 @@ export default function MuralPage() {
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={`rounded-lg p-3 max-w-xs lg:max-w-md ${
-                                        msg.role === 'user' ? 'bg-primary text-primary-foreground' : 
-                                        msg.role === 'lumina' ? 'bg-secondary' : 'bg-muted'
+                                    <div className={`relative rounded-xl px-4 py-2 max-w-sm lg:max-w-md ${
+                                        msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' : 
+                                        msg.role === 'lumina' ? 'bg-secondary rounded-bl-none' : 'bg-muted rounded-bl-none'
                                     }`}>
                                         <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                        <p className="text-xs opacity-70 mt-1 text-right">
+                                        <p className="text-xs opacity-70 mt-1.5 text-right">
                                             {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                     {msg.role === 'user' && (
                                         <Avatar className="h-8 w-8">
                                             <AvatarImage src={msg.authorPhotoUrl || undefined} />
-                                            <AvatarFallback>{msg.authorName?.charAt(0) || 'U'}</AvatarFallback>
+                                            <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                         </Avatar>
                                     )}
                                 </div>
                             ))}
                              {isLuminaThinking && (
-                                <div className="flex items-end gap-3">
+                                <div className="flex items-end gap-2.5">
                                     <Avatar className="h-8 w-8">
                                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                             <Sparkles className="h-5 w-5" />
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="rounded-lg p-3 bg-secondary">
+                                    <div className="rounded-xl rounded-bl-none p-3 bg-secondary">
                                         <div className="flex items-center gap-2 text-sm">
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                             <span>Lúmina está pensando...</span>
