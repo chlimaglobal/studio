@@ -340,7 +340,7 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
-    const lastMessageTimestampRef = React.useRef<Date | null>(null);
+    let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
     useEffect(() => {
         if (pathname === '/dashboard/mural') {
@@ -351,7 +351,6 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            // This listener only gets new messages
             const unsubscribe = onChatUpdate(
                 user.uid, 
                 (newMessages) => {
@@ -368,15 +367,7 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
                     ) {
                         setHasUnread(true);
                     }
-                    
-                    // Update the ref to the very last message timestamp
-                    lastMessageTimestampRef.current = latestMessage.timestamp;
-                }, 
-                // We use a ref to the timestamp to avoid re-subscribing on every new message
-                lastMessageTimestampRef.current ? { 
-                    id: '', // Dummy id
-                    timestamp: lastMessageTimestampRef.current 
-                } : null
+                }
             );
             return () => unsubscribe();
         }

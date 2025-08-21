@@ -17,6 +17,7 @@ import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { AudioMuralDialog } from '@/components/audio-mural-dialog';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { on } from 'events';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -58,17 +59,40 @@ export default function MuralPage() {
     // State for smart scrolling
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const isAtBottomRef = useRef(true);
-
+    const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    
+    // 2. Add the scrollToBottom function
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
-        setTimeout(() => {
-            if (scrollViewportRef.current) {
-                scrollViewportRef.current.scrollTo({
-                    top: scrollViewportRef.current.scrollHeight,
-                    behavior: behavior,
-                });
-            }
-        }, 100);
+        if (scrollViewportRef.current) {
+            scrollViewportRef.current.scrollTo({
+                top: scrollViewportRef.current.scrollHeight,
+                behavior: behavior,
+            });
+        }
     }, []);
+
+    // 1. Correct the listener for new messages
+    useEffect(() => {
+        if (user && (isSubscribed || isAdmin)) {
+            const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
+                setMessages(prev => {
+                    const existingIds = new Set(prev.map(m => m.id));
+                    const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
+                    const combined = [...prev, ...uniqueNewMessages].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+                    return combined;
+                });
+            });
+            return () => unsubscribe();
+        }
+    }, [user, isSubscribed, isAdmin]);
+
+    // 3. Call scrollToBottom when messages change
+    useEffect(() => {
+        if (isAtBottomRef.current) {
+            scrollToBottom('smooth');
+        }
+    }, [messages, scrollToBottom]);
+
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
         if (!user || !text.trim()) return;
@@ -86,38 +110,6 @@ export default function MuralPage() {
             setMessage('');
         }
     }, [user]);
-    
-    // Effect for initial load and real-time updates
-    useEffect(() => {
-        if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(
-                user.uid, 
-                (newMessages) => {
-                    setMessages(prev => {
-                        const existingIds = new Set(prev.map(m => m.id));
-                        const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id));
-                        const combined = [...prev, ...uniqueNewMessages].sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
-                        
-                        // Check if we should scroll before setting state
-                        if(isAtBottomRef.current) {
-                           scrollToBottom('smooth');
-                        }
-                        
-                        return combined;
-                    });
-                }
-            );
-            return () => unsubscribe();
-        }
-    }, [user, isSubscribed, isAdmin, scrollToBottom]);
-
-    // Effect to scroll to bottom on initial load or when messages array changes
-    useEffect(() => {
-        if (isAtBottomRef.current) {
-            scrollToBottom('auto');
-        }
-    }, [messages, scrollToBottom]);
-
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
@@ -159,6 +151,7 @@ export default function MuralPage() {
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
             isAtBottomRef.current = isScrolledToBottom;
+            setShowScrollToBottom(!isScrolledToBottom);
         }
     };
 
@@ -248,6 +241,16 @@ export default function MuralPage() {
                             )}
                         </div>
                     </ScrollArea>
+
+                    {showScrollToBottom && (
+                        <Button
+                            size="icon"
+                            className="absolute bottom-24 right-6 rounded-full h-10 w-10 shadow-lg animate-in fade-in-0"
+                            onClick={() => scrollToBottom('smooth')}
+                        >
+                            <ArrowDown className="h-5 w-5" />
+                        </Button>
+                    )}
                     
                     <div className="p-4 border-t bg-background">
                          <form onSubmit={handleSendMessage} className="flex items-center gap-2">

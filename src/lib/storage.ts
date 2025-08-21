@@ -464,15 +464,12 @@ export async function saveBudgets(userId: string, monthId: string, data: Budget)
 export function onChatUpdate(
     userId: string, 
     callback: (messages: ChatMessage[]) => void,
-    lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null = null
 ): () => void {
     if (!userId) return () => {};
     
+    // Use orderBy to get messages in the correct chronological order
     const messagesRef = collection(db, 'users', userId, 'chat');
-    // Listen for new messages added after the last document we've seen
-    const q = lastVisibleDoc 
-        ? query(messagesRef, orderBy('timestamp'), startAfter(lastVisibleDoc))
-        : query(messagesRef, orderBy('timestamp'));
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const newMessages: ChatMessage[] = [];
@@ -485,11 +482,9 @@ export function onChatUpdate(
             } as ChatMessage);
         });
 
-        if (newMessages.length > 0) {
-            callback(newMessages);
-        }
+        callback(newMessages);
     }, (error) => {
-        console.error("Error fetching new chat messages:", error);
+        console.error("Error fetching chat messages:", error);
     });
     
     return unsubscribe;
