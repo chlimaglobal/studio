@@ -13,9 +13,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { formatCurrency } from '@/lib/utils';
 import { accountTypeLabels } from '@/lib/types';
 import { InviteDialog } from '@/components/invite-dialog';
-import { acceptInviteCode } from '@/app/dashboard/banks/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
+import { acceptInviteCode as acceptInviteCodeFunction } from '@/lib/firebase-functions';
 
 
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
@@ -37,16 +39,20 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const result = await acceptInviteCode(code.toUpperCase());
-            if (result.success) {
+            const acceptInvite = httpsCallable(functions, 'acceptInviteCode');
+            const result = await acceptInvite({ code: code.toUpperCase() });
+            // @ts-ignore
+            const resultData = result.data as { success: boolean; accountName?: string; error?: string };
+
+            if (resultData.success) {
                 toast({
                     title: 'Sucesso!',
-                    description: `Você agora tem acesso à conta "${result.accountName}".`,
+                    description: `Você agora tem acesso à conta "${resultData.accountName}".`,
                 });
                 setCode('');
                 onInviteAccepted(); // Callback to refresh the accounts list
             } else {
-                 throw new Error(result.error || "Ocorreu um erro desconhecido.");
+                 throw new Error(resultData.error || "Ocorreu um erro desconhecido.");
             }
         } catch (error) {
             const errorMessage = (error instanceof Error) ? error.message : 'Ocorreu um erro desconhecido.';
