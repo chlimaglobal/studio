@@ -25,14 +25,15 @@ import { useAuth } from '@/components/client-providers';
 import { allInvestmentCategories } from '@/lib/types';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
+import Image from 'next/image';
 
 
 const Logo = () => (
-    <div className="p-2 bg-secondary/50 rounded-lg inline-block shadow-inner">
-        <div className="text-xl font-bold tracking-tight" style={{ textShadow: '1px 1px 2px hsl(var(--muted))' }}>
+    <div className="flex items-center gap-2">
+        <Image src="/icon-192x192.png" alt="Finance Flow Logo" width={32} height={32} className="h-8 w-8" />
+        <div className="text-xl font-bold tracking-tight">
             <span className="text-foreground">Finance</span>
-            <span className="text-primary"> $ </span>
-            <span className="text-foreground">Flow</span>
+            <span className="text-primary">Flow</span>
         </div>
     </div>
 );
