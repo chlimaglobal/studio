@@ -106,6 +106,7 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   return (
     <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background pt-4">
       <div className="flex items-center justify-between">
+        <Logo />
         <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onTogglePrivacyMode}>
               {isPrivacyMode ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -115,9 +116,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                 <Star className="h-5 w-5" />
               </Link>
             </Button>
-        </div>
-        
-        <div className="flex items-center gap-2">
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <div className="flex items-center gap-2 cursor-pointer">
