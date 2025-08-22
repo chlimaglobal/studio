@@ -6,6 +6,8 @@ const withPWA = require('next-pwa')({
     register: true,
     skipWaiting: true,
     disable: process.env.NODE_ENV === "development",
+    // Do not generate a manifest since we are using a static one
+    // We only need the service worker generation.
 });
 
 const nextConfig: NextConfig = {
