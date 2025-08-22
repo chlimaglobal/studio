@@ -118,7 +118,6 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
         </div>
         
         <div className="flex items-center gap-2">
-            <Logo />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <div className="flex items-center gap-2 cursor-pointer">
