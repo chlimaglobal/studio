@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { TransactionCategory, Transaction } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Sparkles, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Sparkles, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -18,6 +18,7 @@ import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+import Papa from 'papaparse';
 
 
 interface CategorySpending {
@@ -129,8 +130,32 @@ const MonthlyReportCard = () => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5); // Top 5 categories
 
-    return { income, expenses, balance, topSpending };
+    return { income, expenses, balance, topSpending, allExpenses: monthTransactions.filter(t => t.type === 'expense') };
   }, [transactions, currentMonth]);
+  
+  const handleExport = () => {
+    if (monthlyData.allExpenses.length === 0) return;
+    
+    const dataToExport = monthlyData.allExpenses.map(t => ({
+      Data: format(new Date(t.date), 'yyyy-MM-dd'),
+      Descrição: t.description,
+      Valor: t.amount,
+      Categoria: t.category,
+      Cartão: t.creditCard || '',
+      Pago: t.paid ? 'Sim' : 'Não',
+    }));
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const monthYear = format(currentMonth, 'yyyy-MM');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `relatorio_despesas_${monthYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   return (
      <Card>
@@ -146,14 +171,18 @@ const MonthlyReportCard = () => {
                     </CardDescription>
                 </div>
                  <div className="flex items-center justify-center gap-2">
+                    <Button variant="outline" size="icon" onClick={handleExport} disabled={monthlyData.allExpenses.length === 0} className="h-8 w-8">
+                        <Download className="h-4 w-4" />
+                        <span className="sr-only">Baixar Relatório do Mês</span>
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
-                    <ChevronLeft className="h-5 w-5" />
+                        <ChevronLeft className="h-5 w-5" />
                     </Button>
                     <span className="font-semibold text-sm w-28 text-center bg-primary/20 text-primary py-1 px-3 rounded-md">
                     {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
                     </span>
                     <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8">
-                    <ChevronRight className="h-5 w-5" />
+                        <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
             </div>
@@ -316,3 +345,6 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+
+    
