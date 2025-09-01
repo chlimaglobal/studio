@@ -42,6 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil, Landmark } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { User } from 'firebase/auth';
+import { brandNames } from '@/lib/types';
 
 
 interface TransactionsTableProps {
@@ -136,6 +137,9 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                         {transaction.category === 'Cartão de Crédito' && transaction.creditCard && (
                             <span>{transaction.creditCard}</span>
                         )}
+                         {transaction.cardBrand && (
+                            <Badge variant="outline" className="capitalize">{brandNames[transaction.cardBrand]}</Badge>
+                        )}
                     </div>
                   </TableCell>
                   <TableCell className="hidden text-center sm:table-cell">
@@ -195,10 +199,16 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                     <Badge variant="outline">{selectedTransaction.category}</Badge>
                 </div>
               </div>
-              {selectedTransaction.category === 'Cartão de Crédito' && selectedTransaction.creditCard && (
+              {selectedTransaction.creditCard && (
                 <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">Cartão</p>
+                    <p className="text-sm text-muted-foreground">Apelido do Cartão</p>
                     <p className="font-medium">{selectedTransaction.creditCard}</p>
+                </div>
+              )}
+               {selectedTransaction.cardBrand && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">Bandeira</p>
+                    <p className="font-medium capitalize">{brandNames[selectedTransaction.cardBrand]}</p>
                 </div>
               )}
                {selectedTransaction.institution && (

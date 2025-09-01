@@ -23,6 +23,19 @@ export const categoryData = {
   "Outros": ["Presentes", "Compras", "Outros"],
 } as const;
 
+export const cardBrands = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'diners', 'other'] as const;
+export type CardBrand = typeof cardBrands[number];
+
+export const brandNames: Record<CardBrand, string> = {
+    mastercard: 'Mastercard',
+    visa: 'Visa',
+    elo: 'Elo',
+    amex: 'American Express',
+    hipercard: 'Hipercard',
+    diners: 'Diners Club',
+    other: 'Outra',
+};
+
 
 export type Category = keyof typeof categoryData;
 export type Subcategory = typeof categoryData[Category][number];
@@ -73,6 +86,7 @@ export const TransactionFormSchema = z.object({
   }),
   paid: z.boolean().default(true),
   creditCard: z.string().optional(),
+  cardBrand: z.enum(cardBrands).optional(),
   institution: z.string().optional(),
   paymentMethod: z.enum(['one-time', 'installments', 'recurring']).default('one-time'),
   installments: z.string().optional(),
@@ -80,13 +94,6 @@ export const TransactionFormSchema = z.object({
   observations: z.string().optional(),
   hideFromReports: z.boolean().default(false),
 }).superRefine((data, ctx) => {
-    if (data.category === 'Cartão de Crédito' && (!data.creditCard || data.creditCard.trim() === '')) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Selecione o cartão de crédito para esta despesa.",
-            path: ["creditCard"],
-        });
-    }
     if (data.paymentMethod === 'installments') {
         const installmentsNum = parseInt(data.installments || '0', 10);
         if (isNaN(installmentsNum) || installmentsNum < 2) {
@@ -118,6 +125,7 @@ export type Transaction = {
   category: TransactionCategory;
   paid?: boolean;
   creditCard?: string;
+  cardBrand?: CardBrand;
   institution?: string;
   paymentMethod?: 'one-time' | 'installments' | 'recurring';
   recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';

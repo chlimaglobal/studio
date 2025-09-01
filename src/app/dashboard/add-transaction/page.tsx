@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
-import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories } from '@/lib/types';
+import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -121,6 +121,7 @@ function AddTransactionForm() {
             institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
             creditCard: searchParams.get('creditCard') || '',
+            cardBrand: searchParams.get('cardBrand') || undefined,
         };
     }, [isEditing, transactionId, transactions, searchParams]);
 
@@ -372,28 +373,52 @@ function AddTransactionForm() {
                             />
 
                              {watchedCategory === 'Cartão de Crédito' && (
-                                <FormField
-                                    control={form.control}
-                                    name="creditCard"
-                                    render={({ field }) => (
-                                        <FormItem className="animate-in fade-in-0 duration-300">
-                                            <FormLabel className="flex items-center gap-2"><CreditCardIcon className="h-4 w-4" /> Cartão de Crédito</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione o cartão" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {cards.map(card => (
-                                                        <SelectItem key={card.id} value={card.name}>{card.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="space-y-4 animate-in fade-in-0 duration-300">
+                                    <FormField
+                                        control={form.control}
+                                        name="creditCard"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Apelido do Cartão (Opcional)</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value} >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione um cartão salvo ou digite" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {cards.map(card => (
+                                                            <SelectItem key={card.id} value={card.name}>{card.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="cardBrand"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Bandeira do Cartão</FormLabel>
+                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Selecione a bandeira" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {cardBrands.map(brand => (
+                                                            <SelectItem key={brand} value={brand}>{brandNames[brand]}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                             )}
 
                              <FormField
