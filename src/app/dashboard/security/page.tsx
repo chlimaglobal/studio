@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Shield, Lock, KeyRound, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, KeyRound, MessageCircle, Fingerprint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function SecurityPage() {
@@ -47,20 +48,9 @@ export default function SecurityPage() {
                     <MessageCircle className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                    <h3 className="font-semibold">Criptografia em Trânsito (Data-in-Transit)</h3>
+                    <h3 className="font-semibold">Criptografia Abrangente</h3>
                     <p className="text-sm text-muted-foreground">
-                        Toda a comunicação entre seu dispositivo e nossos servidores, incluindo as conversas no mural, é protegida com criptografia TLS, a mesma tecnologia usada por bancos.
-                    </p>
-                </div>
-            </div>
-             <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                    <KeyRound className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                    <h3 className="font-semibold">Criptografia de Chaves Públicas e Privadas</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Utilizamos um sistema robusto de chaves para autenticação, garantindo que apenas as partes autorizadas possam acessar as informações.
+                        Todos os seus dados são protegidos por criptografia tanto em trânsito (enquanto viajam pela internet) quanto em repouso (armazenados em nossos servidores). Utilizamos algoritmos padrão da indústria para garantir que nenhuma informação sensível possa ser acessada ou comprometida por terceiros não autorizados.
                     </p>
                 </div>
             </div>
@@ -71,7 +61,18 @@ export default function SecurityPage() {
                 <div>
                     <h3 className="font-semibold">Proteção de Senha com Bcrypt</h3>
                     <p className="text-sm text-muted-foreground">
-                        Sua senha é transformada em um código ilegível (hash) usando o algoritmo Bcrypt. Isso significa que sua senha nunca é armazenada ou registrada em texto plano. Nem mesmo nós conseguimos vê-la.
+                        Sua senha é transformada em um código ilegível (hash) usando um algoritmo robusto. Isso significa que sua senha nunca é armazenada em texto plano. Nem mesmo nós conseguimos vê-la.
+                    </p>
+                </div>
+            </div>
+             <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <Fingerprint className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                    <h3 className="font-semibold">Acesso por Biometria</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Seus dados biométricos (impressão digital ou reconhecimento facial) nunca saem do seu dispositivo. O aplicativo utiliza as APIs seguras do sistema operacional para verificar sua identidade localmente, garantindo uma camada extra de proteção sem comprometer sua privacidade.
                     </p>
                 </div>
             </div>
