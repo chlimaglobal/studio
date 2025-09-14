@@ -27,7 +27,8 @@ import {
     LifeBuoy,
     HandCoins,
     Calculator,
-    CreditCard
+    CreditCard,
+    Shield
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -139,6 +140,14 @@ const menuItems = [
         subtitle: null,
         type: 'link',
         href: '/dashboard/settings',
+        premium: false,
+    },
+    { 
+        icon: Shield, 
+        title: 'Segurança e Privacidade', 
+        subtitle: 'Veja como protegemos seus dados.',
+        type: 'link',
+        href: '/dashboard/security',
         premium: false,
     },
     { 
