@@ -11,7 +11,7 @@ import { Moon, Palette, Sun, Smartphone, Bell, DollarSign, Music, Play, UserCirc
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { bufferToBase64Url, cn } from '@/lib/utils';
+import { bufferToBase64Url, cn, base64UrlToBuffer } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
@@ -321,12 +321,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleExportData = async () => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para fazer o backup.' });
-        return;
-    }
-
+  const performBackup = async () => {
+    if (!user) return;
     setIsExporting(true);
     toast({ title: 'Preparando seu backup...', description: 'Estamos coletando todos os seus dados. Isso pode levar um momento.' });
 
@@ -353,6 +349,49 @@ export default function SettingsPage() {
       });
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    const credentialId = localStorage.getItem('webauthn-credential-id');
+    if (!isBiometricSupported || !credentialId) {
+        // If biometrics are not supported or not registered, proceed without it.
+        await performBackup();
+        return;
+    }
+    
+    try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        const options: PublicKeyCredentialRequestOptions = {
+            challenge,
+            allowCredentials: [{
+                type: 'public-key',
+                id: base64UrlToBuffer(credentialId),
+            }],
+            timeout: 60000,
+            userVerification: 'required',
+            rpId: window.location.hostname
+        };
+        const credential = await navigator.credentials.get({ publicKey: options });
+
+        if (credential) {
+             toast({ title: 'Identidade confirmada!', description: 'Gerando seu backup seguro.' });
+             await performBackup();
+        } else {
+            throw new Error('Falha na autenticação biométrica para o backup.');
+        }
+
+    } catch (err) {
+        const error = err as Error;
+        if (error.name !== 'NotAllowedError') {
+             toast({
+                variant: 'destructive',
+                title: 'Falha na Autenticação',
+                description: `Não foi possível verificar sua identidade para o backup. (${error.name})`,
+            });
+        }
     }
   };
 
@@ -519,7 +558,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Download className="h-5 w-5" /> Backup e Exportação</CardTitle>
           <CardDescription>
-            Exporte todos os seus dados para um arquivo JSON como medida de segurança ou para migração.
+            Exporte todos os seus dados para um arquivo JSON como medida de segurança ou para migração. Ações críticas como esta exigem autenticação biométrica.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -652,5 +691,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
