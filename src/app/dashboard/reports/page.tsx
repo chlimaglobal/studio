@@ -73,7 +73,7 @@ const TrendAnalysisCard = () => {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
-                    Análise de Tendências da Lúmina
+                    Análise de Tendências
                 </CardTitle>
                 <CardDescription>
                     {analysis.trendDescription}
@@ -164,10 +164,10 @@ const MonthlyReportCard = () => {
                 <div>
                     <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5" />
-                        Relatório Mensal Detalhado
+                        Relatório Mensal
                     </CardTitle>
                     <CardDescription>
-                        Analise o fluxo de caixa do mês selecionado.
+                        Analise o fluxo de caixa do mês.
                     </CardDescription>
                 </div>
                  <div className="flex items-center justify-center gap-2">
@@ -291,10 +291,12 @@ export default function ReportsPage() {
           </p>
         </div>
       </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TrendAnalysisCard />
+        <MonthlyReportCard />
+      </div>
 
-      <TrendAnalysisCard />
-
-      <MonthlyReportCard />
 
       <Card>
         <CardHeader>
@@ -346,5 +348,7 @@ export default function ReportsPage() {
   );
 }
 
+
+    
 
     
