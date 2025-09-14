@@ -160,8 +160,8 @@ const MonthlyReportCard = () => {
   return (
      <Card>
         <CardHeader>
-            <div className="flex items-center justify-between">
-                <div>
+            <div className="flex items-center justify-between w-full">
+                <div className="flex-1">
                     <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5" />
                         Relatório Mensal
@@ -170,19 +170,21 @@ const MonthlyReportCard = () => {
                         Analise o fluxo de caixa do mês.
                     </CardDescription>
                 </div>
-                 <div className="flex items-center justify-center gap-2">
-                    <Button variant="outline" size="icon" onClick={handleExport} disabled={monthlyData.allExpenses.length === 0} className="h-8 w-8">
-                        <Download className="h-4 w-4" />
-                        <span className="sr-only">Baixar Relatório do Mês</span>
-                    </Button>
+                 <div className="flex flex-1 items-center justify-center gap-2">
                     <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
                     <span className="font-semibold text-sm w-28 text-center bg-primary/20 text-primary py-1 px-3 rounded-md">
-                    {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
+                        {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
                     </span>
                     <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8">
                         <ChevronRight className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="flex flex-1 justify-end">
+                    <Button variant="outline" size="icon" onClick={handleExport} disabled={monthlyData.allExpenses.length === 0} className="h-8 w-8">
+                        <Download className="h-4 w-4" />
+                        <span className="sr-only">Baixar Relatório do Mês</span>
                     </Button>
                 </div>
             </div>
@@ -292,7 +294,7 @@ export default function ReportsPage() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <TrendAnalysisCard />
         <MonthlyReportCard />
       </div>
