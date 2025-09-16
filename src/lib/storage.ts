@@ -2,7 +2,8 @@
 
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
-import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
+import { TransactionFormSchema } from './types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -362,7 +363,7 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
 async function addCommissionAsTransaction(userId: string, commission: z.infer<typeof AddCommissionFormSchema>) {
   const transactionData = {
     description: `Comissão: ${commission.description}`,
-    amount: commission.amount,
+    amount: String(commission.amount),
     date: commission.date,
     type: 'income' as const,
     category: 'Comissão' as const,
