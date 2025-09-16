@@ -337,59 +337,58 @@ export default function DashboardPage() {
     
     const generateChartData = (transactions: Transaction[]) => {
         const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-        const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
+        const monthKeys: string[] = [];
+        const today = new Date();
 
-        // Initialize months
+        // 1. Initialize the last 6 months
         for (let i = 5; i >= 0; i--) {
-            const date = subMonths(new Date(), i);
+            const date = subMonths(today, i);
             const monthKey = format(date, 'MM/yy');
+            monthKeys.push(monthKey);
             dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
         }
 
+        const firstMonthOfChart = startOfMonth(subMonths(today, 5));
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-        
-        // Calculate initial balance before the 6-month window
+
+        // 2. Calculate balance before the chart's 6-month window
         let balanceBeforeWindow = 0;
         operationalTransactions.forEach(t => {
             const tDate = new Date(t.date);
-            if (tDate < sixMonthsAgo) {
+            if (tDate < firstMonthOfChart) {
                 balanceBeforeWindow += t.type === 'income' ? t.amount : -t.amount;
             }
         });
-        
-        let cumulativeResult = balanceBeforeWindow;
 
-        // Process transactions within the 6-month window
-        Array.from(dataMap.keys()).forEach(monthKey => {
-            const [month, year] = monthKey.split('/');
-            const startDate = startOfMonth(new Date(parseInt(`20${year}`), parseInt(month) - 1));
-            const endDate = endOfMonth(startDate);
-
-            let monthIncome = 0;
-            let monthExpense = 0;
-
-            operationalTransactions.forEach(t => {
-                const tDate = new Date(t.date);
-                if (tDate >= startDate && tDate <= endDate) {
+        // 3. Populate monthly income and expenses within the window
+        operationalTransactions.forEach(t => {
+            const tDate = new Date(t.date);
+            if (tDate >= firstMonthOfChart) {
+                const monthKey = format(tDate, 'MM/yy');
+                if (dataMap.has(monthKey)) {
+                    const monthData = dataMap.get(monthKey)!;
                     if (t.type === 'income') {
-                        monthIncome += t.amount;
+                        monthData.aReceber += t.amount;
                     } else {
-                        monthExpense += t.amount;
+                        monthData.aPagar += t.amount;
                     }
                 }
-            });
-
-            cumulativeResult += monthIncome - monthExpense;
-            dataMap.set(monthKey, {
-                aReceber: monthIncome,
-                aPagar: monthExpense,
-                resultado: cumulativeResult,
-            });
+            }
         });
         
-        return Array.from(dataMap.entries()).map(([date, values]) => ({
-            date,
-            ...values,
+        // 4. Calculate cumulative result for each month
+        let cumulativeResult = balanceBeforeWindow;
+        for (const monthKey of monthKeys) {
+            const monthData = dataMap.get(monthKey)!;
+            const netChange = monthData.aReceber - monthData.aPagar;
+            cumulativeResult += netChange;
+            monthData.resultado = cumulativeResult;
+        }
+
+        // 5. Format for the chart
+        return monthKeys.map(key => ({
+            date: key,
+            ...dataMap.get(key)!,
         }));
     };
     
@@ -488,5 +487,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
