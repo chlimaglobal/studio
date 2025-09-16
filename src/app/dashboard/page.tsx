@@ -457,7 +457,7 @@ export default function DashboardPage() {
        <div className="px-0 space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
-          <div className="h-[250px] w-full">
+          <div className="h-[250px]">
               <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
           </div>
         </div>
@@ -492,6 +492,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
