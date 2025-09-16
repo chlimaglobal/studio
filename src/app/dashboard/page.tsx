@@ -293,8 +293,14 @@ export default function DashboardPage() {
             return tDate.getMonth() === currentMonth.getMonth() && tDate.getFullYear() === currentMonth.getFullYear();
         });
 
-        const recebidos = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const despesas = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+        const recebidos = monthTransactions
+            .filter(t => t.type === 'income')
+            .reduce((acc, t) => acc + t.amount, 0);
+
+        const despesas = monthTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => acc + t.amount, 0);
+            
         const previsto = recebidos - despesas;
 
         const spendingMap = new Map<TransactionCategory, number>();
@@ -388,35 +394,35 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-3 gap-3 text-center px-0">
-        <Card className="bg-secondary p-2">
-            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
-                <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Card className="bg-secondary p-3">
+            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                    <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
+                </div>
+                <p className="font-bold text-[hsl(var(--chart-1))] text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
             </CardHeader>
-            <CardContent className="p-1">
-                 <p className="font-bold text-[hsl(var(--chart-1))] break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
-            </CardContent>
         </Card>
-         <Card className="bg-secondary p-2">
-            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
-                <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
+        <Card className="bg-secondary p-3">
+            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
+                 <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
+                    <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
+                </div>
+                <p className="font-bold text-[hsl(var(--chart-2))] text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
             </CardHeader>
-            <CardContent className="p-1">
-                 <p className="font-bold text-[hsl(var(--chart-2))] break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
-            </CardContent>
         </Card>
-         <Card className="bg-secondary p-2">
-            <CardHeader className="p-1 flex-row items-center justify-center gap-2">
-                 <BarChart2 className="h-4 w-4 text-primary" />
-                <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
+        <Card className="bg-secondary p-3">
+            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-2">
+                    <BarChart2 className="h-3 w-3 text-primary" />
+                    <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
+                </div>
+                <p className="font-bold text-primary text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}</p>
             </CardHeader>
-            <CardContent className="p-1">
-                 <p className="font-bold text-primary break-words text-base md:text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}</p>
-            </CardContent>
         </Card>
-      </div>
+    </div>
 
        <div className="px-0 space-y-4">
         <div>
@@ -456,3 +462,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
