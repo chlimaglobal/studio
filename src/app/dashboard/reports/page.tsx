@@ -114,8 +114,14 @@ const MonthlyReportCard = () => {
         return tDate.getMonth() === currentMonth.getMonth() && tDate.getFullYear() === currentMonth.getFullYear() && !t.hideFromReports && !allInvestmentCategories.has(t.category);
     });
 
-    const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const income = monthTransactions
+      .filter(t => t.type === 'income')
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const expenses = monthTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, t) => acc + t.amount, 0);
+      
     const balance = income - expenses;
     
     const spendingMap = new Map<TransactionCategory, number>();
@@ -354,4 +360,5 @@ export default function ReportsPage() {
     
 
     
+
 
