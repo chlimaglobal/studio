@@ -52,32 +52,20 @@ export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 export type TransactionCategory = typeof transactionCategories[number];
 
-const brazilianCurrencySchema = z.string().transform((value, ctx) => {
-    if (!value || value.trim() === '') {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "O valor é obrigatório.",
-        });
-        return z.NEVER;
-    }
-    const cleanedValue = value.replace(/\./g, '').replace(',', '.');
-    const parsed = parseFloat(cleanedValue);
-    if (isNaN(parsed)) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Por favor, insira um valor numérico válido.",
-        });
-        return z.NEVER;
-    }
-    return parsed;
-});
+// Simplified currency schema to handle Brazilian format (comma as decimal)
+const brazilianCurrencySchema = z.string()
+    .min(1, "O valor é obrigatório.")
+    .refine(value => /^\d+([,.]\d{1,2})?$/.test(value.replace(/\./g, '')), {
+        message: "Formato de valor inválido. Use 1.234,56 ou 1234,56."
+    })
+    .transform(value => Number(value.replace(/\./g, '').replace(',', '.')));
 
 
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: brazilianCurrencySchema.refine((val) => val > 0, { message: "O valor deve ser positivo." }),
+  amount: z.coerce.number().positive({ message: "O valor deve ser maior que zero." }),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),

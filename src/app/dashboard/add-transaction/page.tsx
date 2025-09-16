@@ -40,20 +40,6 @@ const institutions = [
     "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
 ];
 
-const formatAmountForInput = (amount: number | string) => {
-    if (typeof amount === 'number') {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'decimal',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-            useGrouping: false,
-        }).format(amount).replace('.', ',');
-    }
-    // If it's already a string, assume it's correctly formatted or will be handled by Zod
-    return amount;
-};
-
-
 function AddTransactionForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -99,7 +85,7 @@ function AddTransactionForm() {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
-                    amount: formatAmountForInput(transactionToEdit.amount),
+                    amount: transactionToEdit.amount,
                     installments: transactionToEdit.totalInstallments ? String(transactionToEdit.totalInstallments) : '',
                     hideFromReports: transactionToEdit.hideFromReports || false,
                 };
@@ -109,7 +95,7 @@ function AddTransactionForm() {
         const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
-            amount: amountFromParams ? formatAmountForInput(parseFloat(amountFromParams)) : '',
+            amount: amountFromParams ? parseFloat(amountFromParams) : undefined,
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
@@ -278,10 +264,13 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="text"
+                                                type="number"
                                                 inputMode="decimal"
                                                 placeholder="150,50"
+                                                step="0.01"
                                                 {...field}
+                                                onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
