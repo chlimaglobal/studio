@@ -52,15 +52,6 @@ export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 export type TransactionCategory = typeof transactionCategories[number];
 
-// Simplified currency schema to handle Brazilian format (comma as decimal)
-const brazilianCurrencySchema = z.string()
-    .min(1, "O valor é obrigatório.")
-    .refine(value => /^\d+([,.]\d{1,2})?$/.test(value.replace(/\./g, '')), {
-        message: "Formato de valor inválido. Use 1.234,56 ou 1234,56."
-    })
-    .transform(value => Number(value.replace(/\./g, '').replace(',', '.')));
-
-
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",

@@ -1,4 +1,5 @@
 
+
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import type { Transaction, TransactionFormSchema, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
@@ -363,24 +364,15 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
     description: `Comissão: ${commission.description}`,
     amount: commission.amount,
     date: commission.date,
-    type: 'income' as 'income',
+    type: 'income' as const,
     category: 'Comissão' as const,
     paid: true,
+    paymentMethod: 'one-time' as const
   };
   
-  const formSchemaCompliantData = {
-      description: transactionData.description,
-      amount: String(transactionData.amount),
-      date: transactionData.date,
-      type: transactionData.type,
-      category: transactionData.category,
-      paid: transactionData.paid,
-      paymentMethod: 'one-time' as const
-  }
-
   try {
-    // @ts-ignore
-    await addStoredTransaction(userId, formSchemaCompliantData);
+    const validatedData = TransactionFormSchema.parse(transactionData);
+    await addStoredTransaction(userId, validatedData);
   } catch (error) {
     console.error("Failed to add commission as transaction:", error);
   }
@@ -413,6 +405,7 @@ export async function updateStoredCommissionStatus(userId: string, commissionId:
   
   if (newStatus === 'received') {
     const receivedCommissionData = { ...commission, status: newStatus, date: new Date(commission.date) };
+    // @ts-ignore
     await addCommissionAsTransaction(userId, receivedCommissionData);
   }
 }
