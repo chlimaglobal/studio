@@ -247,43 +247,48 @@ const generateChartData = (transactions: Transaction[]): { date: string; aRecebe
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
     
     // 1. Initialize data structure for the last 6 months
-    const monthlyData: Record<string, { date: string; aReceber: number; aPagar: number; resultado: number }> = {};
-    const monthKeys: string[] = [];
-    const today = new Date();
+    const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
+    const sixMonthsAgo = subMonths(new Date(), 5);
+    sixMonthsAgo.setDate(1);
+
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(today, i);
+        const date = subMonths(new Date(), i);
         const monthKey = format(date, 'MM/yy');
-        monthKeys.push(monthKey);
-        monthlyData[monthKey] = { date: monthKey, aReceber: 0, aPagar: 0, resultado: 0 };
+        dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
     }
 
-    const firstMonthOfChart = startOfMonth(subMonths(today, 5));
-
     // 2. Calculate initial balance from all transactions before the 6-month window
-    let cumulativeBalance = operationalTransactions
-        .filter(t => new Date(t.date) < firstMonthOfChart)
+    const initialBalance = operationalTransactions
+        .filter(t => new Date(t.date) < startOfMonth(sixMonthsAgo))
         .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
     // 3. Populate monthly totals for the 6-month window
     operationalTransactions.forEach(t => {
         const monthKey = format(new Date(t.date), 'MM/yy');
-        if (monthlyData[monthKey]) {
+        if (dataMap.has(monthKey)) {
+            const monthData = dataMap.get(monthKey)!;
             if (t.type === 'income') {
-                monthlyData[monthKey].aReceber += t.amount;
+                monthData.aReceber += t.amount;
             } else {
-                monthlyData[monthKey].aPagar += t.amount;
+                monthData.aPagar += t.amount;
             }
         }
     });
 
     // 4. Calculate cumulative result for each month in the window
-    monthKeys.forEach(key => {
-        const month = monthlyData[key];
-        cumulativeBalance += month.aReceber - month.aPagar;
-        month.resultado = cumulativeBalance;
+    let cumulativeBalance = initialBalance;
+    const finalData: { date: string; aReceber: number; aPagar: number; resultado: number }[] = [];
+
+    dataMap.forEach((value, key) => {
+        cumulativeBalance += value.aReceber - value.aPagar;
+        finalData.push({
+            date: key,
+            ...value,
+            resultado: cumulativeBalance,
+        });
     });
 
-    return Object.values(monthlyData);
+    return finalData.sort((a, b) => new Date(`01/${a.date}`).getTime() - new Date(`01/${b.date}`).getTime());
 };
 
 
@@ -443,7 +448,7 @@ export default function DashboardPage() {
           </Card>
       </div>
 
-       <div className="px-0 space-y-4">
+       <div className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
           <div className="h-[250px]">
@@ -481,10 +486,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
