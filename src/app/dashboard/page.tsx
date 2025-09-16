@@ -337,7 +337,8 @@ export default function DashboardPage() {
     
     const generateChartData = (transactions: Transaction[]) => {
         const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-        
+        const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
+
         // Initialize months
         for (let i = 5; i >= 0; i--) {
             const date = subMonths(new Date(), i);
@@ -346,19 +347,44 @@ export default function DashboardPage() {
         }
 
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-
+        
+        // Calculate initial balance before the 6-month window
+        let balanceBeforeWindow = 0;
         operationalTransactions.forEach(t => {
-            const monthKey = format(new Date(t.date), 'MM/yy');
-            if (dataMap.has(monthKey)) {
-                const current = dataMap.get(monthKey)!;
-                if (t.type === 'income') {
-                    current.aReceber += t.amount;
-                } else {
-                    current.aPagar += t.amount;
-                }
-                current.resultado = current.aReceber - current.aPagar;
-                dataMap.set(monthKey, current);
+            const tDate = new Date(t.date);
+            if (tDate < sixMonthsAgo) {
+                balanceBeforeWindow += t.type === 'income' ? t.amount : -t.amount;
             }
+        });
+        
+        let cumulativeResult = balanceBeforeWindow;
+
+        // Process transactions within the 6-month window
+        Array.from(dataMap.keys()).forEach(monthKey => {
+            const [month, year] = monthKey.split('/');
+            const startDate = startOfMonth(new Date(parseInt(`20${year}`), parseInt(month) - 1));
+            const endDate = endOfMonth(startDate);
+
+            let monthIncome = 0;
+            let monthExpense = 0;
+
+            operationalTransactions.forEach(t => {
+                const tDate = new Date(t.date);
+                if (tDate >= startDate && tDate <= endDate) {
+                    if (t.type === 'income') {
+                        monthIncome += t.amount;
+                    } else {
+                        monthExpense += t.amount;
+                    }
+                }
+            });
+
+            cumulativeResult += monthIncome - monthExpense;
+            dataMap.set(monthKey, {
+                aReceber: monthIncome,
+                aPagar: monthExpense,
+                resultado: cumulativeResult,
+            });
         });
         
         return Array.from(dataMap.entries()).map(([date, values]) => ({

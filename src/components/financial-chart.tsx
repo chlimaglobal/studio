@@ -49,10 +49,10 @@ export default function FinancialChart({ data, isPrivacyMode }: FinancialChartPr
     
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
                 <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} />
+                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} width={50} />
                 <Tooltip
                     content={<CustomTooltip isPrivacyMode={isPrivacyMode} />}
                     cursor={{ fill: 'hsl(var(--muted))' }}
