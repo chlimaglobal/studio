@@ -243,6 +243,60 @@ const DashboardLoadingSkeleton = () => (
     </div>
 );
 
+const generateChartData = (transactions: Transaction[]) => {
+    const today = new Date();
+    // 1. Create a data structure for the last 6 months
+    const monthlyData: { [key: string]: { date: string, aReceber: number, aPagar: number, resultado: number } } = {};
+    const monthKeys: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+        const date = subMonths(today, i);
+        const monthKey = format(date, 'MM/yy');
+        monthKeys.push(monthKey);
+        monthlyData[monthKey] = {
+            date: monthKey,
+            aReceber: 0,
+            aPagar: 0,
+            resultado: 0,
+        };
+    }
+
+    // 2. Filter and process all transactions in one go
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+    
+    let previousMonthsBalance = 0;
+    const firstMonthOfChart = startOfMonth(subMonths(today, 5));
+
+    operationalTransactions.forEach(t => {
+        const tDate = new Date(t.date);
+        
+        if (tDate < firstMonthOfChart) {
+            // Aggregate balance from before the chart's window
+            previousMonthsBalance += t.type === 'income' ? t.amount : -t.amount;
+        } else {
+            // Aggregate data for months within the chart's window
+            const monthKey = format(tDate, 'MM/yy');
+            if (monthlyData[monthKey]) {
+                if (t.type === 'income') {
+                    monthlyData[monthKey].aReceber += t.amount;
+                } else {
+                    monthlyData[monthKey].aPagar += t.amount;
+                }
+            }
+        }
+    });
+
+    // 3. Calculate the cumulative result
+    let cumulativeBalance = previousMonthsBalance;
+    for (const monthKey of monthKeys) {
+        const month = monthlyData[monthKey];
+        cumulativeBalance += month.aReceber - month.aPagar;
+        month.resultado = cumulativeBalance;
+    }
+
+    // 4. Return the data in array format for the chart
+    return Object.values(monthlyData);
+};
+
 
 export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -335,63 +389,6 @@ export default function DashboardPage() {
         };
     }, [transactions, currentMonth, budgets]);
     
-    const generateChartData = (transactions: Transaction[]) => {
-        const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-        const monthKeys: string[] = [];
-        const today = new Date();
-
-        // 1. Initialize the last 6 months
-        for (let i = 5; i >= 0; i--) {
-            const date = subMonths(today, i);
-            const monthKey = format(date, 'MM/yy');
-            monthKeys.push(monthKey);
-            dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
-        }
-
-        const firstMonthOfChart = startOfMonth(subMonths(today, 5));
-        const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-
-        // 2. Calculate balance before the chart's 6-month window
-        let balanceBeforeWindow = 0;
-        operationalTransactions.forEach(t => {
-            const tDate = new Date(t.date);
-            if (tDate < firstMonthOfChart) {
-                balanceBeforeWindow += t.type === 'income' ? t.amount : -t.amount;
-            }
-        });
-
-        // 3. Populate monthly income and expenses within the window
-        operationalTransactions.forEach(t => {
-            const tDate = new Date(t.date);
-            if (tDate >= firstMonthOfChart) {
-                const monthKey = format(tDate, 'MM/yy');
-                if (dataMap.has(monthKey)) {
-                    const monthData = dataMap.get(monthKey)!;
-                    if (t.type === 'income') {
-                        monthData.aReceber += t.amount;
-                    } else {
-                        monthData.aPagar += t.amount;
-                    }
-                }
-            }
-        });
-        
-        // 4. Calculate cumulative result for each month
-        let cumulativeResult = balanceBeforeWindow;
-        for (const monthKey of monthKeys) {
-            const monthData = dataMap.get(monthKey)!;
-            const netChange = monthData.aReceber - monthData.aPagar;
-            cumulativeResult += netChange;
-            monthData.resultado = cumulativeResult;
-        }
-
-        // 5. Format for the chart
-        return monthKeys.map(key => ({
-            date: key,
-            ...dataMap.get(key)!,
-        }));
-    };
-    
     const chartData = useMemo(() => generateChartData(transactions), [transactions]);
     
     if (isLoadingTransactions || isLoadingBudgets) {
@@ -419,35 +416,43 @@ export default function DashboardPage() {
         </Button>
       </div>
       
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Card className="bg-secondary p-3">
-            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
-                    <CardTitle className="text-xs font-normal text-muted-foreground">Recebidos</CardTitle>
-                </div>
-                <p className="font-bold text-[hsl(var(--chart-1))] text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
-            </CardHeader>
-        </Card>
-        <Card className="bg-secondary p-3">
-            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
-                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
-                    <CardTitle className="text-xs font-normal text-muted-foreground">Despesas</CardTitle>
-                </div>
-                <p className="font-bold text-[hsl(var(--chart-2))] text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
-            </CardHeader>
-        </Card>
-        <Card className="bg-secondary p-3">
-            <CardHeader className="p-1 flex flex-col items-center justify-center gap-1">
-                <div className="flex items-center gap-2">
-                    <BarChart2 className="h-3 w-3 text-primary" />
-                    <CardTitle className="text-xs font-normal text-muted-foreground">Previsto</CardTitle>
-                </div>
-                <p className="font-bold text-primary text-lg">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}</p>
-            </CardHeader>
-        </Card>
-    </div>
+      <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-secondary p-3">
+              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                      Recebidos
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="p-1">
+                  <p className="font-bold text-[hsl(var(--chart-1))] text-lg text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
+              </CardContent>
+          </Card>
+          <Card className="bg-secondary p-3">
+              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
+                      Despesas
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="p-1">
+                  <p className="font-bold text-[hsl(var(--chart-2))] text-lg text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
+              </CardContent>
+          </Card>
+          <Card className="bg-secondary p-3">
+              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <BarChart2 className="h-3 w-3 text-primary" />
+                      Balanço
+                  </CardTitle>
+              </CardHeader>
+              <CardContent className="p-1">
+                  <p className={cn("font-bold text-lg text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
+                    {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
+                  </p>
+              </CardContent>
+          </Card>
+      </div>
 
        <div className="px-0 space-y-4">
         <div>
@@ -487,6 +492,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
