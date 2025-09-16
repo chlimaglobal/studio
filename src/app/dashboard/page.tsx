@@ -244,51 +244,51 @@ const DashboardLoadingSkeleton = () => (
 );
 
 const generateChartData = (transactions: Transaction[]): { date: string; aReceber: number; aPagar: number; resultado: number }[] => {
-    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-    
-    // 1. Initialize data structure for the last 6 months
-    const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-    const sixMonthsAgo = subMonths(new Date(), 5);
-    sixMonthsAgo.setDate(1);
+    const dataMap = new Map<string, { aReceber: number, aPagar: number }>();
+    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
-    for (let i = 5; i >= 0; i--) {
-        const date = subMonths(new Date(), i);
-        const monthKey = format(date, 'MM/yy');
-        dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
+    // Initialize map for the last 6 months
+    for (let i = 0; i < 6; i++) {
+        const monthKey = format(addMonths(sixMonthsAgo, i), 'MM/yy');
+        dataMap.set(monthKey, { aReceber: 0, aPagar: 0 });
     }
 
-    // 2. Calculate initial balance from all transactions before the 6-month window
-    const initialBalance = operationalTransactions
-        .filter(t => new Date(t.date) < startOfMonth(sixMonthsAgo))
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+    
+    // Calculate balance from all transactions before the 6-month window
+    let initialBalance = operationalTransactions
+        .filter(t => new Date(t.date) < sixMonthsAgo)
         .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
-    // 3. Populate monthly totals for the 6-month window
-    operationalTransactions.forEach(t => {
-        const monthKey = format(new Date(t.date), 'MM/yy');
-        if (dataMap.has(monthKey)) {
-            const monthData = dataMap.get(monthKey)!;
-            if (t.type === 'income') {
-                monthData.aReceber += t.amount;
-            } else {
-                monthData.aPagar += t.amount;
+    // Populate monthly totals
+    operationalTransactions
+        .filter(t => new Date(t.date) >= sixMonthsAgo)
+        .forEach(t => {
+            const monthKey = format(new Date(t.date), 'MM/yy');
+            if (dataMap.has(monthKey)) {
+                const monthData = dataMap.get(monthKey)!;
+                if (t.type === 'income') {
+                    monthData.aReceber += t.amount;
+                } else {
+                    monthData.aPagar += t.amount;
+                }
             }
-        }
-    });
-
-    // 4. Calculate cumulative result for each month in the window
-    let cumulativeBalance = initialBalance;
-    const finalData: { date: string; aReceber: number; aPagar: number; resultado: number }[] = [];
-
-    dataMap.forEach((value, key) => {
-        cumulativeBalance += value.aReceber - value.aPagar;
-        finalData.push({
-            date: key,
-            ...value,
-            resultado: cumulativeBalance,
         });
-    });
 
-    return finalData.sort((a, b) => new Date(`01/${a.date}`).getTime() - new Date(`01/${b.date}`).getTime());
+    // Generate final chart data with cumulative result
+    const finalData: { date: string; aReceber: number; aPagar: number; resultado: number }[] = [];
+    let cumulativeBalance = initialBalance;
+
+    for (const [date, values] of dataMap.entries()) {
+        cumulativeBalance += values.aReceber - values.aPagar;
+        finalData.push({
+            date,
+            ...values,
+            resultado: cumulativeBalance
+        });
+    }
+
+    return finalData;
 };
 
 
@@ -391,98 +391,98 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="space-y-6">
-      <OnboardingGuide />
-      <FeatureAnnouncement />
-      <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
+    <div className="flex flex-col items-center gap-5">
+      <div className="w-full max-w-4xl space-y-6">
+        <OnboardingGuide />
+        <FeatureAnnouncement />
+        <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
-      <NotificationPermission />
-      
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <span className="font-semibold text-sm w-28 text-center bg-primary/20 text-primary py-1 px-3 rounded-md">
-          {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
-        </span>
-        <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8">
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-secondary p-3">
-              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
-                      Recebidos
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                  <p className="font-bold text-[hsl(var(--chart-1))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
-              </CardContent>
-          </Card>
-          <Card className="bg-secondary p-3">
-              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
-                      Despesas
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                  <p className="font-bold text-[hsl(var(--chart-2))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
-              </CardContent>
-          </Card>
-          <Card className="bg-secondary p-3">
-              <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <BarChart2 className="h-3 w-3 text-primary" />
-                      Balanço
-                  </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                  <p className={cn("font-bold text-base text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
-                    {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
-                  </p>
-              </CardContent>
-          </Card>
-      </div>
-
-       <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
-          <div className="h-[250px]">
-              <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
-          </div>
-        </div>
-
-        <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
-
-        <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
-
-        <div>
-            <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
-            <Card className="bg-secondary/50">
-              <CardContent className="pt-6 space-y-4">
-                {categorySpending.length > 0 ? categorySpending.slice(0, 3).map(item => (
-                  <div key={item.name} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{item.name}</span>
-                      <span className="font-medium">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(item.value)}</span>
-                    </div>
-                    <Progress value={(item.value / summary.despesas) * 100} className="h-2" />
-                  </div>
-                )) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">Sem despesas neste mês.</p>
-                )}
-              </CardContent>
-            </Card>
+        <NotificationPermission />
+        
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <span className="font-semibold text-sm w-28 text-center bg-primary/20 text-primary py-1 px-3 rounded-md">
+            {format(currentMonth, 'MMMM / yy', { locale: ptBR })}
+          </span>
+          <Button variant="ghost" size="icon" onClick={handleNextMonth} className="h-8 w-8">
+            <ChevronRight className="h-5 w-5" />
+          </Button>
         </div>
         
-        <AiTipsCard />
+        <div className="grid grid-cols-3 gap-3">
+            <Card className="bg-secondary p-3">
+                <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                        Recebidos
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-1">
+                    <p className="font-bold text-[hsl(var(--chart-1))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-secondary p-3">
+                <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
+                        Despesas
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-1">
+                    <p className="font-bold text-[hsl(var(--chart-2))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
+                </CardContent>
+            </Card>
+            <Card className="bg-secondary p-3">
+                <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <BarChart2 className="h-3 w-3 text-primary" />
+                        Balanço
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-1">
+                    <p className={cn("font-bold text-base text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
+                      {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
 
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
+            <div className="h-[250px]">
+                <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
+            </div>
+          </div>
+
+          <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
+
+          <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
+
+          <div>
+              <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
+              <Card className="bg-secondary/50">
+                <CardContent className="pt-6 space-y-4">
+                  {categorySpending.length > 0 ? categorySpending.slice(0, 3).map(item => (
+                    <div key={item.name} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{item.name}</span>
+                        <span className="font-medium">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(item.value)}</span>
+                      </div>
+                      <Progress value={(item.value / summary.despesas) * 100} className="h-2" />
+                    </div>
+                  )) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">Sem despesas neste mês.</p>
+                  )}
+                </CardContent>
+              </Card>
+          </div>
+          
+          <AiTipsCard />
+        </div>
       </div>
-
     </div>
   );
 }
