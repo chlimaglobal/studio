@@ -170,7 +170,7 @@ const MonthlyReportCard = () => {
                         Analise o fluxo de caixa do mês.
                     </CardDescription>
                 </div>
-                 <div className="flex flex-1 items-center justify-center gap-2">
+                 <div className="flex-1 flex items-center justify-center gap-2">
                     <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
@@ -181,7 +181,7 @@ const MonthlyReportCard = () => {
                         <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
-                <div className="flex flex-1 justify-end">
+                <div className="flex-1 flex justify-end">
                     <Button variant="outline" size="icon" onClick={handleExport} disabled={monthlyData.allExpenses.length === 0} className="h-8 w-8">
                         <Download className="h-4 w-4" />
                         <span className="sr-only">Baixar Relatório do Mês</span>
@@ -354,3 +354,4 @@ export default function ReportsPage() {
     
 
     
+
