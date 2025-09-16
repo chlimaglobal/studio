@@ -244,57 +244,47 @@ const DashboardLoadingSkeleton = () => (
 );
 
 const generateChartData = (transactions: Transaction[]) => {
-    const today = new Date();
-    // 1. Create a data structure for the last 6 months
-    const monthlyData: { [key: string]: { date: string, aReceber: number, aPagar: number, resultado: number } } = {};
+    const monthlyData = new Map<string, { date: string, aReceber: number, aPagar: number, resultado: number }>();
     const monthKeys: string[] = [];
+
+    // 1. Initialize the last 6 months
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(today, i);
+        const date = subMonths(new Date(), i);
         const monthKey = format(date, 'MM/yy');
         monthKeys.push(monthKey);
-        monthlyData[monthKey] = {
-            date: monthKey,
-            aReceber: 0,
-            aPagar: 0,
-            resultado: 0,
-        };
+        monthlyData.set(monthKey, { date: monthKey, aReceber: 0, aPagar: 0, resultado: 0 });
     }
-
-    // 2. Filter and process all transactions in one go
-    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
     
-    let previousMonthsBalance = 0;
-    const firstMonthOfChart = startOfMonth(subMonths(today, 5));
+    const firstMonthOfChart = startOfMonth(subMonths(new Date(), 5));
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
 
+    // 2. Calculate initial balance from transactions before the 6-month window
+    const previousBalance = operationalTransactions
+        .filter(t => new Date(t.date) < firstMonthOfChart)
+        .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+
+    // 3. Populate monthly totals for the 6-month window
     operationalTransactions.forEach(t => {
-        const tDate = new Date(t.date);
-        
-        if (tDate < firstMonthOfChart) {
-            // Aggregate balance from before the chart's window
-            previousMonthsBalance += t.type === 'income' ? t.amount : -t.amount;
-        } else {
-            // Aggregate data for months within the chart's window
-            const monthKey = format(tDate, 'MM/yy');
-            if (monthlyData[monthKey]) {
-                if (t.type === 'income') {
-                    monthlyData[monthKey].aReceber += t.amount;
-                } else {
-                    monthlyData[monthKey].aPagar += t.amount;
-                }
+        const monthKey = format(new Date(t.date), 'MM/yy');
+        if (monthlyData.has(monthKey)) {
+            const month = monthlyData.get(monthKey)!;
+            if (t.type === 'income') {
+                month.aReceber += t.amount;
+            } else {
+                month.aPagar += t.amount;
             }
         }
     });
 
-    // 3. Calculate the cumulative result
-    let cumulativeBalance = previousMonthsBalance;
+    // 4. Calculate cumulative result
+    let cumulativeBalance = previousBalance;
     for (const monthKey of monthKeys) {
-        const month = monthlyData[monthKey];
+        const month = monthlyData.get(monthKey)!;
         cumulativeBalance += month.aReceber - month.aPagar;
         month.resultado = cumulativeBalance;
     }
-
-    // 4. Return the data in array format for the chart
-    return Object.values(monthlyData);
+    
+    return Array.from(monthlyData.values());
 };
 
 
@@ -425,7 +415,7 @@ export default function DashboardPage() {
                   </CardTitle>
               </CardHeader>
               <CardContent className="p-1">
-                  <p className="font-bold text-[hsl(var(--chart-1))] text-lg text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
+                  <p className="font-bold text-[hsl(var(--chart-1))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
               </CardContent>
           </Card>
           <Card className="bg-secondary p-3">
@@ -436,7 +426,7 @@ export default function DashboardPage() {
                   </CardTitle>
               </CardHeader>
               <CardContent className="p-1">
-                  <p className="font-bold text-[hsl(var(--chart-2))] text-lg text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
+                  <p className="font-bold text-[hsl(var(--chart-2))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
               </CardContent>
           </Card>
           <Card className="bg-secondary p-3">
@@ -447,7 +437,7 @@ export default function DashboardPage() {
                   </CardTitle>
               </CardHeader>
               <CardContent className="p-1">
-                  <p className={cn("font-bold text-lg text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
+                  <p className={cn("font-bold text-base text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
                     {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
                   </p>
               </CardContent>
@@ -492,6 +482,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
