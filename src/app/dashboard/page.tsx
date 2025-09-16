@@ -243,48 +243,47 @@ const DashboardLoadingSkeleton = () => (
     </div>
 );
 
-const generateChartData = (transactions: Transaction[]) => {
-    const monthlyData = new Map<string, { date: string, aReceber: number, aPagar: number, resultado: number }>();
+const generateChartData = (transactions: Transaction[]): { date: string; aReceber: number; aPagar: number; resultado: number }[] => {
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+    
+    // 1. Initialize data structure for the last 6 months
+    const monthlyData: Record<string, { date: string; aReceber: number; aPagar: number; resultado: number }> = {};
     const monthKeys: string[] = [];
-
-    // 1. Initialize the last 6 months
+    const today = new Date();
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(new Date(), i);
+        const date = subMonths(today, i);
         const monthKey = format(date, 'MM/yy');
         monthKeys.push(monthKey);
-        monthlyData.set(monthKey, { date: monthKey, aReceber: 0, aPagar: 0, resultado: 0 });
+        monthlyData[monthKey] = { date: monthKey, aReceber: 0, aPagar: 0, resultado: 0 };
     }
-    
-    const firstMonthOfChart = startOfMonth(subMonths(new Date(), 5));
-    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
 
-    // 2. Calculate initial balance from transactions before the 6-month window
-    const previousBalance = operationalTransactions
+    const firstMonthOfChart = startOfMonth(subMonths(today, 5));
+
+    // 2. Calculate initial balance from all transactions before the 6-month window
+    let cumulativeBalance = operationalTransactions
         .filter(t => new Date(t.date) < firstMonthOfChart)
         .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
     // 3. Populate monthly totals for the 6-month window
     operationalTransactions.forEach(t => {
         const monthKey = format(new Date(t.date), 'MM/yy');
-        if (monthlyData.has(monthKey)) {
-            const month = monthlyData.get(monthKey)!;
+        if (monthlyData[monthKey]) {
             if (t.type === 'income') {
-                month.aReceber += t.amount;
+                monthlyData[monthKey].aReceber += t.amount;
             } else {
-                month.aPagar += t.amount;
+                monthlyData[monthKey].aPagar += t.amount;
             }
         }
     });
 
-    // 4. Calculate cumulative result
-    let cumulativeBalance = previousBalance;
-    for (const monthKey of monthKeys) {
-        const month = monthlyData.get(monthKey)!;
+    // 4. Calculate cumulative result for each month in the window
+    monthKeys.forEach(key => {
+        const month = monthlyData[key];
         cumulativeBalance += month.aReceber - month.aPagar;
         month.resultado = cumulativeBalance;
-    }
-    
-    return Array.from(monthlyData.values());
+    });
+
+    return Object.values(monthlyData);
 };
 
 
@@ -482,6 +481,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
