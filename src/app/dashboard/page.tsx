@@ -244,38 +244,45 @@ const DashboardLoadingSkeleton = () => (
 );
 
 const generateChartData = (transactions: Transaction[]): { date: string; aReceber: number; aPagar: number; resultado: number }[] => {
-    const dataMap = new Map<string, { aReceber: number; aPagar: number }>();
+    const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
     const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
     // Initialize map for the last 6 months
     for (let i = 0; i < 6; i++) {
         const monthKey = format(addMonths(sixMonthsAgo, i), 'MM/yy');
-        dataMap.set(monthKey, { aReceber: 0, aPagar: 0 });
+        dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
     }
 
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
     
-    // Calculate balance from all transactions before the 6-month window
-    let initialBalance = operationalTransactions
-        .filter(t => new Date(t.date) < sixMonthsAgo)
-        .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+    let initialBalance = 0;
+    
+    // Separate transactions into before and within the 6-month window
+    const pastTransactions: Transaction[] = [];
+    const currentTransactions: Transaction[] = [];
+
+    operationalTransactions.forEach(t => {
+        if (new Date(t.date) < sixMonthsAgo) {
+            pastTransactions.push(t);
+        } else {
+            currentTransactions.push(t);
+        }
+    });
+
+    initialBalance = pastTransactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
     // Populate monthly totals
-    operationalTransactions
-        .forEach(t => {
-            const tDate = new Date(t.date);
-            if (tDate >= sixMonthsAgo) {
-                const monthKey = format(tDate, 'MM/yy');
-                if (dataMap.has(monthKey)) {
-                    const monthData = dataMap.get(monthKey)!;
-                    if (t.type === 'income') {
-                        monthData.aReceber += t.amount;
-                    } else {
-                        monthData.aPagar += t.amount;
-                    }
-                }
+    currentTransactions.forEach(t => {
+        const monthKey = format(new Date(t.date), 'MM/yy');
+        if (dataMap.has(monthKey)) {
+            const monthData = dataMap.get(monthKey)!;
+            if (t.type === 'income') {
+                monthData.aReceber += t.amount;
+            } else {
+                monthData.aPagar += t.amount;
             }
-        });
+        }
+    });
 
     // Generate final chart data with cumulative result
     const finalData: { date: string; aReceber: number; aPagar: number; resultado: number }[] = [];
@@ -394,7 +401,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-full max-w-4xl space-y-5 flex flex-col">
+      <div className="w-full max-w-4xl space-y-5">
         <OnboardingGuide />
         <FeatureAnnouncement />
         <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
@@ -488,4 +495,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
