@@ -244,7 +244,7 @@ const DashboardLoadingSkeleton = () => (
 );
 
 const generateChartData = (transactions: Transaction[]): { date: string; aReceber: number; aPagar: number; resultado: number }[] => {
-    const dataMap = new Map<string, { aReceber: number, aPagar: number }>();
+    const dataMap = new Map<string, { aReceber: number; aPagar: number }>();
     const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
     // Initialize map for the last 6 months
@@ -262,15 +262,17 @@ const generateChartData = (transactions: Transaction[]): { date: string; aRecebe
 
     // Populate monthly totals
     operationalTransactions
-        .filter(t => new Date(t.date) >= sixMonthsAgo)
         .forEach(t => {
-            const monthKey = format(new Date(t.date), 'MM/yy');
-            if (dataMap.has(monthKey)) {
-                const monthData = dataMap.get(monthKey)!;
-                if (t.type === 'income') {
-                    monthData.aReceber += t.amount;
-                } else {
-                    monthData.aPagar += t.amount;
+            const tDate = new Date(t.date);
+            if (tDate >= sixMonthsAgo) {
+                const monthKey = format(tDate, 'MM/yy');
+                if (dataMap.has(monthKey)) {
+                    const monthData = dataMap.get(monthKey)!;
+                    if (t.type === 'income') {
+                        monthData.aReceber += t.amount;
+                    } else {
+                        monthData.aPagar += t.amount;
+                    }
                 }
             }
         });
@@ -391,8 +393,8 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div className="w-full max-w-4xl space-y-6">
+    <div className="flex flex-col items-center">
+      <div className="w-full max-w-4xl space-y-5 flex flex-col">
         <OnboardingGuide />
         <FeatureAnnouncement />
         <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
@@ -419,8 +421,8 @@ export default function DashboardPage() {
                         Recebidos
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-1">
-                    <p className="font-bold text-[hsl(var(--chart-1))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
+                <CardContent className="p-1 text-center">
+                    <p className="font-bold text-[hsl(var(--chart-1))] text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
                 </CardContent>
             </Card>
             <Card className="bg-secondary p-3">
@@ -430,8 +432,8 @@ export default function DashboardPage() {
                         Despesas
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-1">
-                    <p className="font-bold text-[hsl(var(--chart-2))] text-base text-center">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
+                <CardContent className="p-1 text-center">
+                    <p className="font-bold text-[hsl(var(--chart-2))] text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
                 </CardContent>
             </Card>
             <Card className="bg-secondary p-3">
@@ -441,8 +443,8 @@ export default function DashboardPage() {
                         Balanço
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-1">
-                    <p className={cn("font-bold text-base text-center", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
+                <CardContent className="p-1 text-center">
+                    <p className={cn("font-bold text-base", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
                       {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
                     </p>
                 </CardContent>
@@ -486,5 +488,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
