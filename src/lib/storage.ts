@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
+import { onUserCreated } from './firebase-functions';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -38,6 +39,11 @@ export const initializeUser = async (user: User) => {
                 createdAt: Timestamp.now(),
                 stripeSubscriptionStatus: 'inactive', // Default status
             }, { merge: true });
+            
+            // Trigger the onUserCreated function for new users
+            if(user.email && user.displayName) {
+                await onUserCreated({ email: user.email, displayName: user.displayName });
+            }
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
@@ -363,7 +369,7 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
 async function addCommissionAsTransaction(userId: string, commission: z.infer<typeof AddCommissionFormSchema>) {
   const transactionData = {
     description: `Comissão: ${commission.description}`,
-    amount: String(commission.amount),
+    amount: commission.amount,
     date: commission.date,
     type: 'income' as const,
     category: 'Comissão' as const,

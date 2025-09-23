@@ -4,6 +4,27 @@
 import { adminDb } from './firebase-admin';
 import { customAlphabet } from 'nanoid';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { sendNewUserAdminNotification } from '@/app/actions';
+
+/**
+ * Triggers when a new user is created and sends a notification to the admin.
+ * This is a Firebase Authentication Trigger.
+ * @param {UserRecord} user - The user record of the new user.
+ */
+export async function onUserCreated(user: { email: string, displayName: string }) {
+  if (!user.email) {
+    console.error('New user created without an email address.');
+    return;
+  }
+  
+  try {
+    await sendNewUserAdminNotification(user.email, user.displayName);
+    console.log(`Successfully triggered admin notification for ${user.email}`);
+  } catch (error) {
+    console.error(`Failed to send admin notification for ${user.email}`, error);
+  }
+}
+
 
 /**
  * Generates a unique invite code for a shared account.

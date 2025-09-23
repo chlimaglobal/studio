@@ -125,6 +125,50 @@ export async function sendWelcomeEmail(email: string, name: string) {
   }
 }
 
+/**
+ * This function sends a notification email to the admin when a new user signs up.
+ * It is called from the onUserCreated Firebase Function trigger.
+ * @param userEmail The new user's email address.
+ * @param userName The new user's name.
+ */
+export async function sendNewUserAdminNotification(userEmail: string, userName: string) {
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  if (!sendgridApiKey || !fromEmail || !adminEmail) {
+    console.error('SendGrid or Admin Email environment variables are not configured.');
+    return { success: false, error: 'Admin notification environment variables not configured.' };
+  }
+
+  sgMail.setApiKey(sendgridApiKey);
+
+  const msg = {
+    to: adminEmail,
+    from: fromEmail,
+    subject: '🎉 Novo Usuário no FinanceFlow!',
+    html: `
+      <h1>Oba! Um novo usuário se cadastrou!</h1>
+      <p>Um novo usuário acaba de se juntar ao FinanceFlow.</p>
+      <ul>
+        <li><strong>Nome:</strong> ${userName || '(não fornecido)'}</li>
+        <li><strong>Email:</strong> ${userEmail}</li>
+      </ul>
+      <p>O aplicativo está crescendo! 🚀</p>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Admin notification sent for new user: ${userEmail}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending admin notification email:', error);
+    return { success: false, error: 'Failed to send admin notification email.' };
+  }
+}
+
+
 export async function getPartnerId(userId: string): Promise<string | null> {
     if (!adminDb) {
         console.error("O banco de dados do administrador não foi inicializado.");
