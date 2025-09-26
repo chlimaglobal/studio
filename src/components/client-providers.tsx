@@ -75,7 +75,7 @@ export function useViewMode() {
 // 4. Transactions Context
 interface TransactionsContextType {
   transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  addTransaction: (data: z.infer<typeof TransactionFormSchema>, userId?: string) => Promise<void>;
   updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   isLoading: boolean;
@@ -257,15 +257,15 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>) => {
-    const userId = user?.uid;
-    if (!userId) {
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>, userId?: string) => {
+    const currentUserId = userId || user?.uid;
+    if (!currentUserId) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
       throw new Error("User not authenticated");
     }
     
     try {
-        await addStoredTransaction(userId, data);
+        await addStoredTransaction(data, currentUserId);
 
         const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
         toast({
@@ -273,7 +273,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             description: `${data.description} - ${formatCurrency(data.amount)}`,
         });
 
-        // Play sound based on transaction type
         const soundToPlay = data.type === 'income'
           ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
           : localStorage.getItem('expenseSound') || 'swoosh.mp3';
@@ -282,7 +281,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
         if (userWhatsAppNumber) {
             const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
-            // Do not await this, let it run in the background
             sendWhatsAppNotification(messageBody, userWhatsAppNumber);
         }
 

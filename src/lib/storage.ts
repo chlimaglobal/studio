@@ -121,15 +121,16 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
   return unsubscribe;
 }
 
-export async function addStoredTransaction(userId: string, data: z.infer<typeof TransactionFormSchema>) {
-    if (!userId) throw new Error("User not authenticated");
+export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>, userId?: string) {
+    const currentUserId = userId || (data as any).ownerId;
+    if (!currentUserId) throw new Error("User not authenticated");
     
     const installments = data.installments ? parseInt(data.installments, 10) : 0;
 
     if (data.paymentMethod === 'installments' && installments > 1) {
         const batch = writeBatch(db);
         const installmentAmount = data.amount / installments;
-        const originalDocId = doc(collection(db, 'users', userId, 'transactions')).id; // Generate a base ID for grouping
+        const originalDocId = doc(collection(db, 'users', currentUserId, 'transactions')).id; // Generate a base ID for grouping
 
         for (let i = 0; i < installments; i++) {
             const installmentDate = addMonths(new Date(data.date), i);
@@ -142,11 +143,11 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
                 totalInstallments: installments,
                 installmentGroupId: originalDocId, // Group installments together
                 paymentMethod: 'installments',
-                ownerId: userId,
+                ownerId: currentUserId,
             };
             // @ts-ignore
             delete transactionData.installments; // remove the main installments field
-            const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
+            const newDocRef = doc(collection(db, 'users', currentUserId, 'transactions'));
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
         }
         await batch.commit();
@@ -157,9 +158,9 @@ export async function addStoredTransaction(userId: string, data: z.infer<typeof 
             amount: data.amount,
             date: Timestamp.fromDate(new Date(data.date)),
             dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
-            ownerId: userId,
+            ownerId: currentUserId,
         };
-        await addDoc(collection(db, 'users', userId, 'transactions'), cleanDataForFirestore(transactionData));
+        await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
     }
 }
 
@@ -374,12 +375,13 @@ async function addCommissionAsTransaction(userId: string, commission: z.infer<ty
     type: 'income' as const,
     category: 'Comissão' as const,
     paid: true,
-    paymentMethod: 'one-time' as const
+    paymentMethod: 'one-time' as const,
+    ownerId: userId,
   };
   
   try {
     const validatedData = TransactionFormSchema.parse(transactionData);
-    await addStoredTransaction(userId, validatedData);
+    await addStoredTransaction(validatedData, userId);
   } catch (error) {
     console.error("Failed to add commission as transaction:", error);
   }
