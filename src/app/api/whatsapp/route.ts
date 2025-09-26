@@ -23,11 +23,22 @@ export async function POST(request: NextRequest) {
     try {
         const jsonBody = await request.json();
         
+        // Adapt to different field names for flexibility
+        const amount = jsonBody.amount ?? jsonBody.valor;
+        const description = jsonBody.description ?? jsonBody.descricao;
+        const category = jsonBody.category ?? jsonBody.categoria;
+        const type = jsonBody.type ?? (amount >= 0 ? 'income' : 'expense');
+
+        if (description === undefined || amount === undefined) {
+             return NextResponse.json({ error: 'Os campos "description" (ou "descricao") e "amount" (ou "valor") são obrigatórios.' }, { status: 400 });
+        }
+
+
         const transactionData = {
-            description: jsonBody.description,
-            amount: jsonBody.amount,
-            type: jsonBody.type,
-            category: jsonBody.category || 'Outros',
+            description: description,
+            amount: Math.abs(amount),
+            type: type,
+            category: category || 'Outros',
             date: jsonBody.date ? new Date(jsonBody.date) : new Date(),
             paid: true,
             paymentMethod: 'one-time',
@@ -36,6 +47,8 @@ export async function POST(request: NextRequest) {
         // Validate with Zod schema before saving
         const validatedData = TransactionFormSchema.parse(transactionData);
         
+        // In a multi-user environment, you'd identify the user via the API key
+        // For this app, we assume a single user context for this direct API call.
         await addStoredTransaction(validatedData);
 
         return NextResponse.json({ success: true, message: 'Transação registrada com sucesso.' }, { status: 200 });
