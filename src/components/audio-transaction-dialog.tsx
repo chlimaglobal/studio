@@ -82,19 +82,30 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     }
   }, [open]);
 
-  const handleToggleRecording = () => {
+  const handleToggleRecording = async () => {
     if (isRecording) {
       recognitionRef.current?.stop();
       return;
     }
     
-    if (!('webkitSpeechRecognition' in window)) {
+    if (typeof window === 'undefined' || !('webkitSpeechRecognition' in window)) {
       setError('O reconhecimento de voz não é suportado neste navegador. Tente usar o Chrome.');
       return;
     }
     
+    try {
+        // @ts-ignore
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+        if (permissionStatus.state === 'denied') {
+            setError('A permissão para usar o microfone foi negada. Por favor, habilite nas configurações do seu navegador.');
+            return;
+        }
+    } catch (e) {
+        console.warn('Permission API for microphone not supported, proceeding directly.');
+    }
+    
     setError(null);
-    setIsProcessing(false); // Reset processing state on new attempt
+    setIsProcessing(false);
 
     const SpeechRecognition = window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
@@ -115,9 +126,13 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
 
     recognition.onerror = (event) => {
         console.error('Speech recognition error', event.error);
-        if (event.error !== 'no-speech' && event.error !== 'aborted') {
-          setError(`Erro: ${event.error}. Verifique a permissão do microfone.`);
+        let errorMessage = `Erro: ${event.error}. Verifique a permissão do microfone.`;
+        if (event.error === 'not-allowed') {
+            errorMessage = "Você precisa permitir o acesso ao microfone para usar esta funcionalidade.";
+        } else if (event.error === 'no-speech') {
+            errorMessage = "Não consegui ouvir nada. Fale mais alto ou verifique seu microfone.";
         }
+        setError(errorMessage);
         setIsRecording(false);
     };
 
