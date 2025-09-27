@@ -11,6 +11,8 @@ import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
+const UNLOCK_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 // App Lock Screen Component
 const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
     const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -114,18 +116,18 @@ export default function DashboardLayout({
     const isBiometricRegistered = !!localStorage.getItem('webauthn-credential-id');
     
     if (!isLoading && user && isAppLockEnabled && isBiometricRegistered) {
-      // Check if session exists to avoid locking on first login
-      const sessionActive = sessionStorage.getItem('app-session-active');
-      if (!sessionActive) {
+      const lastUnlockTimestamp = sessionStorage.getItem('app-last-unlocked');
+      const now = Date.now();
+      
+      if (!lastUnlockTimestamp || (now - parseInt(lastUnlockTimestamp, 10) > UNLOCK_TIMEOUT_MS)) {
         setIsLocked(true);
       }
     }
-     // Mark session as active after the first check
-    sessionStorage.setItem('app-session-active', 'true');
   }, [isLoading, user]);
 
 
   const handleUnlock = () => {
+    sessionStorage.setItem('app-last-unlocked', Date.now().toString());
     setIsLocked(false);
   };
 
