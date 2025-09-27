@@ -11,7 +11,7 @@ import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
-const UNLOCK_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
 // App Lock Screen Component
 const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
