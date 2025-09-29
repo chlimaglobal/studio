@@ -34,6 +34,7 @@ export default function IntegrationPage() {
   useEffect(() => {
     // Load saved settings from localStorage
     const savedApiUrl = localStorage.getItem('externalApiUrl');
+    const savedApiToken = localStorage.getItem('externalApiBearerToken');
     if (savedApiUrl) {
       setApiUrl(savedApiUrl);
     }
