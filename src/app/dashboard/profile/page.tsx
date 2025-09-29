@@ -28,7 +28,8 @@ import {
     HandCoins,
     Calculator,
     CreditCard,
-    Shield
+    Shield,
+    Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -133,6 +134,14 @@ const menuItems = [
         type: 'link',
         href: '/dashboard/goals',
         premium: true,
+    },
+    { 
+        icon: Settings, 
+        title: 'Integrações Externas', 
+        subtitle: 'Conecte o FinanceFlow a outros sistemas.',
+        type: 'link',
+        href: '/dashboard/integration',
+        premium: false,
     },
     { 
         icon: Bell, 
