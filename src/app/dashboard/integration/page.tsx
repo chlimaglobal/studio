@@ -34,7 +34,7 @@ export default function IntegrationPage() {
   useEffect(() => {
     // Load saved settings from localStorage
     const savedApiUrl = localStorage.getItem('externalApiUrl');
-    const savedApiToken = localStorage.getItem('externalApiBearerToken');
+    // We don't load the bearer token for security reasons. It's only written.
     if (savedApiUrl) {
       setApiUrl(savedApiUrl);
     }
@@ -193,3 +193,5 @@ export default function IntegrationPage() {
     </div>
   );
 }
+
+    
