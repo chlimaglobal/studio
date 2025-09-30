@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Loader2, Save, Link as LinkIcon, KeyRound, TestTube2, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -64,7 +64,7 @@ export default function IntegrationPage() {
     }
   };
 
-  const handleTestConnection = async () => {
+  const handleTestConnection = useCallback(async () => {
     setIsTesting(true);
     setTestResult(null);
 
@@ -107,7 +107,7 @@ export default function IntegrationPage() {
     } finally {
         setIsTesting(false);
     }
-  };
+  }, [apiUrl, bearerToken, toast]);
 
 
   return (
@@ -193,5 +193,3 @@ export default function IntegrationPage() {
     </div>
   );
 }
-
-    

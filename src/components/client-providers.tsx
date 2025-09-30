@@ -20,7 +20,7 @@ import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/type
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
-import { sendWhatsAppNotification, getPartnerId } from '@/app/actions';
+import { getPartnerId } from '@/app/actions';
 import { usePathname } from 'next/navigation';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
@@ -277,12 +277,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
           ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
           : localStorage.getItem('expenseSound') || 'swoosh.mp3';
         playSound(soundToPlay);
-
-        const userWhatsAppNumber = localStorage.getItem('userWhatsApp');
-        if (userWhatsAppNumber) {
-            const messageBody = `Nova ${messageType} de ${formatCurrency(data.amount)} (${data.description}) registrada pelo app.`;
-            sendWhatsAppNotification(messageBody, userWhatsAppNumber);
-        }
 
     } catch (error) {
         console.error("Failed to save transaction:", error);
