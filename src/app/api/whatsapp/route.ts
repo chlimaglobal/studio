@@ -8,18 +8,11 @@ import { Twilio } from 'twilio';
 
 // This is the Webhook endpoint for Twilio to call when a message is received.
 export async function POST(request: NextRequest) {
-  const twilioSignature = request.headers.get('x-twilio-signature');
-  const contentType = request.headers.get('content-type') || '';
+  const authHeader = request.headers.get('authorization');
+  const apiSecret = process.env.API_SECRET_KEY;
 
   // --- Integration via Direct API Call (JSON) ---
-  if (contentType.includes('application/json') && !twilioSignature) {
-    const apiSecret = process.env.API_SECRET_KEY;
-    const authHeader = request.headers.get('authorization');
-    
-    if (!apiSecret || authHeader !== `Bearer ${apiSecret}`) {
-        return NextResponse.json({ error: 'Acesso não autorizado.' }, { status: 401 });
-    }
-
+  if (authHeader && authHeader === `Bearer ${apiSecret}`) {
     try {
         const jsonBody = await request.json();
         
@@ -49,6 +42,8 @@ export async function POST(request: NextRequest) {
         
         // In a multi-user environment, you'd identify the user via the API key
         // For this app, we assume a single user context for this direct API call.
+        // A user ID must be passed or inferred from the API key for multi-user scenarios.
+        // For this example, we assume a placeholder or single user.
         await addStoredTransaction(validatedData);
 
         return NextResponse.json({ success: true, message: 'Transação registrada com sucesso.' }, { status: 200 });
@@ -61,16 +56,16 @@ export async function POST(request: NextRequest) {
 
 
   // --- Integration via Twilio WhatsApp ---
-  const formData = await request.formData();
-  const messageBody = formData.get('Body') as string;
-
-  if (!messageBody) {
-    return new Response('<Response><Message>Mensagem vazia.</Message></Response>', {
-        headers: { 'Content-Type': 'text/xml' },
-    });
-  }
-
   try {
+    const formData = await request.formData();
+    const messageBody = formData.get('Body') as string;
+
+    if (!messageBody) {
+        return new Response('<Response><Message>Mensagem vazia.</Message></Response>', {
+            headers: { 'Content-Type': 'text/xml' },
+        });
+    }
+
     const extractedData = await extractTransactionFromText({ text: messageBody });
 
     if (!extractedData || !extractedData.description || !extractedData.amount) {
