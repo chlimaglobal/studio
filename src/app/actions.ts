@@ -5,7 +5,6 @@ import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
 import { TransactionCategory, transactionCategories } from "@/lib/types";
 import { getAuth } from "firebase-admin/auth";
-import { Twilio } from 'twilio';
 import { adminApp, adminDb } from "@/lib/firebase-admin";
 import sgMail from '@sendgrid/mail';
 
@@ -55,38 +54,6 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
     console.error("Lúmina suggestion failed:", e);
     // Fail silently on the UI, but log the error.
     return { category: null, error: 'Falha ao obter sugestão da Lúmina.' };
-  }
-}
-
-
-export async function sendWhatsAppNotification(body: string, to: string) {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
-
-  if (!accountSid || !authToken || !from) {
-    console.error('Twilio credentials are not set in environment variables.');
-    return { success: false, error: 'Twilio credentials not configured.' };
-  }
-  
-  if (!to) {
-    console.log('User WhatsApp number not provided. Skipping notification.');
-    return { success: false, error: 'User WhatsApp number not provided.' };
-  }
-
-  const client = new Twilio(accountSid, authToken);
-
-  try {
-    await client.messages.create({
-      from: `whatsapp:${from}`,
-      to: `whatsapp:${to}`,
-      body: body,
-    });
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to send WhatsApp message:', error);
-    // @ts-ignore
-    return { success: false, error: error.message };
   }
 }
 
