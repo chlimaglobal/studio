@@ -10,7 +10,7 @@
  */
 
 import { ai, model } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { transactionCategories } from '@/lib/types';
 
 const ExtractTransactionInputSchema = z.object({
@@ -88,8 +88,10 @@ const extractTransactionFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await model.generate({ prompt, input });
-    if (!output || !output.amount || !output.description || !output.type) {
-      throw new Error('A Lúmina não conseguiu processar a solicitação ou os dados estão incompletos.');
+    // Relaxed validation: only description and type are strictly required to proceed.
+    // Amount can be zero if not detected, and category is optional.
+    if (!output || !output.description || !output.type) {
+      throw new Error('A Lúmina não conseguiu processar a solicitação ou os dados essenciais (descrição e tipo) estão incompletos.');
     }
     return output;
   }
