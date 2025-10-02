@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -179,7 +178,7 @@ export default function MediateGoalsPage() {
                 </CardHeader>
                 <CardContent>
                     <Label htmlFor="shared-savings">Total da Economia Mensal (R$)</Label>
-                    <Input id="shared-savings" type="number" placeholder="ex: 2000" required value={sharedMonthlySavings} onChange={e => setSharedMonthlySavings(Number(e.target.value))} />
+                    <Input id="shared-savings" type="number" placeholder="ex: 2000" required value={sharedMonthlySavings} onChange={e => setSharedMonthlySavings(Number(e.target.value) || '')} />
                 </CardContent>
             </Card>
 
@@ -195,11 +194,11 @@ export default function MediateGoalsPage() {
                         </div>
                         <div>
                             <Label htmlFor="partnerA-amount">Valor (R$)</Label>
-                            <Input id="partnerA-amount" type="number" placeholder="ex: 24000" required value={partnerAAmount} onChange={e => setPartnerAAmount(Number(e.target.value))} />
+                            <Input id="partnerA-amount" type="number" placeholder="ex: 24000" required value={partnerAAmount} onChange={e => setPartnerAAmount(Number(e.target.value) || '')} />
                         </div>
                         <div>
                             <Label htmlFor="partnerA-months">Prazo (meses)</Label>
-                            <Input id="partnerA-months" type="number" placeholder="ex: 12" required value={partnerAMonths} onChange={e => setPartnerAMonths(Number(e.target.value))} />
+                            <Input id="partnerA-months" type="number" placeholder="ex: 12" required value={partnerAMonths} onChange={e => setPartnerAMonths(Number(e.target.value) || '')} />
                         </div>
                     </CardContent>
                 </Card>
@@ -214,11 +213,11 @@ export default function MediateGoalsPage() {
                         </div>
                         <div>
                             <Label htmlFor="partnerB-amount">Valor (R$)</Label>
-                            <Input id="partnerB-amount" type="number" placeholder="ex: 6000" required value={partnerBAmount} onChange={e => setPartnerBAmount(Number(e.target.value))} />
+                            <Input id="partnerB-amount" type="number" placeholder="ex: 6000" required value={partnerBAmount} onChange={e => setPartnerBAmount(Number(e.target.value) || '')} />
                         </div>
                         <div>
                             <Label htmlFor="partnerB-months">Prazo (meses)</Label>
-                            <Input id="partnerB-months" type="number" placeholder="ex: 12" required value={partnerBMonths} onChange={e => setPartnerBMonths(Number(e.target.value))} />
+                            <Input id="partnerB-months" type="number" placeholder="ex: 12" required value={partnerBMonths} onChange={e => setPartnerBMonths(Number(e.target.value) || '')} />
                         </div>
                     </CardContent>
                 </Card>
