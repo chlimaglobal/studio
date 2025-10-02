@@ -28,10 +28,11 @@ export async function extractTransactionInfoFromText(text: string) {
     }
     // This case handles when the AI runs successfully but fails to extract all required fields.
     return { error: 'Não foi possível extrair os detalhes da transação. Tente ser mais claro, por exemplo: "gastei 50 reais no almoço".' };
-  } catch (e) {
+  } catch (e: any) {
     console.error("Lumina extraction failed:", e);
+    const errorMessage = e.message || 'Falha ao processar o comando de voz com a Lúmina.';
      // This case handles a complete failure of the AI flow (e.g., network error, API key issue).
-    return { error: 'Falha ao processar o comando de voz com a Lúmina.' };
+    return { error: errorMessage };
   }
 }
 
