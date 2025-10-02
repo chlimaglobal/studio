@@ -9,7 +9,7 @@
  * - GenerateFinancialAnalysisOutput - The return type for the function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import { Transaction } from '@/lib/types';
 import { z } from 'genkit';
 import { endOfISOWeek } from 'date-fns';
@@ -126,7 +126,7 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await model.generate({ prompt, input });
     if (!output) {
       throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
     }

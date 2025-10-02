@@ -89,7 +89,7 @@ const analyzeInvestorProfileFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const { output } = await model.generate(prompt.compile({input}));
+    const { output } = await model.generate({ prompt, input });
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
     }

@@ -9,7 +9,7 @@
  * - MuralChatOutput - The return type for the function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import { z } from 'zod';
 import type { Transaction, MuralChatInput, MuralChatOutput } from '@/lib/types';
 import { MuralChatInputSchema, MuralChatOutputSchema } from '@/lib/types';
@@ -79,7 +79,7 @@ const muralChatFlow = ai.defineFlow(
     
     const flowInput = { ...input, allTransactions: simplifiedTransactions };
 
-    const { output } = await prompt(flowInput);
+    const { output } = await model.generate({ prompt, input: flowInput });
     
     if (!output) {
       throw new Error("Lúmina não conseguiu gerar uma sugestão para o mural.");

@@ -7,7 +7,7 @@
  * - extractFromFile - A function that extracts transactions from file content.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import { z } from 'genkit';
 import { 
   transactionCategories,
@@ -65,7 +65,7 @@ const extractFromFileFlow = ai.defineFlow(
     outputSchema: ExtractFromFileOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await model.generate({ prompt, input });
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar o arquivo.');
     }

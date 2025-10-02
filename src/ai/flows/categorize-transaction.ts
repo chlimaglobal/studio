@@ -9,7 +9,7 @@
  * - CategorizeTransactionOutput - The return type for the categorizeTransaction function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, model} from '@/ai/genkit';
 import {z} from 'genkit';
 import { transactionCategories } from '@/lib/types';
 
@@ -69,7 +69,10 @@ const categorizeTransactionFlow = ai.defineFlow(
     outputSchema: CategorizeTransactionOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const {output} = await model.generate({ prompt, input });
+    if (!output) {
+      throw new Error('A Lúmina não conseguiu processar a categorização.');
+    }
+    return output;
   }
 );

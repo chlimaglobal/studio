@@ -9,7 +9,7 @@
  * - ExtractTransactionOutput - O tipo de retorno para a função extractTransactionFromText.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import { z } from 'genkit';
 import { transactionCategories } from '@/lib/types';
 
@@ -87,7 +87,7 @@ const extractTransactionFlow = ai.defineFlow(
     outputSchema: ExtractTransactionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await model.generate({ prompt, input });
     if (!output || !output.amount || !output.description || !output.type) {
       throw new Error('A Lúmina não conseguiu processar a solicitação ou os dados estão incompletos.');
     }

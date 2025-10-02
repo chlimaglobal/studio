@@ -9,7 +9,7 @@
  * - MediateGoalsOutput - O tipo de retorno para a função.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import { z } from 'zod';
 
 const GoalSchema = z.object({
@@ -88,7 +88,7 @@ const mediateGoalsFlow = ai.defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await model.generate({ prompt, input });
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
     }
