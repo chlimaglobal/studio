@@ -6,7 +6,6 @@ import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-
 import { TransactionCategory, transactionCategories } from "@/lib/types";
 import { getAuth } from "firebase-admin/auth";
 import { adminApp, adminDb } from "@/lib/firebase-admin";
-import sgMail from '@sendgrid/mail';
 
 export async function extractTransactionInfoFromText(text: string) {
   if (!text) {
@@ -30,9 +29,8 @@ export async function extractTransactionInfoFromText(text: string) {
     return { error: 'Não foi possível extrair os detalhes da transação. Tente ser mais claro, por exemplo: "gastei 50 reais no almoço".' };
   } catch (e: any) {
     console.error("Lumina extraction failed:", e);
-    const errorMessage = e.message || 'Falha ao processar o comando de voz com a Lúmina.';
-     // This case handles a complete failure of the AI flow (e.g., network error, API key issue).
-    return { error: errorMessage };
+    // This case handles a complete failure of the AI flow (e.g., network error, API key issue).
+    return { error: 'A Lúmina não conseguiu processar sua solicitação agora. Por favor, tente novamente.' };
   }
 }
 
@@ -57,87 +55,6 @@ export async function getCategorySuggestion(description: string): Promise<{ cate
     return { category: null, error: 'Falha ao obter sugestão da Lúmina.' };
   }
 }
-
-/**
- * This function sends a welcome email using SendGrid. It is designed to be
- * called from a Firebase Function that triggers on user creation.
- * @param email The new user's email address.
- * @param name The new user's name.
- */
-export async function sendWelcomeEmail(email: string, name: string) {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const templateId = process.env.SENDGRID_WELCOME_TEMPLATE_ID;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
-
-  if (!sendgridApiKey || !templateId || !fromEmail) {
-    console.error('SendGrid environment variables are not fully configured.');
-    return { success: false, error: 'SendGrid environment variables not configured.' };
-  }
-
-  sgMail.setApiKey(sendgridApiKey);
-
-  const msg = {
-    to: email,
-    from: fromEmail,
-    templateId: templateId,
-    dynamicTemplateData: {
-      name: name,
-    },
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`Welcome email sent to ${email}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    return { success: false, error: 'Failed to send welcome email.' };
-  }
-}
-
-/**
- * This function sends a notification email to the admin when a new user signs up.
- * It is called from the onUserCreated Firebase Function trigger.
- * @param userEmail The new user's email address.
- * @param userName The new user's name.
- */
-export async function sendNewUserAdminNotification(userEmail: string, userName: string) {
-  const sendgridApiKey = process.env.SENDGRID_API_KEY;
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
-  const adminEmail = process.env.ADMIN_EMAIL;
-
-  if (!sendgridApiKey || !fromEmail || !adminEmail) {
-    console.error('SendGrid or Admin Email environment variables are not configured.');
-    return { success: false, error: 'Admin notification environment variables not configured.' };
-  }
-
-  sgMail.setApiKey(sendgridApiKey);
-
-  const msg = {
-    to: adminEmail,
-    from: fromEmail,
-    subject: '🎉 Novo Usuário no FinanceFlow!',
-    html: `
-      <h1>Oba! Um novo usuário se cadastrou!</h1>
-      <p>Um novo usuário acaba de se juntar ao FinanceFlow.</p>
-      <ul>
-        <li><strong>Nome:</strong> ${userName || '(não fornecido)'}</li>
-        <li><strong>Email:</strong> ${userEmail}</li>
-      </ul>
-      <p>O aplicativo está crescendo! 🚀</p>
-    `,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`Admin notification sent for new user: ${userEmail}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error sending admin notification email:', error);
-    return { success: false, error: 'Failed to send admin notification email.' };
-  }
-}
-
 
 export async function getPartnerId(userId: string): Promise<string | null> {
     if (!adminDb) {
@@ -173,4 +90,3 @@ export async function getPartnerId(userId: string): Promise<string | null> {
         return null;
     }
 }
-    

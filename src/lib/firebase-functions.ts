@@ -4,7 +4,6 @@
 import { adminDb } from './firebase-admin';
 import { customAlphabet } from 'nanoid';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
-import { sendNewUserAdminNotification } from '@/app/actions';
 
 /**
  * Triggers when a new user is created and sends a notification to the admin.
@@ -18,10 +17,11 @@ export async function onUserCreated(user: { email: string, displayName: string }
   }
   
   try {
-    await sendNewUserAdminNotification(user.email, user.displayName);
-    console.log(`Successfully triggered admin notification for ${user.email}`);
+    // This functionality was removed as it's not being used.
+    // await sendNewUserAdminNotification(user.email, user.displayName);
+    console.log(`New user created: ${user.email}`);
   } catch (error) {
-    console.error(`Failed to send admin notification for ${user.email}`, error);
+    console.error(`Failed to process new user creation for ${user.email}`, error);
   }
 }
 
