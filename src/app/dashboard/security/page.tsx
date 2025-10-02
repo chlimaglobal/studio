@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Shield, Lock, KeyRound, MessageCircle, Fingerprint, Mail, BrainCircuit } from 'lucide-react';
+import { ArrowLeft, Shield, Lock, KeyRound, MessageCircle, Fingerprint, Mail, BrainCircuit, DatabaseZap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const supportEmail = 'financeflowsuporte@proton.me';
@@ -37,6 +37,50 @@ export default function SecurityPage() {
         </CardHeader>
       </Card>
       
+       <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><DatabaseZap className="h-5 w-5"/> Como Protegemos Seus Dados</CardTitle>
+          <CardDescription>
+            Estas são as principais camadas de segurança que protegem o FinanceFlow contra acessos não autorizados e vazamentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+            <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <Lock className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                    <h3 className="font-semibold">Regras de Acesso no Servidor</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Esta é a nossa defesa mais forte. Usamos as Regras de Segurança do Firebase para garantir que um usuário só possa ler e escrever seus próprios dados. Qualquer tentativa de acessar dados de outra pessoa é bloqueada diretamente no servidor do Google, antes mesmo de chegar ao banco de dados.
+                    </p>
+                </div>
+            </div>
+             <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <KeyRound className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                    <h3 className="font-semibold">Autenticação Segura do Google</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Seu login é protegido pelo Firebase Authentication, um serviço robusto que gerencia senhas de forma segura e oferece login social (Google), reduzindo os riscos associados ao gerenciamento de senhas.
+                    </p>
+                </div>
+            </div>
+             <div className="flex items-start gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg">
+                    <MessageCircle className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                    <h3 className="font-semibold">Criptografia em Trânsito e em Repouso</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Todos os seus dados são criptografados com o padrão HTTPS/TLS enquanto viajam entre seu dispositivo e nossos servidores. Uma vez armazenados, eles são novamente criptografados nos servidores seguros do Google Cloud.
+                    </p>
+                </div>
+            </div>
+        </CardContent>
+      </Card>
+
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5"/> Transparência no Uso da Lúmina (IA)</CardTitle>
@@ -88,47 +132,7 @@ export default function SecurityPage() {
             </a>
         </CardContent>
       </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Nossas Camadas de Proteção</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                    <MessageCircle className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                    <h3 className="font-semibold">Criptografia Abrangente</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Todos os seus dados são protegidos por criptografia tanto em trânsito (enquanto viajam pela internet) quanto em repouso (armazenados em nossos servidores).
-                    </p>
-                </div>
-            </div>
-             <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                    <Lock className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                    <h3 className="font-semibold">Proteção de Senha</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Sua senha é transformada em um código ilegível (hash). Nem mesmo nós conseguimos vê-la.
-                    </p>
-                </div>
-            </div>
-             <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary/10 rounded-lg">
-                    <Fingerprint className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                    <h3 className="font-semibold">Acesso por Biometria</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Seus dados biométricos nunca saem do seu dispositivo. Usamos as APIs seguras do sistema operacional para verificar sua identidade localmente.
-                    </p>
-                </div>
-            </div>
-        </CardContent>
-      </Card>
+
     </div>
   );
 }
