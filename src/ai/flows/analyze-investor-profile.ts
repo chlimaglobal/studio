@@ -8,7 +8,7 @@
  * - InvestorProfileOutput - O tipo de retorno para a função.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, model } from '@/ai/genkit';
 import {
     InvestorProfileInputSchema,
     InvestorProfileOutputSchema,
@@ -89,7 +89,7 @@ const analyzeInvestorProfileFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await model.generate(prompt.compile({input}));
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
     }
