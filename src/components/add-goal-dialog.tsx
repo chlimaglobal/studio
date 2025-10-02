@@ -118,11 +118,10 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
                     <FormLabel>Valor Alvo (R$)</FormLabel>
                     <FormControl>
                         <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="2500,00" 
+                            type="text" 
+                            inputMode="decimal" 
+                            placeholder="2.500,00" 
                             {...field}
-                            onChange={e => field.onChange(parseFloat(e.target.value) || undefined)}
                          />
                     </FormControl>
                     <FormMessage />
@@ -137,11 +136,10 @@ export function AddGoalDialog({ children }: AddGoalDialogProps) {
                     <FormLabel>Valor Atual (R$)</FormLabel>
                     <FormControl>
                        <Input 
-                            type="number" 
-                            step="0.01" 
+                            type="text" 
+                            inputMode="decimal" 
                             placeholder="0,00" 
                             {...field}
-                             onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                     </FormControl>
                     <FormMessage />

@@ -45,7 +45,7 @@ type EditGoalDialogProps = {
 
 const formatAmountForInput = (amount: number | string) => {
     if (typeof amount === 'number') {
-        return String(amount).replace('.', ',');
+        return amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     return amount;
 };
@@ -137,7 +137,7 @@ export function EditGoalDialog({ goal, open, onOpenChange }: EditGoalDialogProps
                         <Input 
                             type="text" 
                             inputMode="decimal"
-                            placeholder="2500,00" 
+                            placeholder="2.500,00" 
                             {...field}
                          />
                     </FormControl>
