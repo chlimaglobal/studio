@@ -3,10 +3,25 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Shield, Lock, KeyRound, MessageCircle, Fingerprint, Mail, BrainCircuit, DatabaseZap } from 'lucide-react';
+import { ArrowLeft, LifeBuoy, Mail, Shield, Lock, KeyRound, MessageCircle, BrainCircuit, DatabaseZap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const supportEmail = 'financeflowsuporte@proton.me';
+const emailSubject = "LGPD - Solicitação de Revisão de Decisão Automatizada";
+const emailBody = `Prezada equipe de suporte do FinanceFlow,
+
+De acordo com a LGPD, gostaria de solicitar a revisão humana de uma decisão automatizada tomada pela IA Lúmina.
+
+Por favor, descreva aqui a decisão que você gostaria de revisar (ex: meu perfil de investidor, minha análise de saúde financeira, etc.):
+[Descreva aqui]
+
+
+Atenciosamente,
+[Seu Nome]
+`;
+
+const mailtoLink = `mailto:${supportEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+
 
 export default function SecurityPage() {
   const router = useRouter();
@@ -124,7 +139,7 @@ export default function SecurityPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-            <a href={`mailto:${supportEmail}?subject=LGPD%20-%20Solicitação%20de%20Revisão%20de%20Decisão%20Automatizada`} className="w-full">
+            <a href={mailtoLink} className="w-full">
                 <Button className="w-full">
                 <Mail className="mr-2 h-4 w-4" />
                 Solicitar Revisão Humana
