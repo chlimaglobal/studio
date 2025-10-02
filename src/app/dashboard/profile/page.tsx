@@ -29,7 +29,8 @@ import {
     Calculator,
     CreditCard,
     Shield,
-    Settings
+    Settings,
+    Users
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -85,6 +86,14 @@ const menuItems = [
         subtitle: 'Crie e acompanhe seus objetivos financeiros.',
         type: 'link',
         href: '/dashboard/retirement-projection',
+        premium: true,
+    },
+     {
+        icon: Users,
+        title: "Metas de Casal (com Lúmina)",
+        subtitle: "Alinhe seus objetivos financeiros em conjunto.",
+        type: 'link',
+        href: '/dashboard/mediate-goals',
         premium: true,
     },
      { 
