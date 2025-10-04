@@ -1,4 +1,5 @@
-import { genkit } from 'genkit';
+
+import { genkit, ModelReference } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
 export const ai = genkit({
@@ -6,4 +7,4 @@ export const ai = genkit({
 });
 
 // Using gemini-1.5-flash as our default model for fast, high-quality responses.
-export const model = ai.model('googleai/gemini-1.5-flash');
+export const model = 'googleai/gemini-1.5-flash' as ModelReference<any>;
