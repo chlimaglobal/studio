@@ -87,7 +87,7 @@ const extractTransactionFlow = ai.defineFlow(
     outputSchema: ExtractTransactionOutputSchema,
   },
   async (input) => {
-    const { output } = await model.generate({ prompt, input });
+    const { output } = await prompt({ model, input });
     // Relaxed validation: only description and type are strictly required to proceed.
     // Amount can be zero if not detected, and category is optional.
     if (!output || !output.description || !output.type) {

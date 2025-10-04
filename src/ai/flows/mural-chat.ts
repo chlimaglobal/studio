@@ -79,7 +79,7 @@ const muralChatFlow = ai.defineFlow(
     
     const flowInput = { ...input, allTransactions: simplifiedTransactions };
 
-    const { output } = await model.generate({ prompt, input: flowInput });
+    const { output } = await prompt({ model, input: flowInput });
     
     if (!output) {
       throw new Error("Lúmina não conseguiu gerar uma sugestão para o mural.");

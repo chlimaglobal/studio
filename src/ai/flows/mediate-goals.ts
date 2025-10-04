@@ -88,7 +88,7 @@ const mediateGoalsFlow = ai.defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
-    const { output } = await model.generate({ prompt, input });
+    const { output } = await prompt({ model, input });
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
     }
