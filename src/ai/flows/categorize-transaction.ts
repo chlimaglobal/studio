@@ -32,6 +32,7 @@ const prompt = ai.definePrompt({
   name: 'categorizeTransactionPrompt',
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
+  model,
   prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
@@ -69,7 +70,7 @@ const categorizeTransactionFlow = ai.defineFlow(
     outputSchema: CategorizeTransactionOutputSchema,
   },
   async input => {
-    const {output} = await prompt({ model, input });
+    const {output} = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a categorização.');
     }

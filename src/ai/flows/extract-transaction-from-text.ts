@@ -34,6 +34,7 @@ const prompt = ai.definePrompt({
   name: 'extractTransactionPrompt',
   input: { schema: ExtractTransactionInputSchema },
   output: { schema: ExtractTransactionOutputSchema },
+  model,
   prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
   Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor e o tipo de transação (receita ou despesa).
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
@@ -87,7 +88,7 @@ const extractTransactionFlow = ai.defineFlow(
     outputSchema: ExtractTransactionOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt({ model, input });
+    const { output } = await prompt(input);
     // Relaxed validation: only description and type are strictly required to proceed.
     // Amount can be zero if not detected, and category is optional.
     if (!output || !output.description || !output.type) {

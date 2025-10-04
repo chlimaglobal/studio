@@ -54,6 +54,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialAnalysisPrompt',
   input: { schema: GenerateFinancialAnalysisInputSchema },
   output: { schema: GenerateFinancialAnalysisOutputSchema },
+  model,
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em analisar dados de transações e fornecer conselhos práticos, amigáveis e personalizados. Sua tarefa é dupla:
   1. Gerar um diagnóstico completo da saúde financeira, incluindo um 'Status de Saúde Financeira'.
   2. Analisar as tendências de gastos de longo prazo.
@@ -126,7 +127,7 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const { output } = await prompt({ model, input });
+    const { output } = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
     }

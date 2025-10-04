@@ -53,6 +53,7 @@ const prompt = ai.definePrompt({
   name: 'mediateGoalsPrompt',
   input: { schema: MediateGoalsInputSchema },
   output: { schema: MediateGoalsOutputSchema },
+  model,
   prompt: `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes. Você deve ser empática, neutra e focada em soluções ganha-ganha.
 
   **Contexto:**
@@ -88,7 +89,7 @@ const mediateGoalsFlow = ai.defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt({ model, input });
+    const { output } = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
     }

@@ -42,6 +42,7 @@ const prompt = ai.definePrompt({
   input: { schema: InvestorProfileInputSchema },
   output: { schema: InvestorProfileOutputSchema },
   tools: [getFinancialMarketDataTool],
+  model,
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário, buscar dados atuais do mercado financeiro e, com base em tudo isso, determinar o perfil de risco do investidor, fornecer uma análise detalhada, sugerir uma alocação de carteira e projetar uma rentabilidade real.
 
   **Contexto das Perguntas e Respostas:**
@@ -89,7 +90,7 @@ const analyzeInvestorProfileFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const { output } = await prompt({ model, input });
+    const { output } = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
     }

@@ -24,6 +24,7 @@ const prompt = ai.definePrompt({
   name: 'muralChatPrompt',
   input: { schema: MuralChatInputSchema },
   output: { schema: MuralChatOutputSchema },
+  model,
   prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um mural de mensagens, analisando o chat, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
 
   **Sua Personalidade:**
@@ -79,7 +80,7 @@ const muralChatFlow = ai.defineFlow(
     
     const flowInput = { ...input, allTransactions: simplifiedTransactions };
 
-    const { output } = await prompt({ model, input: flowInput });
+    const { output } = await prompt(flowInput);
     
     if (!output) {
       throw new Error("Lúmina não conseguiu gerar uma sugestão para o mural.");
