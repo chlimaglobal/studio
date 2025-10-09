@@ -126,7 +126,6 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     "13º Salário": Banknote,
     "Aposentadoria": Banknote,
     "Trabalho": Briefcase,
-    "Bônus": Banknote,
     // Vestuário
     "Calçados": Shirt,
     "Acessórios": Shirt,
@@ -186,15 +185,15 @@ export default function CategoriesPage() {
                  <div className="mb-2">
                     <h3 className="text-sm font-medium text-muted-foreground text-center">Subcategorias</h3>
                  </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-flow-row auto-rows-max grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {subcategories.map((subcategory) => {
                     const SubIcon = subcategoryIcons[subcategory] || Landmark;
                     return (
                         <div key={subcategory} className="flex items-center gap-3 rounded-lg p-3 bg-secondary/50">
-                            <div className="w-8 h-8 bg-background rounded-md flex items-center justify-center">
+                            <div className="w-8 h-8 bg-background rounded-md flex items-center justify-center flex-shrink-0">
                                 <SubIcon className="h-5 w-5 text-muted-foreground" />
                             </div>
-                            <span className="text-sm font-medium">{subcategory}</span>
+                            <span className="text-sm font-medium truncate">{subcategory}</span>
                         </div>
                     )
                   })}
