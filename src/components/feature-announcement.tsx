@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Rocket } from 'lucide-react';
+import { Rocket, Baby } from 'lucide-react';
 import { Button } from './ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -15,14 +15,18 @@ const announcements = [
         duration: 10000,
         href: '/dashboard/goals',
         actionLabel: 'Ver Agora',
+        icon: Rocket,
+    },
+    {
+        id: 'feature_baby_category_20240730',
+        title: 'Nova Categoria: Despesas do Bebê!',
+        description: 'A família vai aumentar? Agora você pode organizar os gastos com o seu bebê em uma categoria dedicada.',
+        duration: 12000,
+        href: '/dashboard/categories',
+        actionLabel: 'Ver Categoria',
+        icon: Baby,
     },
     // Adicione futuros anúncios aqui
-    // {
-    //     id: 'update_xyz_20240801',
-    //     title: 'Atualização Importante!',
-    //     description: 'Melhoramos o desempenho da sincronização de dados.',
-    //     duration: 8000,
-    // }
 ];
 
 export function FeatureAnnouncement() {
@@ -36,7 +40,7 @@ export function FeatureAnnouncement() {
                 toast({
                     title: (
                         <div className="flex items-center gap-2">
-                            <Rocket className="h-5 w-5 text-primary" />
+                            <announcement.icon className="h-5 w-5 text-primary" />
                             {announcement.title}
                         </div>
                     ),

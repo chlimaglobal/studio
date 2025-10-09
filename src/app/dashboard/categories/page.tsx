@@ -11,7 +11,7 @@ import {
     Stethoscope, Smile, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
     Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
     Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift,
-    PiggyBank, LineChart, AreaChart, CandlestickChart, Fuel
+    PiggyBank, LineChart, AreaChart, CandlestickChart, Fuel, Baby, Stroller
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +27,7 @@ const categoryIcons: Record<string, React.ElementType> = {
   Educação: GraduationCap,
   'Impostos/Taxas': Percent,
   'Investimentos e Reservas': TrendingUp,
+  Bebê: Baby,
   Pets: Dog,
   Salário: Banknote,
   Vestuário: Shirt,
@@ -106,6 +107,12 @@ const subcategoryIcons: Record<string, React.ElementType> = {
     "Aplicação": TrendingUp,
     "Rendimentos": TrendingUp,
     "Retirada": TrendingUp,
+    // Bebê
+    "Fraldas": Baby,
+    "Fórmulas/Alimentação": Droplets,
+    "Roupas e Acessórios": Shirt,
+    "Saúde do Bebê": Stethoscope,
+    "Brinquedos/Educação": Gamepad2,
     // Pets
     "Banho/Tosa": Droplets,
     "Acessórios Pet": Dog,

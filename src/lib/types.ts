@@ -13,6 +13,7 @@ export const categoryData = {
   "Educação": ["Cursos", "Faculdade", "Materiais e Livros", "Escola"],
   "Impostos/Taxas": ["Imposto de Renda", "Tarifa Bancária", "Anuidade Cartão", "Tributos"],
   "Investimentos e Reservas": ["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Proventos", "Aplicação", "Rendimentos", "Retirada", "Juros"],
+  "Bebê": ["Fraldas", "Fórmulas/Alimentação", "Roupas e Acessórios", "Saúde do Bebê", "Brinquedos/Educação"],
   "Pets": ["Banho/Tosa", "Acessórios Pet", "Alimentação Pet", "Medicamentos", "Veterinário", "Pet"],
   "Salário": ["Férias", "Hora extra", "Comissão", "13º Salário", "Aposentadoria", "Trabalho", "Bônus"],
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
@@ -55,7 +56,18 @@ export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.coerce.number().positive({ message: "O valor deve ser maior que zero." }),
+  amount: z.any().transform((val, ctx) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+        const parsed = parseFloat(val.replace('.', '').replace(',', '.'));
+        if (!isNaN(parsed)) return parsed;
+    }
+    ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "O valor deve ser um número válido.",
+    });
+    return z.NEVER;
+  }).pipe(z.number().positive({ message: "O valor deve ser maior que zero." })),
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
