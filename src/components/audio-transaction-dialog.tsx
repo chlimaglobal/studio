@@ -39,6 +39,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionState, setPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
@@ -71,8 +72,27 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
 
   
   useEffect(() => {
-    // Limpeza quando o diálogo fecha
-    if (!open) {
+    // Check permission status when the dialog opens
+    const checkPermission = async () => {
+        if (typeof window !== 'undefined' && 'permissions' in navigator) {
+            try {
+                // @ts-ignore
+                const micPermission = await navigator.permissions.query({ name: 'microphone' });
+                setPermissionState(micPermission.state);
+                micPermission.onchange = () => setPermissionState(micPermission.state);
+            } catch (e) {
+                console.warn('Permissions API not fully supported, will ask directly.');
+                setPermissionState('prompt');
+            }
+        } else {
+            setPermissionState('unsupported');
+        }
+    };
+    
+    if (open) {
+      checkPermission();
+    } else {
+      // Cleanup when the dialog closes
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current = null;
@@ -94,15 +114,9 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
       return;
     }
     
-    try {
-        // @ts-ignore
-        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
-        if (permissionStatus.state === 'denied') {
-            setError('A permissão para usar o microfone foi negada. Por favor, habilite nas configurações do seu navegador.');
-            return;
-        }
-    } catch (e) {
-        console.warn('Permission API for microphone not supported, proceeding directly.');
+    if (permissionState === 'denied') {
+        setError('A permissão para usar o microfone foi negada. Por favor, habilite nas configurações do seu navegador.');
+        return;
     }
     
     setError(null);
@@ -174,7 +188,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
                     isRecording ? 'bg-destructive/20' : 'bg-primary/20'
                 )}
                 onClick={handleToggleRecording}
-                disabled={isProcessing}
+                disabled={isProcessing || permissionState === 'denied'}
                 aria-label={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
             >
                 {isRecording && <SoundWave />}
@@ -188,11 +202,11 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
                     )}
                  </div>
             </button>
-            {error && (
+            {(error || permissionState === 'denied') && (
                 <Alert variant="destructive" className="mt-4">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Erro ao Processar</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertTitle>Erro de Acesso</AlertTitle>
+                <AlertDescription>{error || 'A permissão para usar o microfone foi negada. Por favor, habilite nas configurações do seu navegador.'}</AlertDescription>
                 </Alert>
             )}
         </div>
