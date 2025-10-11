@@ -132,6 +132,8 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
             errorMessage = "Você precisa permitir o acesso ao microfone para usar esta funcionalidade.";
         } else if (event.error === 'no-speech') {
             errorMessage = "Não consegui ouvir nada. Fale mais alto ou verifique seu microfone.";
+        } else if (event.error === 'network') {
+            errorMessage = "Ocorreu um erro de rede. Verifique sua conexão com a internet e tente novamente.";
         }
         setError(errorMessage);
         setIsRecording(false);
