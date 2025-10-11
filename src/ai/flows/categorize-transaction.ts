@@ -9,7 +9,7 @@
  * - CategorizeTransactionOutput - The return type for the categorizeTransaction function.
  */
 
-import {ai, model} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { transactionCategories } from '@/lib/types';
 
@@ -32,7 +32,7 @@ const prompt = ai.definePrompt({
   name: 'categorizeTransactionPrompt',
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**

@@ -9,7 +9,7 @@
  * - MediateGoalsOutput - O tipo de retorno para a função.
  */
 
-import { ai, model } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
 const GoalSchema = z.object({
@@ -53,7 +53,7 @@ const prompt = ai.definePrompt({
   name: 'mediateGoalsPrompt',
   input: { schema: MediateGoalsInputSchema },
   output: { schema: MediateGoalsOutputSchema },
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes. Você deve ser empática, neutra e focada em soluções ganha-ganha.
 
   **Contexto:**

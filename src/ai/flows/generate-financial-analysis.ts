@@ -9,7 +9,7 @@
  * - GenerateFinancialAnalysisOutput - The return type for the function.
  */
 
-import { ai, model } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { Transaction } from '@/lib/types';
 import { z } from 'genkit';
 import { endOfISOWeek } from 'date-fns';
@@ -54,7 +54,7 @@ const prompt = ai.definePrompt({
   name: 'generateFinancialAnalysisPrompt',
   input: { schema: GenerateFinancialAnalysisInputSchema },
   output: { schema: GenerateFinancialAnalysisOutputSchema },
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em analisar dados de transações e fornecer conselhos práticos, amigáveis e personalizados. Sua tarefa é dupla:
   1. Gerar um diagnóstico completo da saúde financeira, incluindo um 'Status de Saúde Financeira'.
   2. Analisar as tendências de gastos de longo prazo.

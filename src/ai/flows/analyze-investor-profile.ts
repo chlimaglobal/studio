@@ -8,7 +8,7 @@
  * - InvestorProfileOutput - O tipo de retorno para a função.
  */
 
-import { ai, model } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import {
     InvestorProfileInputSchema,
     InvestorProfileOutputSchema,
@@ -42,7 +42,7 @@ const prompt = ai.definePrompt({
   input: { schema: InvestorProfileInputSchema },
   output: { schema: InvestorProfileOutputSchema },
   tools: [getFinancialMarketDataTool],
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário, buscar dados atuais do mercado financeiro e, com base em tudo isso, determinar o perfil de risco do investidor, fornecer uma análise detalhada, sugerir uma alocação de carteira e projetar uma rentabilidade real.
 
   **Contexto das Perguntas e Respostas:**

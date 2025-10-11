@@ -7,4 +7,5 @@ export const ai = genkit({
 });
 
 // Using gemini-1.5-flash as our default model for fast, high-quality responses.
-export const model = 'googleai/gemini-1.5-flash' as ModelReference<any>;
+export const model = 'googleai/gemini-1.5-flash';
+

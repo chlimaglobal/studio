@@ -7,7 +7,7 @@
  * - extractFromFile - A function that extracts transactions from file content.
  */
 
-import { ai, model } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { 
   transactionCategories,
@@ -26,7 +26,7 @@ const prompt = ai.definePrompt({
   name: 'extractFromFilePrompt',
   input: { schema: ExtractFromFileInputSchema },
   output: { schema: ExtractFromFileOutputSchema },
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
 
   **Instruções de Processamento:**

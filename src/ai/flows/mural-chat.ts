@@ -9,7 +9,7 @@
  * - MuralChatOutput - The return type for the function.
  */
 
-import { ai, model } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { Transaction, MuralChatInput, MuralChatOutput } from '@/lib/types';
 import { MuralChatInputSchema, MuralChatOutputSchema } from '@/lib/types';
@@ -24,7 +24,7 @@ const prompt = ai.definePrompt({
   name: 'muralChatPrompt',
   input: { schema: MuralChatInputSchema },
   output: { schema: MuralChatOutputSchema },
-  model,
+  model: 'googleai/gemini-1.5-flash',
   prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um mural de mensagens, analisando o chat, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
 
   **Sua Personalidade:**
