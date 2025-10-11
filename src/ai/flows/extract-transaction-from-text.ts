@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'extractTransactionPrompt',
   input: { schema: ExtractTransactionInputSchema },
   output: { schema: ExtractTransactionOutputSchema },
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-1.5-pro-latest',
   prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
   Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor e o tipo de transação (receita ou despesa).
   A descrição deve ser um resumo curto e objetivo do que foi a transação.
