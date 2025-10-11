@@ -6,6 +6,5 @@ export const ai = genkit({
   plugins: [googleAI()],
 });
 
-// Using gemini-1.5-flash as our default model for fast, high-quality responses.
-export const model = 'googleai/gemini-1.5-flash';
-
+// Using gemini-1.5-pro as our default model for high-quality, stable responses.
+export const model = 'googleai/gemini-1.5-pro';

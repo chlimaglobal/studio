@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -42,7 +43,7 @@ const prompt = ai.definePrompt({
   input: { schema: InvestorProfileInputSchema },
   output: { schema: InvestorProfileOutputSchema },
   tools: [getFinancialMarketDataTool],
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-1.5-pro',
   prompt: `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário, buscar dados atuais do mercado financeiro e, com base em tudo isso, determinar o perfil de risco do investidor, fornecer uma análise detalhada, sugerir uma alocação de carteira e projetar uma rentabilidade real.
 
   **Contexto das Perguntas e Respostas:**
