@@ -33,9 +33,6 @@ const prompt = ai.definePrompt({
   input: {schema: CategorizeTransactionInputSchema},
   output: {schema: CategorizeTransactionOutputSchema},
   model: 'googleai/gemini-2.5-pro',
-  config: {
-    apiVersion: 'v1',
-  },
   prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
