@@ -91,17 +91,17 @@ export function useTransactions() {
   return context;
 }
 
-// 5. Mural Unread Context
-interface MuralContextType {
+// 5. Lumina Unread Context
+interface LuminaContextType {
   hasUnread: boolean;
   setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
 }
-const MuralContext = createContext<MuralContextType | undefined>(undefined);
+const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
 
-export function useMural() {
-    const context = useContext(MuralContext);
+export function useLumina() {
+    const context = useContext(LuminaContext);
     if (context === undefined) {
-        throw new Error('useMural must be used within a ClientProviders');
+        throw new Error('useLumina must be used within a ClientProviders');
     }
     return context;
 }
@@ -326,7 +326,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-function MuralProvider({ children }: { children: React.ReactNode }) {
+function LuminaProvider({ children }: { children: React.ReactNode }) {
     const [hasUnread, setHasUnread] = useState(false);
     const { user } = useAuth();
     const pathname = usePathname();
@@ -335,9 +335,9 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
     let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
     useEffect(() => {
-        if (pathname === '/dashboard/mural') {
+        if (pathname === '/dashboard/lumina') {
             setHasUnread(false);
-            localStorage.setItem('lastMuralVisit', new Date().toISOString());
+            localStorage.setItem('lastLuminaVisit', new Date().toISOString());
         }
     }, [pathname]);
 
@@ -349,13 +349,13 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
                     const latestMessage = newMessages[newMessages.length - 1];
                     if (!latestMessage) return;
 
-                    const lastVisitString = localStorage.getItem('lastMuralVisit');
+                    const lastVisitString = localStorage.getItem('lastLuminaVisit');
                     const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
                     
                     if (
                         latestMessage.role !== 'user' && 
                         latestMessage.timestamp > lastVisit && 
-                        pathname !== '/dashboard/mural'
+                        pathname !== '/dashboard/lumina'
                     ) {
                         setHasUnread(true);
                     }
@@ -366,9 +366,9 @@ function MuralProvider({ children }: { children: React.ReactNode }) {
     }, [user, isSubscribed, isAdmin, pathname]);
 
     return (
-        <MuralContext.Provider value={{ hasUnread, setHasUnread }}>
+        <LuminaContext.Provider value={{ hasUnread, setHasUnread }}>
             {children}
-        </MuralContext.Provider>
+        </LuminaContext.Provider>
     );
 }
 
@@ -384,10 +384,10 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             <SubscriptionProvider>
                 <ViewModeProvider>
                     <TransactionsProvider>
-                        <MuralProvider>
+                        <LuminaProvider>
                             {children}
                             <Toaster />
-                        </MuralProvider>
+                        </LuminaProvider>
                     </TransactionsProvider>
                 </ViewModeProvider>
             </SubscriptionProvider>

@@ -1,5 +1,4 @@
 
-      
 import { z } from "zod";
 
 export const categoryData = {
@@ -207,7 +206,7 @@ export const InvestorProfileOutputSchema = z.object({
 });
 export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 
-// Types for Mural Chat Flow
+// Types for Lumina Chat Flow
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'partner', 'lumina']),
   text: z.string(),
@@ -221,7 +220,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
     timestamp: Date;
 };
 
-export const MuralChatInputSchema = z.object({
+export const LuminaChatInputSchema = z.object({
   chatHistory: z.array(z.object({ // Can't use ChatMessageSchema because of the Date object
     role: z.enum(['user', 'partner', 'lumina']),
     text: z.string(),
@@ -229,10 +228,10 @@ export const MuralChatInputSchema = z.object({
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
 });
-export type MuralChatInput = z.infer<typeof MuralChatInputSchema>;
+export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
 
-export const MuralChatOutputSchema = z.object({
+export const LuminaChatOutputSchema = z.object({
   response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
 });
-export type MuralChatOutput = z.infer<typeof MuralChatOutputSchema>;
+export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;

@@ -5,27 +5,26 @@
  * @fileOverview Lúmina's AI agent for the shared message board.
  *
  * - generateSuggestion - Generates financial advice based on chat context.
- * - MuralChatInput - The input type for the function.
- * - MuralChatOutput - The return type for the function.
+ * - LuminaChatInput - The input type for the function.
+ * - LuminaChatOutput - The return type for the function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Transaction, MuralChatInput, MuralChatOutput } from '@/lib/types';
-import { MuralChatInputSchema, MuralChatOutputSchema } from '@/lib/types';
+import type { Transaction, LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 
 
-export async function generateSuggestion(input: MuralChatInput): Promise<MuralChatOutput> {
-  return muralChatFlow(input);
+export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
+  return luminaChatFlow(input);
 }
 
 
 const prompt = ai.definePrompt({
-  name: 'muralChatPrompt',
-  input: { schema: MuralChatInputSchema },
-  output: { schema: MuralChatOutputSchema },
-  model: 'googleai/gemini-2.5-pro',
-  prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um mural de mensagens, analisando o chat, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
+  name: 'luminaChatPrompt',
+  input: { schema: LuminaChatInputSchema },
+  output: { schema: LuminaChatOutputSchema },
+  prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um chat, analisando a conversa, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
 
   **Sua Personalidade:**
   - **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar. Use uma linguagem acolhedora.
@@ -61,11 +60,11 @@ const prompt = ai.definePrompt({
 });
 
 
-const muralChatFlow = ai.defineFlow(
+const luminaChatFlow = ai.defineFlow(
   {
-    name: 'muralChatFlow',
-    inputSchema: MuralChatInputSchema,
-    outputSchema: MuralChatOutputSchema,
+    name: 'luminaChatFlow',
+    inputSchema: LuminaChatInputSchema,
+    outputSchema: LuminaChatOutputSchema,
   },
   async (input) => {
     // For simplicity, we are passing all transactions. In a real-world scenario,
@@ -83,7 +82,7 @@ const muralChatFlow = ai.defineFlow(
     const { output } = await prompt(flowInput);
     
     if (!output) {
-      throw new Error("Lúmina não conseguiu gerar uma sugestão para o mural.");
+      throw new Error("Lúmina não conseguiu gerar uma sugestão para o chat.");
     }
     
     return output;

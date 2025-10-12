@@ -5,14 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useMural } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions, useLumina } from '@/components/client-providers';
 import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
-import { generateSuggestion } from '@/ai/flows/mural-chat';
-import type { ChatMessage, MuralChatInput } from '@/lib/types';
+import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import type { ChatMessage, LuminaChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +26,7 @@ const PremiumBlocker = () => (
                     Recurso Premium
                 </CardTitle>
                 <CardDescription>
-                    O Mural de Mensagens com a Lúmina é um recurso exclusivo para assinantes.
+                    O Chat com a Lúmina é um recurso exclusivo para assinantes.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -77,11 +77,11 @@ const AudioRecordingUI = ({ onStop, onCancel }: { onStop: () => void; onCancel: 
 };
 
 
-export default function MuralPage() {
+export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
     const { transactions } = useTransactions();
-    const { setHasUnread } = useMural();
+    const { setHasUnread } = useLumina();
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
@@ -129,7 +129,7 @@ export default function MuralPage() {
     useEffect(() => {
         scrollToBottom('auto');
         setHasUnread(false);
-        localStorage.setItem('lastMuralVisit', new Date().toISOString());
+        localStorage.setItem('lastLuminaVisit', new Date().toISOString());
     }, [scrollToBottom, setHasUnread]);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
@@ -157,7 +157,7 @@ export default function MuralPage() {
                 text: msg.text
             }));
 
-            const luminaInput: MuralChatInput = {
+            const luminaInput: LuminaChatInput = {
                 chatHistory: chatHistoryForLumina,
                 userQuery: currentQuery,
                 allTransactions: transactions,
@@ -263,7 +263,7 @@ export default function MuralPage() {
                 <div>
                     <h1 className="text-xl font-semibold flex items-center gap-2">
                         <MessageSquare />
-                        Mural de Mensagens
+                        Chat com a Lúmina
                     </h1>
                     <p className="text-sm text-muted-foreground">Converse sobre finanças e receba dicas da Lúmina.</p>
                 </div>
