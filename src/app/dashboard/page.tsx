@@ -255,36 +255,28 @@ const generateChartData = (transactions: Transaction[]): { date: string; aRecebe
 
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
     
-    let initialBalance = 0;
-    
-    // Separate transactions into before and within the 6-month window
-    const pastTransactions: Transaction[] = [];
-    const currentTransactions: Transaction[] = [];
+    // Calculate initial balance from transactions before the 6-month window
+    const initialBalance = operationalTransactions
+        .filter(t => new Date(t.date) < sixMonthsAgo)
+        .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
 
+    // Populate monthly totals for transactions within the window
     operationalTransactions.forEach(t => {
-        if (new Date(t.date) < sixMonthsAgo) {
-            pastTransactions.push(t);
-        } else {
-            currentTransactions.push(t);
-        }
-    });
-
-    initialBalance = pastTransactions.reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
-
-    // Populate monthly totals
-    currentTransactions.forEach(t => {
-        const monthKey = format(new Date(t.date), 'MM/yy');
-        if (dataMap.has(monthKey)) {
-            const monthData = dataMap.get(monthKey)!;
-            if (t.type === 'income') {
-                monthData.aReceber += t.amount;
-            } else {
-                monthData.aPagar += t.amount;
+        const transactionDate = new Date(t.date);
+        if (transactionDate >= sixMonthsAgo) {
+            const monthKey = format(transactionDate, 'MM/yy');
+            if (dataMap.has(monthKey)) {
+                const monthData = dataMap.get(monthKey)!;
+                if (t.type === 'income') {
+                    monthData.aReceber += t.amount;
+                } else {
+                    monthData.aPagar += t.amount;
+                }
             }
         }
     });
-
-    // Generate final chart data with cumulative result
+    
+    // Generate final chart data with cumulative result, starting from initialBalance
     const finalData: { date: string; aReceber: number; aPagar: number; resultado: number }[] = [];
     let cumulativeBalance = initialBalance;
 
