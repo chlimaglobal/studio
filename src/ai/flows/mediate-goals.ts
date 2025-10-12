@@ -54,6 +54,9 @@ const prompt = ai.definePrompt({
   input: { schema: MediateGoalsInputSchema },
   output: { schema: MediateGoalsOutputSchema },
   model: 'googleai/gemini-1.5-pro-latest',
+  config: {
+    apiVersion: 'v1',
+  },
   prompt: `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes. Você deve ser empática, neutra e focada em soluções ganha-ganha.
 
   **Contexto:**

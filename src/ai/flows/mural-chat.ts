@@ -25,6 +25,9 @@ const prompt = ai.definePrompt({
   input: { schema: MuralChatInputSchema },
   output: { schema: MuralChatOutputSchema },
   model: 'googleai/gemini-1.5-pro-latest',
+  config: {
+    apiVersion: 'v1',
+  },
   prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um mural de mensagens, analisando o chat, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
 
   **Sua Personalidade:**

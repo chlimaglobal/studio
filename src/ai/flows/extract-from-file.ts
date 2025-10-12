@@ -27,6 +27,9 @@ const prompt = ai.definePrompt({
   input: { schema: ExtractFromFileInputSchema },
   output: { schema: ExtractFromFileOutputSchema },
   model: 'googleai/gemini-1.5-pro-latest',
+  config: {
+    apiVersion: 'v1',
+  },
   prompt: `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
 
   **Instruções de Processamento:**
