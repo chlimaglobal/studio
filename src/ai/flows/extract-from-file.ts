@@ -26,7 +26,7 @@ const prompt = ai.definePrompt({
   name: 'extractFromFilePrompt',
   input: { schema: ExtractFromFileInputSchema },
   output: { schema: ExtractFromFileOutputSchema },
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-2.5-pro',
   config: {
     apiVersion: 'v1',
   },

@@ -34,7 +34,7 @@ const prompt = ai.definePrompt({
   name: 'extractTransactionPrompt',
   input: { schema: ExtractTransactionInputSchema },
   output: { schema: ExtractTransactionOutputSchema },
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-2.5-pro',
   config: {
     apiVersion: 'v1',
   },

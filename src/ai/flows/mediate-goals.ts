@@ -53,7 +53,7 @@ const prompt = ai.definePrompt({
   name: 'mediateGoalsPrompt',
   input: { schema: MediateGoalsInputSchema },
   output: { schema: MediateGoalsOutputSchema },
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-2.5-pro',
   config: {
     apiVersion: 'v1',
   },
