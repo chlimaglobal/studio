@@ -24,7 +24,7 @@ const prompt = ai.definePrompt({
   name: 'muralChatPrompt',
   input: { schema: MuralChatInputSchema },
   output: { schema: MuralChatOutputSchema },
-  model: 'googleai/gemini-1.5-pro',
+  model: 'googleai/gemini-1.5-pro-latest',
   prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um mural de mensagens, analisando o chat, identificando padrões de comportamento nos dados financeiros e fornecendo conselhos úteis, imparciais e encorajadores.
 
   **Sua Personalidade:**
@@ -55,7 +55,7 @@ const prompt = ai.definePrompt({
   {{{json allTransactions}}}
 
   **Sua Tarefa:**
-  Com base no histórico, na nova mensagem e na sua análise comportamental dos dados financeiros, gere uma resposta **curta, útil e apropriada**. Se a pergunta for sobre dados, responda. Se for um problema, sugira uma solução construtiva. Se for uma celebração, comemore junto! Se não houver mensagem, mas você identificar um padrão interessante, ofereça um insight proativo.
+  Com base no histórico, na nova mensagem e na sua análise comportamental dos dados financeiros, gere uma resposta **curta, útil e apropriada**. Se a pergunta for sobre dados, responda. Se for um problema, sugira uma solução construtiva. Se for uma celebração, comemore junto! Se não houver mensagem, mas você identificar um padrão interessante, oferte um insight proativo.
 
   Analise o contexto e a nova mensagem, e então gere sua resposta.`,
 });
