@@ -25,8 +25,11 @@
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 72% 51%; /* Brighter Red */
     --destructive-foreground: 0 0% 98%;
+
+    --warning: 48 96% 50%; /* Bright Yellow */
+    --warning-foreground: 45 50% 5%;
 
     --border: 240 3.7% 20%; /* Lighter border for dark theme */
     --input: 240 3.7% 15.9%;
@@ -35,7 +38,7 @@
     --radius: 0.75rem; /* Slightly larger radius */
 
     --chart-1: 142 76% 51%;
-    --chart-2: 347 77% 60%;
+    --chart-2: 0 72% 51%;
     --chart-3: 38 92% 50%;
     --chart-4: 217 91% 60%;
     --chart-5: 50 80% 60%;
@@ -65,6 +68,9 @@
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;

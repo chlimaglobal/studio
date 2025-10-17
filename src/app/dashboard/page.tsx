@@ -26,6 +26,7 @@ import { allInvestmentCategories } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
+import UpcomingBills from '@/components/upcoming-bills';
 
 interface SummaryData {
   recebidos: number;
@@ -416,23 +417,23 @@ export default function DashboardPage() {
             <Card className="bg-secondary p-3">
                 <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-1))]"></div>
+                        <div className="w-2 h-2 rounded-full bg-chart-1"></div>
                         Recebidos
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-1 text-center">
-                    <p className="font-bold text-[hsl(var(--chart-1))] text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
+                    <p className="font-bold text-chart-1 text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.recebidos)}</p>
                 </CardContent>
             </Card>
             <Card className="bg-secondary p-3">
                 <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-[hsl(var(--chart-2))]"></div>
+                        <div className="w-2 h-2 rounded-full bg-chart-2"></div>
                         Despesas
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-1 text-center">
-                    <p className="font-bold text-[hsl(var(--chart-2))] text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
+                    <p className="font-bold text-chart-2 text-base">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.despesas)}</p>
                 </CardContent>
             </Card>
             <Card className="bg-secondary p-3">
@@ -449,6 +450,8 @@ export default function DashboardPage() {
                 </CardContent>
             </Card>
         </div>
+
+        <UpcomingBills />
 
         <div className="space-y-4">
           <div>
