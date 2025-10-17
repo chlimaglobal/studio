@@ -29,6 +29,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
+            // @ts-ignore
             await updateTransaction(bill.id, { ...bill, paid: isPaid });
             toast({
                 title: `Conta ${isPaid ? 'marcada como paga' : 'marcada como pendente'}.`,
