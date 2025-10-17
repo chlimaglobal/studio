@@ -97,7 +97,7 @@ export default function UpcomingBills() {
     const router = useRouter();
 
     const bills = useMemo(() => {
-        const principalCategories = ['Luz', 'Água', 'Internet', 'Cartão de Crédito'];
+        const principalCategories = new Set(['Luz', 'Água', 'Internet', 'Cartão de Crédito']);
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
@@ -106,7 +106,7 @@ export default function UpcomingBills() {
                 if (t.type !== 'expense') return false;
                 // Use dueDate if available, otherwise use transaction date
                 const transactionDate = t.dueDate ? new Date(t.dueDate) : new Date(t.date);
-                return principalCategories.includes(t.category) &&
+                return principalCategories.has(t.category) &&
                        transactionDate.getMonth() === currentMonth &&
                        transactionDate.getFullYear() === currentYear;
             })
