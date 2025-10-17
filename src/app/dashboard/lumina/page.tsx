@@ -5,17 +5,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useLumina } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2 } from 'lucide-react';
+import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
+import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 import { generateSuggestion } from '@/ai/flows/lumina-chat';
-import type { ChatMessage, LuminaChatInput } from '@/lib/types';
+import type { ChatMessage, LuminaChatInput, ExtractedTransaction } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { extractFromImage } from '@/ai/flows/extract-from-image';
+import { z } from 'zod';
+import { TransactionFormSchema } from '@/lib/types';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -76,11 +79,50 @@ const AudioRecordingUI = ({ onStop, onCancel }: { onStop: () => void; onCancel: 
     );
 };
 
+const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { transaction: ExtractedTransaction, onConfirm: () => void, onCancel: () => void }) => {
+    return (
+        <Card className="bg-secondary shadow-md">
+            <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Lúmina encontrou uma transação
+                </CardTitle>
+                <CardDescription>
+                    Posso registrar esta {transaction.type === 'income' ? 'receita' : 'despesa'} para você?
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Descrição:</span>
+                    <span className="font-semibold">{transaction.description}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor:</span>
+                    <span className={cn("font-semibold", transaction.type === 'income' ? 'text-green-500' : 'text-destructive')}>
+                        {formatCurrency(transaction.amount)}
+                    </span>
+                </div>
+                 <div className="flex justify-between">
+                    <span className="text-muted-foreground">Categoria:</span>
+                    <span className="font-semibold">{transaction.category}</span>
+                </div>
+            </CardContent>
+            <CardFooter className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={onCancel}>
+                    <X className="mr-2 h-4 w-4" /> Não
+                </Button>
+                <Button onClick={onConfirm}>
+                    <Check className="mr-2 h-4 w-4" /> Sim, registrar
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
 
 export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const { transactions } = useTransactions();
+    const { transactions, addTransaction } = useTransactions();
     const { setHasUnread } = useLumina();
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -90,6 +132,7 @@ export default function LuminaPage() {
     
     const [isRecording, setIsRecording] = useState(false);
     const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     
     const scrollViewportRef = useRef<HTMLDivElement>(null);
@@ -132,14 +175,16 @@ export default function LuminaPage() {
         localStorage.setItem('lastLuminaVisit', new Date().toISOString());
     }, [scrollToBottom, setHasUnread]);
 
-    const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string) => {
-        if (!user || !text.trim()) return;
+    const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string, transactionToConfirm?: ExtractedTransaction) => {
+        if (!user || !text.trim() && !transactionToConfirm) return;
 
         const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
             role,
             text,
             authorName: authorName || user.displayName || 'Usuário',
             authorPhotoUrl: authorPhotoUrl || user.photoURL || '',
+            // @ts-ignore
+            transactionToConfirm: transactionToConfirm || null,
         };
 
         await addChatMessage(user.uid, newMessage);
@@ -242,6 +287,67 @@ export default function LuminaPage() {
             recognitionRef.current.stop();
         }
     };
+    
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const imageDataUri = e.target?.result as string;
+                setIsLuminaThinking(true);
+                try {
+                    const result = await extractFromImage({ imageDataUri });
+                    await saveMessage('lumina', 'Analisei a imagem.', 'Lúmina', '/lumina-avatar.png', result);
+                } catch (error) {
+                    console.error("Error processing image:", error);
+                    toast({ variant: 'destructive', title: 'Erro ao Ler Imagem', description: 'A Lúmina não conseguiu extrair informações desta imagem.' });
+                } finally {
+                    setIsLuminaThinking(false);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        // Reset file input to allow selecting the same file again
+        event.target.value = '';
+    };
+
+    const handleConfirmTransaction = async (transaction: ExtractedTransaction, messageId: string) => {
+        try {
+            const transactionData: z.infer<typeof TransactionFormSchema> = {
+                description: transaction.description,
+                amount: transaction.amount,
+                type: transaction.type,
+                category: transaction.category,
+                date: new Date(),
+                paid: true,
+                paymentMethod: 'one-time',
+            };
+            await addTransaction(transactionData);
+            // We can optionally update the message to remove the confirmation buttons
+            toast({ title: 'Sucesso!', description: 'A transação foi registrada.' });
+             await addChatMessage(user!.uid, {
+                role: 'user',
+                text: 'Sim, pode registrar.',
+                authorName: user!.displayName || 'Usuário',
+                authorPhotoUrl: user!.photoURL || ''
+            });
+
+        } catch (error) {
+            console.error("Error saving confirmed transaction:", error);
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível salvar a transação.' });
+        }
+    }
+
+    const handleCancelTransaction = async (messageId: string) => {
+        // Here you could update the message in Firestore to remove the buttons,
+        // but for simplicity, we'll just add a "cancelled" message.
+        await addChatMessage(user!.uid, {
+            role: 'user',
+            text: 'Não, obrigado.',
+            authorName: user!.displayName || 'Usuário',
+            authorPhotoUrl: user!.photoURL || ''
+        });
+    }
 
     if (isSubscriptionLoading) {
         return (
@@ -275,7 +381,6 @@ export default function LuminaPage() {
                         <div className="space-y-6 p-4">
                              {messages.map((msg, index) => {
                                 const isUser = msg.role === 'user';
-                                const showAuthor = index === 0 || messages[index - 1].role !== msg.role;
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
                                     {!isUser && (
@@ -294,11 +399,21 @@ export default function LuminaPage() {
                                     )}
                                     <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
                                         <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
-                                        <div className={cn('p-3 rounded-lg border flex flex-col',
-                                            isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
-                                        )}>
-                                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                        </div>
+                                         {msg.text && (
+                                            <div className={cn('p-3 rounded-lg border flex flex-col',
+                                                isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
+                                            )}>
+                                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                            </div>
+                                         )}
+                                         {msg.transactionToConfirm && (
+                                            <TransactionConfirmationCard 
+                                                // @ts-ignore
+                                                transaction={msg.transactionToConfirm}
+                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm, msg.id!)}
+                                                onCancel={() => handleCancelTransaction(msg.id!)}
+                                            />
+                                         )}
                                          <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
                                             {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
@@ -348,6 +463,16 @@ export default function LuminaPage() {
                                 <AudioRecordingUI onStop={handleAudioRecording} onCancel={cancelRecording} />
                              ) : (
                                 <>
+                                    <Input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaThinking}>
+                                        <Paperclip className="h-5 w-5"/>
+                                    </Button>
                                     <Input 
                                         placeholder="Digite sua mensagem..." 
                                         className="flex-1"

@@ -146,6 +146,20 @@ export const ExtractFromFileOutputSchema = z.object({
 });
 export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
 
+// Types for Image Extraction Flow
+export const ExtractFromImageInputSchema = z.object({
+  imageDataUri: z.string().describe("A photo of a receipt, invoice, or note, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+});
+export type ExtractFromImageInput = z.infer<typeof ExtractFromImageInputSchema>;
+
+export const ExtractFromImageOutputSchema = z.object({
+  description: z.string().describe('A concise description of the transaction.'),
+  amount: z.number().describe('The numeric value of the transaction.'),
+  type: z.enum(['income', 'expense']).describe('The type of transaction (income or expense).'),
+  category: z.enum(transactionCategories as [string, ...string[]]).optional().describe('The suggested category for the transaction, if it can be inferred.'),
+});
+export type ExtractFromImageOutput = z.infer<typeof ExtractFromImageOutputSchema>;
+
 
 // Types for Budgeting
 export const BudgetSchema = z.object({
@@ -212,6 +226,7 @@ export const ChatMessageSchema = z.object({
   text: z.string(),
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().optional(),
+  transactionToConfirm: ExtractedTransactionSchema.optional().nullable(),
 });
 
 // Type for client-side state, which includes a JS Date object and an optional ID
