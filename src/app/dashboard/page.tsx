@@ -462,7 +462,7 @@ export default function DashboardPage() {
           <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
           <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
-
+          
           <UpcomingBills />
 
           <div>
