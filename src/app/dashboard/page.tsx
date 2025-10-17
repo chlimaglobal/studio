@@ -463,9 +463,9 @@ export default function DashboardPage() {
 
           <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
-          <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
-          
           <UpcomingBills />
+
+          <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
           <div>
               <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>

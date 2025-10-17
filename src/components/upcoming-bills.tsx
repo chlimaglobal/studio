@@ -6,8 +6,7 @@ import { useTransactions } from '@/components/client-providers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
-import { Link } from 'lucide-react';
+import { format, differenceInDays, isPast } from 'date-fns';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/lib/types';
@@ -30,8 +29,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
-            // We need to pass the full schema, so we recreate it.
-            // This is a simplification; a real app might have a different update mechanism.
+            // We need to pass a compatible object for the schema
             const updatedData = {
                 ...bill,
                 amount: bill.amount,
@@ -81,7 +79,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
                     </p>
                 </div>
                 <Switch 
-                    checked={bill.paid} 
+                    checked={!!bill.paid} 
                     onCheckedChange={handlePaidToggle} 
                     aria-label={`Marcar ${bill.description} como ${bill.paid ? 'não paga' : 'paga'}`}
                 />
@@ -101,9 +99,9 @@ export default function UpcomingBills() {
 
         return transactions
             .filter(t => {
-                const transactionDate = new Date(t.date);
+                if (!t.dueDate) return false;
+                const transactionDate = new Date(t.dueDate);
                 return principalCategories.includes(t.category) &&
-                       t.dueDate &&
                        transactionDate.getMonth() === currentMonth &&
                        transactionDate.getFullYear() === currentYear;
             })
@@ -118,7 +116,7 @@ export default function UpcomingBills() {
     return (
         <div>
             <div className="flex justify-between items-center mb-2">
-                 <h2 className="text-lg font-semibold">Contas Principais</h2>
+                 <h2 className="text-lg font-semibold">Contas Fixas e Cartões</h2>
                  <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/bills')}>Ver todas</Button>
             </div>
             <Card>
