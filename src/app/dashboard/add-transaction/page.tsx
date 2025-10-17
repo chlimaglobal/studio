@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -263,13 +264,10 @@ function AddTransactionForm() {
                                         <FormLabel>Valor (R$)</FormLabel>
                                         <FormControl>
                                             <Input
-                                                type="number"
+                                                type="text"
                                                 inputMode="decimal"
                                                 placeholder="150,50"
-                                                step="0.01"
                                                 {...field}
-                                                onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                                                value={field.value ?? ''}
                                             />
                                         </FormControl>
                                         <FormMessage />
@@ -612,7 +610,7 @@ function AddTransactionForm() {
                                             <div className="space-y-0.5">
                                                 <FormLabel>Ocultar dos Relatórios</FormLabel>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Ideal para presentes ou despesas que não devem entrar na análise.
+                                                    Ideal para transferências ou despesas que não devem entrar na análise.
                                                 </p>
                                             </div>
                                             <FormControl>
@@ -647,3 +645,7 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
+
+    

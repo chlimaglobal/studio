@@ -6,12 +6,11 @@ import { useTransactions } from '@/components/client-providers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
-import { format, differenceInDays, isPast } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-
 
 const BillItem = ({ bill }: { bill: Transaction }) => {
     const { updateTransaction } = useTransactions();
@@ -20,16 +19,15 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     if (!bill.dueDate) return null;
 
     const dueDate = new Date(bill.dueDate);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Normalize current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const daysDifference = differenceInDays(dueDate, now);
+    const daysDifference = differenceInDays(dueDate, today);
     const isOverdue = !bill.paid && daysDifference < 0;
     const isNearDue = !bill.paid && !isOverdue && daysDifference <= 7;
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
-            // We need to pass a compatible object for the schema
             const updatedData = {
                 ...bill,
                 amount: bill.amount,
@@ -48,16 +46,21 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
         }
     };
     
+    const statusColor = bill.paid
+      ? 'bg-green-500' // GREEN
+      : isOverdue
+      ? 'bg-red-500' // RED
+      : isNearDue
+      ? 'bg-yellow-500' // YELLOW
+      : 'bg-muted-foreground/50';
+
     return (
         <div className="flex items-center justify-between gap-4 py-3 px-2 rounded-lg hover:bg-muted/50">
             <div className="flex items-center gap-3">
                 <div 
                     className={cn(
                         "w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors",
-                        bill.paid ? "bg-green-500" :
-                        isOverdue ? "bg-destructive" :
-                        isNearDue ? "bg-amber-500" :
-                        "bg-muted-foreground/50"
+                        statusColor
                     )}
                 />
                 <div>
@@ -99,8 +102,8 @@ export default function UpcomingBills() {
 
         return transactions
             .filter(t => {
-                if (!t.dueDate) return false;
-                const transactionDate = new Date(t.dueDate);
+                if (t.type !== 'expense') return false; // Only expenses
+                const transactionDate = t.dueDate ? new Date(t.dueDate) : new Date(t.date);
                 return principalCategories.includes(t.category) &&
                        transactionDate.getMonth() === currentMonth &&
                        transactionDate.getFullYear() === currentYear;
@@ -129,3 +132,5 @@ export default function UpcomingBills() {
         </div>
     );
 }
+
+    

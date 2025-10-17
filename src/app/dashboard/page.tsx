@@ -116,7 +116,7 @@ const AiTipsCard = () => {
       </CardHeader>
       <CardContent className="space-y-4 text-sm">
         <p className="text-muted-foreground">
-          {userName}, olha só onde você pode estar errando nos seus gastos deste mês:
+          {userName}, veja um ponto de atenção nos seus gastos este mês:
         </p>
         {tips.suggestions.slice(0, 1).map((tip, index) => (
              <div key={index} className="p-3 rounded-lg bg-background/50">
@@ -125,7 +125,7 @@ const AiTipsCard = () => {
             </div>
         ))}
         <Link href="/dashboard/analysis" passHref>
-          <Button variant="link" className="p-0 h-auto text-primary">Ver todas as dicas</Button>
+          <Button variant="link" className="p-0 h-auto text-primary">Ver análise completa</Button>
         </Link>
       </CardContent>
     </Card>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                 <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-chart-1"></div>
-                        Recebidos
+                        Receitas
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-1 text-center">
@@ -460,10 +460,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <AiTipsCard />
+          
+          <UpcomingBills />
 
           <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
-
-          <UpcomingBills />
 
           <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
@@ -491,3 +491,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
