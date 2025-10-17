@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { extractFromImage } from '@/ai/flows/extract-from-image';
 import { z } from 'zod';
 import { TransactionFormSchema } from '@/lib/types';
+import { QrScannerDialog } from '@/components/qr-scanner-dialog';
+
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -138,6 +140,8 @@ export default function LuminaPage() {
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const isAtBottomRef = useRef(true);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+    
+    const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
     
     const scrollToBottom = useCallback((behavior: 'smooth' | 'auto' = 'auto') => {
         setTimeout(() => {
@@ -288,27 +292,40 @@ export default function LuminaPage() {
         }
     };
     
+    const handleImageProcessing = async (imageDataUri: string) => {
+        setIsLuminaThinking(true);
+        try {
+            const result = await extractFromImage({ imageDataUri });
+            await saveMessage('lumina', 'Analisei a imagem.', 'Lúmina', '/lumina-avatar.png', result);
+        } catch (error) {
+            const errorMessage = "Desculpe, não consegui extrair nenhuma informação útil desta imagem. Por favor, tente uma foto mais nítida de um comprovante ou anotação.";
+            await saveMessage('lumina', errorMessage, 'Lúmina', '/lumina-avatar.png');
+        } finally {
+            setIsLuminaThinking(false);
+        }
+    };
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = async (e) => {
                 const imageDataUri = e.target?.result as string;
-                setIsLuminaThinking(true);
-                try {
-                    const result = await extractFromImage({ imageDataUri });
-                    await saveMessage('lumina', 'Analisei a imagem.', 'Lúmina', '/lumina-avatar.png', result);
-                } catch (error) {
-                    console.error("Error processing image:", error);
-                    toast({ variant: 'destructive', title: 'Erro ao Ler Imagem', description: 'A Lúmina não conseguiu extrair informações desta imagem.' });
-                } finally {
-                    setIsLuminaThinking(false);
-                }
+                await handleImageProcessing(imageDataUri);
             };
             reader.readAsDataURL(file);
         }
-        // Reset file input to allow selecting the same file again
-        event.target.value = '';
+        event.target.value = ''; // Reset file input
+    };
+
+    const handleTransactionExtractedFromQR = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
+        const transactionData = {
+            description: data.description || 'Compra QR Code',
+            amount: data.amount || 0,
+            type: data.type || 'expense',
+            category: data.category || 'Outros',
+        };
+        saveMessage('lumina', 'Analisei o QR Code.', 'Lúmina', '/lumina-avatar.png', transactionData);
     };
 
     const handleConfirmTransaction = async (transaction: ExtractedTransaction, messageId: string) => {
@@ -473,6 +490,9 @@ export default function LuminaPage() {
                                     <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaThinking}>
                                         <Paperclip className="h-5 w-5"/>
                                     </Button>
+                                     <Button type="button" variant="ghost" size="icon" onClick={() => setIsQrScannerOpen(true)} disabled={isLuminaThinking}>
+                                        <Camera className="h-5 w-5" />
+                                    </Button>
                                     <Input 
                                         placeholder="Digite sua mensagem..." 
                                         className="flex-1"
@@ -495,6 +515,11 @@ export default function LuminaPage() {
                     </div>
                 </div>
             )}
+            <QrScannerDialog
+                open={isQrScannerOpen}
+                onOpenChange={setIsQrScannerOpen}
+                onTransactionExtracted={handleTransactionExtractedFromQR}
+            />
         </div>
     );
 }

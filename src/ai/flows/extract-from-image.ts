@@ -65,8 +65,8 @@ const extractFromImageFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output || !output.description || !output.type) {
-      throw new Error('A Lúmina não conseguiu processar a imagem ou os dados essenciais (descrição e tipo) estão incompletos.');
+    if (!output || !output.description || !output.type || !output.amount) {
+      throw new Error('A Lúmina não conseguiu processar a imagem ou os dados essenciais (descrição, valor e tipo) estão incompletos.');
     }
     return output;
   }
