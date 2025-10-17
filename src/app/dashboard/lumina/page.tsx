@@ -162,9 +162,11 @@ export default function LuminaPage() {
 
                 setMessages(newMessages);
 
-                if (isFirstLoad || isAtBottomRef.current || (isNewMessage && newMessages[newMessages.length - 1].role === 'user')) {
-                    scrollToBottom(isFirstLoad ? 'auto' : 'smooth');
-                } else if (!isAtBottomRef.current && isNewMessage) {
+                if (isFirstLoad) {
+                    scrollToBottom('auto');
+                } else if (isAtBottomRef.current) {
+                    scrollToBottom('smooth');
+                } else if (isNewMessage) {
                     setShowScrollToBottom(true);
                 }
             });
@@ -238,7 +240,9 @@ export default function LuminaPage() {
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
             isAtBottomRef.current = isScrolledToBottom;
-            setShowScrollToBottom(!isScrolledToBottom);
+            if (isScrolledToBottom) {
+                setShowScrollToBottom(false);
+            }
         }
     };
     
@@ -391,87 +395,87 @@ export default function LuminaPage() {
             </header>
 
             {(!isSubscribed && !isAdmin) ? <PremiumBlocker /> : (
-                <div className="flex-1 flex flex-col overflow-hidden relative">
-                    <ScrollArea className="flex-1" viewportRef={scrollViewportRef} onScroll={handleScroll}>
-                        <div className="space-y-6 p-4">
-                             {messages.map((msg, index) => {
-                                const isUser = msg.role === 'user';
-                                return (
-                                <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
-                                    {!isUser && (
-                                        <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
-                                            {msg.role === 'lumina' ? (
-                                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                                                    <Sparkles className="h-5 w-5" />
-                                                </AvatarFallback>
-                                            ) : (
-                                                <>
-                                                    <AvatarImage src={msg.authorPhotoUrl || undefined} />
-                                                    <AvatarFallback>{msg.authorName?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
-                                                </>
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 relative">
+                        <ScrollArea className="absolute inset-0" viewportRef={scrollViewportRef} onScroll={handleScroll}>
+                            <div className="space-y-6 p-4">
+                                {messages.map((msg, index) => {
+                                    const isUser = msg.role === 'user';
+                                    return (
+                                    <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
+                                        {!isUser && (
+                                            <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
+                                                {msg.role === 'lumina' ? (
+                                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                                        <Sparkles className="h-5 w-5" />
+                                                    </AvatarFallback>
+                                                ) : (
+                                                    <>
+                                                        <AvatarImage src={msg.authorPhotoUrl || undefined} />
+                                                        <AvatarFallback>{msg.authorName?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
+                                                    </>
+                                                )}
+                                            </Avatar>
+                                        )}
+                                        <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
+                                            <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
+                                            {msg.text && (
+                                                <div className={cn('p-3 rounded-lg border flex flex-col',
+                                                    isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
+                                                )}>
+                                                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                                </div>
                                             )}
-                                        </Avatar>
-                                    )}
-                                    <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
-                                        <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
-                                         {msg.text && (
-                                            <div className={cn('p-3 rounded-lg border flex flex-col',
-                                                isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
-                                            )}>
-                                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
-                                            </div>
-                                         )}
-                                         {msg.transactionToConfirm && (
-                                            <TransactionConfirmationCard 
-                                                // @ts-ignore
-                                                transaction={msg.transactionToConfirm}
-                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm, msg.id!)}
-                                                onCancel={() => handleCancelTransaction(msg.id!)}
-                                            />
-                                         )}
-                                         <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
-                                            {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                            {msg.transactionToConfirm && (
+                                                <TransactionConfirmationCard 
+                                                    // @ts-ignore
+                                                    transaction={msg.transactionToConfirm}
+                                                    onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm, msg.id!)}
+                                                    onCancel={() => handleCancelTransaction(msg.id!)}
+                                                />
+                                            )}
+                                            <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
+                                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        {isUser && (
+                                            <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
+                                                <AvatarImage src={msg.authorPhotoUrl || undefined} />
+                                                <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                            </Avatar>
+                                        )}
                                     </div>
-                                    {isUser && (
-                                        <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
-                                            <AvatarImage src={msg.authorPhotoUrl || undefined} />
-                                            <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                )})}
+                                {isLuminaThinking && (
+                                    <div className="flex items-start gap-3 justify-start">
+                                        <Avatar className="h-10 w-10 border-2 border-border">
+                                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
+                                                <Sparkles className="h-5 w-5" />
+                                            </AvatarFallback>
                                         </Avatar>
-                                    )}
-                                </div>
-                            )})}
-                             {isLuminaThinking && (
-                                <div className="flex items-start gap-3 justify-start">
-                                    <Avatar className="h-10 w-10 border-2 border-border">
-                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                                            <Sparkles className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex flex-col items-start max-w-[80%] md:max-w-[70%]">
-                                        <span className="text-xs text-muted-foreground mb-1 px-2">Lúmina</span>
-                                        <div className="p-3 rounded-lg border bg-secondary rounded-tl-none">
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                <span>Está pensando...</span>
+                                        <div className="flex flex-col items-start max-w-[80%] md:max-w-[70%]">
+                                            <span className="text-xs text-muted-foreground mb-1 px-2">Lúmina</span>
+                                            <div className="p-3 rounded-lg border bg-secondary rounded-tl-none">
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <span>Está pensando...</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                        </div>
-                    </ScrollArea>
-
-                    {showScrollToBottom && (
-                        <Button
-                            size="icon"
-                            className="absolute bottom-24 right-6 rounded-full h-10 w-10 shadow-lg animate-in fade-in-0"
-                            onClick={() => scrollToBottom('smooth')}
-                        >
-                            <ArrowDown className="h-5 w-5" />
-                        </Button>
-                    )}
-                    
+                                )}
+                            </div>
+                        </ScrollArea>
+                        {showScrollToBottom && (
+                            <Button
+                                size="icon"
+                                className="absolute bottom-4 right-4 rounded-full h-10 w-10 shadow-lg animate-in fade-in-0"
+                                onClick={() => scrollToBottom('smooth')}
+                            >
+                                <ArrowDown className="h-5 w-5" />
+                            </Button>
+                        )}
+                    </div>
                     <div className="p-4 border-t bg-background">
                          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
                              {isRecording ? (
@@ -520,5 +524,4 @@ export default function LuminaPage() {
             />
         </div>
     );
-
-    
+}
