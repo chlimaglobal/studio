@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,7 +36,7 @@ import { onCardsUpdate } from '@/lib/storage';
 import { Card as CardType } from '@/lib/card-types';
 
 const institutions = [
-    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "Outro"
+    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "PagBank", "Will Bank", "Outro"
 ];
 
 function AddTransactionForm() {
