@@ -110,13 +110,24 @@ export default function UpcomingBills() {
                     transactionDate.getFullYear() === currentYear;
         });
         
-        // De-duplicate recurring bills, keeping only one instance per description for the month
+        // Group by category and pick the one with the nearest due date.
         const uniqueBillsMap = new Map<string, Transaction>();
+        
         monthBills.forEach(bill => {
-            const descriptionKey = bill.description.toLowerCase();
-            // Always keep the bill, replacing any existing one. This works because we sort by date next.
-            // If multiple exist, the latest sort will determine which one is kept.
-            uniqueBillsMap.set(descriptionKey, bill);
+            const categoryKey = bill.category;
+            const existingBill = uniqueBillsMap.get(categoryKey);
+
+            if (!existingBill) {
+                uniqueBillsMap.set(categoryKey, bill);
+            } else {
+                // If there's an existing bill for this category, keep the one with the nearest due date.
+                const existingDueDate = existingBill.dueDate ? new Date(existingBill.dueDate) : new Date(existingBill.date);
+                const newDueDate = bill.dueDate ? new Date(bill.dueDate) : new Date(bill.date);
+
+                if (newDueDate < existingDueDate) {
+                    uniqueBillsMap.set(categoryKey, bill);
+                }
+            }
         });
 
 
