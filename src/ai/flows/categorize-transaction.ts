@@ -68,6 +68,13 @@ const categorizeTransactionFlow = ai.defineFlow(
     name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
     outputSchema: CategorizeTransactionOutputSchema,
+    retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async input => {
     const {output} = await prompt(input);

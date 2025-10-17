@@ -62,6 +62,13 @@ const extractFromImageFlow = ai.defineFlow(
     name: 'extractFromImageFlow',
     inputSchema: ExtractFromImageInputSchema,
     outputSchema: ExtractFromImageOutputSchema,
+     retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async (input) => {
     const { output } = await prompt(input);

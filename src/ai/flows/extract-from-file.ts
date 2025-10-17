@@ -64,6 +64,13 @@ const extractFromFileFlow = ai.defineFlow(
     name: 'extractFromFileFlow',
     inputSchema: ExtractFromFileInputSchema,
     outputSchema: ExtractFromFileOutputSchema,
+     retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async (input) => {
     const { output } = await prompt(input);

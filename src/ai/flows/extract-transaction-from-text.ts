@@ -86,6 +86,13 @@ const extractTransactionFlow = ai.defineFlow(
     name: 'extractTransactionFlow',
     inputSchema: ExtractTransactionInputSchema,
     outputSchema: ExtractTransactionOutputSchema,
+     retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async (input) => {
     const { output } = await prompt(input);

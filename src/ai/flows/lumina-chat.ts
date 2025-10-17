@@ -65,6 +65,13 @@ const luminaChatFlow = ai.defineFlow(
     name: 'luminaChatFlow',
     inputSchema: LuminaChatInputSchema,
     outputSchema: LuminaChatOutputSchema,
+    retrier: {
+      maxAttempts: 3,
+      backoff: {
+        delayMs: 2000,
+        multiplier: 2,
+      },
+    },
   },
   async (input) => {
     // For simplicity, we are passing all transactions. In a real-world scenario,
