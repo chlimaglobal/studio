@@ -3,16 +3,16 @@
 
 import { useMemo } from 'react';
 import { useTransactions } from '@/components/client-providers';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
-import { format, differenceInDays, isPast } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { WalletCards } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
+import { Link } from 'lucide-react';
+import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/lib/types';
-import Link from 'next/link';
-import { Button } from './ui/button';
+import { useRouter } from 'next/navigation';
+
 
 const BillItem = ({ bill }: { bill: Transaction }) => {
     const { updateTransaction } = useTransactions();
@@ -22,7 +22,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
 
     const dueDate = new Date(bill.dueDate);
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Normalize current date to the beginning of the day
+    now.setHours(0, 0, 0, 0); // Normalize current date
 
     const daysDifference = differenceInDays(dueDate, now);
     const isOverdue = !bill.paid && daysDifference < 0;
@@ -30,14 +30,22 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
+            // We need to pass the full schema, so we recreate it.
+            // This is a simplification; a real app might have a different update mechanism.
+            const updatedData = {
+                ...bill,
+                amount: bill.amount,
+                date: new Date(bill.date),
+                paid: isPaid,
+                paymentMethod: bill.paymentMethod || 'one-time',
+            };
             // @ts-ignore
-            await updateTransaction(bill.id, { ...bill, paid: isPaid });
+            await updateTransaction(bill.id, updatedData);
             toast({
                 title: `Conta ${isPaid ? 'marcada como paga' : 'marcada como pendente'}.`,
                 description: `${bill.description} foi atualizada.`
             });
         } catch (error) {
-            // The hook already shows a generic error toast.
             console.error("Failed to update bill status:", error);
         }
     };
@@ -47,7 +55,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
             <div className="flex items-center gap-3">
                 <div 
                     className={cn(
-                        "w-2 h-2 rounded-full flex-shrink-0",
+                        "w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors",
                         bill.paid ? "bg-green-500" :
                         isOverdue ? "bg-destructive" :
                         isNearDue ? "bg-amber-500" :
@@ -84,13 +92,13 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
 
 export default function UpcomingBills() {
     const { transactions, isLoading } = useTransactions();
+    const router = useRouter();
 
     const bills = useMemo(() => {
         const principalCategories = ['Luz', 'Água', 'Internet', 'Cartão de Crédito'];
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
-        // Filtra contas principais do mês atual que tenham data de vencimento
         return transactions
             .filter(t => {
                 const transactionDate = new Date(t.date);
@@ -104,16 +112,14 @@ export default function UpcomingBills() {
 
 
     if (isLoading || bills.length === 0) {
-        return null; // Don't render the card if there are no upcoming bills or still loading
+        return null;
     }
     
     return (
         <div>
             <div className="flex justify-between items-center mb-2">
                  <h2 className="text-lg font-semibold">Contas Principais</h2>
-                 <Link href="/dashboard/bills" passHref>
-                    <Button variant="ghost" size="sm">Ver todas</Button>
-                </Link>
+                 <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/bills')}>Ver todas</Button>
             </div>
             <Card>
                 <CardContent className="pt-4 divide-y divide-border">
