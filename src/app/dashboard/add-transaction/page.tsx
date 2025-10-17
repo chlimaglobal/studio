@@ -610,7 +610,7 @@ function AddTransactionForm() {
                                             <div className="space-y-0.5">
                                                 <FormLabel>Ocultar dos Relatórios</FormLabel>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Ideal para transferências ou despesas que não devem entrar na análise.
+                                                    Ideal para presentes ou despesas que não devem entrar na análise.
                                                 </p>
                                             </div>
                                             <FormControl>
@@ -645,7 +645,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
 
     

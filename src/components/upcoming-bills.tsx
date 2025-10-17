@@ -6,7 +6,7 @@ import { useTransactions } from '@/components/client-providers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isPast } from 'date-fns';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Transaction } from '@/lib/types';
@@ -16,26 +16,27 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     const { updateTransaction } = useTransactions();
     const { toast } = useToast();
     
-    if (!bill.dueDate) return null;
+    // Fallback to transaction date if dueDate is not present
+    const billDueDate = bill.dueDate ? new Date(bill.dueDate) : new Date(bill.date);
 
-    const dueDate = new Date(bill.dueDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const daysDifference = differenceInDays(dueDate, today);
-    const isOverdue = !bill.paid && daysDifference < 0;
-    const isNearDue = !bill.paid && !isOverdue && daysDifference <= 7;
+    const daysDifference = differenceInDays(billDueDate, today);
+    const isBillOverdue = !bill.paid && daysDifference < 0;
+    const isNearDue = !bill.paid && !isBillOverdue && daysDifference <= 7;
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
+            // We need to create a data object that matches the validation schema
             const updatedData = {
                 ...bill,
                 amount: bill.amount,
-                date: new Date(bill.date),
+                date: new Date(bill.date), // Ensure it's a Date object
                 paid: isPaid,
-                paymentMethod: bill.paymentMethod || 'one-time',
+                paymentMethod: bill.paymentMethod || 'one-time', // Provide default
             };
-            // @ts-ignore
+            // @ts-ignore - We are providing the necessary fields for the schema
             await updateTransaction(bill.id, updatedData);
             toast({
                 title: `Conta ${isPaid ? 'marcada como paga' : 'marcada como pendente'}.`,
@@ -47,12 +48,12 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     };
     
     const statusColor = bill.paid
-      ? 'bg-green-500' // GREEN
-      : isOverdue
-      ? 'bg-red-500' // RED
+      ? 'bg-green-500' // GREEN (Paid)
+      : isBillOverdue
+      ? 'bg-red-500' // RED (Overdue)
       : isNearDue
-      ? 'bg-yellow-500' // YELLOW
-      : 'bg-muted-foreground/50';
+      ? 'bg-yellow-500' // YELLOW (Warning)
+      : 'bg-red-500'; // RED (Pending)
 
     return (
         <div className="flex items-center justify-between gap-4 py-3 px-2 rounded-lg hover:bg-muted/50">
@@ -75,10 +76,10 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
                     <p className={cn(
                         "text-xs",
                         bill.paid ? "text-green-500" :
-                        isOverdue ? "text-destructive" :
+                        isBillOverdue ? "text-destructive" :
                         "text-muted-foreground"
                     )}>
-                        {bill.paid ? "Pago" : `Vence ${format(dueDate, 'dd/MM')}`}
+                        {bill.paid ? "Pago" : `Vence ${format(billDueDate, 'dd/MM')}`}
                     </p>
                 </div>
                 <Switch 
@@ -102,13 +103,22 @@ export default function UpcomingBills() {
 
         return transactions
             .filter(t => {
-                if (t.type !== 'expense') return false; // Only expenses
+                if (t.type !== 'expense') return false;
+                // Use dueDate if available, otherwise use transaction date
                 const transactionDate = t.dueDate ? new Date(t.dueDate) : new Date(t.date);
                 return principalCategories.includes(t.category) &&
                        transactionDate.getMonth() === currentMonth &&
                        transactionDate.getFullYear() === currentYear;
             })
-            .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+            // Sort by due date, then by paid status (unpaid first)
+            .sort((a, b) => {
+                if (a.paid !== b.paid) {
+                    return a.paid ? 1 : -1;
+                }
+                const dateA = a.dueDate ? new Date(a.dueDate) : new Date(a.date);
+                const dateB = b.dueDate ? new Date(b.dueDate) : new Date(b.date);
+                return dateA.getTime() - dateB.getTime();
+            });
     }, [transactions]);
 
 
@@ -132,5 +142,3 @@ export default function UpcomingBills() {
         </div>
     );
 }
-
-    
