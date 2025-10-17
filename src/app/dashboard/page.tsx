@@ -451,8 +451,6 @@ export default function DashboardPage() {
             </Card>
         </div>
 
-        <UpcomingBills />
-
         <div className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
@@ -464,6 +462,8 @@ export default function DashboardPage() {
           <BudgetAlertsCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
 
           <BudgetCard budgetItems={budgetItems} isPrivacyMode={isPrivacyMode} />
+
+          <UpcomingBills />
 
           <div>
               <h2 className="text-lg font-semibold mb-2">Gastos por categoria</h2>
