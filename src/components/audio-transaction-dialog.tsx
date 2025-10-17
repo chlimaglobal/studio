@@ -49,15 +49,22 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     setError(null);
 
     const lowerCaseTranscript = transcript.toLowerCase().trim();
-    if (!lowerCaseTranscript.startsWith('lúmina')) {
+    
+    let command = '';
+    const wakeWordLumina = 'lúmina';
+    const wakeWordLuminaUnaccented = 'lumina';
+
+    if (lowerCaseTranscript.startsWith(wakeWordLumina)) {
+        command = transcript.slice(wakeWordLumina.length).trim();
+    } else if (lowerCaseTranscript.startsWith(wakeWordLuminaUnaccented)) {
+        command = transcript.slice(wakeWordLuminaUnaccented.length).trim();
+    } else {
         const wakeWordError = "Por favor, comece seu comando com 'Lúmina'. Ex: 'Lúmina, paguei 50 reais na gasolina.'";
         toast({ variant: 'destructive', title: 'Palavra de Ativação Faltando', description: wakeWordError });
         setError(wakeWordError);
         setIsProcessing(false);
         return;
     }
-
-    const command = transcript.slice('lúmina'.length).trim();
 
     try {
       const result = await extractTransactionInfoFromText(command);
