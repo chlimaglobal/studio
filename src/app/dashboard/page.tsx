@@ -452,6 +452,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-4">
+          <AiTipsCard />
           <div>
             <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
             <div className="h-[250px]">
@@ -484,7 +485,6 @@ export default function DashboardPage() {
               </Card>
           </div>
           
-          <AiTipsCard />
         </div>
       </div>
     </div>
