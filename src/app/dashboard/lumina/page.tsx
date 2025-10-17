@@ -138,7 +138,6 @@ export default function LuminaPage() {
     const { toast } = useToast();
     
     const scrollViewportRef = useRef<HTMLDivElement>(null);
-    const isAtBottomRef = useRef(true);
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     
     const [isQrScannerOpen, setIsQrScannerOpen] = useState(false);
@@ -157,17 +156,17 @@ export default function LuminaPage() {
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
-                const isNewMessage = newMessages.length > messages.length && messages.length > 0;
-                const isFirstLoad = messages.length === 0;
+                const scrollDiv = scrollViewportRef.current;
+                const isAtBottom = scrollDiv ? scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50 : true;
 
                 setMessages(newMessages);
 
-                if (isFirstLoad) {
-                    scrollToBottom('auto');
-                } else if (isAtBottomRef.current) {
+                if (isAtBottom) {
                     scrollToBottom('smooth');
-                } else if (isNewMessage) {
-                    setShowScrollToBottom(true);
+                } else {
+                    if(newMessages.length > messages.length) {
+                        setShowScrollToBottom(true);
+                    }
                 }
             });
             return () => unsubscribe();
@@ -182,7 +181,7 @@ export default function LuminaPage() {
     }, [scrollToBottom, setHasUnread]);
 
     const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string, transactionToConfirm?: ExtractedTransaction) => {
-        if (!user || !text.trim() && !transactionToConfirm) return;
+        if (!user || (!text.trim() && !transactionToConfirm)) return;
 
         const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
             role,
@@ -239,7 +238,6 @@ export default function LuminaPage() {
         const scrollDiv = scrollViewportRef.current;
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
-            isAtBottomRef.current = isScrolledToBottom;
             if (isScrolledToBottom) {
                 setShowScrollToBottom(false);
             }
@@ -469,7 +467,8 @@ export default function LuminaPage() {
                         {showScrollToBottom && (
                             <Button
                                 size="icon"
-                                className="absolute bottom-4 right-4 rounded-full h-10 w-10 shadow-lg animate-in fade-in-0"
+                                variant="outline"
+                                className="absolute bottom-4 right-4 rounded-full h-10 w-10 shadow-lg animate-in fade-in-0 bg-background/80 backdrop-blur-sm"
                                 onClick={() => scrollToBottom('smooth')}
                             >
                                 <ArrowDown className="h-5 w-5" />
