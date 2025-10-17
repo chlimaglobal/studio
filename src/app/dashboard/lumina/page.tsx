@@ -238,9 +238,7 @@ export default function LuminaPage() {
         if (scrollDiv) {
             const isScrolledToBottom = scrollDiv.scrollHeight - scrollDiv.scrollTop - scrollDiv.clientHeight < 50;
             isAtBottomRef.current = isScrolledToBottom;
-            if (isScrolledToBottom) {
-                setShowScrollToBottom(false);
-            }
+            setShowScrollToBottom(!isScrolledToBottom);
         }
     };
     
@@ -522,4 +520,5 @@ export default function LuminaPage() {
             />
         </div>
     );
-}
+
+    
