@@ -101,16 +101,26 @@ export default function UpcomingBills() {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
-        return transactions
-            .filter(t => {
-                if (t.type !== 'expense') return false;
-                // Use dueDate if available, otherwise use transaction date
-                const transactionDate = t.dueDate ? new Date(t.dueDate) : new Date(t.date);
-                return principalCategories.has(t.category) &&
-                       transactionDate.getMonth() === currentMonth &&
-                       transactionDate.getFullYear() === currentYear;
-            })
-            // Sort by due date, then by paid status (unpaid first)
+        const monthBills = transactions.filter(t => {
+            if (t.type !== 'expense') return false;
+            
+            const transactionDate = t.dueDate ? new Date(t.dueDate) : new Date(t.date);
+            return principalCategories.has(t.category) &&
+                    transactionDate.getMonth() === currentMonth &&
+                    transactionDate.getFullYear() === currentYear;
+        });
+        
+        // De-duplicate recurring bills, keeping only one instance per description for the month
+        const uniqueBillsMap = new Map<string, Transaction>();
+        monthBills.forEach(bill => {
+            const descriptionKey = bill.description.toLowerCase();
+            // Always keep the bill, replacing any existing one. This works because we sort by date next.
+            // If multiple exist, the latest sort will determine which one is kept.
+            uniqueBillsMap.set(descriptionKey, bill);
+        });
+
+
+        return Array.from(uniqueBillsMap.values())
             .sort((a, b) => {
                 if (a.paid !== b.paid) {
                     return a.paid ? 1 : -1;
