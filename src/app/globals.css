@@ -28,7 +28,7 @@
     --destructive: 0 72% 51%; /* Brighter Red */
     --destructive-foreground: 0 0% 98%;
 
-    --warning: 48 96% 50%; /* Bright Yellow */
+    --warning: 38 92% 50%; /* Bright Yellow */
     --warning-foreground: 45 50% 5%;
 
     --border: 240 3.7% 20%; /* Lighter border for dark theme */

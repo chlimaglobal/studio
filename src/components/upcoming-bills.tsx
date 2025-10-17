@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -25,8 +24,8 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
     now.setHours(0, 0, 0, 0); // Normalize current date to the beginning of the day
 
     const daysDifference = differenceInDays(dueDate, now);
-    const isOverdue = daysDifference < 0;
-    const isNearDue = !isOverdue && daysDifference <= 7;
+    const isOverdue = !bill.paid && daysDifference < 0;
+    const isNearDue = !bill.paid && !isOverdue && daysDifference <= 7;
     
     const handlePaidToggle = async (isPaid: boolean) => {
         try {
@@ -49,8 +48,8 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
                         "w-2 h-2 rounded-full flex-shrink-0",
                         bill.paid ? "bg-green-500" :
                         isOverdue ? "bg-destructive" :
-                        isNearDue ? "bg-yellow-500" :
-                        "bg-muted"
+                        isNearDue ? "bg-amber-500" :
+                        "bg-muted-foreground/50"
                     )}
                 />
                 <div>
@@ -85,28 +84,38 @@ export default function UpcomingBills() {
     const { transactions, isLoading } = useTransactions();
 
     const bills = useMemo(() => {
+        const principalCategories = ['Luz', 'Água', 'Internet', 'Cartão de Crédito'];
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+
+        // Filtra contas principais do mês atual que tenham data de vencimento
         return transactions
-            .filter(t => t.type === 'expense' && t.dueDate)
+            .filter(t => {
+                const transactionDate = new Date(t.date);
+                return principalCategories.includes(t.category) &&
+                       t.dueDate &&
+                       transactionDate.getMonth() === currentMonth &&
+                       transactionDate.getFullYear() === currentYear;
+            })
             .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
     }, [transactions]);
 
-    const visibleBills = bills.filter(b => !b.paid).slice(0, 4);
 
-    if (isLoading || visibleBills.length === 0) {
+    if (isLoading || bills.length === 0) {
         return null; // Don't render the card if there are no upcoming bills or still loading
     }
     
     return (
         <div>
             <div className="flex justify-between items-center mb-2">
-                 <h2 className="text-lg font-semibold">Contas a Pagar</h2>
+                 <h2 className="text-lg font-semibold">Contas Principais</h2>
                  <Link href="/dashboard/bills" passHref>
                     <Button variant="ghost" size="sm">Ver todas</Button>
                 </Link>
             </div>
             <Card>
                 <CardContent className="pt-4 divide-y divide-border">
-                    {visibleBills.map(bill => (
+                    {bills.map(bill => (
                         <BillItem key={bill.id} bill={bill} />
                     ))}
                 </CardContent>
