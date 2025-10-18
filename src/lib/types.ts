@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const categoryData = {
@@ -138,6 +139,8 @@ export const ExtractedTransactionSchema = z.object({
     amount: z.number().describe("The numerical value of the transaction. For expenses, this should be a positive number."),
     type: z.enum(['income', 'expense']).describe("The type of transaction."),
     category: z.enum(transactionCategories as [string, ...string[]]).describe("The most likely category for the transaction."),
+    paymentMethod: z.enum(['one-time', 'installments']).optional().describe("The payment method, if it can be inferred (e.g., from '10x de R$20')."),
+    installments: z.string().optional().describe("The number of installments, if the payment is 'installments'."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
 
@@ -152,12 +155,7 @@ export const ExtractFromImageInputSchema = z.object({
 });
 export type ExtractFromImageInput = z.infer<typeof ExtractFromImageInputSchema>;
 
-export const ExtractFromImageOutputSchema = z.object({
-  description: z.string().describe('A concise description of the transaction.'),
-  amount: z.number().describe('The numeric value of the transaction.'),
-  type: z.enum(['income', 'expense']).describe('The type of transaction (income or expense).'),
-  category: z.enum(transactionCategories as [string, ...string[]]).optional().describe('The suggested category for the transaction, if it can be inferred.'),
-});
+export const ExtractFromImageOutputSchema = ExtractedTransactionSchema;
 export type ExtractFromImageOutput = z.infer<typeof ExtractFromImageOutputSchema>;
 
 

@@ -3,7 +3,7 @@
 
 import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
-import { TransactionCategory, transactionCategories } from "@/lib/types";
+import { TransactionCategory, transactionCategories, ExtractTransactionOutput } from "@/lib/types";
 import { getAuth } from "firebase-admin/auth";
 import { adminApp, adminDb } from "@/lib/firebase-admin";
 
@@ -13,7 +13,7 @@ export async function extractTransactionInfoFromText(text: string) {
   }
 
   try {
-    const result = await extractTransactionFromText({ text });
+    const result: ExtractTransactionOutput = await extractTransactionFromText({ text });
     if (result && result.amount && result.description && result.type) {
       const transactionData = {
         description: result.description,
@@ -21,6 +21,8 @@ export async function extractTransactionInfoFromText(text: string) {
         type: result.type,
         date: new Date(),
         category: result.category,
+        paymentMethod: result.paymentMethod,
+        installments: result.installments,
       };
       
       return transactionData;

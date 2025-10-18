@@ -24,29 +24,27 @@ const prompt = ai.definePrompt({
   output: { schema: ExtractFromImageOutputSchema },
   model: 'googleai/gemini-2.5-pro',
   prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar imagens, como comprovantes, recibos e anotações, para extrair detalhes de transações.
-  Sua tarefa é analisar a imagem fornecida e extrair a descrição, o valor, o tipo de transação (receita ou despesa) e sugerir uma categoria.
-  A descrição deve ser um resumo curto e objetivo do que foi a transação (ex: "Pagamento para DB3 SERVICOS").
-  O valor deve ser um número.
-
-  - Se a imagem sugere um pagamento, compra, ou débito, o tipo é 'expense'.
-  - Se a imagem sugere um recebimento, crédito, ou depósito, o tipo é 'income'.
-  - Se for um comprovante de PIX ou pagamento de boleto, geralmente é uma 'expense'.
-  - Baseado na descrição (ex: TELECOM, SERVICOS), sugira a categoria mais apropriada. "Internet" ou "Telefone/Celular" seriam boas opções para "DB3 SERVICOS DE TELECOMUNICACOES".
+  Sua tarefa é analisar a imagem fornecida e extrair a descrição, o valor total, o tipo de transação (receita ou despesa), sugerir uma categoria e, CRUCIALMENTE, identificar se a compra foi parcelada.
   
+  - **Descrição**: Um resumo curto e objetivo do que foi a transação (ex: "Pagamento para Drogasil").
+  - **Valor**: O valor TOTAL da transação. Se a imagem mostrar "10x de R$27,17", o valor a ser extraído é 271,70.
+  - **Tipo**: 'expense' para pagamentos/compras, 'income' para recebimentos.
+  - **Parcelamento**: Se a imagem indicar um parcelamento (ex: "10x", "em 5 vezes", "parcelado em..."), defina 'paymentMethod' como 'installments' e extraia o número de parcelas para o campo 'installments'. Caso contrário, use 'one-time'.
+
   **Categorias Disponíveis:**
   {{#each categories}}
   - {{this}}
   {{/each}}
 
   **Exemplos:**
-  1.  **Imagem:** Comprovante de PIX para "DB3 SERVICOS" no valor de R$84,22.
-      **Saída Esperada:** { "description": "DB3 SERVICOS DE TELECOMUNICACOES", "amount": 84.22, "type": "expense", "category": "Internet" }
+  1.  **Imagem:** Comprovante da Drogasil mostrando um total de R$271,70 e um texto "10x de R$27,17".
+      **Saída Esperada:** { "description": "Drogasil", "amount": 271.70, "type": "expense", "category": "Farmácia", "paymentMethod": "installments", "installments": "10" }
 
-  2.  **Imagem:** Foto de um recibo de um restaurante chamado "Cantina da Nona" no valor de R$120,50.
-      **Saída Esperada:** { "description": "Cantina da Nona", "amount": 120.50, "type": "expense", "category": "Restaurante" }
+  2.  **Imagem:** Foto de um recibo de um restaurante chamado "Cantina da Nona" no valor de R$120,50, pago no PIX.
+      **Saída Esperada:** { "description": "Cantina da Nona", "amount": 120.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
 
   3.  **Imagem:** Anotação em um caderno "Recebi 200 do freela".
-      **Saída Esperada:** { "description": "Recebimento de freela", "amount": 200, "type": "income", "category": "Outros" }
+      **Saída Esperada:** { "description": "Recebimento de freela", "amount": 200, "type": "income", "category": "Outros", "paymentMethod": "one-time" }
 
   **Imagem para Análise:**
   {{media url=imageDataUri}}

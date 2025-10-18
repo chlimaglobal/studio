@@ -104,10 +104,16 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
                         {formatCurrency(transaction.amount)}
                     </span>
                 </div>
-                 <div className="flex justify-between">
+                <div className="flex justify-between">
                     <span className="text-muted-foreground">Categoria:</span>
                     <span className="font-semibold">{transaction.category}</span>
                 </div>
+                {transaction.paymentMethod === 'installments' && transaction.installments && (
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Parcelamento:</span>
+                        <span className="font-semibold">{transaction.installments}x</span>
+                    </div>
+                )}
             </CardContent>
             <CardFooter className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={onCancel}>
@@ -171,7 +177,6 @@ export default function LuminaPage() {
             text,
             authorName: authorName || user.displayName || 'Usuário',
             authorPhotoUrl: authorPhotoUrl || user.photoURL || '',
-            // @ts-ignore
             transactionToConfirm: transactionToConfirm || null,
         };
 
@@ -292,11 +297,12 @@ export default function LuminaPage() {
     };
 
     const handleTransactionExtractedFromQR = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
-        const transactionData = {
+        const transactionData: ExtractedTransaction = {
             description: data.description || 'Compra QR Code',
             amount: data.amount || 0,
             type: data.type || 'expense',
             category: data.category || 'Outros',
+            date: new Date().toISOString().split('T')[0],
         };
         saveMessage('lumina', 'Analisei o QR Code.', 'Lúmina', '/lumina-avatar.png', transactionData);
     };
@@ -308,9 +314,10 @@ export default function LuminaPage() {
                 amount: transaction.amount,
                 type: transaction.type,
                 category: transaction.category,
-                date: new Date(),
+                date: new Date(transaction.date),
                 paid: true,
-                paymentMethod: 'one-time',
+                paymentMethod: transaction.paymentMethod || 'one-time',
+                installments: transaction.installments,
             };
             await addTransaction(transactionData);
             // We can optionally update the message to remove the confirmation buttons
@@ -398,9 +405,8 @@ export default function LuminaPage() {
                                         )}
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
-                                                // @ts-ignore
                                                 transaction={msg.transactionToConfirm}
-                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm, msg.id!)}
+                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm!, msg.id!)}
                                                 onCancel={() => handleCancelTransaction(msg.id!)}
                                             />
                                         )}
