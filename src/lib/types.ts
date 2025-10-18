@@ -248,3 +248,60 @@ export const LuminaChatOutputSchema = z.object({
   response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
 });
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
+
+
+// Types for Mediate Goals Flow
+const GoalSchema = z.object({
+  description: z.string().describe("Descrição da meta (ex: 'Viagem de luxo para a Europa')."),
+  amount: z.number().positive().describe("Valor total necessário para a meta."),
+  months: z.number().int().positive().describe("Prazo em meses para alcançar a meta."),
+});
+
+export const MediateGoalsInputSchema = z.object({
+  partnerAGoal: GoalSchema.describe("O objetivo financeiro do Parceiro A."),
+  partnerBGoal: GoalSchema.describe("O objetivo financeiro do Parceiro B."),
+  sharedMonthlySavings: z.number().positive().describe("O valor total que o casal pode economizar por mês."),
+});
+export type MediateGoalsInput = z.infer<typeof MediateGoalsInputSchema>;
+
+const ActionStepSchema = z.object({
+  title: z.string().describe("Um título curto para o passo de ação."),
+  description: z.string().describe("Uma explicação detalhada do que precisa ser feito."),
+});
+
+export const MediateGoalsOutputSchema = z.object({
+  summary: z.string().describe("Um resumo inspirador e neutro do plano conjunto, explicando como ele equilibra as duas metas."),
+  jointPlan: z.object({
+    partnerAPortion: z.number().describe("Valor mensal alocado para a meta do Parceiro A."),
+    partnerBPortion: z.number().describe("Valor mensal alocado para a meta do Parceiro B."),
+    unallocated: z.number().describe("Valor restante da economia mensal que não foi alocado."),
+    partnerANewMonths: z.number().int().describe("O novo prazo em meses para a meta do Parceiro A com base na nova alocação."),
+    partnerBNewMonths: z.number().int().describe("O novo prazo em meses para a meta do Parceiro B com base na nova alocação."),
+  }),
+  analysis: z.string().describe("Uma análise detalhada explicando a lógica por trás da sugestão, os prós e os contras do novo plano."),
+  actionSteps: z.array(ActionStepSchema).describe("Uma lista de 2-3 passos práticos para o casal começar a seguir o plano."),
+});
+export type MediateGoalsOutput = z.infer<typeof MediateGoalsOutputSchema>;
+
+
+// Types for Categorize Transaction Flow
+export const CategorizeTransactionInputSchema = z.object({
+  description: z.string().describe('The description of the transaction.'),
+});
+export type CategorizeTransactionInput = z.infer<typeof CategorizeTransactionInputSchema>;
+
+export const CategorizeTransactionOutputSchema = z.object({
+  category: z.enum(transactionCategories as [string, ...string[]]).describe('The predicted category of the transaction.'),
+});
+export type CategorizeTransactionOutput = z.infer<typeof CategorizeTransactionOutputSchema>;
+
+// Types for Extract Transaction from Text Flow
+export const ExtractTransactionInputSchema = z.object({
+  text: z.string().describe('O texto em linguagem natural fornecido pelo usuário sobre uma transação.'),
+});
+export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSchema>;
+
+export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
+export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
+
+    

@@ -10,19 +10,13 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'zod';
-import { transactionCategories } from '@/lib/types';
-
-
-const CategorizeTransactionInputSchema = z.object({
-  description: z.string().describe('The description of the transaction.'),
-});
-export type CategorizeTransactionInput = z.infer<typeof CategorizeTransactionInputSchema>;
-
-const CategorizeTransactionOutputSchema = z.object({
-  category: z.enum(transactionCategories as [string, ...string[]]).describe('The predicted category of the transaction.'),
-});
-export type CategorizeTransactionOutput = z.infer<typeof CategorizeTransactionOutputSchema>;
+import {
+  transactionCategories,
+  CategorizeTransactionInputSchema,
+  CategorizeTransactionOutputSchema,
+  type CategorizeTransactionInput,
+  type CategorizeTransactionOutput,
+} from '@/lib/types';
 
 export async function categorizeTransaction(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
   return categorizeTransactionFlow(input);
@@ -84,3 +78,5 @@ const categorizeTransactionFlow = ai.defineFlow(
     return output;
   }
 );
+
+    

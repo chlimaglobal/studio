@@ -10,16 +10,13 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
-import { transactionCategories, ExtractedTransactionSchema } from '@/lib/types';
+import {
+  ExtractTransactionInputSchema,
+  ExtractTransactionOutputSchema,
+  type ExtractTransactionInput,
+  type ExtractTransactionOutput,
+} from '@/lib/types';
 
-const ExtractTransactionInputSchema = z.object({
-  text: z.string().describe('O texto em linguagem natural fornecido pelo usuário sobre uma transação.'),
-});
-export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSchema>;
-
-export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
-export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
 export async function extractTransactionFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
   return extractTransactionFlow(input);
@@ -100,3 +97,5 @@ const extractTransactionFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
