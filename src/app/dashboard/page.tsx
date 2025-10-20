@@ -248,7 +248,7 @@ const generateChartData = (transactions: Transaction[]): { date: string; aRecebe
     const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
     const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
-    // Initialize map for the last 6 months to ensure all months are present
+    // Initialize map for the last 6 months
     for (let i = 0; i < 6; i++) {
         const monthKey = format(addMonths(sixMonthsAgo, i), 'MM/yy');
         dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
@@ -263,35 +263,34 @@ const generateChartData = (transactions: Transaction[]): { date: string; aRecebe
 
     let cumulativeBalance = initialBalance;
 
-    // Iterate through the initialized months to calculate data
-    for (const monthKey of dataMap.keys()) {
-        const [month, year] = monthKey.split('/');
-        const startDate = startOfMonth(new Date(parseInt(`20${year}`), parseInt(month) - 1));
-        const endDate = endOfMonth(startDate);
-        
-        const monthTransactions = operationalTransactions.filter(t => {
-            const transactionDate = new Date(t.date);
-            return transactionDate >= startDate && transactionDate <= endDate;
-        });
+    // Populate the map with monthly totals and calculate cumulative balance
+    operationalTransactions.forEach(t => {
+        const transactionDate = new Date(t.date);
+        if (transactionDate < sixMonthsAgo) return;
 
-        const monthIncome = monthTransactions
-            .filter(t => t.type === 'income')
-            .reduce((acc, t) => acc + t.amount, 0);
-        
-        const monthExpenses = monthTransactions
-            .filter(t => t.type === 'expense')
-            .reduce((acc, t) => acc + t.amount, 0);
+        const monthKey = format(transactionDate, 'MM/yy');
+        if (dataMap.has(monthKey)) {
+            const current = dataMap.get(monthKey)!;
+            if (t.type === 'income') {
+                current.aReceber += t.amount;
+            } else {
+                current.aPagar += t.amount;
+            }
+        }
+    });
 
-        cumulativeBalance += monthIncome - monthExpenses;
-        
-        dataMap.set(monthKey, {
-            aReceber: monthIncome,
-            aPagar: monthExpenses,
+    const chartData = Array.from(dataMap.keys()).map(monthKey => {
+        const monthData = dataMap.get(monthKey)!;
+        cumulativeBalance += monthData.aReceber - monthData.aPagar;
+        return {
+            date: monthKey,
+            aReceber: monthData.aReceber,
+            aPagar: monthData.aPagar,
             resultado: cumulativeBalance,
-        });
-    }
+        };
+    });
 
-    return Array.from(dataMap.entries()).map(([date, values]) => ({ date, ...values }));
+    return chartData;
 };
 
 
