@@ -244,54 +244,68 @@ const DashboardLoadingSkeleton = () => (
     </div>
 );
 
-const generateChartData = (transactions: Transaction[]): { date: string; aReceber: number; aPagar: number; resultado: number }[] => {
-    const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
+interface ChartDataPoint {
+    date: string;
+    aReceber: number;
+    aPagar: number;
+    resultado: number;
+}
+
+const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
     const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
-
-    // Initialize map for the last 6 months
-    for (let i = 0; i < 6; i++) {
-        const monthKey = format(addMonths(sixMonthsAgo, i), 'MM/yy');
-        dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
-    }
-
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
 
-    // Calculate the initial balance from all transactions before the 6-month window
-    const initialBalance = operationalTransactions
-        .filter(t => new Date(t.date) < sixMonthsAgo)
-        .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0);
+    const monthlyTotals = new Map<string, { income: number, expense: number }>();
+    let balanceBeforeWindow = 0;
 
-    let cumulativeBalance = initialBalance;
-
-    // Populate the map with monthly totals and calculate cumulative balance
     operationalTransactions.forEach(t => {
         const transactionDate = new Date(t.date);
-        if (transactionDate < sixMonthsAgo) return;
-
+        
+        if (transactionDate < sixMonthsAgo) {
+            balanceBeforeWindow += t.type === 'income' ? t.amount : -t.amount;
+            return;
+        }
+        
         const monthKey = format(transactionDate, 'MM/yy');
-        if (dataMap.has(monthKey)) {
-            const current = dataMap.get(monthKey)!;
-            if (t.type === 'income') {
-                current.aReceber += t.amount;
-            } else {
-                current.aPagar += t.amount;
-            }
+        
+        if (!monthlyTotals.has(monthKey)) {
+            monthlyTotals.set(monthKey, { income: 0, expense: 0 });
+        }
+
+        const totals = monthlyTotals.get(monthKey)!;
+
+        if (t.type === 'income') {
+            totals.income += t.amount;
+        } else {
+            totals.expense += t.amount;
         }
     });
 
-    const chartData = Array.from(dataMap.keys()).map(monthKey => {
-        const monthData = dataMap.get(monthKey)!;
-        cumulativeBalance += monthData.aReceber - monthData.aPagar;
-        return {
-            date: monthKey,
-            aReceber: monthData.aReceber,
-            aPagar: monthData.aPagar,
-            resultado: cumulativeBalance,
-        };
+    const sortedKeys = Array.from(monthlyTotals.keys()).sort((a, b) => {
+        const [aMonth, aYear] = a.split('/').map(Number);
+        const [bMonth, bYear] = b.split('/').map(Number);
+        if (aYear !== bYear) return aYear - bYear;
+        return aMonth - bMonth;
     });
 
-    return chartData;
+    const finalChartData: ChartDataPoint[] = [];
+    let accumulatedBalance = balanceBeforeWindow;
+
+    sortedKeys.forEach(monthKey => {
+        const { income, expense } = monthlyTotals.get(monthKey)!;
+        accumulatedBalance += income - expense;
+
+        finalChartData.push({
+            date: monthKey,
+            aReceber: income,
+            aPagar: expense,
+            resultado: accumulatedBalance,
+        });
+    });
+
+    return finalChartData;
 };
+
 
 
 export default function DashboardPage() {
