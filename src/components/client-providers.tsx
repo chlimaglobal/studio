@@ -12,7 +12,7 @@ import {
   onTransactionsUpdate, 
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
-  onChatUpdate,
+  onChatUpdate, 
   getPartnerData 
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
@@ -382,14 +382,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         >
           <AuthProvider>
             <SubscriptionProvider>
-                <ViewModeProvider>
-                    <TransactionsProvider>
-                        <LuminaProvider>
-                            {children}
-                            <Toaster />
-                        </LuminaProvider>
-                    </TransactionsProvider>
-                </ViewModeProvider>
+              <ViewModeProvider>
+                <TransactionsProvider>
+                  <LuminaProvider>
+                      {children}
+                      <Toaster />
+                  </LuminaProvider>
+                </TransactionsProvider>
+              </ViewModeProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
