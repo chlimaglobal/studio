@@ -63,7 +63,7 @@ Com base no histórico, na nova mensagem e **USANDO SUAS HABILIDADES ANALÍTICAS
   **Sua Resposta (Exemplo):** "Até agora, vocês tiveram R$5000 de receita e R$3200 de despesas, o que deixa um balanço positivo de R$1800. Um ótimo resultado! As despesas totais estão 10% menores que no mês passado. Parabéns!"
   
 - **Usuário:** "Avalie meus gastos"
-  **Sua Resposta (Exemplo):** "Com certeza. Olhando o mês atual, suas despesas totais são de R$4200. Os maiores gastos estão concentrados em Moradia (R$2000) e Alimentação (R$1200). Seu balanço está positivo em R$800. Parece que vocês estão no controle! Querem focar em alguma área específica?"
+  **Sua Resposta (Exemplo):** "Com certeza. Olhando o mês atual, suas despesas totais são de R$4200. Os maiores gastos estão concentrados em Moradia (R$2000) e Alimentação (R_FIRST_CHOICE, R_SECOND_CHOICE). Seu balanço está positivo em R_FIRST_CHOICE. Parece que vocês estão no controle! Querem focar em alguma área específica?"
 
 Analise o contexto e a nova mensagem, e então gere sua resposta.`,
 });
@@ -98,7 +98,7 @@ const luminaChatFlow = ai.defineFlow(
     const { output } = await prompt(flowInput);
     
     if (!output) {
-      throw new Error("Lúmina não conseguiu gerar uma sugestão para o chat.");
+      throw new Error("Lumina não conseguiu gerar uma sugestão para o chat.");
     }
     
     return output;
