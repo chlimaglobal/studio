@@ -3,7 +3,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
@@ -21,7 +21,17 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
-const auth = getAuth(app);
+
+// Initialize Firebase Auth with persistence
+const auth = initializeAuth(app, {
+  persistence: indexedDBLocalPersistence,
+  // Add the development domain to prevent auth token errors
+  authDomain: [
+    "financeflow-we0in.firebaseapp.com",
+    "*.cluster-qhrn7lb3szcfcud6uanedbkjnm.cloudworkstations.dev"
+  ],
+});
+
 const functions = getFunctions(app, 'us-central1'); // Specify region if not us-central1
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
