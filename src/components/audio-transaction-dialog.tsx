@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -48,19 +47,12 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
     setIsProcessing(true);
     setError(null);
 
-    const words = transcript.trim().split(' ');
-    const firstWord = words[0]?.toLowerCase() || '';
-    
-    // Check if the first word is 'lumina' or 'lúmina'
-    if (firstWord !== 'lumina' && firstWord !== 'lúmina') {
-        const wakeWordError = "Por favor, comece seu comando com 'Lúmina'. Ex: 'Lúmina, paguei 50 reais na gasolina.'";
-        toast({ variant: 'destructive', title: 'Palavra de Ativação Faltando', description: wakeWordError });
-        setError(wakeWordError);
+    const command = transcript.trim();
+    if (!command) {
+        setError("Não consegui ouvir nada. Por favor, tente novamente.");
         setIsProcessing(false);
         return;
     }
-
-    const command = words.slice(1).join(' ');
 
     try {
       const result = await extractTransactionInfoFromText(command);
@@ -191,7 +183,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         <DialogHeader className="text-center">
           <DialogTitle>Adicionar por Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Analisando..." : (isRecording ? "Lúmina está ouvindo..." : "Diga o que você gastou ou recebeu.")}
+            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Diga o que você gastou ou recebeu, como 'gastei 50 reais no almoço'.")}
           </DialogDescription>
         </DialogHeader>
 
