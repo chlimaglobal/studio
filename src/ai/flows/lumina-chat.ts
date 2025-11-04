@@ -40,7 +40,7 @@ Para responder perguntas, você DEVE usar os dados financeiros fornecidos. Suas 
 4.  **Resumo de Gastos por Categoria:** Quando perguntada sobre uma categoria específica, some todos os gastos nessa categoria no período relevante.
 
 **Contexto da Conversa:**
-A seguir, o histórico do chat.
+A seguir, o histórico do chat. O papel 'user' pode ser qualquer um dos dois parceiros.
 {{#each chatHistory}}
 - **{{role}}:** {{text}}
 {{/each}}
@@ -93,11 +93,22 @@ const luminaChatFlow = ai.defineFlow(
       date: t.date,
     }));
     
-    const flowInput = { ...input, allTransactions: simplifiedTransactions };
+    // Map roles to what the Gemini model expects: 'user' and 'model'
+    const mappedChatHistory = input.chatHistory.map(msg => ({
+      role: msg.role === 'lumina' ? 'model' : 'user',
+      text: msg.text,
+    }));
+
+    const flowInput = { 
+        ...input, 
+        chatHistory: mappedChatHistory,
+        allTransactions: simplifiedTransactions 
+    };
 
     const { output } = await prompt(flowInput);
     
-    if (!output) {
+    if (!output?.response) {
+      console.error("Lumina output was empty or invalid:", output);
       throw new Error("Lumina não conseguiu gerar uma sugestão para o chat.");
     }
     
