@@ -1,5 +1,5 @@
 
-'use client';
+'use server';
 // IMPORTANT: This file should be deployed as a Firebase Cloud Function.
 // It is included here for completeness but needs to be deployed separately.
 import { adminDb, adminApp } from './firebase-admin';
@@ -15,6 +15,7 @@ import { formatCurrency } from './utils';
  * @param {UserRecord} user - The user record of the new user.
  */
 export async function onUserCreated(user: { email: string, displayName: string }) {
+  if (!adminApp) return;
   if (!user.email) {
     console.error('New user created without an email address.');
     return;

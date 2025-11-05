@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
+import { onUserCreated, onTransactionCreated } from './firebase-functions';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -37,6 +38,7 @@ export const initializeUser = async (user: User) => {
                 createdAt: Timestamp.now(),
                 stripeSubscriptionStatus: 'inactive', // Default status
             }, { merge: true });
+            await onUserCreated({ email: user.email!, displayName: user.displayName! });
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
@@ -155,6 +157,13 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
         };
         await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
     }
+
+    // Trigger notification
+    await onTransactionCreated(currentUserId, { 
+        type: data.type, 
+        amount: data.amount, 
+        description: data.description 
+    });
 }
 
 
