@@ -15,7 +15,8 @@ const firebaseConfig = {
   "apiKey": "AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas",
   "authDomain": "financeflow-we0in.firebaseapp.com",
   "measurementId": "G-EW74L3HEX7",
-  "messagingSenderId": "123511329863"
+  "messagingSenderId": "123511329863",
+  "storageBucket": "financeflow-we0in.appspot.com"
 };
 
 // Initialize Firebase
@@ -36,8 +37,11 @@ const functions = getFunctions(app, 'us-central1'); // Specify region if not us-
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const messaging = async () => {
-    const supported = await isSupported();
-    return supported ? getMessaging(app) : null;
+    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
+        const supported = await isSupported();
+        return supported ? getMessaging(app) : null;
+    }
+    return null;
 };
 
 export { db, auth, app, functions, httpsCallable, messaging };

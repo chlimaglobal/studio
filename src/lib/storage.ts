@@ -82,7 +82,7 @@ export async function saveFcmToken(userId: string, token: string) {
         });
     } catch (error) {
         // If the document or the fcmTokens field doesn't exist, set it.
-        if ((error as any).code === 'not-found') {
+        if ((error as any).code === 'not-found' || (error as any).code === 'invalid-argument') {
             await setDoc(userDocRef, { fcmTokens: [token] }, { merge: true });
         } else {
             console.error("Error saving FCM token:", error);

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -98,7 +99,7 @@ const ThemeSelector = () => {
                                  </span>
                                 {theme === t.name && (
                                      <div className={cn('w-6 h-6 rounded-full flex items-center justify-center', (t.name === 'light') ? 'bg-black/20 text-white' : 'bg-white/30 text-white')}>
-                                        <Check className="w-4 h-4" />
+                                        <Check className="w-4 w-4" />
                                     </div>
                                 )}
                             </div>
