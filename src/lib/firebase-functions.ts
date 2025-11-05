@@ -1,9 +1,13 @@
+'use client';
 // IMPORTANT: This file should be deployed as a Firebase Cloud Function.
 // It is included here for completeness but needs to be deployed separately.
 'use server';
-import { adminDb } from './firebase-admin';
+import { adminDb, adminApp } from './firebase-admin';
 import { customAlphabet } from 'nanoid';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
+import { formatCurrency } from './utils';
+
 
 /**
  * Triggers when a new user is created and sends a notification to the admin.
@@ -23,6 +27,94 @@ export async function onUserCreated(user: { email: string, displayName: string }
   } catch (error) {
     console.error(`Failed to process new user creation for ${user.email}`, error);
   }
+}
+
+/**
+ * Triggers when a new transaction is created and sends a push notification to the user.
+ * This is a Firestore Trigger.
+ * @param {QueryDocumentSnapshot} snap - The document snapshot of the new transaction.
+ * @param {EventContext} context - The event context.
+ */
+export async function onTransactionCreated(
+    userId: string, 
+    transactionData: { type: 'income' | 'expense', amount: number, description: string }
+) {
+    if (!adminApp) {
+        console.warn("Admin App not initialized, skipping notification.");
+        return;
+    }
+
+    if (!userId || !transactionData) {
+        console.log("Missing userId or transaction data, skipping notification.");
+        return;
+    }
+
+    // 1. Get the user's document to find their FCM tokens
+    const userDocRef = adminDb!.collection('users').doc(userId);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) {
+        console.log(`User document for ${userId} not found.`);
+        return;
+    }
+
+    const userData = userDoc.data();
+    const fcmTokens = userData?.fcmTokens;
+
+    if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
+        console.log(`No FCM tokens found for user ${userId}.`);
+        return;
+    }
+
+    // 2. Construct the notification message
+    const { type, amount, description } = transactionData;
+    const title = type === 'income' ? 'Nova Receita Registrada!' : 'Nova Despesa Registrada!';
+    const body = `${description}: ${formatCurrency(amount)}`;
+
+    const message = {
+        notification: {
+            title,
+            body,
+        },
+        tokens: fcmTokens,
+        webpush: {
+            notification: {
+                badge: '/icon-192x192.png',
+                icon: '/icon-192x192.png',
+            },
+        },
+    };
+
+    // 3. Send the notification using FCM
+    try {
+        const response = await getMessaging(adminApp).sendEachForMulticast(message);
+        console.log(`Successfully sent ${response.successCount} messages.`);
+        
+        // Optional: Clean up invalid tokens
+        if (response.failureCount > 0) {
+            const tokensToRemove: string[] = [];
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    // https://firebase.google.com/docs/cloud-messaging/manage-tokens#detect-invalid-token-responses-from-the-fcm-backend
+                    const errorCode = resp.error?.code;
+                    if (errorCode === 'messaging/invalid-registration-token' ||
+                        errorCode === 'messaging/registration-token-not-registered') {
+                        tokensToRemove.push(fcmTokens[idx]);
+                    }
+                }
+            });
+            
+            if (tokensToRemove.length > 0) {
+                console.log('Removing invalid tokens:', tokensToRemove);
+                await userDocRef.update({
+                    fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+                });
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error sending notification:', error);
+    }
 }
 
 

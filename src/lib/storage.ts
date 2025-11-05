@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
-import { onUserCreated } from './firebase-functions';
+import { onUserCreated, onTransactionCreated } from './firebase-functions';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -160,7 +160,9 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
             ownerId: currentUserId,
         };
-        await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
+        const docRef = await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
+        // After adding, trigger the notification function
+        await onTransactionCreated(currentUserId, transactionData);
     }
 }
 
