@@ -32,8 +32,8 @@ export async function onUserCreated(user: { email: string, displayName: string }
 /**
  * Triggers when a new transaction is created and sends a push notification to the user.
  * This is a Firestore Trigger.
- * @param {QueryDocumentSnapshot} snap - The document snapshot of the new transaction.
- * @param {EventContext} context - The event context.
+ * @param {string} userId - The ID of the user who created the transaction.
+ * @param {object} transactionData - The data of the newly created transaction.
  */
 export async function onTransactionCreated(
     userId: string, 

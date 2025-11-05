@@ -151,6 +151,12 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
         }
         await batch.commit();
+        // Send one notification for the whole installment purchase
+        await onTransactionCreated(currentUserId, { 
+            type: data.type, 
+            amount: data.amount, 
+            description: `${data.description} (Parcelado)` 
+        });
 
     } else {
          const transactionData = {
@@ -160,7 +166,7 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
             ownerId: currentUserId,
         };
-        const docRef = await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
+        await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
         // After adding, trigger the notification function
         await onTransactionCreated(currentUserId, transactionData);
     }
