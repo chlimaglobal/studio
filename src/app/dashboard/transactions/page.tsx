@@ -19,6 +19,7 @@ import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { allInvestmentCategories } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 export default function TransactionsPage() {
   const { transactions, isLoading } = useTransactions();
@@ -60,11 +61,29 @@ export default function TransactionsPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    } else { // WhatsApp (coming soon)
-         toast({
-            title: "Em breve!",
-            description: "A exportação para WhatsApp estará disponível em breve.",
+    } else { // WhatsApp logic
+        let message = `*Resumo de Transações - FinanceFlow*\n\n`;
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        operationalTransactions.forEach(t => {
+            const date = format(new Date(t.date), 'dd/MM');
+            const sign = t.type === 'income' ? '+' : '-';
+            if (t.type === 'income') totalIncome += t.amount;
+            else totalExpense += t.amount;
+            
+            message += `_${date}_ | ${sign} ${formatCurrency(t.amount)} - ${t.description}\n`;
         });
+        
+        const balance = totalIncome - totalExpense;
+
+        message += `\n*Resumo:*\n`;
+        message += `*Receitas:* ${formatCurrency(totalIncome)}\n`;
+        message += `*Despesas:* ${formatCurrency(totalExpense)}\n`;
+        message += `*Balanço:* ${formatCurrency(balance)}`;
+
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
     }
   }
 
@@ -102,7 +121,7 @@ export default function TransactionsPage() {
                     Exportar para CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport('whatsapp')}>
-                    Exportar para WhatsApp (em breve)
+                    Exportar para WhatsApp
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
