@@ -1,5 +1,4 @@
 
-
 import { db } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
@@ -10,7 +9,6 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
-import { onUserCreated, onTransactionCreated } from './firebase-functions';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -39,11 +37,6 @@ export const initializeUser = async (user: User) => {
                 createdAt: Timestamp.now(),
                 stripeSubscriptionStatus: 'inactive', // Default status
             }, { merge: true });
-            
-            // Trigger the onUserCreated function for new users
-            if(user.email && user.displayName) {
-                await onUserCreated({ email: user.email, displayName: user.displayName });
-            }
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
@@ -151,12 +144,6 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
         }
         await batch.commit();
-        // Send one notification for the whole installment purchase
-        await onTransactionCreated(currentUserId, { 
-            type: data.type, 
-            amount: data.amount, 
-            description: `${data.description} (Parcelado)` 
-        });
 
     } else {
          const transactionData = {
@@ -167,8 +154,6 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             ownerId: currentUserId,
         };
         await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
-        // After adding, trigger the notification function
-        await onTransactionCreated(currentUserId, transactionData);
     }
 }
 
