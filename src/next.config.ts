@@ -1,15 +1,13 @@
 
 import type {NextConfig} from 'next';
 
-const isDev = process.env.NODE_ENV === "development";
-const isTurbopack = !!process.env.TURBOPACK;
-
 const withPWA = require('next-pwa')({
     dest: "public",
     register: true,
     skipWaiting: true,
-    // Disable PWA in development to avoid issues with HMR
-    disable: isDev, 
+    disable: process.env.NODE_ENV === "development",
+    // Do not generate a manifest since we are using a static one
+    // We only need the service worker generation.
 });
 
 const nextConfig: NextConfig = {
@@ -41,7 +39,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Conditionally apply PWA wrapper. It's not compatible with Turbopack.
-const finalConfig = isTurbopack ? nextConfig : withPWA(nextConfig);
-
-module.exports = finalConfig;
+export default withPWA(nextConfig);
