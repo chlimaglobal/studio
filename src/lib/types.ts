@@ -52,22 +52,37 @@ export const investmentWithdrawalCategories = new Set(["Retirada"]);
 
 export type TransactionCategory = typeof transactionCategories[number];
 
+const positiveNumberTransformer = z.any().transform((val, ctx) => {
+    if (val === undefined || val === null || val === '') {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O valor é obrigatório.",
+        });
+        return z.NEVER;
+    }
+    const parsed = parseFloat(String(val).replace(/\./g, '').replace(',', '.'));
+    if (isNaN(parsed)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O valor deve ser um número válido.",
+        });
+        return z.NEVER;
+    }
+    if (parsed <= 0) {
+         ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "O valor deve ser maior que zero.",
+        });
+        return z.NEVER;
+    }
+    return parsed;
+});
+
 export const TransactionFormSchema = z.object({
   description: z.string().min(2, {
     message: "A descrição deve ter pelo menos 2 caracteres.",
   }),
-  amount: z.any().transform((val, ctx) => {
-    if (typeof val === 'number') return val;
-    if (typeof val === 'string') {
-        const parsed = parseFloat(val.replace('.', '').replace(',', '.'));
-        if (!isNaN(parsed)) return parsed;
-    }
-    ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "O valor deve ser um número válido.",
-    });
-    return z.NEVER;
-  }).pipe(z.number().positive({ message: "O valor deve ser maior que zero." })),
+  amount: positiveNumberTransformer,
   date: z.date({required_error: "Por favor, selecione uma data."}),
   dueDate: z.date().optional(),
   type: z.enum(['income', 'expense']),
@@ -235,7 +250,7 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
 
 export const LuminaChatInputSchema = z.object({
   chatHistory: z.array(z.object({ // Can't use ChatMessageSchema because of the Date object
-    role: z.enum(['user', 'partner', 'lumina']),
+    role: z.enum(['user', 'model']),
     text: z.string(),
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),

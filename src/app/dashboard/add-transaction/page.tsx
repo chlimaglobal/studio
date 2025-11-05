@@ -85,7 +85,7 @@ function AddTransactionForm() {
                     ...transactionToEdit,
                     date: new Date(transactionToEdit.date),
                     dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
-                    amount: transactionToEdit.amount,
+                    amount: transactionToEdit.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
                     installments: transactionToEdit.totalInstallments ? String(transactionToEdit.totalInstallments) : '',
                     hideFromReports: transactionToEdit.hideFromReports || false,
                 };
@@ -95,7 +95,7 @@ function AddTransactionForm() {
         const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
-            amount: amountFromParams ? parseFloat(amountFromParams) : undefined,
+            amount: amountFromParams ? parseFloat(amountFromParams).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
@@ -114,11 +114,11 @@ function AddTransactionForm() {
 
     const form = useForm<z.infer<typeof TransactionFormSchema>>({
         resolver: zodResolver(TransactionFormSchema),
-        defaultValues: initialValues,
+        defaultValues: initialValues as any,
     });
     
     useEffect(() => {
-        form.reset(initialValues);
+        form.reset(initialValues as any);
     }, [initialValues, form]);
     
     const watchedDescription = form.watch('description');
