@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -17,11 +16,10 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/client-providers';
-import { getAllUserDataForBackup } from '@/lib/storage';
+import { getAllUserDataForBackup, saveFcmToken } from '@/lib/storage';
 import Link from 'next/link';
 import { messaging } from '@/lib/firebase';
 import { getToken } from 'firebase/messaging';
-import { saveFcmToken } from '@/lib/storage';
 
 
 type NotificationSettings = {

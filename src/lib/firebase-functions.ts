@@ -1,7 +1,7 @@
+
 'use client';
 // IMPORTANT: This file should be deployed as a Firebase Cloud Function.
 // It is included here for completeness but needs to be deployed separately.
-'use server';
 import { adminDb, adminApp } from './firebase-admin';
 import { customAlphabet } from 'nanoid';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
