@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -19,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
-import { generateInviteCode as generateInviteCodeFunction } from '@/lib/firebase-functions';
 
 
 interface InviteDialogProps {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
-import { acceptInviteCode as acceptInviteCodeFunction } from '@/lib/firebase-functions';
 
 
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
