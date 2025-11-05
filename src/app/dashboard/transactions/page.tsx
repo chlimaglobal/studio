@@ -8,42 +8,64 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { ArrowRightLeft, Download, ArrowLeft } from 'lucide-react';
 import { useTransactions, useViewMode } from '@/components/client-providers';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import Papa from 'papaparse';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { allInvestmentCategories } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 export default function TransactionsPage() {
   const { transactions, isLoading } = useTransactions();
   const { partnerData } = useViewMode();
   const router = useRouter();
+  const { toast } = useToast();
 
   const operationalTransactions = useMemo(() => {
     return transactions.filter(t => !allInvestmentCategories.has(t.category));
   }, [transactions]);
 
-  const handleExport = () => {
-    if (operationalTransactions.length === 0) return;
+  const handleExport = (formatType: 'csv' | 'whatsapp') => {
+    if (operationalTransactions.length === 0) {
+        toast({
+            variant: "destructive",
+            title: "Nenhuma transação",
+            description: "Não há dados para exportar.",
+        });
+        return;
+    }
     
-    const dataToExport = operationalTransactions.map(t => ({
-      Data: format(new Date(t.date), 'yyyy-MM-dd'),
-      Descrição: t.description,
-      Valor: t.type === 'income' ? t.amount : -t.amount,
-      Categoria: t.category,
-      Tipo: t.type === 'income' ? 'Receita' : 'Despesa',
-      Cartão: t.creditCard || '',
-      Pago: t.paid ? 'Sim' : 'Não',
-    }));
+    if (formatType === 'csv') {
+        const dataToExport = operationalTransactions.map(t => ({
+          Data: format(new Date(t.date), 'yyyy-MM-dd'),
+          Descrição: t.description,
+          Valor: t.type === 'income' ? t.amount : -t.amount,
+          Categoria: t.category,
+          Tipo: t.type === 'income' ? 'Receita' : 'Despesa',
+          Cartão: t.creditCard || '',
+          Pago: t.paid ? 'Sim' : 'Não',
+        }));
 
-    const csv = Papa.unparse(dataToExport);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `financeflow_transacoes_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        const csv = Papa.unparse(dataToExport);
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `financeflow_transacoes_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } else { // WhatsApp (coming soon)
+         toast({
+            title: "Em breve!",
+            description: "A exportação para WhatsApp estará disponível em breve.",
+        });
+    }
   }
 
   if (isLoading) {
@@ -67,10 +89,24 @@ export default function TransactionsPage() {
                 </p>
             </div>
         </div>
-        <Button variant="outline" onClick={handleExport} disabled={operationalTransactions.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar para CSV
-        </Button>
+        
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={operationalTransactions.length === 0}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    Exportar para CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('whatsapp')}>
+                    Exportar para WhatsApp (em breve)
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+
       </div>
       <Card>
         <CardHeader>
