@@ -3,7 +3,7 @@
 
 import { ThemeProvider } from '@/components/theme-provider';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, functions } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   addStoredTransaction, 
@@ -20,9 +20,9 @@ import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/type
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
-import { getPartnerId } from '@/app/actions';
 import { usePathname } from 'next/navigation';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -180,6 +180,18 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('viewMode', mode);
     };
 
+    const getPartnerId = useCallback(async (userId: string): Promise<string | null> => {
+        try {
+            const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
+            const result = await getPartnerIdFunction({ userId });
+            // @ts-ignore
+            return result.data.partnerId || null;
+        } catch (error) {
+            console.error("Error calling getPartnerId function:", error);
+            return null;
+        }
+    }, []);
+
     useEffect(() => {
         async function fetchPartnerData() {
             if (user && viewMode === 'together') {
@@ -195,7 +207,7 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
             }
         }
         fetchPartnerData();
-    }, [user, viewMode]);
+    }, [user, viewMode, getPartnerId]);
 
 
     return (
@@ -212,6 +224,18 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { viewMode } = useViewMode();
+
+   const getPartnerId = useCallback(async (userId: string): Promise<string | null> => {
+        try {
+            const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
+            const result = await getPartnerIdFunction({ userId });
+             // @ts-ignore
+            return result.data.partnerId || null;
+        } catch (error) {
+            console.error("Error calling getPartnerId function:", error);
+            return null;
+        }
+    }, []);
 
   useEffect(() => {
     if (user?.uid) {
@@ -245,7 +269,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       setTransactions([]);
       setIsLoading(false);
     }
-  }, [user, viewMode]);
+  }, [user, viewMode, getPartnerId]);
 
   const playSound = useCallback((soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
