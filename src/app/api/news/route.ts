@@ -17,8 +17,10 @@ export async function GET() {
 
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Alpha Vantage API key is not configured.' }, { status: 500 });
+  if (!apiKey || apiKey === 'SUA_CHAVE_AQUI') {
+    console.warn('Alpha Vantage API key is not configured.');
+    // Return empty feed if key is missing, so the frontend doesn't show an error.
+    return NextResponse.json({ feed: [] });
   }
 
   // Topics can be: blockchain, earnings, ipo, mergers_and_acquisitions, financial_markets,
@@ -35,24 +37,33 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch news: ${response.statusText}`);
+      // Don't throw an error, just log it and return empty.
+      // This prevents the whole app from crashing if the external API is down.
+      console.error(`Failed to fetch news from Alpha Vantage: ${response.statusText}`);
+      return NextResponse.json({ error: `Server-side error fetching news: ${response.statusText}` }, { status: response.status });
     }
 
     const data = await response.json();
 
-    // Check for API error messages
-    if (data["Note"] || data["Error Message"]) {
-        console.warn('Alpha Vantage API limit or error:', data);
-        return NextResponse.json({ error: 'Could not fetch news at this time. The API limit may have been reached.' }, { status: 429 });
+    // Check for API limit messages, which are common with the free tier.
+    if (data["Note"] || data["Information"]) {
+        console.warn('Alpha Vantage API limit reached or info message returned:', data);
+        // Return an empty feed to the client to gracefully hide the ticker.
+        return NextResponse.json({ feed: [] });
     }
+     if (data["Error Message"]) {
+        console.error('Alpha Vantage API Error:', data["Error Message"]);
+        return NextResponse.json({ error: data["Error Message"] }, { status: 400 });
+     }
 
-    // Cache the new data
+
+    // Cache the new data only if it's valid
     cachedNews = data;
     lastFetchTimestamp = now;
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching from Alpha Vantage:', error);
+    console.error('Error in news API route:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json({ error: `Server-side error fetching news: ${errorMessage}` }, { status: 500 });
   }
