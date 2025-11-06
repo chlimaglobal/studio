@@ -78,5 +78,3 @@ const categorizeTransactionFlow = ai.defineFlow(
     return output;
   }
 );
-
-    
