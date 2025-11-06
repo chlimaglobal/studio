@@ -22,7 +22,7 @@ const prompt = ai.definePrompt({
   name: 'extractFromImagePrompt',
   input: { schema: ExtractFromImageInputSchema },
   output: { schema: ExtractFromImageOutputSchema },
-  model: 'googleai/gemini-2.5-pro',
+  model: 'googleai/gemini-2.5-flash',
   prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar imagens, como comprovantes, recibos e anotações, para extrair detalhes de transações.
   Sua tarefa é analisar a imagem fornecida e extrair a descrição, o valor total, o tipo de transação (receita ou despesa), sugerir uma categoria e, CRUCIALMENTE, identificar se a compra foi parcelada.
   
