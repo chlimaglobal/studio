@@ -54,8 +54,9 @@ export function AddTransactionFab() {
     setIsMenuOpen(!isMenuOpen);
   };
   
-  // Only show the FAB on the main dashboard page
-  if (pathname !== '/dashboard') {
+  // Do not show the FAB on certain pages
+  const hiddenPaths = ['/dashboard/add-transaction', '/dashboard/lumina'];
+  if (hiddenPaths.some(path => pathname.startsWith(path))) {
     return null;
   }
 

@@ -10,6 +10,7 @@ import { useAuth } from '@/components/client-providers';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import NewsTicker from '@/components/news-ticker';
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -146,10 +147,13 @@ export default function DashboardLayout({
 
   return (
       <div className="flex flex-col min-h-screen w-full bg-background">
-        <main className="flex-1 overflow-y-auto pb-28 p-4">
+        <main className="flex-1 overflow-y-auto pb-40 p-4">
           {children}
         </main>
         <AddTransactionFab />
+        <div className="fixed bottom-20 left-0 w-full z-40">
+            <NewsTicker />
+        </div>
         <BottomNavBar />
       </div>
   );
