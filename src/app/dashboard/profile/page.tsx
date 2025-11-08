@@ -30,7 +30,8 @@ import {
     CreditCard,
     Shield,
     Settings,
-    Users
+    Users,
+    HeartHandshake
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +47,14 @@ const menuItems = [
         subtitle: 'Gerencie seus cartões de crédito e faturas.',
         type: 'link',
         href: '/dashboard/cards',
+        premium: true,
+    },
+    { 
+        icon: HeartHandshake, 
+        title: 'Controle Parental', 
+        subtitle: 'Gerencie a mesada e as finanças dos seus filhos.',
+        type: 'link',
+        href: '/dashboard/parental-control',
         premium: true,
     },
     { 
