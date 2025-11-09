@@ -109,6 +109,7 @@ export default function PricingPage() {
     const { toast } = useToast();
     const [isPortalLoading, setIsPortalLoading] = useState(false);
     const auth = getAuth();
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     const couplePriceId = process.env.NEXT_PUBLIC_STRIPE_COUPLE_PRICE_ID!;
     const familyPriceId = process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID!;
@@ -137,6 +138,53 @@ export default function PricingPage() {
             setIsPortalLoading(false);
         }
     }
+    
+    const renderPricingCards = () => (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+             <PricingCard
+                title="Individual"
+                price="Grátis"
+                description="Comece a organizar suas finanças pessoais hoje mesmo."
+                priceId="" // No priceId for free plan
+                features={freeFeatures}
+            />
+            <PricingCard
+                title="Casal"
+                price="R$19,90"
+                description="Ideal para casais que querem gerenciar as finanças juntos."
+                priceId={couplePriceId}
+                features={coupleFeatures}
+                isFeatured={true}
+            />
+             <PricingCard
+                title="Família"
+                price="R$34,90"
+                description="Gerenciamento completo para toda a família, incluindo filhos."
+                priceId={familyPriceId}
+                features={familyFeatures}
+            />
+        </div>
+    );
+
+    const renderManageSubscription = () => (
+        <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+                <CardTitle className="flex justify-center items-center gap-2">
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                    Você já é um Assinante!
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+                <p className="text-muted-foreground mb-4">
+                    Obrigado por apoiar o FinanceFlow. Use o botão abaixo para gerenciar sua assinatura.
+                </p>
+                <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
+                    {isPortalLoading ? <Loader2 className="animate-spin mr-2"/> : <Star className="mr-2"/>}
+                    Gerenciar minha assinatura
+                </Button>
+            </CardContent>
+        </Card>
+    );
 
     return (
         <div className="space-y-6">
@@ -149,49 +197,10 @@ export default function PricingPage() {
             
              {isSubscriptionLoading ? (
                 <div className="flex justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
-            ) : isSubscribed ? (
-                 <Card className="max-w-2xl mx-auto">
-                    <CardHeader className="text-center">
-                        <CardTitle className="flex justify-center items-center gap-2">
-                            <CheckCircle className="h-8 w-8 text-green-500" />
-                            Você já é um Assinante!
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                        <p className="text-muted-foreground mb-4">
-                            Obrigado por apoiar o FinanceFlow. Use o botão abaixo para gerenciar sua assinatura.
-                        </p>
-                        <Button variant="outline" onClick={handleManageSubscription} disabled={isPortalLoading}>
-                            {isPortalLoading ? <Loader2 className="animate-spin mr-2"/> : <Star className="mr-2"/>}
-                            Gerenciar minha assinatura
-                        </Button>
-                    </CardContent>
-                </Card>
+            ) : (isAdmin || !isSubscribed) ? (
+                renderPricingCards()
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                     <PricingCard
-                        title="Individual"
-                        price="Grátis"
-                        description="Comece a organizar suas finanças pessoais hoje mesmo."
-                        priceId="" // No priceId for free plan
-                        features={freeFeatures}
-                    />
-                    <PricingCard
-                        title="Casal"
-                        price="R$19,90"
-                        description="Ideal para casais que querem gerenciar as finanças juntos."
-                        priceId={couplePriceId}
-                        features={coupleFeatures}
-                        isFeatured={true}
-                    />
-                     <PricingCard
-                        title="Família"
-                        price="R$34,90"
-                        description="Gerenciamento completo para toda a família, incluindo filhos."
-                        priceId={familyPriceId}
-                        features={familyFeatures}
-                    />
-                </div>
+                renderManageSubscription()
             )}
             
              <div className="mt-8 text-center">
