@@ -7,6 +7,10 @@ import { getAuth } from 'firebase-admin/auth';
 import { headers } from 'next/headers';
 
 async function getAuthenticatedUser(token: string) {
+    if (!adminApp) {
+        console.error('Firebase Admin App not initialized.');
+        return null;
+    }
     const auth = getAuth(adminApp);
     try {
         if (!token) {

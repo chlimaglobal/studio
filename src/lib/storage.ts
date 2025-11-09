@@ -1,5 +1,5 @@
 
-import { db } from './firebase';
+import { db, functions } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
 import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
-import { onUserCreated, onTransactionCreated } from './firebase-functions';
+import { httpsCallable } from 'firebase/functions';
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
@@ -38,7 +38,6 @@ export const initializeUser = async (user: User) => {
                 createdAt: Timestamp.now(),
                 stripeSubscriptionStatus: 'inactive', // Default status
             }, { merge: true });
-            await onUserCreated({ email: user.email!, displayName: user.displayName! });
         }
     } catch (error) {
         console.error("Error ensuring user document exists:", error);
@@ -158,12 +157,19 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
         await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
     }
 
-    // Trigger notification
-    await onTransactionCreated(currentUserId, { 
-        type: data.type, 
-        amount: data.amount, 
-        description: data.description 
-    });
+    try {
+        const onTransactionCreatedCallable = httpsCallable(functions, 'onTransactionCreated');
+        await onTransactionCreatedCallable({
+            userId: currentUserId,
+            transactionData: {
+                type: data.type,
+                amount: data.amount,
+                description: data.description
+            }
+        });
+    } catch(e) {
+        console.warn("Could not call onTransactionCreated callable function.", e);
+    }
 }
 
 
