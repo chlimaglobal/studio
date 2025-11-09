@@ -61,8 +61,6 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         });
         return;
     }
-
-    form.formState.isSubmitting = true;
     
     try {
         const sendDependentInvite = httpsCallable(functions, 'sendDependentInvite');
@@ -93,8 +91,6 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
             title: 'Falha no Envio',
             description: errorMessage,
         });
-    } finally {
-        form.formState.isSubmitting = false;
     }
   }
 

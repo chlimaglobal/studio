@@ -1,12 +1,17 @@
 
+
 import { adminDb, adminApp } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
-import { formatCurrency } from './utils';
 import * as sgMail from '@sendgrid/mail';
 import { onCall } from 'firebase-functions/v2/https';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY || '');
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+if (sendGridApiKey) {
+    sgMail.setApiKey(sendGridApiKey);
+} else {
+    console.warn('SENDGRID_API_KEY is not set. Emails will not be sent.');
+}
 
 /**
  * Triggers when a new transaction is created and sends a push notification to the user.
@@ -45,7 +50,7 @@ export const onTransactionCreated = onCall(async (request) => {
 
     const { type, amount, description } = transactionData;
     const title = type === 'income' ? 'Nova Receita Registrada!' : 'Nova Despesa Registrada!';
-    const body = `${description}: ${formatCurrency(amount)}`;
+    const body = `${description}: R$${amount.toFixed(2)}`;
 
     const message = {
         notification: {
@@ -88,5 +93,51 @@ export const onTransactionCreated = onCall(async (request) => {
     } catch (error) {
         console.error('Error sending notification:', error);
         return { success: false, error: "Failed to send notifications." };
+    }
+});
+
+export const sendDependentInvite = onCall(async (request) => {
+    if (!sendGridApiKey) {
+        console.error("SendGrid API Key not configured. Cannot send invite email.");
+        return { success: false, error: 'O serviço de e-mail não está configurado no servidor.' };
+    }
+
+    const inviterUid = request.auth?.uid;
+    if (!inviterUid) {
+        return { success: false, error: 'Usuário não autenticado.' };
+    }
+
+    const { dependentName, dependentEmail } = request.data;
+    if (!dependentName || !dependentEmail) {
+        return { success: false, error: 'Nome e e-mail do dependente são obrigatórios.' };
+    }
+
+    const inviterDoc = await adminDb!.collection('users').doc(inviterUid).get();
+    const inviterName = inviterDoc.data()?.displayName || 'um usuário';
+
+    // In a real app, you would generate a secure, short-lived token.
+    // For this example, we'll create a simple placeholder token.
+    const inviteToken = `INVITE_${Date.now()}`;
+    const inviteLink = `https://financeflow-we0in.web.app/signup?invite=${inviteToken}`;
+
+    const msg = {
+        to: dependentEmail,
+        from: 'financeflow-support@example.com', // Use a verified sender email
+        subject: `Você foi convidado para o FinanceFlow por ${inviterName}!`,
+        html: `
+            <h1>Olá, ${dependentName}!</h1>
+            <p>${inviterName} convidou você para se juntar a ele(a) no FinanceFlow e começar a gerenciar suas finanças.</p>
+            <p>Clique no link abaixo para criar sua conta:</p>
+            <a href="${inviteLink}">Criar minha conta no FinanceFlow</a>
+            <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg);
+        return { success: true, message: 'O convite foi enviado com sucesso por e-mail.' };
+    } catch (error) {
+        console.error("SendGrid Error:", error);
+        return { success: false, error: 'Falha ao enviar o e-mail de convite.' };
     }
 });
