@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSubscription, useAuth } from '@/components/client-providers';
 import { Loader2 } from 'lucide-react';
+import { AddDependentDialog } from '@/components/add-dependent-dialog';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -67,10 +68,12 @@ export default function ParentalControlPage() {
                     </div>
                 </div>
                  {(isSubscribed || isAdmin) && (
-                    <Button>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Adicionar Dependente
-                    </Button>
+                    <AddDependentDialog>
+                        <Button>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Adicionar Dependente
+                        </Button>
+                    </AddDependentDialog>
                 )}
             </div>
             
@@ -81,10 +84,12 @@ export default function ParentalControlPage() {
                     <p className="mb-4 mt-2 text-sm text-muted-foreground">
                         Adicione seu primeiro dependente para configurar a mesada digital e acompanhar os gastos.
                     </p>
-                    <Button>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Adicionar Dependente
-                    </Button>
+                    <AddDependentDialog>
+                        <Button>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Adicionar Dependente
+                        </Button>
+                    </AddDependentDialog>
                 </div>
             )}
         </div>
