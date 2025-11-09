@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -10,17 +11,33 @@ import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
 import { getAuth } from 'firebase/auth';
 
-const features = [
-    "Análises com a Lúmina ilimitadas",
-    "Orçamentos personalizados",
-    "Metas Financeiras",
-    "Sincronização com WhatsApp",
-    "Importação de extratos",
-    "Acesso Multiplataforma: Use o Finance $ Flow no seu celular (Android, IOS) ou na versão web completa pelo seu computador, a qualquer hora e em qualquer lugar.",
-    "Sem anúncios"
+const freeFeatures = [
+    "Controle de transações (receitas e despesas)",
+    "Dashboard com resumo mensal",
+    "Cadastro de contas e cartões",
+    "Relatórios básicos de gastos",
 ];
 
-const PricingCard = ({ title, price, description, priceId, isYearly = false }: { title: string, price: string, description: string, priceId: string, isYearly?: boolean }) => {
+const coupleFeatures = [
+    "Tudo do plano Gratuito",
+    "Visão compartilhada para 2 membros",
+    "Análises com a Lúmina ilimitadas",
+    "Metas financeiras de casal (com mediação da Lúmina)",
+    "Orçamentos personalizados",
+    "Sincronização com WhatsApp",
+    "Importação de extratos",
+];
+
+const familyFeatures = [
+    "Tudo do plano Casal",
+    "Até 6 membros no total",
+    "Controle parental avançado",
+    "Mesada digital programável",
+    "Metas e relatórios para dependentes",
+    "Conteúdo de educação financeira",
+];
+
+const PricingCard = ({ title, price, description, priceId, features, isFeatured = false }: { title: string, price: string, description: string, priceId: string, features: string[], isFeatured?: boolean }) => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const { user } = useAuth();
@@ -57,7 +74,7 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
     };
 
     return (
-        <Card className={isYearly ? 'border-primary' : ''}>
+        <Card className={isFeatured ? 'border-primary' : ''}>
             <CardHeader>
                 <CardTitle>{title}</CardTitle>
                 <CardDescription>{description}</CardDescription>
@@ -65,7 +82,7 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
             <CardContent className="space-y-4">
                 <div className="flex items-baseline">
                     <span className="text-4xl font-bold">{price}</span>
-                    <span className="text-muted-foreground">/{isYearly ? 'ano' : 'mês'}</span>
+                    {price !== "Grátis" && <span className="text-muted-foreground">/mês</span>}
                 </div>
                 <ul className="space-y-2">
                     {features.map(feature => (
@@ -77,8 +94,8 @@ const PricingCard = ({ title, price, description, priceId, isYearly = false }: {
                 </ul>
             </CardContent>
             <CardFooter>
-                <Button onClick={handleSubscribe} className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin" /> : 'Assinar Agora'}
+                 <Button onClick={handleSubscribe} className="w-full" disabled={isLoading || !priceId}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : (price === 'Grátis' ? 'Usar plano Gratuito' : 'Assinar Agora')}
                 </Button>
             </CardFooter>
         </Card>
@@ -93,8 +110,8 @@ export default function PricingPage() {
     const [isPortalLoading, setIsPortalLoading] = useState(false);
     const auth = getAuth();
 
-    const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID!;
-    const yearlyPriceId = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID!;
+    const couplePriceId = process.env.NEXT_PUBLIC_STRIPE_COUPLE_PRICE_ID!;
+    const familyPriceId = process.env.NEXT_PUBLIC_STRIPE_FAMILY_PRICE_ID!;
 
     const handleManageSubscription = async () => {
         setIsPortalLoading(true);
@@ -151,19 +168,28 @@ export default function PricingPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                    <PricingCard
-                        title="Mensal"
-                        price="R$14,90"
-                        description="Acesso completo com flexibilidade."
-                        priceId={monthlyPriceId}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                     <PricingCard
+                        title="Individual"
+                        price="Grátis"
+                        description="Comece a organizar suas finanças pessoais hoje mesmo."
+                        priceId="" // No priceId for free plan
+                        features={freeFeatures}
                     />
                     <PricingCard
-                        title="Anual"
-                        price="R$99,90"
-                        description="O melhor custo-benefício, economize 2 meses!"
-                        priceId={yearlyPriceId}
-                        isYearly
+                        title="Casal"
+                        price="R$19,90"
+                        description="Ideal para casais que querem gerenciar as finanças juntos."
+                        priceId={couplePriceId}
+                        features={coupleFeatures}
+                        isFeatured={true}
+                    />
+                     <PricingCard
+                        title="Família"
+                        price="R$34,90"
+                        description="Gerenciamento completo para toda a família, incluindo filhos."
+                        priceId={familyPriceId}
+                        features={familyFeatures}
                     />
                 </div>
             )}
