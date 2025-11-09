@@ -3,7 +3,9 @@ import { adminDb, adminApp } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import * as sgMail from '@sendgrid/mail';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { getAuth } from 'firebase-admin/auth';
+import { randomBytes } from 'crypto';
 
 const sendGridApiKey = process.env.SENDGRID_API_KEY;
 if (sendGridApiKey) {
@@ -23,12 +25,12 @@ export const onTransactionCreated = onCall(async (request) => {
 
     if (!adminApp) {
         console.warn("Admin App not initialized, skipping notification.");
-        return { success: false, error: "Admin App not initialized" };
+        throw new HttpsError('internal', 'Admin App not initialized.');
     }
 
     if (!userId || !transactionData) {
-        console.log("Missing userId or transaction data, skipping notification.");
-        return { success: false, error: "Missing userId or transaction data" };
+         console.log("Missing userId or transaction data, skipping notification.");
+        throw new HttpsError('invalid-argument', 'Missing userId or transaction data.');
     }
 
     const userDocRef = adminDb!.collection('users').doc(userId);
@@ -36,7 +38,7 @@ export const onTransactionCreated = onCall(async (request) => {
 
     if (!userDoc.exists) {
         console.log(`User document for ${userId} not found.`);
-        return { success: false, error: `User ${userId} not found` };
+        throw new HttpsError('not-found', `User ${userId} not found.`);
     }
 
     const userData = userDoc.data();
@@ -91,24 +93,24 @@ export const onTransactionCreated = onCall(async (request) => {
         return { success: true, message: "Notifications sent." };
     } catch (error) {
         console.error('Error sending notification:', error);
-        return { success: false, error: "Failed to send notifications." };
+        throw new HttpsError('internal', 'Failed to send notifications.');
     }
 });
 
 export const sendDependentInvite = onCall(async (request) => {
     if (!sendGridApiKey) {
         console.error("SendGrid API Key not configured. Cannot send invite email.");
-        return { success: false, error: 'O serviço de e-mail não está configurado no servidor.' };
+        throw new HttpsError('internal', 'O serviço de e-mail não está configurado no servidor.');
     }
 
     const inviterUid = request.auth?.uid;
     if (!inviterUid) {
-        return { success: false, error: 'Usuário não autenticado.' };
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
     }
 
     const { dependentName, dependentEmail } = request.data;
     if (!dependentName || !dependentEmail) {
-        return { success: false, error: 'Nome e e-mail do dependente são obrigatórios.' };
+        throw new HttpsError('invalid-argument', 'Nome e e-mail do dependente são obrigatórios.');
     }
 
     const inviterDoc = await adminDb!.collection('users').doc(inviterUid).get();
@@ -121,7 +123,7 @@ export const sendDependentInvite = onCall(async (request) => {
 
     const msg = {
         to: dependentEmail,
-        from: 'financeflow-support@example.com', // Use a verified sender email
+        from: 'financeflowsuporte@proton.me', // Use a verified sender email
         subject: `Você foi convidado para o FinanceFlow por ${inviterName}!`,
         html: `
             <h1>Olá, ${dependentName}!</h1>
@@ -137,6 +139,132 @@ export const sendDependentInvite = onCall(async (request) => {
         return { success: true, message: 'O convite foi enviado com sucesso por e-mail.' };
     } catch (error) {
         console.error("SendGrid Error:", error);
-        return { success: false, error: 'Falha ao enviar o e-mail de convite.' };
+        throw new HttpsError('internal', 'Falha ao enviar o e-mail de convite.');
     }
+});
+
+// Helper to generate a random code
+function generateRandomCode(length: number) {
+    return randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length).toUpperCase();
+}
+
+
+export const generateInviteCode = onCall(async (request) => {
+    const inviterUid = request.auth?.uid;
+    if (!inviterUid) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    const { accountId } = request.data;
+    if (!accountId) {
+        throw new HttpsError('invalid-argument', 'O ID da conta é obrigatório.');
+    }
+
+    const accountRef = adminDb!.doc(`users/${inviterUid}/accounts/${accountId}`);
+    const accountDoc = await accountRef.get();
+
+    if (!accountDoc.exists) {
+        throw new HttpsError('not-found', 'A conta especificada não foi encontrada.');
+    }
+
+    const code = generateRandomCode(8);
+    const expiresAt = Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const inviteData = {
+        code,
+        accountId,
+        accountRef: accountRef.path,
+        inviterUid,
+        expiresAt,
+        used: false,
+    };
+
+    await adminDb!.collection('invites').doc(code).set(inviteData);
+    
+    return { success: true, code: code };
+});
+
+export const acceptInviteCode = onCall(async (request) => {
+    const inviteeUid = request.auth?.uid;
+    if (!inviteeUid) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+    const { code } = request.data;
+    if (!code) {
+        throw new HttpsError('invalid-argument', 'O código do convite é obrigatório.');
+    }
+
+    const inviteRef = adminDb!.collection('invites').doc(code);
+    const inviteDoc = await inviteRef.get();
+
+    if (!inviteDoc.exists || inviteDoc.data()?.used) {
+        throw new HttpsError('not-found', 'Código de convite inválido ou já utilizado.');
+    }
+
+    const inviteData = inviteDoc.data()!;
+
+    if (inviteData.expiresAt.toMillis() < Date.now()) {
+        throw new HttpsError('deadline-exceeded', 'Este código de convite expirou.');
+    }
+
+    if (inviteData.inviterUid === inviteeUid) {
+        throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
+    }
+
+    const accountRef = adminDb!.doc(inviteData.accountRef);
+    const accountDoc = await accountRef.get();
+    if (!accountDoc.exists) {
+         throw new HttpsError('not-found', 'A conta associada a este convite não existe mais.');
+    }
+    
+    const accountData = accountDoc.data()!;
+
+    const batch = adminDb!.batch();
+
+    // Add member to account
+    batch.update(accountRef, {
+        memberIds: FieldValue.arrayUnion(inviteeUid),
+        isShared: true
+    });
+    
+    // Add shared account reference to invitee's user doc
+    const sharedAccountRef = adminDb!.collection('users').doc(inviteeUid).collection('sharedAccounts').doc(inviteData.accountId);
+    batch.set(sharedAccountRef, { accountRef: inviteData.accountRef });
+    
+    // Mark invite as used
+    batch.update(inviteRef, { used: true, inviteeUid: inviteeUid });
+
+    await batch.commit();
+
+    return { success: true, accountName: accountData.name };
+});
+
+export const getPartnerId = onCall(async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    // Check shared accounts where the current user is a member
+    const sharedAccountsQuery = adminDb!.collectionGroup('sharedAccounts').where('memberIds', 'array-contains', userId);
+    const sharedAccountsSnapshot = await sharedAccountsQuery.get();
+
+    if (!sharedAccountsSnapshot.empty) {
+        const accountDoc = sharedAccountsSnapshot.docs[0];
+        const memberIds = accountDoc.data().memberIds as string[];
+        const partnerId = memberIds.find(id => id !== userId);
+        return { partnerId: partnerId || null };
+    }
+    
+    // Check accounts owned by the user that are shared
+    const ownedAccountsQuery = adminDb!.collection('users').doc(userId).collection('accounts').where('isShared', '==', true);
+    const ownedAccountsSnapshot = await ownedAccountsQuery.get();
+    if (!ownedAccountsSnapshot.empty) {
+        const accountDoc = ownedAccountsSnapshot.docs[0];
+        const memberIds = accountDoc.data().memberIds as string[];
+        const partnerId = memberIds.find(id => id !== userId);
+        return { partnerId: partnerId || null };
+    }
+
+    return { partnerId: null };
 });
