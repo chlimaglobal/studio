@@ -1,4 +1,5 @@
 
+
 import { adminDb, adminApp } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
@@ -160,11 +161,12 @@ export const generateInviteCode = onCall(async (request) => {
         throw new HttpsError('invalid-argument', 'O ID da conta é obrigatório.');
     }
 
-    const accountRef = adminDb!.doc(`users/${inviterUid}/accounts/${accountId}`);
+    const accountRef = adminDb!.collection('users').doc(inviterUid).collection('accounts').doc(accountId);
     const accountDoc = await accountRef.get();
-
-    if (!accountDoc.exists) {
-        throw new HttpsError('not-found', 'A conta especificada não foi encontrada.');
+    
+    // Check if the inviter is the owner of the account.
+    if (!accountDoc.exists || accountDoc.data()?.ownerId !== inviterUid) {
+        throw new HttpsError('permission-denied', 'Você não tem permissão para compartilhar esta conta.');
     }
 
     const code = generateRandomCode(8);

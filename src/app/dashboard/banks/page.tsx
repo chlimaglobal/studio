@@ -180,7 +180,7 @@ export default function BanksPage() {
                   <p className="text-2xl font-bold">{formatCurrency(account.currentBalance)}</p>
                 </CardContent>
                 <CardFooter className="bg-muted/50 p-3 rounded-b-lg">
-                  <Button variant="outline" className="w-full" onClick={() => handleInviteClick(account)}>
+                  <Button variant="outline" className="w-full" onClick={() => handleInviteClick(account)} disabled={user?.uid !== account.ownerId}>
                       <Share2 className="mr-2 h-4 w-4"/>
                       Convidar
                   </Button>
