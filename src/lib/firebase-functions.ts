@@ -1,5 +1,4 @@
 
-'use server';
 // IMPORTANT: This file should be deployed as a Firebase Cloud Function.
 // It is included here for completeness but needs to be deployed separately.
 import { adminDb, adminApp } from './firebase-admin';
@@ -7,6 +6,7 @@ import { customAlphabet } from 'nanoid';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { formatCurrency } from './utils';
+import * as sgMail from '@sendgrid/mail';
 
 
 /**
@@ -15,7 +15,6 @@ import { formatCurrency } from './utils';
  * @param {UserRecord} user - The user record of the new user.
  */
 export async function onUserCreated(user: { email: string, displayName: string }) {
-  if (!adminApp) return;
   if (!user.email) {
     console.error('New user created without an email address.');
     return;
@@ -241,41 +240,66 @@ export async function acceptInviteCode(data: { code: string }, acceptorId: strin
   }
 }
 
-export async function getPartnerId(data: { userId: string }): Promise<{ partnerId: string | null }> {
-    const { userId } = data;
+/**
+ * Sends an invitation email to a new dependent.
+ * This is a Firebase Callable Function.
+ */
+export async function sendDependentInvite(data: { dependentName: string, dependentEmail: string }, context: { auth?: { uid: string, token: { name?: string } } }) {
+    if (!context.auth) {
+        throw new Error('Usuário não autenticado.');
+    }
+    const { dependentName, dependentEmail } = data;
+    const parentUid = context.auth.uid;
+    const parentName = context.auth.token.name || 'Um usuário';
+
     if (!adminDb) {
-        console.error("O banco de dados do administrador não foi inicializado.");
-        return { partnerId: null };
+        throw new Error('O banco de dados do administrador não foi inicializado.');
     }
-    if (!userId) {
-        console.error("userId não fornecido para getPartnerId.");
-        return { partnerId: null };
+
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey) {
+        console.error("SENDGRID_API_KEY is not set.");
+        throw new Error("O serviço de envio de e-mails não está configurado no servidor.");
     }
+    sgMail.setApiKey(apiKey);
+
+    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 16);
+    const inviteToken = nanoid();
+    const inviteRef = adminDb.collection('dependentInvites').doc(inviteToken);
+
+    await inviteRef.set({
+        parentUid,
+        parentName,
+        dependentName,
+        dependentEmail,
+        status: 'pending',
+        createdAt: FieldValue.serverTimestamp(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    });
+
+    const inviteLink = `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}/signup?invite=${inviteToken}`;
+    
+    const msg = {
+        to: dependentEmail,
+        from: 'financeflow-no-reply@yourdomain.com', // **IMPORTANTE: Use um e-mail verificado no SendGrid**
+        subject: `Você foi convidado para o FinanceFlow por ${parentName}!`,
+        html: `
+            <h1>Olá ${dependentName},</h1>
+            <p>${parentName} convidou você para usar o FinanceFlow e aprender a gerenciar suas finanças.</p>
+            <p>Clique no link abaixo para criar sua conta:</p>
+            <a href="${inviteLink}" style="background-color: #3F51B5; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; display: inline-block;">Criar Minha Conta</a>
+            <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
+            <br>
+            <p>Atenciosamente,</p>
+            <p>A Equipe FinanceFlow</p>
+        `,
+    };
 
     try {
-        // First, check if the user is a member of someone else's account
-        const sharedAccountsRef = adminDb.collection('users').doc(userId).collection('sharedAccounts');
-        const querySnapshot = await sharedAccountsRef.limit(1).get();
-
-        if (!querySnapshot.empty) {
-            const sharedAccountData = querySnapshot.docs[0].data();
-            return { partnerId: sharedAccountData.ownerId || null };
-        }
-
-        // If not, check if the user owns a shared account
-        const ownedAccountsRef = adminDb.collection('users').doc(userId).collection('accounts');
-        const ownedQuerySnapshot = await ownedAccountsRef.where('isShared', '==', true).limit(1).get();
-        
-        if (ownedQuerySnapshot.empty) {
-            return { partnerId: null };
-        }
-
-        const accountData = ownedQuerySnapshot.docs[0].data();
-        const partnerId = accountData.memberIds.find((id: string) => id !== userId);
-        return { partnerId: partnerId || null };
-        
+        await sgMail.send(msg);
+        return { success: true, message: `Um convite foi enviado para ${dependentEmail}.` };
     } catch (error) {
-        console.error("Erro ao buscar ID do parceiro:", error);
-        return { partnerId: null };
+        console.error("Error sending email with SendGrid:", error);
+        throw new Error("Não foi possível enviar o e-mail de convite.");
     }
 }

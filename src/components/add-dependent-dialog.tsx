@@ -27,6 +27,8 @@ import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useAuth } from '@/components/client-providers';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 const AddDependentFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -59,16 +61,41 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         });
         return;
     }
+
+    form.formState.isSubmitting = true;
     
-    // Simulação da chamada de backend
-    console.log("Sending invite to:", values);
-    toast({
-        title: 'Convite Enviado!',
-        description: `Um link de convite foi enviado para ${values.email}.`,
-    });
-    
-    form.reset();
-    setOpen(false);
+    try {
+        const sendDependentInvite = httpsCallable(functions, 'sendDependentInvite');
+        const result = await sendDependentInvite({
+            dependentName: values.name,
+            dependentEmail: values.email,
+        });
+
+        // @ts-ignore
+        const resultData = result.data as { success: boolean, message: string, error?: string };
+
+        if (resultData.success) {
+             toast({
+                title: 'Convite Enviado!',
+                description: resultData.message,
+            });
+            form.reset();
+            setOpen(false);
+        } else {
+            throw new Error(resultData.error || 'Ocorreu um erro desconhecido ao enviar o convite.');
+        }
+
+    } catch (error) {
+        console.error("Failed to send dependent invite:", error);
+        const errorMessage = (error instanceof Error) ? error.message : "Não foi possível enviar o convite. Tente novamente.";
+         toast({
+            variant: 'destructive',
+            title: 'Falha no Envio',
+            description: errorMessage,
+        });
+    } finally {
+        form.formState.isSubmitting = false;
+    }
   }
 
   return (
