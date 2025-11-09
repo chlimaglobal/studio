@@ -40,7 +40,7 @@ export default function SubscriptionsPage() {
     
     const { subscriptions, totalMonthlyCost } = useMemo(() => {
         const recurringTransactions = transactions.filter(
-            t => t.type === 'expense' && t.paymentMethod === 'recurring' && t.recurrence
+            t => t.type === 'expense' && t.paymentMethod === 'recurring' && t.recurrence && t.amount
         );
 
         const latestTransactionsMap = new Map<string, Transaction>();
@@ -59,7 +59,7 @@ export default function SubscriptionsPage() {
         
         const totalCost = uniqueSubscriptions.reduce((acc, sub) => {
             if (sub.recurrence === 'monthly') {
-                return acc + (sub.amount || 0);
+                return acc + (sub.amount || 0); // Defensive check for amount
             }
             return acc;
         }, 0);
