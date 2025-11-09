@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { Transaction } from '@/lib/types';
 
 
 const recurrenceLabels: Record<string, string> = {
@@ -39,21 +40,28 @@ export default function SubscriptionsPage() {
     
     const { subscriptions, totalMonthlyCost } = useMemo(() => {
         const recurringTransactions = transactions.filter(
-            t => t.type === 'expense' && t.paymentMethod === 'recurring'
+            t => t.type === 'expense' && t.paymentMethod === 'recurring' && t.recurrence
         );
 
-        // Simple de-duplication based on description
-        const uniqueSubscriptions = Array.from(new Map(recurringTransactions.map(item => [item.description, item])).values());
+        const latestTransactionsMap = new Map<string, Transaction>();
+
+        recurringTransactions.forEach(transaction => {
+            const key = transaction.description.toLowerCase();
+            const existing = latestTransactionsMap.get(key);
+            if (!existing || new Date(transaction.date) > new Date(existing.date)) {
+                latestTransactionsMap.set(key, transaction);
+            }
+        });
+
+        const uniqueSubscriptions = Array.from(latestTransactionsMap.values());
         
         uniqueSubscriptions.sort((a, b) => b.amount - a.amount);
         
         const totalCost = uniqueSubscriptions.reduce((acc, sub) => {
-            // This is a simplified calculation, assuming all recurrences are monthly for the summary
-            // A more complex logic would be needed to normalize all frequencies to a monthly cost
             if (sub.recurrence === 'monthly') {
-                return acc + sub.amount;
+                return acc + (sub.amount || 0);
             }
-            return acc; // For now, only summing up monthly for simplicity
+            return acc;
         }, 0);
 
         return { subscriptions: uniqueSubscriptions, totalMonthlyCost: totalCost };
