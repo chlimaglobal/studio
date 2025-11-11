@@ -61,6 +61,10 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                transactionDate >= threeMonthsAgo;
     });
     
+    if (relevantTransactions.length === 0) {
+        return 0;
+    }
+    
     const monthlyCosts = new Map<string, number>();
     relevantTransactions.forEach(t => {
         const monthKey = t.date.substring(0, 7); // "YYYY-MM"
@@ -72,7 +76,6 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         return 0;
     }
     
-    // Using reduce with an initial value of 0, as you suggested.
     const totalCost = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
     
     return totalCost / monthlyCosts.size;
