@@ -4,9 +4,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
-import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -349,7 +349,7 @@ export default function DashboardPage() {
     }, [user, monthId]);
 
 
-    const { summary, categorySpending, budgetItems } = useMemo(() => {
+    const { summary, categorySpending, budgetItems, costOfLiving } = useMemo(() => {
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
         
         const monthTransactions = operationalTransactions.filter(t => {
@@ -392,10 +392,30 @@ export default function DashboardPage() {
             })
             .filter(Boolean) as BudgetItem[];
 
+        // Cost of Living Calculation
+        const costOfLivingCategories = new Set<TransactionCategory>([
+            "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
+            "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
+            "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
+            "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
+        ]);
+        
+        const threeMonthsAgo = startOfMonth(subMonths(startOfToday(), 2));
+        const relevantTransactions = operationalTransactions.filter(t => 
+            t.type === 'expense' &&
+            new Date(t.date) >= threeMonthsAgo &&
+            costOfLivingCategories.has(t.category)
+        );
+
+        const totalCostOfLiving = relevantTransactions.reduce((acc, t) => acc + t.amount, 0);
+        const averageCostOfLiving = totalCostOfLiving / 3;
+
+
         return { 
             summary: { recebidos, despesas, previsto },
             categorySpending,
-            budgetItems
+            budgetItems,
+            costOfLiving: averageCostOfLiving,
         };
     }, [transactions, currentMonth, budgets]);
     
@@ -427,7 +447,7 @@ export default function DashboardPage() {
           </Button>
         </div>
         
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="bg-secondary p-3">
                 <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
                     <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
@@ -461,6 +481,19 @@ export default function DashboardPage() {
                     <p className={cn("font-bold text-base", summary.previsto >= 0 ? "text-primary" : "text-destructive")}>
                       {isPrivacyMode ? 'R$ ••••••' : formatCurrency(summary.previsto)}
                     </p>
+                </CardContent>
+            </Card>
+            <Card className="bg-secondary p-3">
+                <CardHeader className="p-1 flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Home className="h-3 w-3 text-primary" />
+                        Custo de Vida
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-1 text-center">
+                     <p className="font-bold text-primary text-base">
+                        {isPrivacyMode ? 'R$ ••••••' : formatCurrency(costOfLiving)}
+                     </p>
                 </CardContent>
             </Card>
         </div>
