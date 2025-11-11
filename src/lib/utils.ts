@@ -60,13 +60,8 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                costOfLivingCategories.has(t.category) &&
                transactionDate >= threeMonthsAgo;
     });
-
-    if (relevantTransactions.length === 0) {
-        return 0;
-    }
-
+    
     const monthlyCosts = new Map<string, number>();
-
     relevantTransactions.forEach(t => {
         const monthKey = t.date.substring(0, 7); // "YYYY-MM"
         const currentTotal = monthlyCosts.get(monthKey) || 0;
@@ -77,10 +72,8 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         return 0;
     }
     
+    // Using reduce with an initial value of 0, as you suggested.
     const totalCost = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
     
-    // The divisor is the number of months that actually had expenses, for a more accurate average.
-    const numberOfMonthsWithCosts = monthlyCosts.size;
-
-    return totalCost / numberOfMonthsWithCosts;
+    return totalCost / monthlyCosts.size;
 }
