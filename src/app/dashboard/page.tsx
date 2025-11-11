@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday, eachMonthOfInterval, getMonth, getYear } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday } from 'date-fns';
+import { getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -558,3 +559,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
