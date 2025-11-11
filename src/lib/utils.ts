@@ -78,5 +78,6 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
     
     const totalCost = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
     
+    // Divide by the number of months that actually had expenses, not just 3.
     return totalCost / monthlyCosts.size;
 }
