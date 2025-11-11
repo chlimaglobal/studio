@@ -43,7 +43,7 @@ const luminaChatFlow = ai.defineFlow(
     }));
 
     // Use generateStream instead of a simple prompt call
-    const { response, stream: responseStream } = await ai.generateStream({
+    const { response, stream: responseStream } = ai.generateStream({
         model: 'googleai/gemini-2.5-flash',
         history: mappedChatHistory,
         prompt: `**Dados Financeiros para Análise:**
