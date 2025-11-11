@@ -410,8 +410,6 @@ export default function DashboardPage() {
                    costOfLivingCategories.has(t.category);
         });
 
-        const totalCostOfLiving = costOfLivingTransactions.reduce((acc, t) => acc + t.amount, 0);
-        
         if (costOfLivingTransactions.length === 0) {
             return {
                 summary: { recebidos, despesas, previsto },
@@ -421,14 +419,16 @@ export default function DashboardPage() {
             };
         }
 
-        const firstMonth = getMonth(new Date(costOfLivingTransactions[costOfLivingTransactions.length - 1].date));
-        const firstYear = getYear(new Date(costOfLivingTransactions[costOfLivingTransactions.length - 1].date));
-        const lastMonth = getMonth(new Date(costOfLivingTransactions[0].date));
-        const lastYear = getYear(new Date(costOfLivingTransactions[0].date));
+        const monthlyCosts = new Map<string, number>();
+        costOfLivingTransactions.forEach(t => {
+            const monthKey = format(new Date(t.date), 'yyyy-MM');
+            monthlyCosts.set(monthKey, (monthlyCosts.get(monthKey) || 0) + t.amount);
+        });
         
-        const numberOfMonths = (lastYear - firstYear) * 12 + (lastMonth - firstMonth) + 1;
+        const totalCostOfLiving = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
+        const numberOfMonthsWithCosts = monthlyCosts.size;
         
-        const averageCostOfLiving = totalCostOfLiving / (numberOfMonths > 0 ? numberOfMonths : 1);
+        const averageCostOfLiving = numberOfMonthsWithCosts > 0 ? totalCostOfLiving / numberOfMonthsWithCosts : 0;
 
 
         return { 
