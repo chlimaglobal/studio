@@ -25,7 +25,7 @@ const prompt = ai.definePrompt({
   name: 'luminaChatPrompt',
   input: { schema: LuminaChatInputSchema },
   model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um chat, analisando a conversa, os dados financeiros e respondendo a perguntas de forma útil, imparcial e encorajadora.
+  prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um chat, analisando a conversa, os dados financeiros e respondendo a perguntas de forma útil, imparcial и encorajadora.
 
 **Sua Personalidade:**
 - **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar.
@@ -76,18 +76,18 @@ const luminaChatFlow = ai.defineFlow(
     // Map roles to what the Gemini model expects: 'user' and 'model'
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role === 'lumina' ? 'model' : 'user',
-      text: msg.text,
+      content: [{text: msg.text}],
     }));
-    
-    const flowInput = { 
-        ...input, 
-        chatHistory: mappedChatHistory,
-    };
 
     // Use generateStream instead of a simple prompt call
     const { response, stream: responseStream } = await ai.generateStream({
         model: 'googleai/gemini-2.5-flash',
-        prompt: prompt.compile(flowInput), // Manually compile the prompt with the input
+        history: mappedChatHistory,
+        prompt: `**Dados Financeiros para Análise:**
+        {{{json allTransactions}}}
+
+        **Nova Mensagem do Usuário:**
+        ${input.userQuery}`,
     });
 
     return new ReadableStream({

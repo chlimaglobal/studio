@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -188,8 +189,9 @@ export default function LuminaPage() {
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
         // Add a temporary "thinking" message for Lumina
+        const tempId = `lumina-thinking-${Date.now()}`;
         setMessages(prev => [...prev, {
-            id: 'lumina-thinking',
+            id: tempId,
             role: 'lumina',
             text: '', // Start with empty text
             authorName: 'Lúmina',
@@ -231,7 +233,7 @@ export default function LuminaPage() {
                 finalResponseText += chunk;
 
                 setMessages(prev => prev.map(msg => 
-                    msg.id === 'lumina-thinking' 
+                    msg.id === tempId 
                     ? { ...msg, text: finalResponseText } 
                     : msg
                 ));
@@ -248,12 +250,12 @@ export default function LuminaPage() {
             }
             
             // Remove the temporary "thinking" message
-            setMessages(prev => prev.filter(msg => msg.id !== 'lumina-thinking'));
+            setMessages(prev => prev.filter(msg => msg.id !== tempId));
 
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
             await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", 'Lúmina', '/lumina-avatar.png');
-            setMessages(prev => prev.filter(msg => msg.id !== 'lumina-thinking'));
+            setMessages(prev => prev.filter(msg => msg.id !== tempId));
         } finally {
             setIsLuminaThinking(false);
         }
@@ -425,7 +427,7 @@ export default function LuminaPage() {
                         <div className="space-y-6">
                             {messages.map((msg, index) => {
                                 const isUser = msg.role === 'user';
-                                const isLuminaThinkingMessage = msg.id === 'lumina-thinking';
+                                const isLuminaThinkingMessage = msg.id?.startsWith('lumina-thinking');
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
@@ -466,7 +468,7 @@ export default function LuminaPage() {
                                                 onCancel={() => handleCancelTransaction(msg.id!)}
                                             />
                                         )}
-                                        {!isLuminaThinkingMessage && (
+                                        {!isLuminaThinkingMessage && msg.timestamp && (
                                             <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
                                                 {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
