@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday } from 'date-fns';
-import { getMonth, getYear } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -16,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
 import { useTransactions } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -392,42 +391,15 @@ export default function DashboardPage() {
                 };
             })
             .filter(Boolean) as BudgetItem[];
-
-        const costOfLivingCategories = new Set<TransactionCategory>([
-            "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
-            "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
-            "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
-            "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
-        ]);
         
-        const threeMonthsAgo = startOfMonth(subMonths(startOfToday(), 2));
-        const costInterval = { start: threeMonthsAgo, end: endOfMonth(new Date()) };
-        
-        const costOfLivingTransactions = operationalTransactions.filter(t => {
-            const transactionDate = new Date(t.date);
-            return t.type === 'expense' && 
-                   transactionDate >= costInterval.start &&
-                   transactionDate <= costInterval.end &&
-                   costOfLivingCategories.has(t.category);
-        });
-
-        const monthlyCosts = new Map<string, number>();
-        costOfLivingTransactions.forEach(t => {
-            const monthKey = format(new Date(t.date), 'yyyy-MM');
-            monthlyCosts.set(monthKey, (monthlyCosts.get(monthKey) || 0) + t.amount);
-        });
-        
-        const totalCostOfLiving = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
-        const numberOfMonthsWithCosts = monthlyCosts.size > 0 ? monthlyCosts.size : 1;
-        
-        const averageCostOfLiving = totalCostOfLiving / numberOfMonthsWithCosts;
+        const costOfLiving = calculateMovingAverageCostOfLiving(transactions);
 
 
         return { 
             summary: { recebidos, despesas, previsto },
             categorySpending,
             budgetItems,
-            costOfLiving: averageCostOfLiving,
+            costOfLiving,
         };
     }, [transactions, currentMonth, budgets]);
     
@@ -550,5 +522,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

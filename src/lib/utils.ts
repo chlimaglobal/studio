@@ -1,6 +1,9 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Transaction, TransactionCategory } from "./types";
+import { startOfMonth, subMonths, endOfMonth } from 'date-fns';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -33,6 +36,55 @@ export function base64UrlToBuffer(base64Url: string): ArrayBuffer {
         bytes[i] = binary.charCodeAt(i);
     }
     return buffer;
+}
+
+
+/**
+ * Calculates the moving average cost of living based on essential expense categories over the last 3 months.
+ * @param transactions - An array of all user transactions.
+ * @returns The average monthly cost of living.
+ */
+export function calculateMovingAverageCostOfLiving(transactions: Transaction[]): number {
+    const costOfLivingCategories = new Set<TransactionCategory>([
+        "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
+        "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
+        "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
+        "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
+    ]);
+
+    const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));
+    const today = endOfMonth(new Date());
+
+    const relevantTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return t.type === 'expense' &&
+               costOfLivingCategories.has(t.category) &&
+               transactionDate >= threeMonthsAgo &&
+               transactionDate <= today;
+    });
+
+    if (relevantTransactions.length === 0) {
+        return 0;
+    }
+
+    const monthlyCosts = new Map<string, number>();
+
+    relevantTransactions.forEach(t => {
+        const monthKey = t.date.substring(0, 7); // "YYYY-MM"
+        const currentTotal = monthlyCosts.get(monthKey) || 0;
+        monthlyCosts.set(monthKey, currentTotal + t.amount);
+    });
+
+    if (monthlyCosts.size === 0) {
+        return 0;
+    }
+    
+    const totalCost = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
+    
+    // The divisor is the number of months that actually had expenses, for a more accurate average.
+    const numberOfMonthsWithCosts = monthlyCosts.size;
+
+    return totalCost / numberOfMonthsWithCosts;
 }
 
     
