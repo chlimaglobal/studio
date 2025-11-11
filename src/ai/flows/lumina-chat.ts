@@ -10,7 +10,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput } from '@/lib/types';
 import { LuminaChatInputSchema } from '@/lib/types';
-import { stream } from 'genkit/stream';
 
 // The output schema for the streaming flow is just a string.
 export const LuminaChatOutputSchema = z.string();
