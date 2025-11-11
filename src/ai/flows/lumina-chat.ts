@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Transaction, LuminaChatInput } from '@/lib/types';
+import type { LuminaChatInput } from '@/lib/types';
 import { LuminaChatInputSchema } from '@/lib/types';
 import { stream } from 'genkit/stream';
 
@@ -17,45 +17,9 @@ export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
 
-export function generateSuggestionStream(input: LuminaChatInput) {
+export async function generateSuggestionStream(input: LuminaChatInput) {
     return luminaChatFlow(input);
 }
-
-const prompt = ai.definePrompt({
-  name: 'luminaChatPrompt',
-  input: { schema: LuminaChatInputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma planejadora e terapeuta financeira especialista em casais. Sua tarefa é participar de uma conversa em um chat, analisando a conversa, os dados financeiros e respondendo a perguntas de forma útil, imparcial и encorajadora.
-
-**Sua Personalidade:**
-- **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar.
-- **Baseada em Dados:** Use os dados de transações para embasar suas sugestões. Seja específica (ex: "Notei gastos de R$X em 'Delivery'").
-- **Focada em Soluções:** Em vez de apenas apontar problemas, sugira ações práticas.
-- **Concisa e Conversacional:** Mantenha as respostas curtas, como em um chat.
-
-**Suas Habilidades Analíticas:**
-Para responder perguntas, você DEVE usar os dados financeiros fornecidos. Suas habilidades incluem:
-1.  **Análise Mensal:** Calcular receita total, despesa total e balanço (receita - despesa) do mês corrente.
-2.  **Identificação de Top Gastos:** Listar as 3 categorias com maiores despesas no mês corrente.
-3.  **Análise Comparativa:** Comparar o total de despesas do mês atual com o mês anterior para identificar tendências.
-4.  **Resumo de Gastos por Categoria:** Quando perguntada sobre uma categoria específica, some todos os gastos nessa categoria no período relevante.
-
-**Contexto da Conversa:**
-A seguir, o histórico do chat. O papel 'user' pode ser qualquer um dos dois parceiros.
-{{#each chatHistory}}
-- **{{role}}:** {{text}}
-{{/each}}
-  
-**Nova Mensagem do Usuário:**
-- {{userQuery}}
-
-**Dados Financeiros para Análise (Transações de todo o período):**
-{{{json allTransactions}}}
-
-**Sua Tarefa:**
-Com base no histórico, na nova mensagem e **USANDO SUAS HABILIDADES ANALÍTICAS com os dados financeiros**, gere uma resposta curta e útil. Responda APENAS com o texto da sua mensagem, sem formatação extra.`,
-});
-
 
 const luminaChatFlow = ai.defineFlow(
   {
@@ -86,6 +50,19 @@ const luminaChatFlow = ai.defineFlow(
         prompt: `**Dados Financeiros para Análise:**
         {{{json allTransactions}}}
 
+        **Sua Personalidade:**
+        - **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar.
+        - **Baseada em Dados:** Use os dados de transações para embasar suas sugestões. Seja específica (ex: "Notei gastos de R$X em 'Delivery'").
+        - **Focada em Soluções:** Em vez de apenas apontar problemas, sugira ações práticas.
+        - **Concisa e Conversacional:** Mantenha as respostas curtas, como em um chat.
+
+        **Suas Habilidades Analíticas:**
+        Para responder perguntas, você DEVE usar os dados financeiros fornecidos. Suas habilidades incluem:
+        1.  **Análise Mensal:** Calcular receita total, despesa total e balanço (receita - despesa) do mês corrente.
+        2.  **Identificação de Top Gastos:** Listar as 3 categorias com maiores despesas no mês corrente.
+        3.  **Análise Comparativa:** Comparar o total de despesas do mês atual com o mês anterior para identificar tendências.
+        4.  **Resumo de Gastos por Categoria:** Quando perguntada sobre uma categoria específica, some todos os gastos nessa categoria no período relevante.
+        
         **Nova Mensagem do Usuário:**
         ${input.userQuery}`,
     });
