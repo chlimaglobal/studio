@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,7 +10,6 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import type { ChatMessage, LuminaChatInput, ExtractedTransaction } from '@/lib/types';
 import { onChatUpdate, addChatMessage } from '@/lib/storage';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -189,6 +187,16 @@ export default function LuminaPage() {
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
+        // Add a temporary "thinking" message for Lumina
+        setMessages(prev => [...prev, {
+            id: 'lumina-thinking',
+            role: 'lumina',
+            text: '', // Start with empty text
+            authorName: 'Lúmina',
+            authorPhotoUrl: '/lumina-avatar.png',
+            timestamp: new Date(),
+        }]);
+
         try {
             const chatHistoryForLumina = messages.slice(-10).map(msg => ({
                 role: msg.role === 'partner' ? 'user' : msg.role,
@@ -200,18 +208,57 @@ export default function LuminaPage() {
                 userQuery: currentQuery,
                 allTransactions: transactions,
             };
-            const luminaResponse = await generateSuggestion(luminaInput);
+            
+            const response = await fetch('/api/lumina-chat', {
+                method: 'POST',
+                body: JSON.stringify(luminaInput),
+            });
 
-            if (luminaResponse.response) {
-                await saveMessage('lumina', luminaResponse.response, 'Lúmina', '/lumina-avatar.png');
+            if (!response.body) {
+                throw new Error("A resposta da API não contém um corpo.");
             }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let finalResponseText = '';
+
+            // Stream the response
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const chunk = decoder.decode(value);
+                finalResponseText += chunk;
+
+                setMessages(prev => prev.map(msg => 
+                    msg.id === 'lumina-thinking' 
+                    ? { ...msg, text: finalResponseText } 
+                    : msg
+                ));
+            }
+            
+            // Now that streaming is complete, save the final message to Firestore
+            if (user) {
+                 await addChatMessage(user.uid, {
+                    role: 'lumina',
+                    text: finalResponseText,
+                    authorName: 'Lúmina',
+                    authorPhotoUrl: '/lumina-avatar.png',
+                });
+            }
+            
+            // Remove the temporary "thinking" message
+            setMessages(prev => prev.filter(msg => msg.id !== 'lumina-thinking'));
+
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
             await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", 'Lúmina', '/lumina-avatar.png');
+            setMessages(prev => prev.filter(msg => msg.id !== 'lumina-thinking'));
         } finally {
             setIsLuminaThinking(false);
         }
     }
+
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -378,6 +425,8 @@ export default function LuminaPage() {
                         <div className="space-y-6">
                             {messages.map((msg, index) => {
                                 const isUser = msg.role === 'user';
+                                const isLuminaThinkingMessage = msg.id === 'lumina-thinking';
+                                
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
                                     {!isUser && (
@@ -396,11 +445,18 @@ export default function LuminaPage() {
                                     )}
                                     <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
                                         <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
-                                        {msg.text && (
+                                        { (msg.text || isLuminaThinkingMessage) && (
                                             <div className={cn('p-3 rounded-lg border flex flex-col',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
-                                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                                {isLuminaThinkingMessage && !msg.text ? (
+                                                     <div className="flex items-center gap-2 text-sm">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        <span>Está pensando...</span>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm whitespace-pre-wrap">{msg.text}<span className={cn("w-2 h-4 bg-foreground inline-block animate-pulse ml-1", { 'hidden': !isLuminaThinkingMessage })}></span></p>
+                                                )}
                                             </div>
                                         )}
                                         {msg.transactionToConfirm && (
@@ -410,9 +466,11 @@ export default function LuminaPage() {
                                                 onCancel={() => handleCancelTransaction(msg.id!)}
                                             />
                                         )}
-                                        <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
-                                            {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                                        {!isLuminaThinkingMessage && (
+                                            <span className="text-xs self-end mt-1 text-muted-foreground opacity-70 px-1">
+                                                {new Date(msg.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
                                     </div>
                                     {isUser && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
@@ -422,24 +480,6 @@ export default function LuminaPage() {
                                     )}
                                 </div>
                             )})}
-                            {isLuminaThinking && (
-                                <div className="flex items-start gap-3 justify-start">
-                                    <Avatar className="h-10 w-10 border-2 border-border">
-                                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
-                                            <Sparkles className="h-5 w-5" />
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex flex-col items-start max-w-[80%] md:max-w-[70%]">
-                                        <span className="text-xs text-muted-foreground mb-1 px-2">Lúmina</span>
-                                        <div className="p-3 rounded-lg border bg-secondary rounded-tl-none">
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                <span>Está pensando...</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                         <div ref={messagesEndRef} />
                     </ScrollArea>

@@ -7,10 +7,7 @@ import '@/ai/flows/extract-transaction-from-text.ts';
 import '@/ai/flows/generate-financial-analysis.ts';
 import '@/ai/flows/extract-from-file.ts';
 import '@/ai/flows/analyze-investor-profile.ts';
-import '@/ai/flows/lumina-chat.ts';
+// Chat flow is now imported via API route
+// import '@/ai/flows/lumina-chat.ts'; 
 import '@/ai/flows/mediate-goals.ts';
 import '@/ai/flows/extract-from-image.ts';
-
-
-
-
