@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -392,7 +392,6 @@ export default function DashboardPage() {
             })
             .filter(Boolean) as BudgetItem[];
 
-        // Cost of Living Calculation
         const costOfLivingCategories = new Set<TransactionCategory>([
             "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
             "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
@@ -401,14 +400,22 @@ export default function DashboardPage() {
         ]);
         
         const threeMonthsAgo = startOfMonth(subMonths(startOfToday(), 2));
-        const relevantTransactions = operationalTransactions.filter(t => 
-            t.type === 'expense' &&
-            new Date(t.date) >= threeMonthsAgo &&
-            costOfLivingCategories.has(t.category)
-        );
+        const costInterval = { start: threeMonthsAgo, end: endOfMonth(new Date()) };
+        
+        const costOfLivingTransactions = operationalTransactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return t.type === 'expense' && 
+                   transactionDate >= costInterval.start &&
+                   transactionDate <= costInterval.end &&
+                   costOfLivingCategories.has(t.category);
+        });
 
-        const totalCostOfLiving = relevantTransactions.reduce((acc, t) => acc + t.amount, 0);
-        const averageCostOfLiving = totalCostOfLiving / 3;
+        const totalCostOfLiving = costOfLivingTransactions.reduce((acc, t) => acc + t.amount, 0);
+        
+        const monthsWithSpending = new Set(costOfLivingTransactions.map(t => format(new Date(t.date), 'yyyy-MM')));
+        const numberOfMonths = monthsWithSpending.size > 0 ? monthsWithSpending.size : 1;
+
+        const averageCostOfLiving = totalCostOfLiving / numberOfMonths;
 
 
         return { 
@@ -538,4 +545,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
