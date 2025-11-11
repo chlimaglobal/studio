@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday, eachMonthOfInterval } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, startOfToday, eachMonthOfInterval, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -412,10 +412,23 @@ export default function DashboardPage() {
 
         const totalCostOfLiving = costOfLivingTransactions.reduce((acc, t) => acc + t.amount, 0);
         
-        const monthsWithSpending = new Set(costOfLivingTransactions.map(t => format(new Date(t.date), 'yyyy-MM')));
-        const numberOfMonths = monthsWithSpending.size > 0 ? monthsWithSpending.size : 1;
+        if (costOfLivingTransactions.length === 0) {
+            return {
+                summary: { recebidos, despesas, previsto },
+                categorySpending,
+                budgetItems,
+                costOfLiving: 0,
+            };
+        }
 
-        const averageCostOfLiving = totalCostOfLiving / numberOfMonths;
+        const firstMonth = getMonth(new Date(costOfLivingTransactions[costOfLivingTransactions.length - 1].date));
+        const firstYear = getYear(new Date(costOfLivingTransactions[costOfLivingTransactions.length - 1].date));
+        const lastMonth = getMonth(new Date(costOfLivingTransactions[0].date));
+        const lastYear = getYear(new Date(costOfLivingTransactions[0].date));
+        
+        const numberOfMonths = (lastYear - firstYear) * 12 + (lastMonth - firstMonth) + 1;
+        
+        const averageCostOfLiving = totalCostOfLiving / (numberOfMonths > 0 ? numberOfMonths : 1);
 
 
         return { 
