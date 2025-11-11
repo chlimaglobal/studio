@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Transaction, TransactionCategory } from "./types";
-import { startOfMonth, subMonths, endOfMonth } from 'date-fns';
+import { startOfMonth, subMonths } from 'date-fns';
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -53,14 +53,12 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
     ]);
 
     const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));
-    const today = endOfMonth(new Date());
 
     const relevantTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
         return t.type === 'expense' &&
                costOfLivingCategories.has(t.category) &&
-               transactionDate >= threeMonthsAgo &&
-               transactionDate <= today;
+               transactionDate >= threeMonthsAgo;
     });
 
     if (relevantTransactions.length === 0) {
@@ -86,5 +84,3 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
 
     return totalCost / numberOfMonthsWithCosts;
 }
-
-    
