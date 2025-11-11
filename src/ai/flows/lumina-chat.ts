@@ -110,7 +110,7 @@ const luminaChatFlow = ai.defineFlow(
     
     if (!output?.response) {
       console.error("Lumina output was empty or invalid:", output);
-      throw new Error("Lumina não conseguiu gerar uma sugestão para o chat.");
+      throw new Error("A Lúmina não conseguiu gerar uma sugestão para o chat.");
     }
     
     return output;
