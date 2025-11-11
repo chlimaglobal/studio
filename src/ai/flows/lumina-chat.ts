@@ -1,9 +1,8 @@
-
 'use server';
 
 /**
  * @fileOverview Lúmina's AI agent for the shared message board.
- * This flow is optimized for streaming responses.
+ * This flow is optimized for FAST, non-streaming responses.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,12 +10,11 @@ import { z } from 'zod';
 import type { LuminaChatInput } from '@/lib/types';
 import { LuminaChatInputSchema } from '@/lib/types';
 
-// The output schema for the streaming flow is just a string.
 export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
 
-export async function generateSuggestionStream(input: LuminaChatInput) {
+export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
     return luminaChatFlow(input);
 }
 
@@ -24,8 +22,7 @@ const luminaChatFlow = ai.defineFlow(
   {
     name: 'luminaChatFlow',
     inputSchema: LuminaChatInputSchema,
-    outputSchema: z.string(), // The final output is the full string
-    stream: true, // Enable streaming for this flow
+    outputSchema: LuminaChatOutputSchema,
     retrier: {
       maxAttempts: 3,
       backoff: {
@@ -42,8 +39,8 @@ const luminaChatFlow = ai.defineFlow(
       content: [{text: msg.text}],
     }));
 
-    // Use generateStream instead of a simple prompt call
-    const { response, stream: responseStream } = ai.generateStream({
+    // Use the standard `generate` call for a fast, complete response.
+    const { output } = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         history: mappedChatHistory,
         prompt: `**Dados Financeiros para Análise:**
@@ -66,13 +63,6 @@ const luminaChatFlow = ai.defineFlow(
         ${input.userQuery}`,
     });
 
-    return new ReadableStream({
-      async start(controller) {
-        for await (const chunk of responseStream) {
-            controller.enqueue(chunk.text);
-        }
-        controller.close();
-      },
-    });
+    return output ?? "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?";
   }
 );
