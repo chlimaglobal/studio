@@ -411,15 +411,6 @@ export default function DashboardPage() {
                    costOfLivingCategories.has(t.category);
         });
 
-        if (costOfLivingTransactions.length === 0) {
-            return {
-                summary: { recebidos, despesas, previsto },
-                categorySpending,
-                budgetItems,
-                costOfLiving: 0,
-            };
-        }
-
         const monthlyCosts = new Map<string, number>();
         costOfLivingTransactions.forEach(t => {
             const monthKey = format(new Date(t.date), 'yyyy-MM');
@@ -427,9 +418,9 @@ export default function DashboardPage() {
         });
         
         const totalCostOfLiving = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
-        const numberOfMonthsWithCosts = monthlyCosts.size;
+        const numberOfMonthsWithCosts = monthlyCosts.size > 0 ? monthlyCosts.size : 1;
         
-        const averageCostOfLiving = numberOfMonthsWithCosts > 0 ? totalCostOfLiving / numberOfMonthsWithCosts : 0;
+        const averageCostOfLiving = totalCostOfLiving / numberOfMonthsWithCosts;
 
 
         return { 
