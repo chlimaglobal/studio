@@ -259,9 +259,7 @@ export const LuminaChatInputSchema = z.object({
 export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
 
-export const LuminaChatOutputSchema = z.object({
-  response: z.string().describe("Lúmina's helpful and insightful response to be posted on the message board."),
-});
+export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
 

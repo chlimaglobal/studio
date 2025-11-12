@@ -7,11 +7,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { LuminaChatInput } from '@/lib/types';
-import { LuminaChatInputSchema } from '@/lib/types';
-
-export const LuminaChatOutputSchema = z.string();
-export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
+import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 
 
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
