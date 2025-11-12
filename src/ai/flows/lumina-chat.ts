@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -32,7 +33,7 @@ const luminaChatFlow = ai.defineFlow(
     
     // Map roles to what the Gemini model expects: 'user' and 'model'
     const mappedChatHistory = input.chatHistory.map(msg => ({
-      role: msg.role === 'lumina' ? 'model' : 'user',
+      role: msg.role,
       content: [{text: msg.text}],
     }));
 

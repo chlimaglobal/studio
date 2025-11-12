@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -191,7 +192,7 @@ export default function LuminaPage() {
         
         try {
             const chatHistoryForLumina = messages.slice(-10).map(msg => ({
-                role: msg.role === 'partner' ? 'user' : msg.role,
+                role: msg.role === 'lumina' ? 'model' : 'user', // Map 'lumina' to 'model'
                 text: msg.text
             }));
 
