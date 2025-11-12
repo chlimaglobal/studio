@@ -67,6 +67,10 @@ const luminaChatFlow = ai.defineFlow(
         ${input.userQuery}`,
     });
 
-    return output ?? "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?";
+    if (!output) {
+        return "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?";
+    }
+    
+    return output;
   }
 );
