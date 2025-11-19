@@ -72,12 +72,12 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         monthlyCosts.set(monthKey, currentTotal + t.amount);
     });
 
-    if (monthlyCosts.size === 0) {
+    const numberOfMonthsWithExpenses = monthlyCosts.size;
+    const totalEssentialExpenses = Array.from(monthlyCosts.values()).reduce((sum, cost) => sum + cost, 0);
+
+    if (numberOfMonthsWithExpenses > 0) {
+        return totalEssentialExpenses / numberOfMonthsWithExpenses;
+    } else {
         return 0;
     }
-    
-    const totalCost = Array.from(monthlyCosts.values()).reduce((acc, cost) => acc + cost, 0);
-    
-    // Divide by the number of months that actually had expenses, not just 3.
-    return totalCost / monthlyCosts.size;
 }
