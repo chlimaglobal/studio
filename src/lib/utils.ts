@@ -61,20 +61,31 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                transactionDate >= threeMonthsAgo;
     });
     
-    if (relevantTransactions.length === 0) {
-        return 0;
-    }
-    
     const monthlyCosts = new Map<string, number>();
     relevantTransactions.forEach(t => {
         const monthKey = t.date.substring(0, 7); // "YYYY-MM"
+        
+        // 🛠️ CORREÇÃO PRINCIPAL: Garante que t.amount é um número válido.
+        // 1. Converte o valor da transação (que pode ser String do Firebase) para float.
+        const transactionAmount = parseFloat(String(t.amount)); 
+        
+        // 2. Se a conversão resultar em NaN (valor inválido ou mal formatado), a transação é ignorada.
+        if (isNaN(transactionAmount)) {
+            // Opcional: Adicione um log para debugging, se necessário.
+            // console.error(`Valor de transação inválido ignorado: ${t.amount}`);
+            return; 
+        }
+
         const currentTotal = monthlyCosts.get(monthKey) || 0;
-        monthlyCosts.set(monthKey, currentTotal + t.amount);
+        
+        // A soma agora é segura e numérica
+        monthlyCosts.set(monthKey, currentTotal + transactionAmount);
     });
 
-    const numberOfMonthsWithExpenses = monthlyCosts.size;
     const totalEssentialExpenses = Array.from(monthlyCosts.values()).reduce((sum, cost) => sum + cost, 0);
+    const numberOfMonthsWithExpenses = monthlyCosts.size;
 
+    // 🛠️ CORREÇÃO SECUNDÁRIA: Cláusula de Guarda contra a divisão por zero (0/0)
     if (numberOfMonthsWithExpenses > 0) {
         return totalEssentialExpenses / numberOfMonthsWithExpenses;
     } else {
