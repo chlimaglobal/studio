@@ -93,7 +93,7 @@ export const TransactionFormSchema = z.object({
   creditCard: z.string().optional(),
   cardBrand: z.enum(cardBrands).optional(),
   institution: z.string().optional(),
-  paymentMethod: z.enum(['one-time', 'installments', 'recurring']).default('one-time'),
+  paymentMethod: z.enum(['one-time', 'installments', 'recurring', 'pix']).default('one-time'),
   installments: z.string().optional(),
   recurrence: z.enum(['weekly', 'monthly', 'quarterly', 'annually']).optional(),
   observations: z.string().optional(),
@@ -132,7 +132,7 @@ export type Transaction = {
   creditCard?: string;
   cardBrand?: CardBrand;
   institution?: string;
-  paymentMethod?: 'one-time' | 'installments' | 'recurring';
+  paymentMethod?: 'one-time' | 'installments' | 'recurring' | 'pix';
   recurrence?: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   installmentNumber?: number;
   totalInstallments?: number;
@@ -154,7 +154,7 @@ export const ExtractedTransactionSchema = z.object({
     amount: z.number().describe("The numerical value of the transaction. For expenses, this should be a positive number."),
     type: z.enum(['income', 'expense']).describe("The type of transaction."),
     category: z.enum(transactionCategories as [string, ...string[]]).describe("The most likely category for the transaction."),
-    paymentMethod: z.enum(['one-time', 'installments']).optional().describe("The payment method, if it can be inferred (e.g., from '10x de R$20')."),
+    paymentMethod: z.enum(['one-time', 'installments', 'pix']).optional().describe("The payment method, if it can be inferred (e.g., from '10x de R$20')."),
     installments: z.string().optional().describe("The number of installments, if the payment is 'installments'."),
 });
 export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;

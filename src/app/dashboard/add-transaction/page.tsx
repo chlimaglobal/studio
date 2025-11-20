@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
-import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon } from 'lucide-react';
+import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap } from 'lucide-react';
 import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -442,7 +442,7 @@ function AddTransactionForm() {
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
                                                         defaultValue={field.value}
-                                                        className="grid grid-cols-3 gap-4"
+                                                        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
                                                     >
                                                         <FormItem className="flex items-center">
                                                             <FormControl>
@@ -450,6 +450,14 @@ function AddTransactionForm() {
                                                             </FormControl>
                                                             <FormLabel htmlFor="one-time" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary w-full cursor-pointer text-sm font-semibold">
                                                                 À Vista
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="pix" id="pix" className="sr-only peer" />
+                                                            </FormControl>
+                                                            <FormLabel htmlFor="pix" className="flex items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary w-full cursor-pointer text-sm font-semibold gap-2">
+                                                                <Zap className="h-4 w-4" /> Pix
                                                             </FormLabel>
                                                         </FormItem>
                                                          <FormItem className="flex items-center">
