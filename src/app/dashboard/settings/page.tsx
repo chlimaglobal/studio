@@ -536,6 +536,37 @@ export default function SettingsPage() {
       
        <Card>
         <CardHeader>
+            <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Configuração Financeira</CardTitle>
+            <CardDescription>Informe seus dados financeiros para análises mais precisas.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <Label htmlFor="monthly-income">Renda Mensal (familiar)</Label>
+                <Input 
+                    id="monthly-income" 
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex: 5000,00"
+                    value={monthlyIncome}
+                    onChange={(e) => setMonthlyIncome(e.target.value)}
+                />
+            </div>
+            <div>
+                <Label htmlFor="payday">Dia do Pagamento</Label>
+                <Input 
+                    id="payday" 
+                    type="number"
+                    min="1" max="31"
+                    placeholder="Ex: 5"
+                    value={payday}
+                    onChange={(e) => setPayday(e.target.value)}
+                />
+            </div>
+        </CardContent>
+       </Card>
+       
+       <Card>
+        <CardHeader>
             <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
             <CardDescription>Aumente a segurança do seu aplicativo.</CardDescription>
         </CardHeader>
