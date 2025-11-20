@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -59,7 +58,6 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
   const { user } = useAuth();
   const { viewMode } = useViewMode();
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
-  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
 
   const handleRowClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -69,7 +67,8 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
     setSelectedTransaction(null);
   };
   
-  const handleEdit = (transaction: Transaction) => {
+  const handleEdit = (e: React.MouseEvent, transaction: Transaction) => {
+    e.stopPropagation(); // Prevent dialog from opening
     router.push(`/dashboard/add-transaction?id=${transaction.id}`);
   }
 
@@ -114,7 +113,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
               <TableHead className="hidden text-center sm:table-cell">Categoria</TableHead>
               <TableHead className="hidden text-center sm:table-cell">Data</TableHead>
               <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="w-[50px] text-right"></TableHead>
+              <TableHead className="w-[80px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -157,23 +156,15 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                     {formatCurrency(transaction.amount)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                           <MoreVertical className="h-4 w-4" />
+                    <div className="flex justify-end gap-1">
+                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => handleEdit(e, transaction)}>
+                            <Pencil className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(transaction); }}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                              </DropdownMenuItem>
+                             <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => e.stopPropagation()}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                                 <AlertDialogHeader>
@@ -190,8 +181,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -294,7 +284,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                <Button onClick={() => selectedTransaction && handleEdit(selectedTransaction)}>
+                <Button onClick={() => selectedTransaction && handleEdit({} as React.MouseEvent, selectedTransaction)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                 </Button>
