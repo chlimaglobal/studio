@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
@@ -82,4 +81,3 @@ export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: Fi
         </ResponsiveContainer>
     );
 }
-
