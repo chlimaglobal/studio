@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Transaction, TransactionCategory } from "./types";
-import { startOfMonth, subMonths, differenceInMonths } from 'date-fns';
+import { startOfMonth, subMonths } from 'date-fns';
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -51,7 +51,7 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
         "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
     ]);
-    
+
     const today = new Date();
     const threeMonthsAgo = startOfMonth(subMonths(today, 2));
 
@@ -61,28 +61,25 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                costOfLivingCategories.has(t.category) &&
                transactionDate >= threeMonthsAgo;
     });
-
+    
     if (relevantTransactions.length === 0) {
         return 0;
     }
-    
+
     const totalEssentialExpenses = relevantTransactions.reduce((sum, t) => {
         const transactionAmount = parseFloat(String(t.amount));
         return isNaN(transactionAmount) ? sum : sum + transactionAmount;
     }, 0);
 
-    // Find the earliest transaction to determine the actual number of months to average over
-    const firstTransactionDate = relevantTransactions.reduce((earliest, t) => {
-        const tDate = new Date(t.date);
-        return tDate < earliest ? tDate : earliest;
-    }, new Date());
-    
-    // Calculate the number of months to average over. It should be at most 3.
-    const monthsToAverage = Math.min(3, differenceInMonths(today, firstTransactionDate) + 1);
-    
-    if (monthsToAverage > 0) {
-        return totalEssentialExpenses / monthsToAverage;
-    } else {
-        return 0;
+    // Determine the number of unique months in the relevant transactions
+    const uniqueMonths = new Set(
+        relevantTransactions.map(t => t.date.substring(0, 7)) // "YYYY-MM"
+    );
+    const numberOfMonths = uniqueMonths.size;
+
+    if (numberOfMonths > 0) {
+        return totalEssentialExpenses / numberOfMonths;
     }
+    
+    return 0;
 }
