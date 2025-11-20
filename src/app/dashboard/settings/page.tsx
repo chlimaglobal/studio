@@ -572,49 +572,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5" /> Definir Custo de Vida Atual</CardTitle>
-          <CardDescription>Informe sua renda e dia de pagamento para um melhor planejamento e cálculo do fluxo diário.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                    <Label htmlFor="monthly-income">Renda Mensal (R$)</Label>
-                    <Input 
-                        id="monthly-income" 
-                        type="number" 
-                        placeholder="ex: 3500.00" 
-                        value={monthlyIncome}
-                        onChange={(e) => setMonthlyIncome(e.target.value)}
-                    />
-                </div>
-                 <div>
-                    <Label htmlFor="payday">Dia do Recebimento</Label>
-                    <Input 
-                        id="payday" 
-                        type="number" 
-                        min="1" max="31" 
-                        placeholder="ex: 5" 
-                        value={payday}
-                        onChange={(e) => setPayday(e.target.value)}
-                    />
-                </div>
-            </div>
-            <div>
-              <Label htmlFor="manual-cost-of-living">Custo de Vida Mensal (Manual)</Label>
-              <Input
-                id="manual-cost-of-living"
-                type="number"
-                placeholder="ex: 2500.00"
-                value={manualCostOfLiving}
-                onChange={(e) => setManualCostOfLiving(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Deixe em branco ou 0 para usar o cálculo automático.</p>
-            </div>
-        </CardContent>
-      </Card>
-      
       <ThemeSelector />
       
       <Card>
