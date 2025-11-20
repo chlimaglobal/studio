@@ -32,7 +32,8 @@ import {
     Settings,
     Users,
     HeartHandshake,
-    Home
+    Home,
+    DollarSign
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -155,9 +156,9 @@ const menuItems = [
         premium: true,
     },
     { 
-        icon: Home, 
-        title: 'Definir Custo de Vida Atual', 
-        subtitle: 'Defina uma meta para seus gastos essenciais.',
+        icon: DollarSign, 
+        title: 'Definir Renda e Custo de Vida', 
+        subtitle: 'Defina metas para seus gastos e receitas.',
         type: 'link',
         href: '/dashboard/cost-of-living',
         premium: false,

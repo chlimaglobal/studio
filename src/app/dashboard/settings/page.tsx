@@ -124,8 +124,6 @@ export default function SettingsPage() {
   const [userEmail, setUserEmail] = useState('');
   const [userWhatsApp, setUserWhatsApp] = useState('');
   const [profilePic, setProfilePic] = useState<string | null>(null);
-  const [monthlyIncome, setMonthlyIncome] = useState('');
-  const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
   const [expenseSound, setExpenseSound] = useState('swoosh.mp3');
   const [isRegistering, setIsRegistering] = useState(false);
@@ -175,8 +173,6 @@ export default function SettingsPage() {
     setUserEmail(localStorage.getItem('userEmail') || '');
     setUserWhatsApp(localStorage.getItem('userWhatsApp') || '');
     setProfilePic(localStorage.getItem('profilePic'));
-    setMonthlyIncome(localStorage.getItem('monthlyIncome') || '');
-    setPayday(localStorage.getItem('payday') || '');
     setIncomeSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
     setExpenseSound(localStorage.getItem('expenseSound') || 'swoosh.mp3');
     setIsAppLockEnabled(localStorage.getItem('appLockEnabled') === 'true');
@@ -286,8 +282,6 @@ export default function SettingsPage() {
     localStorage.setItem('userName', userName);
     localStorage.setItem('userEmail', userEmail);
     localStorage.setItem('userWhatsApp', userWhatsApp);
-    localStorage.setItem('monthlyIncome', monthlyIncome);
-    localStorage.setItem('payday', payday);
     localStorage.setItem('incomeSound', incomeSound);
     localStorage.setItem('expenseSound', expenseSound);
     localStorage.setItem('notificationSettings', JSON.stringify(notifications));
@@ -534,37 +528,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       
-       <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Configuração Financeira</CardTitle>
-            <CardDescription>Informe seus dados financeiros para análises mais precisas.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-                <Label htmlFor="monthly-income">Renda Mensal (familiar)</Label>
-                <Input 
-                    id="monthly-income" 
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="Ex: 5000,00"
-                    value={monthlyIncome}
-                    onChange={(e) => setMonthlyIncome(e.target.value)}
-                />
-            </div>
-            <div>
-                <Label htmlFor="payday">Dia do Pagamento</Label>
-                <Input 
-                    id="payday" 
-                    type="number"
-                    min="1" max="31"
-                    placeholder="Ex: 5"
-                    value={payday}
-                    onChange={(e) => setPayday(e.target.value)}
-                />
-            </div>
-        </CardContent>
-       </Card>
-       
+      
        <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-2"><Fingerprint className="h-5 w-5" /> Segurança</CardTitle>
