@@ -155,6 +155,14 @@ const menuItems = [
         premium: true,
     },
     { 
+        icon: Home, 
+        title: 'Definir Custo de Vida Atual', 
+        subtitle: 'Defina uma meta para seus gastos essenciais.',
+        type: 'link',
+        href: '/dashboard/cost-of-living',
+        premium: false,
+    },
+    { 
         icon: Settings, 
         title: 'Integrações Externas', 
         subtitle: 'Conecte o FinanceFlow a outros sistemas.',
