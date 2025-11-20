@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Transaction, TransactionCategory } from "./types";
-import { startOfMonth, subMonths } from 'date-fns';
+import { startOfMonth, subMonths, differenceInCalendarMonths, parseISO } from 'date-fns';
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -52,8 +52,7 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
     ]);
 
-    const today = new Date();
-    const threeMonthsAgo = startOfMonth(subMonths(today, 2));
+    const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));
 
     const relevantTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
@@ -61,25 +60,14 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                costOfLivingCategories.has(t.category) &&
                transactionDate >= threeMonthsAgo;
     });
-    
-    if (relevantTransactions.length === 0) {
-        return 0;
-    }
 
     const totalEssentialExpenses = relevantTransactions.reduce((sum, t) => {
         const transactionAmount = parseFloat(String(t.amount));
         return isNaN(transactionAmount) ? sum : sum + transactionAmount;
     }, 0);
-
-    // Determine the number of unique months in the relevant transactions
-    const uniqueMonths = new Set(
-        relevantTransactions.map(t => t.date.substring(0, 7)) // "YYYY-MM"
-    );
-    const numberOfMonths = uniqueMonths.size;
-
-    if (numberOfMonths > 0) {
-        return totalEssentialExpenses / numberOfMonths;
-    }
     
-    return 0;
+    // Always divide by 3 to get a true 3-month moving average.
+    // If the user has less than 3 months of data, this will naturally be lower,
+    // which is expected behavior for a moving average.
+    return totalEssentialExpenses > 0 ? totalEssentialExpenses / 3 : 0;
 }
