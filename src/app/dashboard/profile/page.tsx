@@ -31,7 +31,8 @@ import {
     Shield,
     Settings,
     Users,
-    HeartHandshake
+    HeartHandshake,
+    Home
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -378,7 +379,7 @@ export default function ProfilePage() {
                         <div className="flex items-center gap-2">
                            <span className="font-semibold">Editar Perfil e Preferências</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">Atualize seus dados, tema e notificações</span>
+                        <span className="text-sm text-muted-foreground">Atualize seus dados e tema</span>
                     </div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -386,6 +387,21 @@ export default function ProfilePage() {
         </Link>
         
         <BiometricsCard />
+
+         <Link href={'/dashboard/settings'}>
+             <Card className="p-4 flex items-center justify-between hover:border-primary/50 transition-colors">
+                <div className="flex items-center gap-4">
+                    <Home className="h-6 w-6 text-primary" />
+                    <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                           <span className="font-semibold">Definir Custo de Vida</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">Use um valor fixo como referência no gráfico.</span>
+                    </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </Card>
+        </Link>
         
         {menuItems.map((item) => (
             <LinkCard item={item} key={item.title} />

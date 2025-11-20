@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Moon, Palette, Sun, Smartphone, Bell, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop, Star } from 'lucide-react';
+import { Moon, Palette, Sun, Smartphone, Bell, DollarSign, Music, Play, UserCircle, Fingerprint, Loader2, CheckCircle, Target, CreditCard, AlertCircle, Sparkles, Droplets, Check, Camera, MessageCircle, ArrowLeft, BellRing, Download, Laptop, Star, Home } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -573,8 +574,8 @@ export default function SettingsPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Configuração Financeira</CardTitle>
-          <CardDescription>Informe sua renda para um melhor planejamento e cálculo do fluxo diário.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5" /> Definir Custo de Vida Atual</CardTitle>
+          <CardDescription>Informe sua renda e dia de pagamento para um melhor planejamento e cálculo do fluxo diário.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
