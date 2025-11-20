@@ -39,10 +39,11 @@ import { ptBR } from 'date-fns/locale';
 import { Button } from './ui/button';
 import { useTransactions, useAuth, useViewMode } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Pencil, Landmark } from 'lucide-react';
+import { Trash2, Pencil, Landmark, MoreVertical } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { User } from 'firebase/auth';
 import { brandNames } from '@/lib/types';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 
 interface TransactionsTableProps {
@@ -58,6 +59,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
   const { user } = useAuth();
   const { viewMode } = useViewMode();
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = React.useState(false);
 
   const handleRowClick = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
@@ -67,21 +69,17 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
     setSelectedTransaction(null);
   };
   
-  const handleEdit = () => {
-    if (!selectedTransaction) return;
-    router.push(`/dashboard/add-transaction?id=${selectedTransaction.id}`);
-    handleCloseDialog();
+  const handleEdit = (transaction: Transaction) => {
+    router.push(`/dashboard/add-transaction?id=${transaction.id}`);
   }
 
-  const handleDelete = async () => {
-    if (!selectedTransaction) return;
+  const handleDelete = async (transaction: Transaction) => {
     try {
-        await deleteTransaction(selectedTransaction.id);
+        await deleteTransaction(transaction.id);
         toast({
             title: 'Sucesso!',
             description: 'Transação excluída.',
         });
-        handleCloseDialog();
     } catch (error) {
         toast({
             variant: 'destructive',
@@ -116,12 +114,13 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
               <TableHead className="hidden text-center sm:table-cell">Categoria</TableHead>
               <TableHead className="hidden text-center sm:table-cell">Data</TableHead>
               <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="w-[50px] text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.length > 0 ? (
               transactions.map((transaction) => (
-                <TableRow key={transaction.id} onClick={() => handleRowClick(transaction)} className="cursor-pointer">
+                <TableRow key={transaction.id} className="cursor-pointer" onClick={() => handleRowClick(transaction)}>
                   <TableCell>
                     <div className="font-medium flex items-center gap-2">
                         {renderOwnerAvatar(transaction)}
@@ -157,11 +156,48 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                     {transaction.type === 'income' ? '+' : '-'}
                     {formatCurrency(transaction.amount)}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                           <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(transaction); }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Essa ação não pode ser desfeita. Isso excluirá permanentemente a transação.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(transaction)} className="bg-destructive hover:bg-destructive/90">
+                                        Sim, excluir
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
                 <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                         Nenhuma transação encontrada.
                     </TableCell>
                 </TableRow>
@@ -238,7 +274,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
            <DialogFooter className="grid grid-cols-2 gap-2">
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="outline" className="text-destructive hover:text-destructive">
+                         <Button variant="outline" className="text-destructive hover:text-destructive">
                             <Trash2 className="mr-2 h-4 w-4" />
                             Excluir
                         </Button>
@@ -252,13 +288,13 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction)} className="bg-destructive hover:bg-destructive/90">
                                 Sim, excluir
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                <Button onClick={handleEdit}>
+                <Button onClick={() => selectedTransaction && handleEdit(selectedTransaction)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                 </Button>
