@@ -82,3 +82,4 @@ export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: Fi
         </ResponsiveContainer>
     );
 }
+
