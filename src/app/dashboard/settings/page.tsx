@@ -124,6 +124,7 @@ export default function SettingsPage() {
   const [userWhatsApp, setUserWhatsApp] = useState('');
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [monthlyIncome, setMonthlyIncome] = useState('');
+  const [manualCostOfLiving, setManualCostOfLiving] = useState('');
   const [payday, setPayday] = useState('');
   const [incomeSound, setIncomeSound] = useState('cash-register.mp3');
   const [expenseSound, setExpenseSound] = useState('swoosh.mp3');
@@ -175,6 +176,7 @@ export default function SettingsPage() {
     setUserWhatsApp(localStorage.getItem('userWhatsApp') || '');
     setProfilePic(localStorage.getItem('profilePic'));
     setMonthlyIncome(localStorage.getItem('monthlyIncome') || '');
+    setManualCostOfLiving(localStorage.getItem('manualCostOfLiving') || '');
     setPayday(localStorage.getItem('payday') || '');
     setIncomeSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
     setExpenseSound(localStorage.getItem('expenseSound') || 'swoosh.mp3');
@@ -286,6 +288,7 @@ export default function SettingsPage() {
     localStorage.setItem('userEmail', userEmail);
     localStorage.setItem('userWhatsApp', userWhatsApp);
     localStorage.setItem('monthlyIncome', monthlyIncome);
+    localStorage.setItem('manualCostOfLiving', manualCostOfLiving);
     localStorage.setItem('payday', payday);
     localStorage.setItem('incomeSound', incomeSound);
     localStorage.setItem('expenseSound', expenseSound);
@@ -596,6 +599,17 @@ export default function SettingsPage() {
                         onChange={(e) => setPayday(e.target.value)}
                     />
                 </div>
+            </div>
+            <div>
+              <Label htmlFor="manual-cost-of-living">Custo de Vida Mensal (Manual)</Label>
+              <Input
+                id="manual-cost-of-living"
+                type="number"
+                placeholder="ex: 2500.00"
+                value={manualCostOfLiving}
+                onChange={(e) => setManualCostOfLiving(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco ou 0 para usar o cálculo automático.</p>
             </div>
         </CardContent>
       </Card>

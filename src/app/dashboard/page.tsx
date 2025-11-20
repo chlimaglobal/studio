@@ -314,10 +314,19 @@ export default function DashboardPage() {
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+    const [manualCostOfLiving, setManualCostOfLiving] = useState<number | null>(null);
 
     useEffect(() => {
         const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
         setIsPrivacyMode(storedPrivacyMode);
+
+        const storedManualCost = localStorage.getItem('manualCostOfLiving');
+        if (storedManualCost) {
+            const parsedCost = parseFloat(storedManualCost);
+            if (!isNaN(parsedCost) && parsedCost > 0) {
+                setManualCostOfLiving(parsedCost);
+            }
+        }
     }, []);
 
     const handleTogglePrivacyMode = () => {
@@ -391,7 +400,8 @@ export default function DashboardPage() {
             })
             .filter(Boolean) as BudgetItem[];
         
-        const costOfLiving = calculateMovingAverageCostOfLiving(transactions);
+        const calculatedCost = calculateMovingAverageCostOfLiving(transactions);
+        const costOfLiving = manualCostOfLiving !== null && manualCostOfLiving > 0 ? manualCostOfLiving : calculatedCost;
 
 
         return { 
@@ -400,7 +410,7 @@ export default function DashboardPage() {
             budgetItems,
             costOfLiving,
         };
-    }, [transactions, currentMonth, budgets]);
+    }, [transactions, currentMonth, budgets, manualCostOfLiving]);
     
     const chartData = useMemo(() => generateChartData(transactions), [transactions]);
     
