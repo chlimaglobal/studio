@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
@@ -251,48 +251,37 @@ interface ChartDataPoint {
 }
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
-    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-
-    const monthlyTotals = new Map<string, { income: number, expense: number }>();
+    
+    // 1. Find the earliest transaction to determine the starting point for balance calculation
     let balanceBeforeWindow = 0;
+    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
-    operationalTransactions.forEach(t => {
-        const transactionDate = new Date(t.date);
-        
-        if (transactionDate < sixMonthsAgo) {
-            balanceBeforeWindow += t.type === 'income' ? t.amount : -t.amount;
-            return;
-        }
-        
-        const monthKey = format(transactionDate, 'MM/yy');
-        
-        if (!monthlyTotals.has(monthKey)) {
-            monthlyTotals.set(monthKey, { income: 0, expense: 0 });
-        }
+    const transactionsBeforeWindow = operationalTransactions.filter(t => new Date(t.date) < sixMonthsAgo);
+    balanceBeforeWindow = transactionsBeforeWindow.reduce((acc, t) => {
+        return t.type === 'income' ? acc + t.amount : acc - t.amount;
+    }, 0);
 
-        const totals = monthlyTotals.get(monthKey)!;
 
-        if (t.type === 'income') {
-            totals.income += t.amount;
-        } else {
-            totals.expense += t.amount;
-        }
-    });
-
-    const sortedKeys = Array.from(monthlyTotals.keys()).sort((a, b) => {
-        const [aMonth, aYear] = a.split('/').map(Number);
-        const [bMonth, bYear] = b.split('/').map(Number);
-        if (aYear !== bYear) return aYear - bYear;
-        return aMonth - bMonth;
-    });
-
+    // 2. Iterate through the last 6 months to build the chart data
     const finalChartData: ChartDataPoint[] = [];
     let accumulatedBalance = balanceBeforeWindow;
 
-    sortedKeys.forEach(monthKey => {
-        const { income, expense } = monthlyTotals.get(monthKey)!;
-        accumulatedBalance += income - expense;
+    for (let i = 5; i >= 0; i--) {
+        const date = subMonths(new Date(), i);
+        const monthKey = format(date, 'MM/yy');
+        const monthStart = startOfMonth(date);
+        const monthEnd = endOfMonth(date);
+
+        const monthTransactions = operationalTransactions.filter(t => {
+            const tDate = new Date(t.date);
+            return tDate >= monthStart && tDate <= monthEnd;
+        });
+
+        const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
+        const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+        accumulatedBalance += (income - expense);
 
         finalChartData.push({
             date: monthKey,
@@ -300,7 +289,7 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
             aPagar: expense,
             resultado: accumulatedBalance,
         });
-    });
+    }
 
     return finalChartData;
 };
@@ -531,3 +520,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
