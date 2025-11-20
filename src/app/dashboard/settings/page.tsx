@@ -536,6 +536,26 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card>
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5" /> Definir Custo de Vida Atual</CardTitle>
+              <CardDescription>Defina um valor fixo para sua meta de custo de vida. Se deixado em branco ou 0, o sistema calculará a média automaticamente.</CardDescription>
+          </CardHeader>
+          <CardContent>
+                <div>
+                    <Label htmlFor="manual-cost-of-living">Custo de Vida Mensal (Manual)</Label>
+                    <Input
+                        id="manual-cost-of-living"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Ex: 3500,00"
+                        value={manualCostOfLiving}
+                        onChange={(e) => setManualCostOfLiving(e.target.value)}
+                    />
+                </div>
+          </CardContent>
+      </Card>
       
        <Card>
         <CardHeader>
