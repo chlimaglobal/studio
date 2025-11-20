@@ -486,7 +486,7 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-lg font-semibold mb-2">Resultado mês a mês</h2>
             <div className="h-[250px]">
-                <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} />
+                <FinancialChart data={chartData} isPrivacyMode={isPrivacyMode} costOfLiving={costOfLiving} />
             </div>
           </div>
           <AiTipsCard />

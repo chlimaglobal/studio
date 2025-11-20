@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
+import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
 
@@ -35,9 +35,10 @@ interface FinancialChartProps {
         resultado: number;
     }[];
     isPrivacyMode: boolean;
+    costOfLiving: number;
 }
 
-export default function FinancialChart({ data, isPrivacyMode }: FinancialChartProps) {
+export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: FinancialChartProps) {
     const yAxisFormatter = (value: number) => {
         if (isPrivacyMode) return '••••';
         if (value === 0) return 'R$0';
@@ -68,6 +69,15 @@ export default function FinancialChart({ data, isPrivacyMode }: FinancialChartPr
                 <Line type="monotone" dataKey="aReceber" name="Receitas" stroke="hsl(var(--chart-1))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
                 <Line type="monotone" dataKey="aPagar" name="Despesas" stroke="hsl(var(--chart-2))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
                 <Line type="monotone" dataKey="resultado" name="Balanço" stroke="hsl(var(--chart-3))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
+                 {costOfLiving > 0 && !isPrivacyMode && (
+                    <ReferenceLine 
+                        y={costOfLiving} 
+                        label={{ value: 'Custo de Vida', position: 'insideTopRight', fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+                        stroke="hsl(var(--warning))" 
+                        strokeDasharray="4 4" 
+                        strokeWidth={1.5}
+                    />
+                )}
             </LineChart>
         </ResponsiveContainer>
     );
