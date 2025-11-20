@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { Transaction, TransactionCategory } from "./types";
-import { startOfMonth, subMonths } from 'date-fns';
+import { startOfMonth, subMonths, differenceInMonths } from 'date-fns';
 
 
 export function cn(...inputs: ClassValue[]) {
@@ -51,8 +51,9 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
         "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
     ]);
-
-    const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));
+    
+    const today = new Date();
+    const threeMonthsAgo = startOfMonth(subMonths(today, 2));
 
     const relevantTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
@@ -60,34 +61,27 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
                costOfLivingCategories.has(t.category) &&
                transactionDate >= threeMonthsAgo;
     });
+
+    if (relevantTransactions.length === 0) {
+        return 0;
+    }
     
-    const monthlyCosts = new Map<string, number>();
-    relevantTransactions.forEach(t => {
-        const monthKey = t.date.substring(0, 7); // "YYYY-MM"
-        
-        // 🛠️ CORREÇÃO PRINCIPAL: Garante que t.amount é um número válido.
-        // 1. Converte o valor da transação (que pode ser String do Firebase) para float.
-        const transactionAmount = parseFloat(String(t.amount)); 
-        
-        // 2. Se a conversão resultar em NaN (valor inválido ou mal formatado), a transação é ignorada.
-        if (isNaN(transactionAmount)) {
-            // Opcional: Adicione um log para debugging, se necessário.
-            // console.error(`Valor de transação inválido ignorado: ${t.amount}`);
-            return; 
-        }
+    const totalEssentialExpenses = relevantTransactions.reduce((sum, t) => {
+        const transactionAmount = parseFloat(String(t.amount));
+        return isNaN(transactionAmount) ? sum : sum + transactionAmount;
+    }, 0);
 
-        const currentTotal = monthlyCosts.get(monthKey) || 0;
-        
-        // A soma agora é segura e numérica
-        monthlyCosts.set(monthKey, currentTotal + transactionAmount);
-    });
-
-    const totalEssentialExpenses = Array.from(monthlyCosts.values()).reduce((sum, cost) => sum + cost, 0);
-    const numberOfMonthsWithExpenses = monthlyCosts.size;
-
-    // 🛠️ CORREÇÃO SECUNDÁRIA: Cláusula de Guarda contra a divisão por zero (0/0)
-    if (numberOfMonthsWithExpenses > 0) {
-        return totalEssentialExpenses / numberOfMonthsWithExpenses;
+    // Find the earliest transaction to determine the actual number of months to average over
+    const firstTransactionDate = relevantTransactions.reduce((earliest, t) => {
+        const tDate = new Date(t.date);
+        return tDate < earliest ? tDate : earliest;
+    }, new Date());
+    
+    // Calculate the number of months to average over. It should be at most 3.
+    const monthsToAverage = Math.min(3, differenceInMonths(today, firstTransactionDate) + 1);
+    
+    if (monthsToAverage > 0) {
+        return totalEssentialExpenses / monthsToAverage;
     } else {
         return 0;
     }
