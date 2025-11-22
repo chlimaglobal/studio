@@ -76,7 +76,7 @@ export default function FinancialChart({
           type="monotone"
           dataKey="aReceber"
           name="Receitas"
-          stroke="hsl(var(--chart-1))"
+          stroke="hsl(var(--chart-2))"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -88,14 +88,14 @@ export default function FinancialChart({
           type="monotone"
           dataKey="aPagar"
           name="Despesas"
-          stroke="hsl(var(--chart-2))"
+          stroke="hsl(var(--chart-1))"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (AZUL) ======================= */}
+        {/* ======================= BALANÇO (LARANJA) ======================= */}
         <Line
           type="monotone"
           dataKey="resultado"
@@ -107,7 +107,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= CUSTO DE VIDA (ROXO) ======================= */}
+        {/* ======================= CUSTO DE VIDA (AZUL - LINHA RETA) ======================= */}
         <ReferenceLine
           y={costOfLiving}
           label={{
