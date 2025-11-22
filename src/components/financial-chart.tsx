@@ -76,7 +76,7 @@ export default function FinancialChart({
           type="monotone"
           dataKey="aReceber"
           name="Receitas"
-          stroke="hsl(var(--chart-2))"
+          stroke="hsl(var(--chart-2))" // verde do seu tema
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -88,7 +88,7 @@ export default function FinancialChart({
           type="monotone"
           dataKey="aPagar"
           name="Despesas"
-          stroke="hsl(var(--chart-1))"
+          stroke="hsl(var(--chart-1))" // vermelho do seu tema
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -100,23 +100,23 @@ export default function FinancialChart({
           type="monotone"
           dataKey="resultado"
           name="Balanço"
-          stroke="#FFA500"
+          stroke="#FFA500" // LARANJA real e fixo
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
           connectNulls={true}
         />
 
-        {/* ======================= CUSTO DE VIDA (AZUL - LINHA RETA) ======================= */}
+        {/* ======================= CUSTO DE VIDA (AZUL — LINHA RETA) ======================= */}
         <ReferenceLine
           y={costOfLiving}
           label={{
             value: 'Custo de Vida',
             position: 'center',
-            fill: 'hsl(var(--chart-4))',
-            fontSize: 12
+            fill: '#007BFF', // azul real fixo
+            fontSize: 10
           }}
-          stroke="hsl(var(--chart-4))"
+          stroke="#007BFF" // azul real fixo
           strokeDasharray="4 4"
           strokeWidth={2}
           ifOverflow="extendDomain"
