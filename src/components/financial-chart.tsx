@@ -100,7 +100,7 @@ export default function FinancialChart({
           type="monotone"
           dataKey="resultado"
           name="Balanço"
-          stroke="#FFA500"              // <--- CORRIGIDO: LARANJA REAL
+          stroke="#FFA500"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -112,7 +112,7 @@ export default function FinancialChart({
           y={costOfLiving}
           label={{
             value: 'Custo de Vida',
-            position: 'right',
+            position: 'center',
             fill: 'hsl(var(--chart-4))',
             fontSize: 12
           }}
