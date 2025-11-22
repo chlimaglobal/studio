@@ -1,28 +1,8 @@
+
 'use client';
 
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-
-const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="rounded-lg border border-border bg-popover p-3 shadow-sm text-sm">
-                <p className="font-bold mb-2">{label}</p>
-                <div className="space-y-1">
-                    {payload.map((p: any) => (
-                         <div key={p.dataKey} className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{backgroundColor: p.stroke}}></div>
-                            <span className="text-muted-foreground">{p.name}:</span>
-                            <span className="font-semibold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(p.value)}</span>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
-    return null;
-};
-
 
 interface FinancialChartProps {
     data: {
@@ -36,55 +16,105 @@ interface FinancialChartProps {
 }
 
 export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: FinancialChartProps) {
-    const yAxisFormatter = (value: number) => {
-        if (isPrivacyMode) return '••••';
-        if (value === 0) return 'R$0';
-        const absValue = Math.abs(value);
-        if (absValue >= 1000) {
-            return `R$${(value / 1000).toFixed(0)}k`;
-        }
-        return `R$${value}`;
-    };
-    
+
     return (
         <ResponsiveContainer width="100%" height="100%">
+            
+            {/* MARGENS AJUSTADAS PARA EVITAR GRÁFICO CORTADO */}
             <LineChart 
                 data={data} 
-                margin={{ top: 5, right: 20, left: 0, bottom: 20 }}
+                margin={{ top: 10, right: 20, left: 20, bottom: 30 }}
             >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
+                <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border) / 0.2)"
+                    vertical={false}
+                />
+
+                {/* EIXO X — agora com labels visíveis e não cortados */}
                 <XAxis 
-                  dataKey="date" 
-                  tickLine={false} 
-                  axisLine={false} 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12} 
-                  interval={0}
-                  angle={-30}
-                  textAnchor="end"
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    interval={0}
+                    angle={-30}
+                    textAnchor="end"
+                    height={60}
                 />
-                <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} width={60} />
-                <Tooltip
-                    content={<CustomTooltip isPrivacyMode={isPrivacyMode} />}
-                    cursor={{ fill: 'hsl(var(--muted))' }}
+
+                <YAxis 
+                    tickLine={false}
+                    axisLine={false}
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickFormatter={(v) => formatCurrency(v)}
                 />
-                 <Legend
-                    verticalAlign="bottom"
-                    align="center"
-                    iconSize={10}
-                    wrapperStyle={{ paddingTop: '20px' }}
-                    formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>}
+
+                <Tooltip 
+                    formatter={(v) => (isPrivacyMode ? '••••' : formatCurrency(Number(v)))}
+                    content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                            return (
+                                <div className="rounded-lg border bg-background p-2 shadow-sm">
+                                    <p className="font-bold text-sm mb-1">{label}</p>
+                                    {payload.map((p, i) => (
+                                        <p key={i} style={{ color: p.color }} className="text-xs">
+                                            {`${p.name}: ${isPrivacyMode ? 'R$ ••••' : formatCurrency(p.value as number)}`}
+                                        </p>
+                                    ))}
+                                </div>
+                            );
+                        }
+                        return null;
+                    }}
                 />
-                <Line type="monotone" dataKey="aReceber" name="Receitas" stroke="#10B981" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
-                <Line type="monotone" dataKey="aPagar" name="Despesas" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
-                <Line type="monotone" dataKey="resultado" name="Balanço" stroke="hsl(var(--chart-3))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
-                 {costOfLiving > 0 && !isPrivacyMode && (
+
+                <Legend wrapperStyle={{paddingTop: '20px'}}/>
+
+                {/* 🔥 LINHAS DO GRÁFICO — corrigido stroke invertido */}
+
+                {/* DESPESAS = Vermelho = chart-1 */}
+                <Line
+                    type="monotone"
+                    dataKey="aPagar"
+                    name="Despesas"
+                    stroke="hsl(var(--chart-1))"
+                    strokeWidth={2.5}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+
+                {/* RECEITAS = Verde = chart-2 */}
+                <Line
+                    type="monotone"
+                    dataKey="aReceber"
+                    name="Receitas"
+                    stroke="hsl(var(--chart-2))"
+                    strokeWidth={2.5}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+
+                {/* BALANÇO (mantido igual) */}
+                <Line
+                    type="monotone"
+                    dataKey="resultado"
+                    name="Balanço"
+                    stroke="hsl(var(--chart-3))"
+                    strokeWidth={2.5}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                />
+
+                {/* Linha do custo de vida */}
+                {costOfLiving > 0 && !isPrivacyMode && (
                     <ReferenceLine 
                         y={costOfLiving} 
-                        label={{ value: 'Custo de Vida', position: 'insideTopRight', fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
-                        stroke="hsl(var(--warning))" 
+                        stroke="hsl(var(--chart-4))" 
                         strokeDasharray="4 4" 
-                        strokeWidth={1.5}
+                        label={{ value: "Custo de Vida", fill: "hsl(var(--muted-foreground))", fontSize: 12, position: "right"}}
                     />
                 )}
             </LineChart>
