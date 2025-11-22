@@ -251,43 +251,49 @@ interface ChartDataPoint {
 }
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
-  const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-  
-  // 1. Create a map to hold data for the last 6 months
-  const monthlyData = new Map<string, { aReceber: number; aPagar: number }>();
-  for (let i = 5; i >= 0; i--) {
-      const date = subMonths(new Date(), i);
-      const monthKey = format(date, 'MM/yy');
-      monthlyData.set(monthKey, { aReceber: 0, aPagar: 0 });
-  }
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+    
+    // 1. Create a map to hold data for the last 6 months
+    const monthlyData: Map<string, { aReceber: number; aPagar: number }> = new Map();
+    const today = new Date();
+    for (let i = 5; i >= 0; i--) {
+        const date = subMonths(today, i);
+        const monthKey = format(date, 'MM/yy', { locale: ptBR });
+        monthlyData.set(monthKey, { aReceber: 0, aPagar: 0 });
+    }
 
-  // 2. Iterate through transactions and aggregate them into the correct month
-  operationalTransactions.forEach(t => {
-      const transactionDate = new Date(t.date);
-      const monthKey = format(transactionDate, 'MM/yy');
+    // 2. Iterate through transactions and aggregate them into the correct month
+    operationalTransactions.forEach(t => {
+        try {
+            const transactionDate = new Date(t.date);
+            const monthKey = format(transactionDate, 'MM/yy', { locale: ptBR });
 
-      if (monthlyData.has(monthKey)) {
-          const currentMonthData = monthlyData.get(monthKey)!;
-          if (t.type === 'income') {
-              currentMonthData.aReceber += t.amount;
-          } else if (t.type === 'expense') {
-              currentMonthData.aPagar += t.amount;
-          }
-      }
-  });
+            if (monthlyData.has(monthKey)) {
+                const currentMonthData = monthlyData.get(monthKey)!;
+                if (t.type === 'income') {
+                    currentMonthData.aReceber += t.amount;
+                } else if (t.type === 'expense') {
+                    currentMonthData.aPagar += t.amount;
+                }
+            }
+        } catch (e) {
+            // Ignore invalid transaction dates
+            console.warn("Skipping transaction with invalid date:", t);
+        }
+    });
 
-  // 3. Create the final chart data array, calculating the balance for each month
-  const chartData: ChartDataPoint[] = [];
-  monthlyData.forEach((data, monthKey) => {
-      chartData.push({
-          date: monthKey,
-          aReceber: data.aReceber,
-          aPagar: data.aPagar,
-          resultado: data.aReceber - data.aPagar, // Monthly balance, not cumulative
-      });
-  });
+    // 3. Create the final chart data array, calculating the balance for each month
+    const chartData: ChartDataPoint[] = [];
+    monthlyData.forEach((data, monthKey) => {
+        chartData.push({
+            date: monthKey,
+            aReceber: data.aReceber,
+            aPagar: data.aPagar,
+            resultado: data.aReceber - data.aPagar,
+        });
+    });
 
-  return chartData;
+    return chartData;
 };
 
 
@@ -516,5 +522,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
