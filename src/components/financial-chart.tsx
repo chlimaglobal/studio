@@ -95,7 +95,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (LARANJA) ======================= */}
+        {/* ======================= BALANÇO (AZUL) ======================= */}
         <Line
           type="monotone"
           dataKey="resultado"
@@ -107,7 +107,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= CUSTO DE VIDA (AZUL - LINHA RETA) ======================= */}
+        {/* ======================= CUSTO DE VIDA (ROXO) ======================= */}
         <ReferenceLine
           y={costOfLiving}
           label={{
