@@ -50,9 +50,18 @@ export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: Fi
     
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 15, left: 15, bottom: 5 }}>
+            <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} interval={0} />
+                <XAxis 
+                  dataKey="date" 
+                  tickLine={false} 
+                  axisLine={false} 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12} 
+                  interval={0}
+                  angle={-30}
+                  textAnchor="end"
+                />
                 <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={yAxisFormatter} width={60} />
                 <Tooltip
                     content={<CustomTooltip isPrivacyMode={isPrivacyMode} />}
@@ -65,8 +74,8 @@ export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: Fi
                     wrapperStyle={{ paddingTop: '20px' }}
                     formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>}
                 />
-                <Line type="monotone" dataKey="aReceber" name="Receitas" stroke="hsl(var(--chart-2))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
-                <Line type="monotone" dataKey="aPagar" name="Despesas" stroke="hsl(var(--chart-1))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
+                <Line type="monotone" dataKey="aReceber" name="Receitas" stroke="#10B981" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
+                <Line type="monotone" dataKey="aPagar" name="Despesas" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
                 <Line type="monotone" dataKey="resultado" name="Balanço" stroke="hsl(var(--chart-3))" strokeWidth={2.5} dot={{ r: 5 }} activeDot={{ r: 7 }} />
                  {costOfLiving > 0 && !isPrivacyMode && (
                     <ReferenceLine 
