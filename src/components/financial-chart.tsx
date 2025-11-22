@@ -12,7 +12,7 @@ const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
                 <div className="space-y-1">
                     {payload.map((p: any) => (
                          <div key={p.dataKey} className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full" style={{backgroundColor: p.color}}></div>
+                            <div className="w-2 h-2 rounded-full" style={{backgroundColor: p.stroke}}></div>
                             <span className="text-muted-foreground">{p.name}:</span>
                             <span className="font-semibold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(p.value)}</span>
                         </div>

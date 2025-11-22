@@ -252,46 +252,45 @@ interface ChartDataPoint {
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-    
-    // 1. Find the earliest transaction to determine the starting point for balance calculation
-    let balanceBeforeWindow = 0;
-    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
+    const monthlyData = new Map<string, { aReceber: number; aPagar: number }>();
 
-    const transactionsBeforeWindow = operationalTransactions.filter(t => new Date(t.date) < sixMonthsAgo);
-    balanceBeforeWindow = transactionsBeforeWindow.reduce((acc, t) => {
-        return t.type === 'income' ? acc + t.amount : acc - t.amount;
-    }, 0);
-
-
-    // 2. Iterate through the last 6 months to build the chart data
-    const finalChartData: ChartDataPoint[] = [];
-    let accumulatedBalance = balanceBeforeWindow;
-
+    // Initialize the last 6 months
     for (let i = 5; i >= 0; i--) {
         const date = subMonths(new Date(), i);
         const monthKey = format(date, 'MM/yy');
-        const monthStart = startOfMonth(date);
-        const monthEnd = endOfMonth(date);
-
-        const monthTransactions = operationalTransactions.filter(t => {
-            const tDate = new Date(t.date);
-            return tDate >= monthStart && tDate <= monthEnd;
-        });
-
-        const income = monthTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-        const expense = monthTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
-
-        accumulatedBalance += (income - expense);
-
-        finalChartData.push({
-            date: monthKey,
-            aReceber: income,
-            aPagar: expense,
-            resultado: accumulatedBalance,
-        });
+        monthlyData.set(monthKey, { aReceber: 0, aPagar: 0 });
     }
 
-    return finalChartData;
+    // Populate with transaction data
+    operationalTransactions.forEach(t => {
+        const transactionDate = new Date(t.date);
+        const monthKey = format(transactionDate, 'MM/yy');
+
+        if (monthlyData.has(monthKey)) {
+            const currentMonthData = monthlyData.get(monthKey)!;
+            if (t.type === 'income') {
+                currentMonthData.aReceber += t.amount;
+            } else if (t.type === 'expense') {
+                currentMonthData.aPagar += t.amount;
+            }
+        }
+    });
+
+    let cumulativeBalance = 0;
+    const chartData: ChartDataPoint[] = [];
+
+    monthlyData.forEach((data, monthKey) => {
+        const monthBalance = data.aReceber - data.aPagar;
+        cumulativeBalance += monthBalance;
+        chartData.push({
+            date: monthKey,
+            aReceber: data.aReceber,
+            aPagar: data.aPagar,
+            resultado: cumulativeBalance,
+        });
+    });
+
+    return chartData;
 };
 
 
