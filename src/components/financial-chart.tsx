@@ -3,7 +3,6 @@
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend, ReferenceLine } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
-
 const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
     if (active && payload && payload.length) {
         return (
@@ -49,7 +48,10 @@ export default function FinancialChart({ data, isPrivacyMode, costOfLiving }: Fi
     
     return (
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 20 }}>
+            <LineChart 
+                data={data} 
+                margin={{ top: 5, right: 20, left: 0, bottom: 20 }}
+            >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" vertical={false} />
                 <XAxis 
                   dataKey="date" 
