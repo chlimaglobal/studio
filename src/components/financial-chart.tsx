@@ -95,12 +95,12 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (LARANJA) ======================= */}
+        {/* ======================= BALANÇO (LARANJA REAL) ======================= */}
         <Line
           type="monotone"
           dataKey="resultado"
           name="Balanço"
-          stroke="hsl(var(--chart-3))"
+          stroke="#FFA500"              // <--- CORRIGIDO: LARANJA REAL
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
