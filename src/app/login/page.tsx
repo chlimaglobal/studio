@@ -13,7 +13,7 @@ import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, httpsCallable, functions } from '@/lib/firebase';
 import { useAuth } from '@/components/client-providers';
 
 const Logo = () => (
@@ -62,7 +62,7 @@ export default function LoginPage() {
     }
   }, [user, isAuthLoading, router]);
 
-  const handleSuccessfulLogin = (loggedInUser: User) => {
+  const handleSuccessfulLogin = async (loggedInUser: User) => {
     if (rememberMe) {
         localStorage.setItem('rememberedEmail', loggedInUser.email || '');
     } else {
@@ -72,8 +72,13 @@ export default function LoginPage() {
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
     
-    // The AuthProvider in layout will handle the user state update
-    // and the redirection will be handled by the effect above.
+    try {
+        const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
+        await handleUserLogin();
+    } catch (error) {
+        // Log the error but don't block the user from logging in
+        console.warn('Could not run handleUserLogin trigger:', error);
+    }
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -84,7 +89,7 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        handleSuccessfulLogin(userCredential.user);
+        await handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
@@ -108,13 +113,6 @@ export default function LoginPage() {
     setIsBiometricLoading(true);
     const auth = getAuth(app);
     try {
-        // This is a simplified simulation. A real implementation would:
-        // 1. Send the assertion to your backend.
-        // 2. The backend verifies the assertion.
-        // 3. The backend creates a custom token for the user.
-        // 4. The client signs in with the custom token `signInWithCustomToken`.
-        // For this demo, we'll check if a user is already cached and assume it's the right one.
-        
         await setPersistence(auth, browserLocalPersistence);
         const credentialId = localStorage.getItem('webauthn-credential-id');
         if (!credentialId) {
@@ -143,19 +141,10 @@ export default function LoginPage() {
         const credential = await navigator.credentials.get({ publicKey: options });
 
         if (credential) {
-            // In a real app, this assertion would be sent to a backend for verification
-            // and then a session/token would be established.
-            // For this app, we rely on the onAuthStateChanged listener which should
-            // pick up the persisted user session.
             toast({ title: 'Login Biométrico Bem-Sucedido!', description: 'Redirecionando para o painel...' });
-            // The AuthProvider listener will trigger the redirect. If not already logged in,
-            // this would require a backend to validate and issue a token.
-            // Since we persist auth state, this will work if the user was previously logged in.
              if (auth.currentUser) {
-                handleSuccessfulLogin(auth.currentUser);
+                await handleSuccessfulLogin(auth.currentUser);
              } else {
-                 // This case happens if the user is not persisted.
-                 // It would require a backend flow which is outside the scope of this implementation.
                  toast({ variant: 'destructive', title: 'Sessão Expirada', description: 'Por favor, faça login com e-mail e senha novamente.' });
              }
 
@@ -182,7 +171,7 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithPopup(auth, provider);
-        handleSuccessfulLogin(userCredential.user);
+        await handleSuccessfulLogin(userCredential.user);
     } catch (error) {
          toast({
             variant: 'destructive',
@@ -194,7 +183,6 @@ export default function LoginPage() {
     }
   };
   
-  // Don't render the form if auth is loading or user is already logged in, show a loader instead
   if(isAuthLoading || user) {
      return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

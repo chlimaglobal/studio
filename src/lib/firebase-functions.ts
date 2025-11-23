@@ -343,3 +343,95 @@ export const getPartnerId = onCall(async (request) => {
 
     return { partnerId: null };
 });
+
+export const handleUserLogin = onCall(async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    if (!adminApp) {
+        console.warn("Admin App not initialized, skipping login check.");
+        throw new HttpsError('internal', 'Admin App not initialized.');
+    }
+    const db = adminDb!;
+    const statsRef = db.collection('users').doc(userId).collection('stats').doc('logins');
+    const userRef = db.collection('users').doc(userId);
+
+    try {
+        await db.runTransaction(async (transaction) => {
+            const statsDoc = await transaction.get(statsRef);
+            const userDoc = await transaction.get(userRef);
+
+            if (!userDoc.exists) {
+                console.log(`User doc ${userId} not found in transaction.`);
+                return;
+            }
+
+            const userData = userDoc.data()!;
+            
+            // Increment login count
+            const currentCount = statsDoc.exists ? statsDoc.data()!.loginCount : 0;
+            const newCount = currentCount + 1;
+            transaction.set(statsRef, { loginCount: newCount }, { merge: true });
+
+            if (newCount < 3) {
+                return; // Not yet 3 logins, do nothing more
+            }
+
+            // Check if there are transactions
+            const transactionsRef = db.collection('users').doc(userId).collection('transactions');
+            const transactionsSnapshot = await transactionsRef.limit(1).get();
+
+            if (!transactionsSnapshot.empty) {
+                return; // User has transactions, do nothing more
+            }
+
+            // Check if prompt was sent in the last 7 days
+            const lastSent = (userData.lumina?.noTransactionsPromptLastSent as Timestamp | undefined)?.toMillis();
+            const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+
+            if (lastSent && (Date.now() - lastSent < sevenDaysInMillis)) {
+                return; // Prompt sent recently, do nothing more
+            }
+
+            // All conditions met, send notification
+            const fcmTokens = userData.fcmTokens;
+            if (!fcmTokens || fcmTokens.length === 0) {
+                console.log(`No FCM tokens for user ${userId}, skipping notification.`);
+                return;
+            }
+
+            const message = {
+                notification: {
+                    title: 'Lúmina tem uma dica para você!',
+                    body: "Percebi que você ainda não cadastrou suas entradas e saídas. Posso te ajudar a começar agora mesmo?",
+                },
+                tokens: fcmTokens,
+                webpush: {
+                    notification: {
+                        badge: '/icon-192x192.png',
+                        icon: '/icon-192x192.png',
+                        data: { url: '/dashboard' } // Or a more specific page
+                    },
+                    fcmOptions: { link: '/dashboard' }
+                },
+            };
+
+            await getMessaging(adminApp).sendEachForMulticast(message);
+            
+            // Reset login count and update timestamp
+            transaction.update(statsRef, { loginCount: 0 });
+            transaction.set(userRef, {
+                lumina: {
+                    noTransactionsPromptLastSent: Timestamp.now()
+                }
+            }, { merge: true });
+        });
+
+        return { success: true, message: 'Login handled.' };
+    } catch (error) {
+        console.error('Error in handleUserLogin transaction:', error);
+        throw new HttpsError('internal', 'Failed to handle user login.');
+    }
+});
