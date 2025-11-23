@@ -98,6 +98,79 @@ export const onTransactionCreated = onCall(async (request) => {
     }
 });
 
+export const checkDashboardStatus = onCall(async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    if (!adminApp) {
+        console.warn("Admin App not initialized, skipping check.");
+        throw new HttpsError('internal', 'Admin App not initialized.');
+    }
+
+    const userDocRef = adminDb!.collection('users').doc(userId);
+    const userDoc = await userDocRef.get();
+    
+    if (!userDoc.exists) {
+        throw new HttpsError('not-found', `User ${userId} not found.`);
+    }
+    
+    const userData = userDoc.data()!;
+    const costOfLiving = userData.manualCostOfLiving ?? 0;
+    const lastSent = (userData.lumina?.costOfLivingPromptLastSent as Timestamp | undefined)?.toMillis();
+    const threeDaysInMillis = 3 * 24 * 60 * 60 * 1000;
+
+    // Condition 1: Cost of living is not set
+    // Condition 2: Notification has not been sent in the last 3 days
+    if (costOfLiving <= 0 && (!lastSent || (Date.now() - lastSent > threeDaysInMillis))) {
+        const fcmTokens = userData.fcmTokens;
+        if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
+            console.log(`No FCM tokens found for user ${userId}, skipping cost of living prompt.`);
+            return { success: true, message: "No FCM tokens for prompt." };
+        }
+
+        const message = {
+            notification: {
+                title: 'Lúmina tem uma dica para você!',
+                body: "Tudo pronto para começar, só falta um passo: defina seu custo de vida para que seu painel fique 100% preciso.",
+            },
+            tokens: fcmTokens,
+            webpush: {
+                notification: {
+                    badge: '/icon-192x192.png',
+                    icon: '/icon-192x192.png',
+                    data: {
+                        url: '/dashboard/cost-of-living'
+                    }
+                },
+                 fcmOptions: {
+                    link: '/dashboard/cost-of-living'
+                }
+            },
+        };
+        
+        try {
+            await getMessaging(adminApp).sendEachForMulticast(message);
+            // Update the timestamp after sending
+            await userDocRef.set({
+                lumina: {
+                    costOfLivingPromptLastSent: Timestamp.now()
+                }
+            }, { merge: true });
+            
+            return { success: true, message: "Cost of living prompt sent." };
+
+        } catch (error) {
+            console.error('Error sending cost of living prompt:', error);
+            throw new HttpsError('internal', 'Failed to send notification.');
+        }
+    }
+
+    return { success: true, message: "No action needed." };
+});
+
+
 export const sendDependentInvite = onCall(async (request) => {
     if (!sendGridApiKey) {
         console.error("SendGrid API Key not configured. Cannot send invite email.");

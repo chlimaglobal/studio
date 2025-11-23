@@ -18,7 +18,7 @@ import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/ut
 import { useTransactions } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onBudgetsUpdate } from '@/lib/storage';
+import { onBudgetsUpdate, getDoc, doc, updateDoc } from '@/lib/storage';
 import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
@@ -26,6 +26,10 @@ import { useToast } from '@/hooks/use-toast';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
+import { httpsCallable } from 'firebase/functions';
+import { functions, db } from '@/lib/firebase';
+import { Timestamp } from 'firebase/firestore';
+
 
 interface SummaryData {
   recebidos: number;
@@ -307,17 +311,48 @@ export default function DashboardPage() {
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
     const [manualCostOfLiving, setManualCostOfLiving] = useState<number | null>(null);
 
+    // Call the checkDashboardStatus function when the component mounts
+    useEffect(() => {
+        if (user) {
+            const checkStatus = async () => {
+                try {
+                    const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
+                    await checkDashboardStatus();
+                } catch (error) {
+                    console.warn("Could not check dashboard status:", error);
+                }
+            };
+            checkStatus();
+        }
+    }, [user]);
+    
+    useEffect(() => {
+        // We need to read from localstorage in a useEffect to avoid SSR issues.
+        const storedCostString = localStorage.getItem('manualCostOfLiving');
+        if (storedCostString) {
+            const parsedCost = parseFloat(storedCostString.replace(',', '.'));
+            setManualCostOfLiving(isNaN(parsedCost) ? null : parsedCost);
+        } else {
+             // If not set in localStorage, check the user's document in Firestore
+            if (user) {
+                const userDocRef = doc(db, 'users', user.uid);
+                getDoc(userDocRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        if (userData.manualCostOfLiving) {
+                            setManualCostOfLiving(userData.manualCostOfLiving);
+                            // Also save it to localStorage for consistency
+                            localStorage.setItem('manualCostOfLiving', String(userData.manualCostOfLiving));
+                        }
+                    }
+                });
+            }
+        }
+    }, [user]);
+
     useEffect(() => {
         const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
         setIsPrivacyMode(storedPrivacyMode);
-
-        const storedManualCost = localStorage.getItem('manualCostOfLiving');
-        if (storedManualCost) {
-            const parsedCost = parseFloat(storedManualCost);
-            if (!isNaN(parsedCost) && parsedCost > 0) {
-                setManualCostOfLiving(parsedCost);
-            }
-        }
     }, []);
 
     const handleTogglePrivacyMode = () => {
