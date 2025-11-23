@@ -11,3 +11,4 @@ import '@/ai/flows/analyze-investor-profile.ts';
 // import '@/ai/flows/lumina-chat.ts'; 
 import '@/ai/flows/mediate-goals.ts';
 import '@/ai/flows/extract-from-image.ts';
+import '@/ai/flows/recovery-protocol-flow.ts';
