@@ -1,8 +1,9 @@
 
+
 import { db, functions } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema } from './types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -66,6 +67,28 @@ export function onUserSubscriptionUpdate(userId: string, callback: (status: stri
 
     return unsubscribe;
 }
+
+export function onUserStatusUpdate(userId: string, callback: (status: UserStatus) => void): () => void {
+    if (!userId) {
+        return () => {};
+    }
+    const statusDocRef = doc(db, 'users', userId, 'status', 'main');
+
+    return onSnapshot(statusDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            callback(docSnap.data() as UserStatus);
+        } else {
+            callback({}); // Return empty object if no status doc exists
+        }
+    });
+}
+
+export async function updateUserStatus(userId: string, newStatus: Partial<UserStatus>) {
+    if (!userId) return;
+    const statusDocRef = doc(db, 'users', userId, 'status', 'main');
+    await setDoc(statusDocRef, newStatus, { merge: true });
+}
+
 
 export async function saveFcmToken(userId: string, token: string) {
     if (!userId || !token) return;

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory, Budget } from '@/lib/types';
+import type { Transaction, TransactionCategory, Budget, UserStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
@@ -18,7 +19,7 @@ import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/ut
 import { useTransactions } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onBudgetsUpdate, getDoc, doc, updateDoc } from '@/lib/storage';
+import { onBudgetsUpdate, getDoc, doc, updateDoc, onUserStatusUpdate, updateUserStatus, addChatMessage } from '@/lib/storage';
 import { useAuth } from '@/components/client-providers';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
@@ -310,6 +311,8 @@ export default function DashboardPage() {
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
     const [manualCostOfLiving, setManualCostOfLiving] = useState<number | null>(null);
+    const [userStatus, setUserStatus] = useState<UserStatus>({});
+
 
     // Call the checkDashboardStatus function when the component mounts
     useEffect(() => {
@@ -323,6 +326,13 @@ export default function DashboardPage() {
                 }
             };
             checkStatus();
+        }
+    }, [user]);
+
+     useEffect(() => {
+        if (user) {
+            const unsubscribe = onUserStatusUpdate(user.uid, setUserStatus);
+            return () => unsubscribe();
         }
     }, [user]);
     
@@ -383,7 +393,8 @@ export default function DashboardPage() {
     }, [user, monthId]);
 
 
-    const { summary, categorySpending, budgetItems, costOfLiving } = useMemo(() => {
+    const { summary, categorySpending, budgetItems, costOfLiving, chartData } = useMemo(() => {
+        const chartData = generateChartData(transactions);
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
         
         const monthTransactions = operationalTransactions.filter(t => {
@@ -435,10 +446,34 @@ export default function DashboardPage() {
             categorySpending,
             budgetItems,
             costOfLiving,
+            chartData,
         };
     }, [transactions, currentMonth, budgets, manualCostOfLiving]);
-    
-    const chartData = useMemo(() => generateChartData(transactions), [transactions]);
+
+     useEffect(() => {
+        if (isLoadingTransactions || !user) return;
+        
+        const currentMonthStr = format(new Date(), 'yyyy-MM');
+
+        // Reset check status at the beginning of a new month
+        if (userStatus.ultimoMesChecado && userStatus.ultimoMesChecado !== currentMonthStr) {
+            updateUserStatus(user.uid, { jaAlertadoMesNegativo: false });
+        }
+
+        const ultimoMesChartData = chartData.find(d => d.date === format(subMonths(new Date(), 1), 'MM/yy', { locale: ptBR }));
+
+        if (ultimoMesChartData && ultimoMesChartData.resultado < 0 && !userStatus.jaAlertadoMesNegativo) {
+            const userName = user.displayName?.split(' ')[0] || 'Usuário';
+            
+            addChatMessage(user.uid, {
+                role: 'alerta',
+                title: "🚨 Seu mês fechou no vermelho",
+                text: `${userName}, identifiquei que o fechamento mensal ficou negativo. Quer que eu te mostre exatamente onde ocorreu o desequilíbrio e quais ajustes podem trazer você de volta ao azul?`,
+                authorName: "Lúmina"
+            });
+            updateUserStatus(user.uid, { jaAlertadoMesNegativo: true, ultimoMesChecado: currentMonthStr });
+        }
+    }, [chartData, user, userStatus, isLoadingTransactions]);
     
     if (isLoadingTransactions || isLoadingBudgets) {
         return <DashboardLoadingSkeleton />;

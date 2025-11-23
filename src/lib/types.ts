@@ -235,8 +235,9 @@ export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 
 // Types for Lumina Chat Flow
 export const ChatMessageSchema = z.object({
-  role: z.enum(['user', 'partner', 'lumina']),
+  role: z.enum(['user', 'partner', 'lumina', 'alerta']),
   text: z.string(),
+  title: z.string().optional(),
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().optional(),
   transactionToConfirm: ExtractedTransactionSchema.optional().nullable(),
@@ -317,4 +318,9 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
+// Types for User Status
+export type UserStatus = {
+    jaAlertadoMesNegativo?: boolean;
+    ultimoMesChecado?: string; // format YYYY-MM
+};
     

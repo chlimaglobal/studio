@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X, Camera } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X, Camera, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -128,6 +129,34 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
+const AlertMessageCard = ({ title, text }: { title: string, text: string }) => {
+    const handleRecoveryProtocolClick = () => {
+        // Here you would trigger the recovery protocol.
+        // For now, we can just log a message or show a toast.
+        console.log("Triggering recovery protocol...");
+    }
+    
+    return (
+         <Card className="bg-destructive/10 border-destructive/20 my-2">
+            <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-destructive/90">{text}</p>
+            </CardContent>
+            <CardFooter>
+                <Button variant="destructive" className="w-full" onClick={handleRecoveryProtocolClick}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Ativar Protocolo de Recuperação
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
@@ -170,20 +199,18 @@ export default function LuminaPage() {
         localStorage.setItem('lastLuminaVisit', new Date().toISOString());
     }, [setHasUnread]);
 
-    const saveMessage = useCallback(async (role: 'user' | 'partner' | 'lumina', text: string, authorName?: string, authorPhotoUrl?: string, transactionToConfirm?: ExtractedTransaction) => {
-        if (!user || (!text.trim() && !transactionToConfirm)) return;
+    const saveMessage = useCallback(async (newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm && newMessage.role !== 'alerta')) return;
 
-        const newMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
-            role,
-            text,
-            authorName: authorName || user.displayName || 'Usuário',
-            authorPhotoUrl: authorPhotoUrl || user.photoURL || '',
-            transactionToConfirm: transactionToConfirm || null,
+        const messageWithAuthor = {
+            ...newMessage,
+            authorName: newMessage.authorName || user.displayName || 'Usuário',
+            authorPhotoUrl: newMessage.authorPhotoUrl || user.photoURL || '',
         };
 
-        await addChatMessage(user.uid, newMessage);
+        await addChatMessage(user.uid, messageWithAuthor);
 
-        if (role === 'user') {
+        if (newMessage.role === 'user') {
             setMessage('');
         }
     }, [user]);
@@ -205,11 +232,11 @@ export default function LuminaPage() {
             
             const responseText = await generateSuggestion(luminaInput);
             
-            await saveMessage('lumina', responseText, 'Lúmina', '/lumina-avatar.png');
+            await saveMessage({role: 'lumina', text: responseText, authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
 
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
-            await saveMessage('lumina', "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", 'Lúmina', '/lumina-avatar.png');
+            await saveMessage({role: 'lumina', text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
         } finally {
             setIsLuminaThinking(false);
         }
@@ -221,7 +248,7 @@ export default function LuminaPage() {
         const currentMessage = message.trim();
         if (!currentMessage) return;
 
-        await saveMessage('user', currentMessage);
+        await saveMessage({ role: 'user', text: currentMessage });
         
         const lowerCaseMessage = currentMessage.toLowerCase();
 
@@ -280,11 +307,11 @@ ${res.actionNow}
 `;
             }
 
-            await saveMessage('lumina', formattedResponse, 'Lúmina', '/lumina-avatar.png');
+            await saveMessage({role: 'lumina', text: formattedResponse, authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
 
         } catch (error) {
             console.error(`Error with Recovery Protocol (${type}):`, error);
-            await saveMessage('lumina', "Desculpe, não foi possível executar o protocolo agora. Verifique seus dados e tente novamente.", 'Lúmina', '/lumina-avatar.png');
+            await saveMessage({role: 'lumina', text: "Desculpe, não foi possível executar o protocolo agora. Verifique seus dados e tente novamente.", authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
         } finally {
             setIsLuminaThinking(false);
         }
@@ -342,10 +369,10 @@ ${res.actionNow}
         setIsLuminaThinking(true);
         try {
             const result = await extractFromImage({ imageDataUri });
-            await saveMessage('lumina', 'Analisei a imagem.', 'Lúmina', '/lumina-avatar.png', result);
+            await saveMessage({role: 'lumina', text: 'Analisei a imagem.', authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png', transactionToConfirm: result});
         } catch (error) {
             const errorMessage = "Desculpe, não consegui extrair nenhuma informação útil desta imagem. Por favor, tente uma foto mais nítida de um comprovante ou anotação.";
-            await saveMessage('lumina', errorMessage, 'Lúmina', '/lumina-avatar.png');
+            await saveMessage({role: 'lumina', text: errorMessage, authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
         } finally {
             setIsLuminaThinking(false);
         }
@@ -372,7 +399,7 @@ ${res.actionNow}
             category: data.category || 'Outros',
             date: new Date().toISOString().split('T')[0],
         };
-        saveMessage('lumina', 'Analisei o QR Code.', 'Lúmina', '/lumina-avatar.png', transactionData);
+        saveMessage({role: 'lumina', text: 'Analisei o QR Code.', authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png', transactionToConfirm: transactionData});
     };
 
     const handleConfirmTransaction = async (transaction: ExtractedTransaction, messageId: string) => {
@@ -434,7 +461,7 @@ ${res.actionNow}
                 <div>
                     <h1 className="text-xl font-semibold flex items-center gap-2">
                         <MessageSquare />
-                        Chat com a Lúmina
+                        Mural do Casal
                     </h1>
                     <p className="text-sm text-muted-foreground">Converse sobre finanças e receba dicas da Lúmina.</p>
                 </div>
@@ -446,10 +473,11 @@ ${res.actionNow}
                         <div className="space-y-6">
                             {messages.map((msg, index) => {
                                 const isUser = msg.role === 'user';
+                                const isAlert = msg.role === 'alerta';
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
-                                    {!isUser && (
+                                    {!isUser && !isAlert && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             {msg.role === 'lumina' ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
@@ -464,13 +492,16 @@ ${res.actionNow}
                                         </Avatar>
                                     )}
                                     <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
-                                        <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
-                                        { msg.text && (
+                                         { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
+                                        { msg.text && !isAlert && (
                                             <div className={cn('p-3 rounded-lg border flex flex-col',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                             </div>
+                                        )}
+                                        {isAlert && msg.title && msg.text && (
+                                            <AlertMessageCard title={msg.title} text={msg.text} />
                                         )}
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
