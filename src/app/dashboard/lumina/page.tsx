@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { TransactionFormSchema } from '@/lib/types';
 import { QrScannerDialog } from '@/components/qr-scanner-dialog';
 import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
 
 
 const PremiumBlocker = () => (
@@ -221,8 +222,73 @@ export default function LuminaPage() {
         if (!currentMessage) return;
 
         await saveMessage('user', currentMessage);
-        await callLumina(currentMessage);
+        
+        const lowerCaseMessage = currentMessage.toLowerCase();
+
+        // Check for trigger phrases
+        if (lowerCaseMessage === "lúmina, acione o protocolo de recuperação de performance.") {
+            await handleRecoveryProtocol('full');
+        } else if (lowerCaseMessage === "lúmina, modo flash") {
+            await handleRecoveryProtocol('flash');
+        } else {
+            await callLumina(currentMessage);
+        }
     };
+
+    const handleRecoveryProtocol = async (type: 'full' | 'flash') => {
+        setIsLuminaThinking(true);
+        try {
+            const result = await runRecoveryProtocol({ transactions, promptType: type });
+            let formattedResponse = '';
+
+            if (type === 'full') {
+                const res = result as RecoveryProtocolOutput;
+                formattedResponse = `
+**PROTOCOLO DE RECUPERAÇÃO DE PERFORMANCE ACIONADO.**
+
+**1. DIAGNÓSTICO DE INEFICIÊNCIA:**
+${res.inefficiencyPoint}
+
+**2. DECISÕES OMITIDAS:**
+${res.missedDecisions}
+
+**3. OPORTUNIDADES DESPERDIÇADAS:**
+${res.wastedOpportunities}
+
+**4. AÇÃO DE ALTA PERFORMANCE (PRÓXIMAS 48H):**
+${res.highPerformerActions}
+
+**5. PLANO DE RECUPERAÇÃO (PRÓXIMO MÊS):**
+${res.recoveryPlan}
+
+**MANTRA DE GUERRA:**
+**${res.warMantra}**
+`;
+            } else {
+                 const res = result as FlashRecoveryOutput;
+                formattedResponse = `
+**MODO FLASH ACIONADO.**
+
+**DIAGNÓSTICO DE FALHA:**
+${res.failureSummary}
+
+**AÇÃO IMEDIATA:**
+${res.actionNow}
+
+**MANTRA DE REPROGRAMAÇÃO:**
+**${res.warMantra}**
+`;
+            }
+
+            await saveMessage('lumina', formattedResponse, 'Lúmina', '/lumina-avatar.png');
+
+        } catch (error) {
+            console.error(`Error with Recovery Protocol (${type}):`, error);
+            await saveMessage('lumina', "Desculpe, não foi possível executar o protocolo agora. Verifique seus dados e tente novamente.", 'Lúmina', '/lumina-avatar.png');
+        } finally {
+            setIsLuminaThinking(false);
+        }
+    }
     
     const handleAudioRecording = () => {
         if (!('webkitSpeechRecognition' in window)) {
