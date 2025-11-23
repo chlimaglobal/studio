@@ -322,5 +322,6 @@ export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSc
 export type UserStatus = {
     jaAlertadoMesNegativo?: boolean;
     ultimoMesChecado?: string; // format YYYY-MM
+    mesAlertadoRenda?: string; // format YYYY-MM
 };
     
