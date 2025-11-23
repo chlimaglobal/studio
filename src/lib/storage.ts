@@ -45,6 +45,13 @@ export const initializeUser = async (user: User) => {
     }
 };
 
+export async function updateUserFinancials(userId: string, data: { manualCostOfLiving?: number; monthlyIncome?: number; payday?: number }) {
+    if (!userId) throw new Error("User not authenticated");
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, cleanDataForFirestore(data));
+}
+
+
 export function onUserSubscriptionUpdate(userId: string, callback: (status: string) => void): () => void {
     if (!userId) {
         console.error("onUserSubscriptionUpdate called without a userId.");

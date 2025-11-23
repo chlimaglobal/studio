@@ -16,7 +16,7 @@ import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysi
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions, useViewMode } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, getDoc, doc, updateDoc, onUserStatusUpdate, updateUserStatus, addChatMessage } from '@/lib/storage';
@@ -307,6 +307,7 @@ export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const { transactions, isLoading: isLoadingTransactions } = useTransactions();
     const { user } = useAuth();
+    const { viewMode, partnerData } = useViewMode();
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
@@ -454,62 +455,91 @@ export default function DashboardPage() {
         if (isLoadingTransactions || !user) return;
         
         const currentMonthStr = format(new Date(), 'yyyy-MM');
+        const userName = user.displayName?.split(' ')[0] || 'Usuário';
 
         // Logic for negative balance alert
-        if (userStatus.ultimoMesChecado !== currentMonthStr) {
-            updateUserStatus(user.uid, { jaAlertadoMesNegativo: false });
-        }
-        
-        const lastMonthData = chartData[chartData.length - 2];
-        if (lastMonthData && lastMonthData.resultado < 0 && !userStatus.jaAlertadoMesNegativo) {
-            const userName = user.displayName?.split(' ')[0] || 'Usuário';
-            
-            addChatMessage(user.uid, {
-                role: 'alerta',
-                title: "🚨 Seu mês fechou no vermelho",
-                text: `${userName}, identifiquei que o fechamento mensal ficou negativo. Quer que eu te mostre exatamente onde ocorreu o desequilíbrio e quais ajustes podem trazer você de volta ao azul?`,
-                authorName: "Lúmina"
-            });
-            updateUserStatus(user.uid, { jaAlertadoMesNegativo: true, ultimoMesChecado: currentMonthStr });
-        }
-
-        // Logic for income vs cost of living alert
-        const ultimoMesChartData = chartData[chartData.length - 1];
-        const rendaMes = ultimoMesChartData?.aReceber ?? 0;
-        
-        if (costOfLiving > 0 && rendaMes > 0 && userStatus.mesAlertadoRenda !== currentMonthStr) {
-            const rendaIdeal = costOfLiving * 1.4;
-            let mensagem: { title: string; text: string } | null = null;
-            const userName = user.displayName?.split(' ')[0] || 'Usuário';
-
-            if (rendaMes < costOfLiving) {
-                mensagem = {
-                    title: "⚠️ Sua renda está abaixo do custo de vida",
-                    text: `${userName}, sua renda atual (${formatCurrency(rendaMes)}) está abaixo do seu custo de vida (${formatCurrency(costOfLiving)}). Quer que eu te mostre como equilibrar isso?`,
-                };
-            } else if (rendaMes >= costOfLiving && rendaMes < rendaIdeal) {
-                mensagem = {
-                    title: "📊 Falta pouco para atingir sua renda ideal",
-                    text: `${userName}, você cobre seu custo de vida, mas ainda falta uma margem de segurança. Sua renda ideal seria ${formatCurrency(rendaIdeal)}.`,
-                };
-            } else if (rendaMes >= rendaIdeal) {
-                mensagem = {
-                    title: "🎉 Excelente! Sua renda está no nível ideal",
-                    text: `${userName}, sua renda atual já está acima da renda ideal (${formatCurrency(rendaIdeal)}). Ótimo trabalho! Quer analisar onde investir essa sobra?`,
-                };
-            }
-
-            if (mensagem) {
+        if (viewMode === 'separate' && userStatus.ultimoMesChecado !== currentMonthStr) {
+            const lastMonthData = chartData[chartData.length - 2];
+            if (lastMonthData && lastMonthData.resultado < 0 && !userStatus.jaAlertadoMesNegativo) {
                 addChatMessage(user.uid, {
                     role: 'alerta',
-                    ...mensagem,
-                    authorName: 'Lúmina',
+                    title: "🚨 Seu mês fechou no vermelho",
+                    text: `${userName}, identifiquei que o fechamento mensal ficou negativo. Quer que eu te mostre exatamente onde ocorreu o desequilíbrio e quais ajustes podem trazer você de volta ao azul?`,
+                    authorName: "Lúmina"
                 });
-                updateUserStatus(user.uid, { mesAlertadoRenda: currentMonthStr });
+                updateUserStatus(user.uid, { jaAlertadoMesNegativo: true, ultimoMesChecado: currentMonthStr });
             }
         }
-    // Only re-run when these specific values change to avoid too many writes
-    }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
+        
+        // Logic for individual income vs cost of living alert
+        if (viewMode === 'separate' && userStatus.mesAlertadoRenda !== currentMonthStr) {
+            const ultimoMesChartData = chartData[chartData.length - 1];
+            const rendaMes = ultimoMesChartData?.aReceber ?? 0;
+            
+            if (costOfLiving > 0 && rendaMes > 0) {
+                const rendaIdeal = costOfLiving * 1.4;
+                let mensagem: { title: string; text: string } | null = null;
+                
+                if (rendaMes < costOfLiving) {
+                    mensagem = {
+                        title: "⚠️ Sua renda está abaixo do custo de vida",
+                        text: `${userName}, sua renda atual (${formatCurrency(rendaMes)}) está abaixo do seu custo de vida (${formatCurrency(costOfLiving)}). Quer que eu te mostre como equilibrar isso?`,
+                    };
+                } else if (rendaMes < rendaIdeal) {
+                    mensagem = {
+                        title: "📊 Falta pouco para atingir sua renda ideal",
+                        text: `${userName}, você cobre seu custo de vida, mas ainda falta uma margem de segurança. Sua renda ideal seria ${formatCurrency(rendaIdeal)}.`,
+                    };
+                } else {
+                    mensagem = {
+                        title: "🎉 Excelente! Sua renda está no nível ideal",
+                        text: `${userName}, sua renda atual já está acima da renda ideal (${formatCurrency(rendaIdeal)}). Ótimo trabalho! Quer analisar onde investir essa sobra?`,
+                    };
+                }
+
+                if (mensagem) {
+                    addChatMessage(user.uid, { role: 'alerta', ...mensagem, authorName: 'Lúmina' });
+                    updateUserStatus(user.uid, { mesAlertadoRenda: currentMonthStr });
+                }
+            }
+        }
+
+        // Logic for couple income vs cost of living alert
+        if (viewMode === 'together' && partnerData && userStatus.mesAlertadoCasal !== currentMonthStr) {
+            const rendaUsuario = chartData[chartData.length - 1]?.aReceber ?? 0;
+            // @ts-ignore
+            const rendaParceiro = partnerData?.monthlyIncome ?? 0;
+            const rendaTotalCasal = rendaUsuario + rendaParceiro;
+            
+            if (costOfLiving > 0 && rendaTotalCasal > 0) {
+                const rendaIdealCasal = costOfLiving * 1.4;
+                let mensagem: { title: string; text: string } | null = null;
+                
+                if (rendaTotalCasal < costOfLiving) {
+                    mensagem = {
+                        title: "⚠️ Renda conjunta abaixo do custo de vida",
+                        text: `A renda do casal (${formatCurrency(rendaTotalCasal)}) está abaixo do custo de vida (${formatCurrency(costOfLiving)}). Quer ver como equilibrar?`
+                    };
+                } else if (rendaTotalCasal < rendaIdealCasal) {
+                     mensagem = {
+                        title: "📊 O casal está quase no nível financeiro ideal",
+                        text: `Vocês estão cobrindo o custo de vida, mas a renda ideal seria ${formatCurrency(rendaIdealCasal)}. Querem ver como alcançar isso juntos?`
+                    };
+                } else {
+                     mensagem = {
+                        title: "🎉 Renda familiar saudável",
+                        text: `O casal está acima da renda ideal (${formatCurrency(rendaIdealCasal)}). Excelente. Querem analisar como investir essa sobra?`
+                    };
+                }
+                
+                if (mensagem) {
+                     addChatMessage(user.uid, { role: 'alerta', ...mensagem, authorName: 'Lúmina' });
+                     updateUserStatus(user.uid, { mesAlertadoCasal: currentMonthStr });
+                }
+            }
+        }
+
+    }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving, viewMode, partnerData]);
     
     if (isLoadingTransactions || isLoadingBudgets) {
         return <DashboardLoadingSkeleton />;

@@ -8,8 +8,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Loader2, Save, Home, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/client-providers';
+import { updateUserFinancials } from '@/lib/storage';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function CostOfLivingPage() {
+    const { user } = useAuth();
     const [manualCostOfLiving, setManualCostOfLiving] = useState('');
     const [monthlyIncome, setMonthlyIncome] = useState('');
     const [payday, setPayday] = useState('');
@@ -18,23 +23,39 @@ export default function CostOfLivingPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const storedCost = localStorage.getItem('manualCostOfLiving');
-        if (storedCost) setManualCostOfLiving(storedCost);
-        
-        const storedIncome = localStorage.getItem('monthlyIncome');
-        if (storedIncome) setMonthlyIncome(storedIncome);
+        async function loadUserData() {
+            if (user) {
+                const userDocRef = doc(db, 'users', user.uid);
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    setManualCostOfLiving(data.manualCostOfLiving?.toString() || '');
+                    setMonthlyIncome(data.monthlyIncome?.toString() || '');
+                    setPayday(data.payday?.toString() || '');
+                }
+            }
+        }
+        loadUserData();
+    }, [user]);
 
-        const storedPayday = localStorage.getItem('payday');
-        if (storedPayday) setPayday(storedPayday);
-
-    }, []);
-
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (!user) return;
         setIsLoading(true);
         try {
-            localStorage.setItem('manualCostOfLiving', manualCostOfLiving);
-            localStorage.setItem('monthlyIncome', monthlyIncome);
-            localStorage.setItem('payday', payday);
+            const cost = parseFloat(manualCostOfLiving.replace(',', '.')) || 0;
+            const income = parseFloat(monthlyIncome.replace(',', '.')) || 0;
+            const day = parseInt(payday, 10) || 0;
+
+            await updateUserFinancials(user.uid, {
+                manualCostOfLiving: cost,
+                monthlyIncome: income,
+                payday: day
+            });
+
+            // Also update localStorage for immediate reflection on dashboard
+            localStorage.setItem('manualCostOfLiving', cost.toString());
+
+
             toast({
                 title: 'Sucesso!',
                 description: 'Suas configurações financeiras foram salvas.',

@@ -323,5 +323,5 @@ export type UserStatus = {
     jaAlertadoMesNegativo?: boolean;
     ultimoMesChecado?: string; // format YYYY-MM
     mesAlertadoRenda?: string; // format YYYY-MM
+    mesAlertadoCasal?: string; // format YYYY-MM
 };
-    
