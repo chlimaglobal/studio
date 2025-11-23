@@ -5,8 +5,10 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import * as sgMail from '@sendgrid/mail';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
+import { Transaction } from '@/lib/types';
 
 const sendGridApiKey = process.env.SENDGRID_API_KEY;
 if (sendGridApiKey) {
@@ -433,5 +435,106 @@ export const handleUserLogin = onCall(async (request) => {
     } catch (error) {
         console.error('Error in handleUserLogin transaction:', error);
         throw new HttpsError('internal', 'Failed to handle user login.');
+    }
+});
+
+
+/**
+ * Scheduled function that runs on the last day of every month at 23:55.
+ * It calculates the monthly balance for each user and sends a notification if it's positive.
+ */
+export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
+    console.log("Running monthly summary function.");
+    if (!adminDb || !adminApp) {
+        console.error("Admin services not initialized. Aborting.");
+        return;
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+    const usersSnapshot = await adminDb.collection('users').get();
+    
+    for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+
+        // Check if a notification has already been sent this month
+        const lastSentTimestamp = userData.lumina?.monthlySuccessLastSent as Timestamp | undefined;
+        if (lastSentTimestamp) {
+            const lastSentDate = lastSentTimestamp.toDate();
+            if (lastSentDate.getMonth() === currentMonth && lastSentDate.getFullYear() === currentYear) {
+                console.log(`Skipping user ${userId}: notification already sent this month.`);
+                continue;
+            }
+        }
+        
+        const fcmTokens = userData.fcmTokens;
+        if (!fcmTokens || fcmTokens.length === 0) {
+            console.log(`Skipping user ${userId}: no FCM tokens.`);
+            continue;
+        }
+
+        const transactionsRef = adminDb.collection('users').doc(userId).collection('transactions');
+        const query = transactionsRef
+            .where('date', '>=', startOfMonth)
+            .where('date', '<=', endOfMonth);
+
+        const transactionsSnapshot = await query.get();
+
+        if (transactionsSnapshot.empty) {
+            console.log(`Skipping user ${userId}: no transactions this month.`);
+            continue;
+        }
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        transactionsSnapshot.forEach(doc => {
+            const t = doc.data() as Transaction;
+            if (t.type === 'income') {
+                totalIncome += t.amount;
+            } else {
+                totalExpense += t.amount;
+            }
+        });
+
+        const balance = totalIncome - totalExpense;
+        console.log(`User ${userId} monthly balance: ${balance}`);
+
+        if (balance > 0) {
+            console.log(`User ${userId} has a positive balance. Sending notification.`);
+            const message = {
+                notification: {
+                    title: 'Parabéns!',
+                    body: "Incrível! Você fechou o mês no azul. Quer ver o que contribuiu mais para esse resultado?",
+                },
+                tokens: fcmTokens,
+                webpush: {
+                    notification: {
+                        badge: '/icon-192x192.png',
+                        icon: '/icon-192x192.png',
+                        data: { url: '/dashboard/reports' }
+                    },
+                    fcmOptions: { link: '/dashboard/reports' }
+                },
+            };
+
+            try {
+                await getMessaging(adminApp).sendEachForMulticast(message);
+                await adminDb.collection('users').doc(userId).set({
+                    lumina: {
+                        monthlySuccessLastSent: Timestamp.now()
+                    }
+                }, { merge: true });
+                console.log(`Notification sent to user ${userId}.`);
+            } catch (error) {
+                console.error(`Error sending notification to user ${userId}:`, error);
+            }
+        }
     }
 });
