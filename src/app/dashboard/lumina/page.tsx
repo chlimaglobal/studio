@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -129,14 +127,10 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
-const AlertMessageCard = ({ title, text }: { title: string, text: string }) => {
+const AlertMessageCard = ({ text }: { text: string }) => {
     return (
-        <div className="w-full max-w-[80%] md:max-w-[70%] p-3 space-y-2 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <h3 className="font-semibold text-destructive text-base flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                {title}
-            </h3>
-            <p className="text-sm text-destructive/90 whitespace-pre-wrap">{text}</p>
+        <div className="w-full max-w-[80%] md:max-w-[70%] p-3 space-y-2 bg-destructive/20 border border-destructive/30 rounded-lg">
+             <p className="text-sm text-destructive/90 whitespace-pre-wrap">{text}</p>
         </div>
     )
 }
@@ -484,8 +478,8 @@ ${res.actionNow}
                                                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                             </div>
                                         )}
-                                        {isAlert && msg.title && msg.text && (
-                                            <AlertMessageCard title={msg.title} text={msg.text} />
+                                        {isAlert && msg.text && (
+                                            <AlertMessageCard text={msg.text} />
                                         )}
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 

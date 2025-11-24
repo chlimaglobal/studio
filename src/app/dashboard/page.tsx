@@ -4,7 +4,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
-import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home, AlertTriangle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -463,8 +463,7 @@ export default function DashboardPage() {
             if (lastMonthData && lastMonthData.resultado < 0 && !userStatus.jaAlertadoMesNegativo) {
                 addChatMessage(user.uid, {
                     role: 'alerta',
-                    title: "🚨 Seu mês fechou no vermelho",
-                    text: `${userName}, identifiquei que o fechamento mensal ficou negativo. Quer que eu te mostre exatamente onde ocorreu o desequilíbrio e quais ajustes podem trazer você de volta ao azul?`,
+                    text: `🚨 **Seu mês fechou no vermelho**\n${userName}, identifiquei que o fechamento mensal ficou negativo. Quer que eu te mostre onde ocorreu o desequilíbrio e quais ajustes podem trazer você de volta ao azul?`,
                     authorName: "Lúmina"
                 });
                 updateUserStatus(user.uid, { jaAlertadoMesNegativo: true, ultimoMesChecado: currentMonthStr });
@@ -478,25 +477,16 @@ export default function DashboardPage() {
             
             if (costOfLiving > 0 && rendaMes > 0) {
                 const rendaIdeal = costOfLiving * 1.4;
-                let mensagem: { title: string; text: string } | null = null;
+                let mensagem: string | null = null;
                 
                 if (rendaMes < costOfLiving) {
-                    mensagem = {
-                        title: "❗ Renda abaixo do custo de vida",
-                        text: `Renda atual: ${formatCurrency(rendaMes)}\nCusto de vida: ${formatCurrency(costOfLiving)}\n\nSua renda está ${formatCurrency(costOfLiving - rendaMes)} abaixo do ideal. Quer dicas para reequilibrar?`
-                    };
+                    mensagem = `❗ **Renda abaixo do custo de vida**\nRenda atual: ${formatCurrency(rendaMes)}\nCusto de vida: ${formatCurrency(costOfLiving)}\n\nSua renda está ${formatCurrency(costOfLiving - rendaMes)} abaixo do ideal. Quer dicas para reequilibrar?`;
                 } else if (rendaMes < rendaIdeal) {
-                    mensagem = {
-                        title: "📊 Quase lá! Sua renda pode melhorar",
-                        text: `${userName}, você cobre seu custo de vida, mas para uma saúde financeira ideal, sua renda poderia ser ${formatCurrency(rendaIdeal)}.`,
-                    };
-                } else {
-                     // Not sending a success message here to avoid too much noise,
-                     // but you could add one if desired.
+                     mensagem = `📊 **Quase lá! Sua renda pode melhorar**\n${userName}, você cobre seu custo de vida, mas para uma saúde financeira ideal, sua renda poderia ser ${formatCurrency(rendaIdeal)}.`;
                 }
 
                 if (mensagem) {
-                    addChatMessage(user.uid, { role: 'alerta', ...mensagem, authorName: 'Lúmina' });
+                    addChatMessage(user.uid, { role: 'alerta', text: mensagem, authorName: 'Lúmina' });
                     updateUserStatus(user.uid, { mesAlertadoRenda: currentMonthStr });
                 }
             }
@@ -511,27 +501,18 @@ export default function DashboardPage() {
             
             if (costOfLiving > 0 && rendaTotalCasal > 0) {
                 const rendaIdealCasal = costOfLiving * 1.4;
-                let mensagem: { title: string; text: string } | null = null;
+                let mensagem: string | null = null;
                 
                 if (rendaTotalCasal < costOfLiving) {
-                    mensagem = {
-                        title: "⚠️ Renda conjunta abaixo do custo de vida",
-                        text: `A renda do casal (${formatCurrency(rendaTotalCasal)}) está abaixo do custo de vida (${formatCurrency(costOfLiving)}). Quer ver como equilibrar?`
-                    };
+                    mensagem = `⚠️ **Renda conjunta abaixo do custo de vida**\nA renda do casal (${formatCurrency(rendaTotalCasal)}) está abaixo do custo de vida (${formatCurrency(costOfLiving)}). Quer ver como equilibrar?`;
                 } else if (rendaTotalCasal < rendaIdealCasal) {
-                     mensagem = {
-                        title: "📊 O casal está quase no nível financeiro ideal",
-                        text: `Vocês estão cobrindo o custo de vida, mas a renda ideal seria ${formatCurrency(rendaIdealCasal)}. Querem ver como alcançar isso juntos?`
-                    };
+                     mensagem = `📊 **O casal está quase no nível financeiro ideal**\nVocês estão cobrindo o custo de vida, mas a renda ideal seria ${formatCurrency(rendaIdealCasal)}. Querem ver como alcançar isso juntos?`;
                 } else {
-                     mensagem = {
-                        title: "🎉 Renda familiar saudável",
-                        text: `O casal está acima da renda ideal (${formatCurrency(rendaIdealCasal)}). Excelente. Querem analisar como investir essa sobra?`
-                    };
+                     mensagem = `🎉 **Renda familiar saudável**\nO casal está acima da renda ideal (${formatCurrency(rendaIdealCasal)}). Excelente. Querem analisar como investir essa sobra?`;
                 }
                 
                 if (mensagem) {
-                     addChatMessage(user.uid, { role: 'alerta', ...mensagem, authorName: 'Lúmina' });
+                     addChatMessage(user.uid, { role: 'alerta', text: mensagem, authorName: 'Lúmina' });
                      updateUserStatus(user.uid, { mesAlertadoCasal: currentMonthStr });
                 }
             }

@@ -236,8 +236,7 @@ export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 // Types for Lumina Chat Flow
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'partner', 'lumina', 'alerta']),
-  text: z.string(),
-  title: z.string().optional(),
+  text: z.string().optional(),
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().optional(),
   transactionToConfirm: ExtractedTransactionSchema.optional().nullable(),
