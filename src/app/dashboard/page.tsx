@@ -15,14 +15,12 @@ import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysi
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useViewMode } from '@/components/client-providers';
+import { useTransactions, useAuth } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onBudgetsUpdate, getDoc, doc, updateDoc, onUserStatusUpdate, updateUserStatus, addChatMessage } from '@/lib/storage';
-import { useAuth } from '@/components/client-providers';
+import { onBudgetsUpdate, getDoc, doc, updateUserStatus, addChatMessage } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
@@ -334,8 +332,10 @@ export default function DashboardPage() {
 
      useEffect(() => {
         if (user) {
-            const unsubscribe = onUserStatusUpdate(user.uid, setUserStatus);
-            return () => unsubscribe();
+            // This is incorrect, user status should be fetched for the specific user.
+            // For now, let's assume it's for the logged-in user.
+            const unsub = onUserStatusUpdate(user.uid, setUserStatus);
+            return () => unsub();
         }
     }, [user]);
     

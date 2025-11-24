@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { onSnapshot, doc, getDoc, query, collection, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Partner, CoupleLink, AppUser } from '@/lib/types';
+import type { AppUser, CoupleLink } from '@/lib/types';
 import { getAuth } from 'firebase/auth';
 
 export type CoupleStatus = "single" | "pending_sent" | "pending_received" | "linked";
@@ -75,7 +75,7 @@ export function initializeCoupleStore() {
                     const coupleLinkDoc = await getDoc(doc(db, 'coupleLinks', coupleId));
                     if(coupleLinkDoc.exists()) {
                         setStatus('linked');
-                        const coupleLinkData = coupleLinkDoc.data() as CoupleLink;
+                        const coupleLinkData = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
                         setCoupleLink({ id: coupleId, ...coupleLinkData });
                         const partnerId = coupleLinkData.userA === user.uid ? coupleLinkData.userB : coupleLinkData.userA;
                         
@@ -107,6 +107,7 @@ export function initializeCoupleStore() {
                             setStatus('single');
                             setInvite(null);
                         }
+                        setLoading(false);
                     });
 
                     // Listen for invites SENT TO the user
@@ -119,9 +120,9 @@ export function initializeCoupleStore() {
                             setStatus('single');
                             setInvite(null);
                         }
+                        setLoading(false);
                     });
                 }
-                 setLoading(false);
             });
         } else {
             // User logged out

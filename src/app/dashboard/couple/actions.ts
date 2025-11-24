@@ -21,6 +21,7 @@ const InviteActionSchema = z.object({
 // Helper function to get the current user from the session
 async function getCurrentUser(uid: string) {
     if (!uid) return null;
+    if (!adminDb) return null;
     const userDoc = await adminDb.collection('users').doc(uid).get();
     if (!userDoc.exists) return null;
     return { uid, ...userDoc.data() };
@@ -32,6 +33,10 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
   if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
   
   const { uid, email: currentUserEmail, displayName } = currentUserFromClient;
+
+  if (!adminDb || !adminApp) {
+      return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+  }
 
   const validatedFields = InviteSchema.safeParse({
     email: formData.get('email'),
@@ -94,6 +99,8 @@ export async function acceptPartnerInvite(prevState: any, formData: FormData) {
     if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
     const inviteeUid = currentUserFromClient.uid;
 
+    if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+
     const validatedFields = InviteActionSchema.safeParse({
         inviteId: formData.get('inviteId'),
     });
@@ -151,6 +158,8 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
     const currentUserFromClient = clientAuth.currentUser;
     if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
     
+    if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+
      const validatedFields = InviteActionSchema.safeParse({
         inviteId: formData.get('inviteId'),
     });
@@ -163,7 +172,8 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
     const inviteRef = adminDb.collection('invites').doc(inviteId);
 
     try {
-        await inviteRef.update({ status: 'rejected' });
+        // Can be a soft delete (update status) or hard delete
+        await inviteRef.delete();
         revalidatePath('/dashboard');
         return { success: 'Convite recusado.' };
     } catch (error) {
@@ -177,6 +187,8 @@ export async function disconnectPartner(prevState: any, formData: FormData) {
     const currentUserFromClient = clientAuth.currentUser;
     if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
     const { uid } = currentUserFromClient;
+
+    if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
 
     const userRef = adminDb.collection('users').doc(uid);
     const userDoc = await userRef.get();
