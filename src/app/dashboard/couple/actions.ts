@@ -139,6 +139,7 @@ export async function acceptPartnerInvite(prevState: any, formData: FormData) {
             uid: uid,
             name: inviteeData.displayName,
             email: inviteeData.email,
+            photoURL: inviteeData.photoURL || '',
             coupleId: coupleLinkRef.id,
         });
 
@@ -147,6 +148,7 @@ export async function acceptPartnerInvite(prevState: any, formData: FormData) {
             uid: inviterId,
             name: inviterData.displayName,
             email: inviterData.email,
+            photoURL: inviterData.photoURL || '',
             coupleId: coupleLinkRef.id,
         });
 

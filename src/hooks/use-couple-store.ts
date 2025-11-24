@@ -11,12 +11,12 @@ export type CoupleStatus = "single" | "pending_sent" | "pending_received" | "lin
 interface CoupleState {
   partner: Partner | null;
   status: CoupleStatus;
-  invite: { inviteId?: string; sentBy?: string, sentTo?: string } | null,
+  invite: { inviteId?: string; sentBy?: string, sentTo?: string, sentByName?: string; sentByEmail?: string } | null,
   coupleLink: CoupleLink | null;
   loading: boolean;
   setPartner: (partner: Partner | null) => void;
   setStatus: (status: CoupleStatus) => void;
-  setInvite: (invite: { inviteId?: string; sentBy?: string, sentTo?: string } | null) => void;
+  setInvite: (invite: { inviteId?: string; sentBy?: string, sentTo?: string, sentByName?: string; sentByEmail?: string } | null) => void;
   setCoupleLink: (coupleLink: CoupleLink | null) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
@@ -67,7 +67,7 @@ export function initializeCoupleStore() {
                     if (coupleId) {
                        unsubCoupleLink = onSnapshot(doc(db, 'coupleLinks', coupleId), (coupleDoc) => {
                             if (coupleDoc.exists()) {
-                                setCoupleLink(coupleDoc.data() as CoupleLink);
+                                setCoupleLink({ id: coupleDoc.id, ...coupleDoc.data() } as CoupleLink);
                             }
                        });
                     }
@@ -81,7 +81,9 @@ export function initializeCoupleStore() {
                             setInvite({ 
                                 inviteId: inviteData.inviteId,
                                 sentBy: inviteData.sentBy,
-                                sentTo: inviteData.sentTo
+                                sentTo: inviteData.sentTo,
+                                sentByName: inviteData.sentByName,
+                                sentByEmail: inviteData.sentByEmail,
                             });
                             setStatus(inviteData.sentBy === user.uid ? 'pending_sent' : 'pending_received');
                         } else {

@@ -23,7 +23,7 @@ function DisconnectButton() {
     const { pending } = useFormStatus();
     return (
         <AlertDialogTrigger asChild>
-            <Button variant="destructive_outline" className="w-full" disabled={pending}>
+            <Button variant="destructive" className="w-full" disabled={pending}>
                 {pending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

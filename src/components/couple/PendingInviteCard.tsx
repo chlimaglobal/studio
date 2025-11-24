@@ -23,11 +23,35 @@ function ActionButton({ variant, children }: { variant: 'accept' | 'reject', chi
 }
 
 export function PendingInviteCard() {
-    const { invite } = useCoupleStore();
+    const { invite, status } = useCoupleStore();
     const [acceptState, acceptAction] = useFormState(acceptPartnerInvite, null);
     const [rejectState, rejectAction] = useFormState(rejectPartnerInvite, null);
 
-    if (!invite) return null;
+    if (!invite || status === 'linked') return null;
+    
+    if (status === 'pending_sent') {
+        return (
+            <Card className="max-w-md mx-auto bg-secondary">
+                <CardHeader>
+                     <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-6 w-6 text-primary" />
+                        Convite Enviado
+                    </CardTitle>
+                    <CardDescription>
+                        Você enviou um convite para vincular contas. Aguardando resposta.
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                    <form action={rejectAction} className="w-full">
+                         <input type="hidden" name="inviteId" value={invite.inviteId} />
+                         <ActionButton variant="reject">
+                            <X className="mr-2 h-4 w-4" /> Cancelar Convite
+                        </ActionButton>
+                    </form>
+                </CardFooter>
+            </Card>
+        )
+    }
 
     return (
         <Card className="max-w-md mx-auto">

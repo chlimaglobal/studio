@@ -258,10 +258,8 @@ export const LuminaChatInputSchema = z.object({
 });
 export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
-
 export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
-
 
 export const LuminaCoupleChatInputSchema = z.object({
   chatHistory: z.array(z.object({
@@ -330,21 +328,6 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
-// Couple Feature Types
-export type Partner = {
-  uid: string;
-  name: string;
-  email: string;
-  coupleId: string;
-}
-
-export type CoupleLink = {
-  userA: string;
-  userB: string;
-  createdAt: any; // Firestore Timestamp
-  status: 'active';
-}
-
 // Type for App User data
 export type AppUser = {
     uid: string;
@@ -354,6 +337,23 @@ export type AppUser = {
     coupleId?: string | null;
     monthlyIncome?: number;
 };
+
+// Couple Feature Types
+export type Partner = {
+  uid: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  coupleId: string;
+}
+
+export type CoupleLink = {
+  id: string;
+  userA: string;
+  userB: string;
+  createdAt: any; // Firestore Timestamp
+  status: 'active';
+}
 
 // Type for Couple data structure
 export type Couple = {
