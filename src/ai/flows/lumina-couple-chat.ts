@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -11,7 +10,6 @@ import { z } from 'zod';
 import type { LuminaChatInput, AppUser } from '@/lib/types';
 import { LuminaChatOutputSchema } from '@/lib/types';
 
-
 export const LuminaCoupleChatInputSchema = z.object({
   chatHistory: z.array(z.object({
     role: z.enum(['user', 'model']),
@@ -23,7 +21,6 @@ export const LuminaCoupleChatInputSchema = z.object({
   partner: z.any().describe('The user object of the partner.'),
 });
 export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
-
 
 export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<string> {
     return luminaCoupleChatFlow(input);
@@ -84,5 +81,4 @@ const luminaCoupleChatFlow = ai.defineFlow(
     }
     
     return output;
-  }
-);
+});
