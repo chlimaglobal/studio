@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions, useLumina } from '@/components/client-providers';
 import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X, Camera, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -132,9 +131,8 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 const AlertMessageCard = ({ text }: { text: string }) => {
     // This component now expects the raw text and will format it using Tailwind classes.
     const parts = text.split('\n\n');
-    const titleLine = parts[0] || '';
-    const mainMessage = parts[1] || '';
-    const secondaryMessage = parts[2] || '';
+    const titleLine = parts.shift() || '';
+    const mainMessage = parts.join('\n\n');
 
     return (
         <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
@@ -143,7 +141,6 @@ const AlertMessageCard = ({ text }: { text: string }) => {
                 <span>{titleLine.replace(':', '')}</span>
             </div>
             {mainMessage && <p className="text-red-300" dangerouslySetInnerHTML={{ __html: mainMessage.replace(/\n/g, '<br />')}}></p>}
-            {secondaryMessage && <p className="text-red-200 font-medium">{secondaryMessage}</p>}
         </div>
     );
 };
@@ -449,9 +446,11 @@ ${res.actionNow}
                  <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                </div>
                 <div>
                     <h1 className="text-xl font-semibold flex items-center gap-2">
-                        <MessageSquare />
                         Mural do Casal
                     </h1>
                     <p className="text-sm text-muted-foreground">Converse sobre finanças e receba dicas da Lúmina.</p>
@@ -468,7 +467,7 @@ ${res.actionNow}
                                 const isAlert = msg.role === 'alerta';
                                 
                                 return (
-                                <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
+                                <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
                                     {!isUser && !isAlert && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             {isLumina ? (
@@ -487,10 +486,10 @@ ${res.actionNow}
                                          { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
                                         
                                         { (msg.text && !isAlert) && (
-                                            <div className={cn('p-3 rounded-lg border flex flex-col',
+                                            <div className={cn('p-3 rounded-lg border flex flex-col break-words',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
-                                                <p className={cn("text-sm break-words", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
+                                                <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
                                         )}
 
