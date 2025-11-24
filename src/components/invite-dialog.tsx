@@ -130,3 +130,5 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     </Dialog>
   );
 }
+
+    
