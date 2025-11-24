@@ -8,12 +8,12 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { LuminaCoupleChatInput } from '@/lib/types';
-import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import type { LuminaChatOutput } from '@/lib/types';
+import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema, type LuminaCoupleChatInput } from '@/lib/types';
 
 
-export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<string> {
-    return luminaCoupleChatFlow(input);
+export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<LuminaChatOutput> {
+  return luminaCoupleChatFlow(input);
 }
 
 const luminaCoupleChatFlow = ai.defineFlow(
@@ -29,46 +29,76 @@ const luminaCoupleChatFlow = ai.defineFlow(
       },
     },
   },
+
   async (input) => {
-    
+
+    // Mapeia histórico para o formato aceito pelo Gemini
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role,
-      content: [{text: msg.text}],
+      content: [
+        {
+          text: msg.text,
+        }
+      ],
     }));
 
+    // Limite de transações
     const transactionsForContext = input.allTransactions.slice(0, 50);
 
     const { output } = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        history: mappedChatHistory,
-        prompt: `Você é a Lúmina, uma planejadora financeira empática, positiva e especialista em finanças para casais.
-        O usuário atual que está enviando a mensagem é ${input.user.displayName}. O parceiro(a) é ${input.partner.displayName}.
+      model: 'googleai/gemini-2.5-flash',
 
-        **Sua Personalidade:**
-        - **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar.
-        - **Baseada em Dados:** Use os dados de transações (que incluem dados de ambos) para embasar suas sugestões. Seja específica (ex: "Notei gastos de R$X em 'Delivery'").
-        - **Focada em Soluções:** Em vez de apenas apontar problemas, sugira ações práticas para o casal.
-        - **Concisa e Conversacional:** Mantenha as respostas curtas, como em um chat.
+      history: [
+        ...mappedChatHistory,
+      ],
+      prompt: `
+Você é a Lúmina, uma assistente financeira empática e especialista em equilíbrio financeiro para casais.
 
-        **Suas Habilidades Analíticas:**
-        Para responder perguntas, você DEVE usar os dados financeiros combinados fornecidos abaixo. Suas habilidades incluem:
-        1.  **Análise Mensal:** Calcular receita total, despesa total e balanço (receita - despesa) do mês corrente para o casal.
-        2.  **Identificação de Top Gastos:** Listar as 3 categorias com maiores despesas no mês corrente para o casal.
-        3.  **Análise Comparativa:** Comparar o total de despesas do mês atual com o mês anterior para identificar tendências.
-        4.  **Resumo de Gastos por Categoria:** Quando perguntada sobre uma categoria específica, some todos os gastos do casal nessa categoria no período relevante.
+Quem enviou a mensagem agora é: ${input.user.displayName}
+O parceiro(a) dele(a) é: ${input.partner.displayName}
 
-        ---
-        **Dados Financeiros para Análise (últimas 50 transações do casal):**
-        ${JSON.stringify(transactionsForContext, null, 2)}
-        ---
-        
-        **Nova Mensagem de ${input.user.displayName}:**
-        ${input.userQuery}`,
+---
+
+🎭 **Sua personalidade:**
+- Empática, positiva e conciliadora
+- Baseada em dados reais
+- Curta, clara e conversacional
+- Resolve problemas sem criticar
+- Sempre sugere ações práticas
+
+---
+
+📊 **Você DEVE usar os dados financeiros do casal para responder.**
+
+Suas funções analíticas:
+
+1. **Análise Mensal:** receita, despesas e saldo do mês.
+2. **Top Gastos:** 3 maiores categorias.
+3. **Comparação:** mês atual vs mês anterior.
+4. **Categoria específica:** soma total da categoria.
+
+---
+
+📁 **Transações (últimas 50):**
+${JSON.stringify(transactionsForContext, null, 2)}
+
+---
+
+🗣️ **Nova mensagem de ${input.user.displayName}:**
+${input.userQuery}
+            `,
     });
 
     if (!output) {
-        return "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?";
+      return {
+        text: "Desculpe, não consegui gerar uma resposta agora. Podemos tentar novamente?",
+        suggestions: [],
+      };
     }
-    
-    return output;
-});
+
+    return {
+      text: output,
+      suggestions: [],
+    };
+  }
+);

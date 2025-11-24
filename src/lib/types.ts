@@ -259,8 +259,6 @@ export const LuminaChatInputSchema = z.object({
 });
 export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
-export const LuminaChatOutputSchema = z.string();
-export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
 // Type for App User data
 export type AppUser = {
@@ -280,18 +278,25 @@ export const LuminaCoupleChatInputSchema = z.object({
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-  user: z.any().describe('The user object of the person sending the message.'),
-  partner: z.any().describe('The user object of the partner.'),
+  user: z.custom<AppUser>().describe('The user object of the person sending the message.'),
+  partner: z.custom<AppUser>().describe('The user object of the partner.'),
 });
 export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
 
+
+export const LuminaChatOutputSchema = z.object({
+  text: z.string().describe("The main textual response from Lumina."),
+  suggestions: z.array(z.string()).describe("A list of suggested follow-up questions or actions."),
+});
+export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
+
+
 export type CoupleLink = {
   id: string;
-  userA: string;
-  userB: string;
+  members: string[];
   createdAt: any; // Firestore Timestamp
-  status: 'active';
-}
+};
+
 
 // Type for Couple data structure
 export type Couple = {

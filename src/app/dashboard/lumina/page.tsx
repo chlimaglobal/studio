@@ -5,13 +5,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useLumina, useCouple } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
 import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import type { ChatMessage, LuminaChatInput, ExtractedTransaction, AppUser } from '@/lib/types';
+import type { ChatMessage, ExtractedTransaction } from '@/lib/types';
 import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from '@/lib/storage';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -149,7 +149,7 @@ export default function LuminaPage() {
     const { user } = useAuth();
     const { transactions, addTransaction } = useTransactions();
     const { setHasUnread } = useLumina();
-    const { viewMode, coupleId, partnerData } = useCouple();
+    const { viewMode, partnerData } = useViewMode();
 
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -176,14 +176,14 @@ export default function LuminaPage() {
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             let unsubscribe: () => void;
-            if (viewMode === 'together' && coupleId) {
-                unsubscribe = onCoupleChatUpdate(coupleId, setMessages);
+            if (viewMode === 'together' && partnerData?.coupleId) {
+                unsubscribe = onCoupleChatUpdate(partnerData.coupleId, setMessages);
             } else {
                 unsubscribe = onChatUpdate(user.uid, setMessages);
             }
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, viewMode, coupleId]);
+    }, [user, isSubscribed, isAdmin, viewMode, partnerData]);
     
     useEffect(() => {
         setHasUnread(false);
@@ -200,8 +200,8 @@ export default function LuminaPage() {
             authorPhotoUrl: newMessage.authorPhotoUrl || user.photoURL || '',
         };
         
-        if (viewMode === 'together' && coupleId) {
-            await addCoupleChatMessage(coupleId, messageWithAuthor);
+        if (viewMode === 'together' && partnerData?.coupleId) {
+            await addCoupleChatMessage(partnerData.coupleId, messageWithAuthor);
         } else {
             await addChatMessage(user.uid, messageWithAuthor);
         }
@@ -209,7 +209,7 @@ export default function LuminaPage() {
         if (newMessage.role === 'user') {
             setMessage('');
         }
-    }, [user, viewMode, coupleId]);
+    }, [user, viewMode, partnerData]);
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
@@ -219,15 +219,16 @@ export default function LuminaPage() {
             text: msg.text || ''
         }));
         
-        const luminaResponseData = {
+        let luminaResponseData = {
             role: 'lumina' as const,
             text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?",
             authorName: 'Lúmina',
-            authorPhotoUrl: '/lumina-avatar.png'
+            authorPhotoUrl: '/lumina-avatar.png',
+            suggestions: []
         };
 
         try {
-            if (viewMode === 'together' && partnerData && coupleId) {
+            if (viewMode === 'together' && partnerData) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
@@ -235,17 +236,16 @@ export default function LuminaPage() {
                     user: { displayName: user?.displayName, uid: user?.uid },
                     partner: { displayName: partnerData?.displayName, uid: partnerData?.uid },
                 };
-                // @ts-ignore
-                const responseText = await generateCoupleSuggestion(luminaInput);
-                luminaResponseData.text = responseText;
+                const response = await generateCoupleSuggestion(luminaInput);
+                luminaResponseData = {...luminaResponseData, ...response};
             } else {
-                 const luminaInput: LuminaChatInput = {
+                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
                 };
-                const responseText = await generateSuggestion(luminaInput);
-                luminaResponseData.text = responseText;
+                const response = await generateSuggestion(luminaInput);
+                luminaResponseData = {...luminaResponseData, ...response};
             }
             await saveMessage(luminaResponseData);
 
