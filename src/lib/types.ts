@@ -237,6 +237,7 @@ export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'partner', 'lumina', 'alerta']),
   text: z.string().optional(),
+  authorId: z.string().optional(),
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().optional(),
   transactionToConfirm: ExtractedTransactionSchema.optional().nullable(),
@@ -317,10 +318,21 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
+// Type for App User data
+export type AppUser = {
+    uid: string;
+    email?: string | null;
+    displayName?: string | null;
+    photoURL?: string | null;
+    coupleId?: string | null;
+    monthlyIncome?: number;
+};
+
+
 // Types for User Status
 export type UserStatus = {
     jaAlertadoMesNegativo?: boolean;
-    ultimoMesChecado?: string; // format YYYY-MM
+    ultimoMesChecado?: string; // format MM/yy
     mesAlertadoRenda?: string; // format YYYY-MM
     mesAlertadoCasal?: string; // format YYYY-MM
 };

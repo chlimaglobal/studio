@@ -5,14 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useLumina } from '@/components/client-providers';
-import { ArrowLeft, Loader2, MessageSquare, Send, Sparkles, Star, Mic, ArrowDown, Square, Trash2, Paperclip, Check, X, Camera, AlertTriangle } from 'lucide-react';
+import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
+import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 import type { ChatMessage, LuminaChatInput, ExtractedTransaction } from '@/lib/types';
-import { onChatUpdate, addChatMessage } from '@/lib/storage';
+import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage, getPartnerData } from '@/lib/storage';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { extractFromImage } from '@/ai/flows/extract-from-image';
@@ -20,8 +20,8 @@ import { z } from 'zod';
 import { TransactionFormSchema } from '@/lib/types';
 import { QrScannerDialog } from '@/components/qr-scanner-dialog';
 import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import { generateCoupleSuggestion } from '@/ai/flows/lumina-couple-chat';
 import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
-
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -75,7 +75,7 @@ const AudioRecordingUI = ({ onStop, onCancel }: { onStop: () => void; onCancel: 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <p>Gravando...</p>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onStop}>
-                    <Square className="h-4 w-4 text-primary fill-primary" />
+                    <Send className="h-4 w-4 text-primary" />
                 </Button>
             </div>
         </div>
@@ -84,20 +84,20 @@ const AudioRecordingUI = ({ onStop, onCancel }: { onStop: () => void; onCancel: 
 
 const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { transaction: ExtractedTransaction, onConfirm: () => void, onCancel: () => void }) => {
     return (
-        <Card className="bg-secondary shadow-md">
-            <CardHeader>
+        <Card className="bg-secondary shadow-md max-w-[88%] self-start break-words">
+            <CardHeader className="p-3">
                 <CardTitle className="text-base flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
                     Lúmina encontrou uma transação
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                     Posso registrar esta {transaction.type === 'income' ? 'receita' : 'despesa'} para você?
                 </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-1 p-3 text-sm">
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Descrição:</span>
-                    <span className="font-semibold">{transaction.description}</span>
+                    <span className="font-semibold text-right">{transaction.description}</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Valor:</span>
@@ -107,7 +107,7 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
                 </div>
                 <div className="flex justify-between">
                     <span className="text-muted-foreground">Categoria:</span>
-                    <span className="font-semibold">{transaction.category}</span>
+                    <span className="font-semibold text-right">{transaction.category}</span>
                 </div>
                 {transaction.paymentMethod === 'installments' && transaction.installments && (
                     <div className="flex justify-between">
@@ -116,12 +116,12 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={onCancel}>
-                    <X className="mr-2 h-4 w-4" /> Não
+            <CardFooter className="grid grid-cols-2 gap-2 p-2">
+                <Button size="sm" variant="outline" onClick={onCancel}>
+                    Não
                 </Button>
-                <Button onClick={onConfirm}>
-                    <Check className="mr-2 h-4 w-4" /> Sim, registrar
+                <Button size="sm" onClick={onConfirm}>
+                    Sim
                 </Button>
             </CardFooter>
         </Card>
@@ -129,27 +129,29 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ text }: { text: string }) => {
-    // This component now expects the raw text and will format it using Tailwind classes.
-    const parts = text.split('\n\n');
-    const titleLine = parts.shift() || '';
-    const mainMessage = parts.join('\n\n');
+    const parts = text.split('\n');
+    const title = parts.shift() || '';
+    const body = parts.join('\n');
 
     return (
         <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
-            <div className="flex items-center gap-1 text-red-400 font-semibold text-[10px]">
+            <div className="flex items-center gap-1 text-red-400 font-semibold text-xs">
                 <span>❗</span>
-                <span>{titleLine.replace(':', '')}</span>
+                <span>{title}</span>
             </div>
-            {mainMessage && <p className="text-red-300" dangerouslySetInnerHTML={{ __html: mainMessage.replace(/\n/g, '<br />')}}></p>}
+            {body && <p className="text-red-300 whitespace-pre-wrap">{body}</p>}
         </div>
     );
 };
+
 
 export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
     const { transactions, addTransaction } = useTransactions();
     const { setHasUnread } = useLumina();
+    const { viewMode, partnerData } = useViewMode();
+
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
@@ -174,13 +176,15 @@ export default function LuminaPage() {
 
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(user.uid, (newMessages) => {
-                setMessages(newMessages);
-            });
+            let unsubscribe: () => void;
+            if (viewMode === 'together' && partnerData?.coupleId) {
+                unsubscribe = onCoupleChatUpdate(partnerData.coupleId, setMessages);
+            } else {
+                unsubscribe = onChatUpdate(user.uid, setMessages);
+            }
             return () => unsubscribe();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, isSubscribed, isAdmin]);
+    }, [user, isSubscribed, isAdmin, viewMode, partnerData]);
     
     useEffect(() => {
         setHasUnread(false);
@@ -192,39 +196,62 @@ export default function LuminaPage() {
 
         const messageWithAuthor = {
             ...newMessage,
+            authorId: user.uid,
             authorName: newMessage.authorName || user.displayName || 'Usuário',
             authorPhotoUrl: newMessage.authorPhotoUrl || user.photoURL || '',
         };
-
-        await addChatMessage(user.uid, messageWithAuthor);
+        
+        if (viewMode === 'together' && partnerData?.coupleId) {
+            await addCoupleChatMessage(partnerData.coupleId, messageWithAuthor);
+        } else {
+            await addChatMessage(user.uid, messageWithAuthor);
+        }
 
         if (newMessage.role === 'user') {
             setMessage('');
         }
-    }, [user]);
+    }, [user, viewMode, partnerData]);
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
         
-        try {
-            const chatHistoryForLumina = messages.slice(-10).map(msg => ({
-                role: msg.role === 'lumina' ? 'model' : 'user', // Map 'lumina' to 'model'
-                text: msg.text || ''
-            }));
+        const chatHistoryForLumina = messages.slice(-10).map(msg => ({
+            role: msg.role === 'lumina' ? 'model' : 'user', // Map 'lumina' to 'model'
+            text: msg.text || ''
+        }));
+        
+        const luminaResponseData = {
+            role: 'lumina' as const,
+            text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?",
+            authorName: 'Lúmina',
+            authorPhotoUrl: '/lumina-avatar.png'
+        };
 
-            const luminaInput: LuminaChatInput = {
-                chatHistory: chatHistoryForLumina,
-                userQuery: currentQuery,
-                allTransactions: transactions,
-            };
-            
-            const responseText = await generateSuggestion(luminaInput);
-            
-            await saveMessage({role: 'lumina', text: responseText, authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
+        try {
+            if (viewMode === 'together') {
+                const luminaInput = {
+                    chatHistory: chatHistoryForLumina,
+                    userQuery: currentQuery,
+                    allTransactions: transactions, // Already contains combined transactions
+                    user,
+                    partner: partnerData,
+                };
+                const responseText = await generateCoupleSuggestion(luminaInput);
+                luminaResponseData.text = responseText;
+            } else {
+                 const luminaInput: LuminaChatInput = {
+                    chatHistory: chatHistoryForLumina,
+                    userQuery: currentQuery,
+                    allTransactions: transactions,
+                };
+                const responseText = await generateSuggestion(luminaInput);
+                luminaResponseData.text = responseText;
+            }
+            await saveMessage(luminaResponseData);
 
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
-            await saveMessage({role: 'lumina', text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?", authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
+            await saveMessage(luminaResponseData);
         } finally {
             setIsLuminaThinking(false);
         }
@@ -390,7 +417,8 @@ ${res.actionNow}
         saveMessage({role: 'lumina', text: 'Analisei o QR Code.', authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png', transactionToConfirm: transactionData});
     };
 
-    const handleConfirmTransaction = async (transaction: ExtractedTransaction, messageId: string) => {
+    const handleConfirmTransaction = async (transaction: ExtractedTransaction) => {
+        if (!user) return;
         try {
             const transactionData: z.infer<typeof TransactionFormSchema> = {
                 description: transaction.description,
@@ -402,14 +430,11 @@ ${res.actionNow}
                 paymentMethod: transaction.paymentMethod || 'one-time',
                 installments: transaction.installments,
             };
-            await addTransaction(transactionData);
-            // We can optionally update the message to remove the confirmation buttons
+            await addTransaction(transactionData, user.uid);
             toast({ title: 'Sucesso!', description: 'A transação foi registrada.' });
-             await addChatMessage(user!.uid, {
+             await saveMessage({
                 role: 'user',
                 text: 'Sim, pode registrar.',
-                authorName: user!.displayName || 'Usuário',
-                authorPhotoUrl: user!.photoURL || ''
             });
 
         } catch (error) {
@@ -418,16 +443,25 @@ ${res.actionNow}
         }
     }
 
-    const handleCancelTransaction = async (messageId: string) => {
-        // Here you could update the message in Firestore to remove the buttons,
-        // but for simplicity, we'll just add a "cancelled" message.
-        await addChatMessage(user!.uid, {
+    const handleCancelTransaction = async () => {
+        await saveMessage({
             role: 'user',
             text: 'Não, obrigado.',
-            authorName: user!.displayName || 'Usuário',
-            authorPhotoUrl: user!.photoURL || ''
         });
     }
+
+    const getAuthorAvatar = (msg: ChatMessage) => {
+        if (msg.authorId === user?.uid) return user.photoURL;
+        if (msg.authorId === partnerData?.uid) return partnerData.photoURL;
+        return msg.authorPhotoUrl;
+    }
+    
+    const getAuthorFallback = (msg: ChatMessage) => {
+         if (msg.authorId === user?.uid) return user.displayName?.charAt(0).toUpperCase() || 'U';
+         if (msg.authorId === partnerData?.uid) return partnerData.displayName?.charAt(0).toUpperCase() || 'P';
+         return msg.authorName?.charAt(0).toUpperCase() || 'L';
+    }
+
 
     if (isSubscriptionLoading) {
         return (
@@ -447,7 +481,7 @@ ${res.actionNow}
                     <ArrowLeft className="h-6 w-6" />
                 </Button>
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-primary" />
+                    <MessageSquare className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                     <h1 className="text-xl font-semibold flex items-center gap-2">
@@ -462,13 +496,13 @@ ${res.actionNow}
                     <ScrollArea className="flex-1 p-4">
                         <div className="space-y-6">
                             {messages.map((msg, index) => {
-                                const isUser = msg.role === 'user';
+                                const isCurrentUser = msg.authorId === user?.uid;
                                 const isLumina = msg.role === 'lumina';
                                 const isAlert = msg.role === 'alerta';
                                 
                                 return (
-                                <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
-                                    {!isUser && !isAlert && (
+                                <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isCurrentUser ? 'justify-end' : 'justify-start')}>
+                                    {!isCurrentUser && !isAlert && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             {isLumina ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
@@ -476,18 +510,18 @@ ${res.actionNow}
                                                 </AvatarFallback>
                                             ) : (
                                                 <>
-                                                    <AvatarImage src={msg.authorPhotoUrl || undefined} />
-                                                    <AvatarFallback>{msg.authorName?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
+                                                    <AvatarImage src={getAuthorAvatar(msg) || undefined} />
+                                                    <AvatarFallback>{getAuthorFallback(msg)}</AvatarFallback>
                                                 </>
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={cn('flex flex-col max-w-[88%]', isUser ? 'items-end' : 'items-start')}>
+                                    <div className={cn('flex flex-col', isCurrentUser ? 'items-end' : 'items-start')}>
                                          { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
                                         
-                                        { (msg.text && !isAlert) && (
-                                            <div className={cn('p-3 rounded-lg border flex flex-col break-words',
-                                                isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
+                                        { msg.text && !isAlert && (
+                                            <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] break-words',
+                                                isCurrentUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
@@ -500,8 +534,8 @@ ${res.actionNow}
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
                                                 transaction={msg.transactionToConfirm}
-                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm!, msg.id!)}
-                                                onCancel={() => handleCancelTransaction(msg.id!)}
+                                                onConfirm={() => handleConfirmTransaction(msg.transactionToConfirm!)}
+                                                onCancel={() => handleCancelTransaction()}
                                             />
                                         )}
                                         {msg.timestamp && (
@@ -510,10 +544,10 @@ ${res.actionNow}
                                             </span>
                                         )}
                                     </div>
-                                    {isUser && (
+                                    {isCurrentUser && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
-                                            <AvatarImage src={msg.authorPhotoUrl || undefined} />
-                                            <AvatarFallback className="bg-primary/80 text-primary-foreground">{msg.authorName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                                            <AvatarImage src={user?.photoURL || undefined} />
+                                            <AvatarFallback className="bg-primary/80 text-primary-foreground">{user?.displayName?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                                         </Avatar>
                                     )}
                                 </div>
