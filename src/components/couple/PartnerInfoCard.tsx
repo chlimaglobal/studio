@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +19,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useFormStatus } from 'react-dom';
+import { useToast } from '@/hooks/use-toast';
 
 function DisconnectButton() {
     const { pending } = useFormStatus();
@@ -38,7 +40,17 @@ function DisconnectButton() {
 
 export function PartnerInfoCard() {
     const { partner, coupleLink } = useCoupleStore();
-    const [state, formAction] = useFormState(disconnectPartner, null);
+    const [state, formAction] = useActionState(disconnectPartner, null);
+    const { toast } = useToast();
+
+    useEffect(() => {
+        if (state?.error) {
+            toast({ variant: 'destructive', title: 'Erro', description: state.error });
+        }
+        if (state?.success) {
+            toast({ title: 'Sucesso!', description: state.success });
+        }
+    }, [state, toast]);
 
     if (!partner || !coupleLink) return null;
 

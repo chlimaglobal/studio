@@ -4,10 +4,12 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X } from 'lucide-react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import { useFormStatus } from 'react-dom';
 import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/actions';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 function ActionButton({ variant, children }: { variant: 'accept' | 'reject', children: React.ReactNode }) {
     const { pending } = useFormStatus();
@@ -25,8 +27,19 @@ function ActionButton({ variant, children }: { variant: 'accept' | 'reject', chi
 
 export function PendingInviteCard() {
     const { invite, status } = useCoupleStore();
-    const [acceptState, acceptAction] = useFormState(acceptPartnerInvite, null);
-    const [rejectState, rejectAction] = useFormState(rejectPartnerInvite, null);
+    const [acceptState, acceptAction] = useActionState(acceptPartnerInvite, null);
+    const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
+    const { toast } = useToast();
+    
+    useEffect(() => {
+        const state = acceptState || rejectState;
+        if (state?.error) {
+          toast({ variant: 'destructive', title: 'Erro', description: state.error });
+        }
+        if (state?.success) {
+          toast({ title: 'Sucesso!', description: state.success });
+        }
+    }, [acceptState, rejectState, toast]);
 
     if (!invite || status === 'linked') return null;
     
@@ -39,7 +52,7 @@ export function PendingInviteCard() {
                         Convite Enviado
                     </CardTitle>
                     <CardDescription>
-                        Você enviou um convite para vincular contas. Aguardando resposta.
+                        Você enviou um convite para vincular contas. Aguardando resposta de <strong>{invite.sentToEmail || 'seu parceiro(a)'}</strong>.
                     </CardDescription>
                 </CardHeader>
                 <CardFooter>

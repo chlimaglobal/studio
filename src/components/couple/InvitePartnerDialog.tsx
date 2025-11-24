@@ -12,11 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
 import { sendPartnerInvite } from '@/app/dashboard/couple/actions';
-import { useEffect, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useFormStatus } from 'react-dom';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -34,7 +34,7 @@ function SubmitButton() {
 }
 
 export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogProps) {
-  const [state, formAction] = useFormState(sendPartnerInvite, null);
+  const [state, formAction] = useActionState(sendPartnerInvite, null);
   const { toast } = useToast();
 
   useEffect(() => {
