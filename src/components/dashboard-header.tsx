@@ -160,14 +160,13 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                 <span className="text-sm text-muted-foreground">Saldo total em contas</span>
                 <span className="text-2xl font-bold">{isPrivacyMode ? 'R$ ••••••' : formatCurrency(totalBalance)}</span>
             </div>
-             <div className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <Switch
-                    id="view-mode"
-                    checked={viewMode === 'together'}
-                    onCheckedChange={(checked) => setViewMode(checked ? 'together' : 'separate')}
-                />
-                <Users className="h-4 w-4" />
+             <div className="flex items-center space-x-2 p-2 rounded-full bg-secondary">
+                <Button size="icon" variant={viewMode === 'separate' ? 'default' : 'ghost'} className="rounded-full h-8 w-8" onClick={() => setViewMode('separate')}>
+                    <User className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant={viewMode === 'together' ? 'default' : 'ghost'} className="rounded-full h-8 w-8" onClick={() => setViewMode('together')}>
+                    <Users className="h-4 w-4" />
+                </Button>
             </div>
        </div>
     </header>

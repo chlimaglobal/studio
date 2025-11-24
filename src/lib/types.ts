@@ -212,6 +212,7 @@ export type Account = {
   memberIds: string[];
   isShared: boolean;
   currentBalance: number;
+  coupleId?: string; // Optional field for linking couples
 } & z.infer<typeof AddAccountFormSchema>;
 
 // Types for Investor Profile Analysis
@@ -323,5 +324,3 @@ export type UserStatus = {
     mesAlertadoRenda?: string; // format YYYY-MM
     mesAlertadoCasal?: string; // format YYYY-MM
 };
-
-    

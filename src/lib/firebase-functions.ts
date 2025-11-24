@@ -549,5 +549,3 @@ export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
         }
     }
 });
-
-    

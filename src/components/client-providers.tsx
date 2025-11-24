@@ -16,7 +16,7 @@ import {
   getPartnerData 
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage } from '@/lib/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, User as AppUser } from '@/lib/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -59,7 +59,7 @@ type ViewMode = 'separate' | 'together';
 interface ViewModeContextType {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
-  partnerData: User | null;
+  partnerData: AppUser | null;
 }
 const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined);
 
@@ -167,7 +167,7 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
 
 function ViewModeProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
-    const [partnerData, setPartnerData] = useState<User | null>(null);
+    const [partnerData, setPartnerData] = useState<AppUser | null>(null);
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
         if (typeof window !== 'undefined') {
             return (localStorage.getItem('viewMode') as ViewMode) || 'separate';

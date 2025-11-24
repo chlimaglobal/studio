@@ -1,5 +1,4 @@
 
-
 import { db, functions } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
@@ -48,7 +47,7 @@ export const initializeUser = async (user: User) => {
 export async function updateUserFinancials(userId: string, data: { manualCostOfLiving?: number; monthlyIncome?: number; payday?: number }) {
     if (!userId) throw new Error("User not authenticated");
     const userDocRef = doc(db, 'users', userId);
-    await updateDoc(userDocRef, cleanDataForFirestore(data));
+    await setDoc(userDocRef, cleanDataForFirestore(data), { merge: true });
 }
 
 
