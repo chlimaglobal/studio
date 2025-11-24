@@ -6,8 +6,7 @@ import { adminApp, adminDb } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
-
-const auth = getAuth(adminApp);
+import { auth as clientAuth } from '@/lib/firebase'; // Use client auth for current user
 
 // Zod Schemas
 const InviteSchema = z.object({
@@ -29,8 +28,10 @@ async function getCurrentUser(uid: string) {
 
 // 1. sendPartnerInvite
 export async function sendPartnerInvite(prevState: any, formData: FormData) {
-  const { uid, email: currentUserEmail } = auth.currentUser || {};
-  if (!uid || !currentUserEmail) return { error: 'Usuário não autenticado.' };
+  const currentUserFromClient = clientAuth.currentUser;
+  if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
+  
+  const { uid, email: currentUserEmail, displayName } = currentUserFromClient;
 
   const validatedFields = InviteSchema.safeParse({
     email: formData.get('email'),
@@ -40,8 +41,8 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
     return { error: validatedFields.error.flatten().fieldErrors.email?.[0] };
   }
   
-  const currentUser = await getCurrentUser(uid);
-  if (currentUser?.coupleId) {
+  const currentUserData = await getCurrentUser(uid);
+  if (currentUserData?.coupleId) {
       return { error: 'Você já está vinculado a um parceiro.' };
   }
 
@@ -52,6 +53,7 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
   }
 
   try {
+    const auth = getAuth(adminApp);
     const partnerRecord = await auth.getUserByEmail(partnerEmail);
     const partnerDoc = await adminDb.collection('users').doc(partnerRecord.uid).get();
 
@@ -66,7 +68,7 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
         inviteId: inviteRef.id,
         sentBy: uid,
         sentTo: partnerRecord.uid,
-        sentByName: currentUser.displayName,
+        sentByName: displayName,
         sentByEmail: currentUserEmail,
         createdAt: Timestamp.now(),
         status: 'pending'
@@ -88,8 +90,9 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
 
 // 2. acceptPartnerInvite
 export async function acceptPartnerInvite(prevState: any, formData: FormData) {
-    const { uid: inviteeUid } = auth.currentUser || {};
-    if (!inviteeUid) return { error: 'Usuário não autenticado.' };
+    const currentUserFromClient = clientAuth.currentUser;
+    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
+    const inviteeUid = currentUserFromClient.uid;
 
     const validatedFields = InviteActionSchema.safeParse({
         inviteId: formData.get('inviteId'),
@@ -145,8 +148,8 @@ export async function acceptPartnerInvite(prevState: any, formData: FormData) {
 
 // 3. rejectPartnerInvite
 export async function rejectPartnerInvite(prevState: any, formData: FormData) {
-    const { uid } = auth.currentUser || {};
-    if (!uid) return { error: 'Usuário não autenticado.' };
+    const currentUserFromClient = clientAuth.currentUser;
+    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
     
      const validatedFields = InviteActionSchema.safeParse({
         inviteId: formData.get('inviteId'),
@@ -171,8 +174,9 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
 // 4. disconnectPartner
 export async function disconnectPartner(prevState: any, formData: FormData) {
-    const { uid } = auth.currentUser || {};
-    if (!uid) return { error: 'Usuário não autenticado.' };
+    const currentUserFromClient = clientAuth.currentUser;
+    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
+    const { uid } = currentUserFromClient;
 
     const userRef = adminDb.collection('users').doc(uid);
     const userDoc = await userRef.get();

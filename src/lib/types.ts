@@ -262,17 +262,48 @@ export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
-export const LuminaCoupleChatInputSchema = z.object({
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string(),
-  })).describe('The recent history of the conversation.'),
-  userQuery: z.string().describe('The new message from the user.'),
-  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-  user: z.any().describe('The user object of the person sending the message.'),
-  partner: z.any().describe('The user object of the partner.'),
-});
-export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
+// Type for App User data
+export type AppUser = {
+    uid: string;
+    email?: string | null;
+    displayName?: string | null;
+    photoURL?: string | null;
+    coupleId?: string | null;
+    monthlyIncome?: number;
+};
+
+// Couple Feature Types
+export type Partner = {
+  uid: string;
+  name: string;
+  email: string;
+  photoURL?: string;
+  coupleId: string;
+}
+
+export type CoupleLink = {
+  id: string;
+  userA: string;
+  userB: string;
+  createdAt: any; // Firestore Timestamp
+  status: 'active';
+}
+
+// Type for Couple data structure
+export type Couple = {
+  id: string;
+  members: [string, string]; // Array with exactly two user IDs
+  createdAt: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
+};
+
+
+// Types for User Status
+export type UserStatus = {
+    ultimoMesChecado?: string; // format MM/yy
+    mesAlertadoRenda?: string; // format YYYY-MM
+    mesAlertadoCasal?: string; // format YYYY-MM
+};
 
 
 // Types for Mediate Goals Flow
@@ -328,46 +359,3 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
-
-// Type for App User data
-export type AppUser = {
-    uid: string;
-    email?: string | null;
-    displayName?: string | null;
-    photoURL?: string | null;
-    coupleId?: string | null;
-    monthlyIncome?: number;
-};
-
-// Couple Feature Types
-export type Partner = {
-  uid: string;
-  name: string;
-  email: string;
-  photoURL?: string;
-  coupleId: string;
-}
-
-export type CoupleLink = {
-  id: string;
-  userA: string;
-  userB: string;
-  createdAt: any; // Firestore Timestamp
-  status: 'active';
-}
-
-// Type for Couple data structure
-export type Couple = {
-  id: string;
-  members: [string, string]; // Array with exactly two user IDs
-  createdAt: any; // Firestore Timestamp
-  updatedAt?: any; // Firestore Timestamp
-};
-
-
-// Types for User Status
-export type UserStatus = {
-    ultimoMesChecado?: string; // format MM/yy
-    mesAlertadoRenda?: string; // format YYYY-MM
-    mesAlertadoCasal?: string; // format YYYY-MM
-};

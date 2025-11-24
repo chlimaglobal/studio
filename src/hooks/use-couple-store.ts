@@ -2,7 +2,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { onSnapshot, doc, query, collection, where, limit } from 'firebase/firestore';
+import { onSnapshot, doc, getDoc, query, collection, where, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Partner, CoupleLink, AppUser } from '@/lib/types';
 import { getAuth } from 'firebase/auth';
@@ -38,7 +38,8 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
 }));
 
 let unsubUser: (() => void) | null = null;
-let unsubInvite: (() => void) | null = null;
+let unsubSentInvites: (() => void) | null = null;
+let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
 
 
@@ -46,9 +47,10 @@ export function initializeCoupleStore() {
     const auth = getAuth();
     
     auth.onAuthStateChanged(user => {
-        // Clear previous listeners on auth state change
+        // Clear all previous listeners on auth state change
         unsubUser?.();
-        unsubInvite?.();
+        unsubSentInvites?.();
+        unsubReceivedInvites?.();
         unsubPartner?.();
 
         if (user) {
@@ -65,20 +67,18 @@ export function initializeCoupleStore() {
                 const userData = userDoc.data();
                 const coupleId = userData.coupleId;
 
-                // Cancel partner listener if it exists
-                unsubPartner?.();
+                unsubPartner?.(); // Cancel any existing partner listener
 
                 if (coupleId) {
-                    setStatus('linked');
                     setInvite(null); // No pending invites if linked
                     
                     const coupleLinkDoc = await getDoc(doc(db, 'coupleLinks', coupleId));
                     if(coupleLinkDoc.exists()) {
+                        setStatus('linked');
                         const coupleLinkData = coupleLinkDoc.data() as CoupleLink;
                         setCoupleLink({ id: coupleId, ...coupleLinkData });
                         const partnerId = coupleLinkData.userA === user.uid ? coupleLinkData.userB : coupleLinkData.userA;
                         
-                        // Listen to partner document
                         unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
                             if (partnerDoc.exists()) {
                                 setPartner(partnerDoc.data() as AppUser);
@@ -87,6 +87,9 @@ export function initializeCoupleStore() {
                             }
                             setLoading(false);
                         });
+                    } else {
+                        // Data inconsistency, treat as single for now
+                        reset();
                     }
 
                 } else {
@@ -94,48 +97,29 @@ export function initializeCoupleStore() {
                     setPartner(null);
                     setCoupleLink(null);
 
-                    // Cancel previous invite listener
-                    unsubInvite?.();
-                    
+                    // Listen for invites SENT BY the user
                     const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
-                    const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
-
-                    const unsubSent = onSnapshot(sentInvitesQuery, (snapshot) => {
+                    unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
                         if (!snapshot.empty) {
-                            const inviteData = snapshot.docs[0].data();
-                            setInvite(inviteData);
+                            setInvite(snapshot.docs[0].data());
                             setStatus('pending_sent');
                         } else if (get().status === 'pending_sent') {
-                            // If no sent invites, check for received ones
-                            const unsubReceived = onSnapshot(receivedInvitesQuery, (snapshot) => {
-                                if(!snapshot.empty) {
-                                    const inviteData = snapshot.docs[0].data();
-                                    setInvite(inviteData);
-                                    setStatus('pending_received');
-                                } else {
-                                    setStatus('single');
-                                    setInvite(null);
-                                }
-                            });
-                            unsubInvite = unsubReceived;
+                            setStatus('single');
+                            setInvite(null);
                         }
                     });
-                     const unsubReceived = onSnapshot(receivedInvitesQuery, (snapshot) => {
-                        if (!snapshot.empty) {
-                            const inviteData = snapshot.docs[0].data();
-                            setInvite(inviteData);
+
+                    // Listen for invites SENT TO the user
+                    const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
+                    unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
+                         if (!snapshot.empty) {
+                            setInvite(snapshot.docs[0].data());
                             setStatus('pending_received');
                         } else if (get().status === 'pending_received') {
-                             setStatus('single');
-                             setInvite(null);
+                            setStatus('single');
+                            setInvite(null);
                         }
                     });
-                    
-                    // Combine cleanup functions
-                    unsubInvite = () => {
-                        unsubSent();
-                        unsubReceived();
-                    };
                 }
                  setLoading(false);
             });

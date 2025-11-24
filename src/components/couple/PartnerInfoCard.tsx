@@ -57,10 +57,10 @@ export function PartnerInfoCard() {
                 <CardContent className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
                         <AvatarImage src={partner.photoURL || ''} />
-                        <AvatarFallback>{partner.name?.[0]}</AvatarFallback>
+                        <AvatarFallback>{partner.displayName?.[0]}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="font-semibold text-lg">{partner.name}</p>
+                        <p className="font-semibold text-lg">{partner.displayName}</p>
                         <p className="text-sm text-muted-foreground">{partner.email}</p>
                     </div>
                 </CardContent>

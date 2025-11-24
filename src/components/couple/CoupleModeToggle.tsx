@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);
-    const { partner, status } = useCoupleStore();
+    const { status } = useCoupleStore();
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
 
