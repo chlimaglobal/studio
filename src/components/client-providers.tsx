@@ -76,6 +76,9 @@ export function useCouple() {
     return context;
 }
 
+// Re-export useViewMode for backward compatibility if needed, but it's better to refactor
+export const useViewMode = useCouple;
+
 
 // 4. Transactions Context
 interface TransactionsContextType {
@@ -253,40 +256,58 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { viewMode, partnerId } = useCouple();
 
-
+  // This effect now handles fetching transactions for one or both users
   useEffect(() => {
-    if (user?.uid) {
-        setIsLoading(true);
-
-        const unsubUser = onTransactionsUpdate(user.uid, (userTransactions) => {
-            if (viewMode === 'separate' || !partnerId) {
-                setTransactions(userTransactions);
-                setIsLoading(false);
-            }
-        });
-
-        let unsubPartner: (() => void) | null = null;
-        if (viewMode === 'together' && partnerId) {
-             const userTransactionsCache = [...transactions.filter(t => t.ownerId === user.uid)];
-             unsubPartner = onTransactionsUpdate(partnerId, (partnerTransactions) => {
-                setTransactions([...userTransactionsCache, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-                setIsLoading(false);
-            });
-        }
-
-
-        return () => {
-            unsubUser();
-            if (unsubPartner) {
-                unsubPartner();
-            }
-        };
-
-    } else if (!user) {
+    if (!user?.uid) {
       setTransactions([]);
       setIsLoading(false);
+      return () => {}; // Return empty cleanup function
     }
-  }, [user, viewMode, partnerId]);
+
+    setIsLoading(true);
+    let userTransactions: Transaction[] = [];
+    let partnerTransactions: Transaction[] = [];
+
+    // Always subscribe to the logged-in user's transactions
+    const unsubUser = onTransactionsUpdate(user.uid, (newTxs) => {
+      userTransactions = newTxs;
+      // If in separate mode, or no partner, just show user's transactions
+      if (viewMode === 'separate' || !partnerId) {
+        setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setIsLoading(false);
+      } else {
+        // In 'together' mode, combine with partner's (if available)
+        setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setIsLoading(false);
+      }
+    });
+
+    let unsubPartner: (() => void) | null = null;
+    // If in 'together' mode and a partner exists, also subscribe to their transactions
+    if (viewMode === 'together' && partnerId) {
+      unsubPartner = onTransactionsUpdate(partnerId, (newTxs) => {
+        partnerTransactions = newTxs;
+        // Combine with user's transactions
+        setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        setIsLoading(false);
+      });
+    } else {
+        // If not in 'together' mode, clear partner transactions
+        partnerTransactions = [];
+        if(viewMode === 'separate') {
+            setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        }
+    }
+
+    // Cleanup function
+    return () => {
+      unsubUser();
+      if (unsubPartner) {
+        unsubPartner();
+      }
+    };
+  }, [user?.uid, viewMode, partnerId]);
+
 
   const playSound = useCallback((soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
