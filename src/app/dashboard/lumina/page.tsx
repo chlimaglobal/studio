@@ -130,8 +130,20 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ text }: { text: string }) => {
+    // This component now expects the raw text and will format it using Tailwind classes.
+    const parts = text.split('\n\n');
+    const titleLine = parts[0] || '';
+    const mainMessage = parts[1] || '';
+    const secondaryMessage = parts[2] || '';
+
     return (
-        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }}>
+        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
+            <div className="flex items-center gap-1 text-red-400 font-semibold text-[10px]">
+                <span>❗</span>
+                <span>{titleLine.replace(':', '')}</span>
+            </div>
+            {mainMessage && <p className="text-red-300" dangerouslySetInnerHTML={{ __html: mainMessage.replace(/\n/g, '<br />')}}></p>}
+            {secondaryMessage && <p className="text-red-200 font-medium">{secondaryMessage}</p>}
         </div>
     );
 };
@@ -452,13 +464,14 @@ ${res.actionNow}
                         <div className="space-y-6">
                             {messages.map((msg, index) => {
                                 const isUser = msg.role === 'user';
+                                const isLumina = msg.role === 'lumina';
                                 const isAlert = msg.role === 'alerta';
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-start gap-3 w-full', isUser ? 'justify-end' : 'justify-start')}>
                                     {!isUser && !isAlert && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
-                                            {msg.role === 'lumina' ? (
+                                            {isLumina ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
                                                     <Sparkles className="h-5 w-5" />
                                                 </AvatarFallback>
@@ -470,14 +483,14 @@ ${res.actionNow}
                                             )}
                                         </Avatar>
                                     )}
-                                    <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
+                                    <div className={cn('flex flex-col max-w-[88%]', isUser ? 'items-end' : 'items-start')}>
                                          { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
                                         
                                         { (msg.text && !isAlert) && (
                                             <div className={cn('p-3 rounded-lg border flex flex-col',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
-                                                <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
+                                                <p className={cn("text-sm break-words", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
                                         )}
 
