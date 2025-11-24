@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,8 +10,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import type { ChatMessage, LuminaChatInput, ExtractedTransaction } from '@/lib/types';
-import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage, getPartnerData } from '@/lib/storage';
+import type { ChatMessage, LuminaChatInput, ExtractedTransaction, AppUser } from '@/lib/types';
+import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from '@/lib/storage';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { extractFromImage } from '@/ai/flows/extract-from-image';
@@ -84,7 +83,7 @@ const AudioRecordingUI = ({ onStop, onCancel }: { onStop: () => void; onCancel: 
 
 const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { transaction: ExtractedTransaction, onConfirm: () => void, onCancel: () => void }) => {
     return (
-        <Card className="bg-secondary shadow-md max-w-[88%] self-start break-words">
+        <Card className="bg-secondary shadow-md max-w-[88%] self-start break-words w-fit">
             <CardHeader className="p-3">
                 <CardTitle className="text-base flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary" />
@@ -129,12 +128,11 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ text }: { text: string }) => {
-    const parts = text.split('\n');
-    const title = parts.shift() || '';
-    const body = parts.join('\n');
+    const [title, ...bodyParts] = text.split('\n');
+    const body = bodyParts.join('\n').trim();
 
     return (
-        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
+        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words w-fit">
             <div className="flex items-center gap-1 text-red-400 font-semibold text-xs">
                 <span>❗</span>
                 <span>{title}</span>
@@ -216,7 +214,7 @@ export default function LuminaPage() {
         setIsLuminaThinking(true);
         
         const chatHistoryForLumina = messages.slice(-10).map(msg => ({
-            role: msg.role === 'lumina' ? 'model' : 'user', // Map 'lumina' to 'model'
+            role: msg.role === 'lumina' ? 'model' : 'user',
             text: msg.text || ''
         }));
         
@@ -228,14 +226,15 @@ export default function LuminaPage() {
         };
 
         try {
-            if (viewMode === 'together') {
+            if (viewMode === 'together' && partnerData) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
-                    allTransactions: transactions, // Already contains combined transactions
-                    user,
-                    partner: partnerData,
+                    allTransactions: transactions,
+                    user: { displayName: user?.displayName, uid: user?.uid },
+                    partner: { displayName: partnerData?.displayName, uid: partnerData?.uid },
                 };
+                // @ts-ignore
                 const responseText = await generateCoupleSuggestion(luminaInput);
                 luminaResponseData.text = responseText;
             } else {
@@ -452,13 +451,13 @@ ${res.actionNow}
 
     const getAuthorAvatar = (msg: ChatMessage) => {
         if (msg.authorId === user?.uid) return user.photoURL;
-        if (msg.authorId === partnerData?.uid) return partnerData.photoURL;
+        if (partnerData && msg.authorId === partnerData.uid) return partnerData.photoURL;
         return msg.authorPhotoUrl;
     }
     
     const getAuthorFallback = (msg: ChatMessage) => {
          if (msg.authorId === user?.uid) return user.displayName?.charAt(0).toUpperCase() || 'U';
-         if (msg.authorId === partnerData?.uid) return partnerData.displayName?.charAt(0).toUpperCase() || 'P';
+         if (partnerData && msg.authorId === partnerData.uid) return partnerData.displayName?.charAt(0).toUpperCase() || 'P';
          return msg.authorName?.charAt(0).toUpperCase() || 'L';
     }
 
@@ -520,7 +519,7 @@ ${res.actionNow}
                                          { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
                                         
                                         { msg.text && !isAlert && (
-                                            <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] break-words',
+                                            <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] w-fit break-words',
                                                 isCurrentUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>

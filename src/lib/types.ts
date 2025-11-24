@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 export const categoryData = {
@@ -331,7 +330,6 @@ export type AppUser = {
 
 // Types for User Status
 export type UserStatus = {
-    jaAlertadoMesNegativo?: boolean;
     ultimoMesChecado?: string; // format MM/yy
     mesAlertadoRenda?: string; // format YYYY-MM
     mesAlertadoCasal?: string; // format YYYY-MM

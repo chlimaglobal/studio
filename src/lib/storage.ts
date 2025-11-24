@@ -1,8 +1,7 @@
-
 import { db, functions } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus } from './types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from './types';
 import type { Card, AddCardFormSchema } from './card-types';
 import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
@@ -78,9 +77,9 @@ export function onUserStatusUpdate(userId: string, callback: (status: UserStatus
     if (!userId) {
         return () => {};
     }
-    const statusDocRef = doc(db, 'users', userId, 'status', 'main');
+    const userDocRef = doc(db, 'users', userId);
 
-    return onSnapshot(statusDocRef, (docSnap) => {
+    return onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
             callback(docSnap.data() as UserStatus);
         } else {
@@ -91,8 +90,8 @@ export function onUserStatusUpdate(userId: string, callback: (status: UserStatus
 
 export async function updateUserStatus(userId: string, newStatus: Partial<UserStatus>) {
     if (!userId) return;
-    const statusDocRef = doc(db, 'users', userId, 'status', 'main');
-    await setDoc(statusDocRef, newStatus, { merge: true });
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, newStatus, { merge: true });
 }
 
 
@@ -227,6 +226,10 @@ export function onAccountsUpdate(userId: string, callback: (accounts: Account[])
     if (!userId) return () => {};
 
     let combinedAccounts: Record<string, Account> = {};
+    let unsubOwned: () => void = () => {};
+    let unsubShared: () => void = () => {};
+    let sharedRefsUnsubs: (() => void)[] = [];
+
 
     const processAndCallback = () => {
         const sortedAccounts = Object.values(combinedAccounts).sort((a, b) => a.name.localeCompare(b.name));
@@ -235,7 +238,7 @@ export function onAccountsUpdate(userId: string, callback: (accounts: Account[])
 
     // Listener for owned accounts
     const ownedQuery = query(collection(db, "users", userId, "accounts"));
-    const unsubscribeOwned = onSnapshot(ownedQuery, (snapshot) => {
+    unsubOwned = onSnapshot(ownedQuery, (snapshot) => {
         snapshot.docs.forEach((doc) => {
             combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
         });
@@ -244,27 +247,37 @@ export function onAccountsUpdate(userId: string, callback: (accounts: Account[])
 
     // Listener for shared accounts references
     const sharedQuery = query(collection(db, "users", userId, "sharedAccounts"));
-    const unsubscribeShared = onSnapshot(sharedQuery, (snapshot) => {
-        const promises = snapshot.docs.map(docData => {
-            const accountRefPath = docData.data().accountRef as string;
-            if (!accountRefPath) return Promise.resolve(null);
-            const accountRef = doc(db, accountRefPath);
-            return getDoc(accountRef);
-        });
+    unsubShared = onSnapshot(sharedQuery, (snapshot) => {
+        // Clear previous listeners for specific shared accounts
+        sharedRefsUnsubs.forEach(unsub => unsub());
+        sharedRefsUnsubs = [];
 
-        Promise.all(promises).then(sharedAccountDocs => {
-            sharedAccountDocs.forEach(doc => {
-                if (doc && doc.exists()) {
-                    combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
-                }
-            });
+        const accountRefs = snapshot.docs.map(docData => doc(db, docData.data().accountRef));
+        
+        if (accountRefs.length === 0) {
             processAndCallback();
+            return;
+        }
+
+        accountRefs.forEach(accountRef => {
+            const unsub = onSnapshot(accountRef, (doc) => {
+                 if (doc && doc.exists()) {
+                    combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
+                } else {
+                    // If a shared account is deleted, remove it from our local state
+                    delete combinedAccounts[accountRef.id];
+                }
+                processAndCallback();
+            });
+            sharedRefsUnsubs.push(unsub);
         });
+        
     }, (error) => console.error("Error fetching shared accounts:", error));
 
     return () => {
-        unsubscribeOwned();
-        unsubscribeShared();
+        unsubOwned();
+        unsubShared();
+        sharedRefsUnsubs.forEach(unsub => unsub());
     };
 }
 
@@ -365,8 +378,8 @@ export async function updateStoredGoal(userId: string, goalId: string, data: z.i
     const goalRef = doc(db, 'users', userId, 'goals', goalId);
     const goalData = {
         ...data,
-        targetAmount: Number(data.targetAmount),
-        currentAmount: Number(data.currentAmount),
+        targetAmount: Number(String(data.targetAmount).replace('.', '').replace(',', '.')),
+        currentAmount: Number(String(data.currentAmount).replace('.', '').replace(',', '.')),
         deadline: Timestamp.fromDate(new Date(data.deadline)),
     };
     await updateDoc(goalRef, cleanDataForFirestore(goalData));
@@ -461,7 +474,7 @@ export async function updateStoredCommission(userId: string, commissionId: strin
   const commissionRef = doc(db, 'users', userId, 'commissions', commissionId);
   const commissionData = {
     ...data,
-    amount: Number(data.amount),
+    amount: Number(String(data.amount).replace('.', '').replace(',', '.')),
     date: Timestamp.fromDate(new Date(data.date)),
   };
   await updateDoc(commissionRef, cleanDataForFirestore(commissionData));
@@ -620,13 +633,13 @@ export async function getAllUserDataForBackup(userId: string) {
 
 // ======== PARTNER DATA ========
 
-export async function getPartnerData(partnerId: string): Promise<User | null> {
+export async function getPartnerData(partnerId: string): Promise<AppUser | null> {
     if (!partnerId) return null;
     const userDocRef = doc(db, 'users', partnerId);
     try {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-            return userDoc.data() as User;
+            return userDoc.data() as AppUser;
         }
         return null;
     } catch (error) {
