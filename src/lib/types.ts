@@ -263,6 +263,19 @@ export const LuminaChatOutputSchema = z.string();
 export type LuminaChatOutput = z.infer<typeof LuminaChatOutputSchema>;
 
 
+export const LuminaCoupleChatInputSchema = z.object({
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'model']),
+    text: z.string(),
+  })).describe('The recent history of the conversation.'),
+  userQuery: z.string().describe('The new message from the user.'),
+  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
+  user: z.any().describe('The user object of the person sending the message.'),
+  partner: z.any().describe('The user object of the partner.'),
+});
+export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
+
+
 // Types for Mediate Goals Flow
 const GoalSchema = z.object({
   description: z.string().describe("Descrição da meta (ex: 'Viagem de luxo para a Europa')."),

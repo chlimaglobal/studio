@@ -7,20 +7,9 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { LuminaChatInput, AppUser } from '@/lib/types';
-import { LuminaChatOutputSchema } from '@/lib/types';
+import type { LuminaCoupleChatInput } from '@/lib/types';
+import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 
-export const LuminaCoupleChatInputSchema = z.object({
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string(),
-  })).describe('The recent history of the conversation.'),
-  userQuery: z.string().describe('The new message from the user.'),
-  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-  user: z.any().describe('The user object of the person sending the message.'),
-  partner: z.any().describe('The user object of the partner.'),
-});
-export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
 
 export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<string> {
     return luminaCoupleChatFlow(input);
