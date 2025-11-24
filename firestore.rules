@@ -6,7 +6,13 @@ service cloud.firestore {
 
     // Regra para a coleção 'users'
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Um usuário pode ler seu próprio perfil, OU o perfil de seu parceiro.
+      allow read: if request.auth != null && (request.auth.uid == userId || (
+                    resource.data.coupleId != null &&
+                    resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId
+                  ));
+      // Um usuário só pode escrever em seu próprio perfil.
+      allow write: if request.auth != null && request.auth.uid == userId;
 
       // Subcoleções do usuário (transações, contas, etc.)
       match /{allChildren=**} {
@@ -29,17 +35,15 @@ service cloud.firestore {
     }
     
     // Regra para a coleção 'invites'
-    match /invites/{inviteCode} {
-        // O criador do convite pode ler o código que gerou
-        allow read: if request.auth != null && resource.data.inviterUid == request.auth.uid;
+    match /invites/{inviteId} {
+        // O criador do convite ou o destinatário podem ler o convite.
+        allow read: if request.auth != null && (resource.data.inviterUid == request.auth.uid || resource.data.sentTo == request.auth.uid);
         // Qualquer usuário autenticado pode criar um código (a lógica de permissão está na Function)
         allow create: if request.auth != null;
         // Apenas o usuário que vai aceitar o convite pode marcá-lo como 'usado'
-        allow update: if request.auth != null && request.auth.uid == request.resource.data.inviteeUid;
+        allow update: if request.auth != null && request.resource.data.inviteeUid == request.auth.uid;
         // Ninguém pode deletar convites
         allow delete: if false;
     }
   }
 }
-
-    
