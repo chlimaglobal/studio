@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -499,6 +500,7 @@ export default function DashboardPage() {
         <NotificationPermission />
 
         {coupleStatus === 'pending_received' && <PendingInviteCard />}
+        {coupleStatus === 'pending_sent' && <PendingInviteCard />}
         {coupleStatus === 'linked' && <PartnerInfoCard />}
         
         <div className="flex items-center justify-center gap-2">
