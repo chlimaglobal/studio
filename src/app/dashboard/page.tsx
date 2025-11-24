@@ -482,19 +482,17 @@ export default function DashboardPage() {
                 
                 if (rendaMes < costOfLiving) {
                     mensagem = {
-                        title: "⚠️ Sua renda está abaixo do custo de vida",
-                        text: `${userName}, sua renda atual (${formatCurrency(rendaMes)}) está abaixo do seu custo de vida (${formatCurrency(costOfLiving)}). Quer que eu te mostre como equilibrar isso?`,
+                        title: "❗ Renda abaixo do custo de vida",
+                        text: `Renda atual: ${formatCurrency(rendaMes)}\nCusto de vida: ${formatCurrency(costOfLiving)}\n\nSua renda está ${formatCurrency(costOfLiving - rendaMes)} abaixo do ideal. Quer dicas para reequilibrar?`
                     };
                 } else if (rendaMes < rendaIdeal) {
                     mensagem = {
-                        title: "📊 Falta pouco para atingir sua renda ideal",
-                        text: `${userName}, você cobre seu custo de vida, mas ainda falta uma margem de segurança. Sua renda ideal seria ${formatCurrency(rendaIdeal)}.`,
+                        title: "📊 Quase lá! Sua renda pode melhorar",
+                        text: `${userName}, você cobre seu custo de vida, mas para uma saúde financeira ideal, sua renda poderia ser ${formatCurrency(rendaIdeal)}.`,
                     };
                 } else {
-                    mensagem = {
-                        title: "🎉 Excelente! Sua renda está no nível ideal",
-                        text: `${userName}, sua renda atual já está acima da renda ideal (${formatCurrency(rendaIdeal)}). Ótimo trabalho! Quer analisar onde investir essa sobra?`,
-                    };
+                     // Not sending a success message here to avoid too much noise,
+                     // but you could add one if desired.
                 }
 
                 if (mensagem) {

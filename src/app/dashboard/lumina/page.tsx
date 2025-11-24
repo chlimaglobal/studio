@@ -130,30 +130,14 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ title, text }: { title: string, text: string }) => {
-    const handleRecoveryProtocolClick = () => {
-        // Here you would trigger the recovery protocol.
-        // For now, we can just log a message or show a toast.
-        console.log("Triggering recovery protocol...");
-    }
-    
     return (
-         <Card className="bg-destructive/10 border-destructive/20 my-2">
-            <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2 text-destructive">
-                    <AlertTriangle className="h-5 w-5" />
-                    {title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-destructive/90">{text}</p>
-            </CardContent>
-            <CardFooter>
-                <Button variant="destructive" className="w-full" onClick={handleRecoveryProtocolClick}>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Ativar Protocolo de Recuperação
-                </Button>
-            </CardFooter>
-        </Card>
+        <div className="w-full max-w-[80%] md:max-w-[70%] p-3 space-y-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <h3 className="font-semibold text-destructive text-base flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                {title}
+            </h3>
+            <p className="text-sm text-destructive/90 whitespace-pre-wrap">{text}</p>
+        </div>
     )
 }
 
