@@ -349,13 +349,18 @@ export const getPartnerId = onCall(async (request) => {
         return { partnerId: null };
     }
 
-    const coupleDoc = await adminDb.collection('couples').doc(userData.coupleId).get();
-    if (!coupleDoc.exists) {
+    const coupleQuery = await adminDb.collection('couples')
+        .where('members', 'array-contains', userId)
+        .limit(1)
+        .get();
+
+    if (coupleQuery.empty) {
         // Data inconsistency, maybe clean up user's coupleId
         await adminDb.collection('users').doc(userId).update({ coupleId: FieldValue.delete() });
         return { partnerId: null };
     }
     
+    const coupleDoc = coupleQuery.docs[0];
     const members = coupleDoc.data()?.members as string[];
     const partnerId = members.find(id => id !== userId);
     
@@ -554,6 +559,8 @@ export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
         }
     }
 });
+
+    
 
     
 
