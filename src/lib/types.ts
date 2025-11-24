@@ -327,6 +327,14 @@ export type AppUser = {
     monthlyIncome?: number;
 };
 
+// Type for Couple data structure
+export type Couple = {
+  id: string;
+  members: [string, string]; // Array with exactly two user IDs
+  createdAt: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
+};
+
 
 // Types for User Status
 export type UserStatus = {
