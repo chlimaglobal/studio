@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const categoryData = {
@@ -324,3 +323,5 @@ export type UserStatus = {
     mesAlertadoRenda?: string; // format YYYY-MM
     mesAlertadoCasal?: string; // format YYYY-MM
 };
+
+    

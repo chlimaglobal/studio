@@ -1,5 +1,4 @@
 
-
 import { adminDb, adminApp } from './firebase-admin';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
@@ -322,20 +321,32 @@ export const getPartnerId = onCall(async (request) => {
         throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
     }
 
-    // Check shared accounts where the current user is a member
-    const sharedAccountsQuery = adminDb!.collectionGroup('sharedAccounts').where('memberIds', 'array-contains', userId);
-    const sharedAccountsSnapshot = await sharedAccountsQuery.get();
+    if (!adminDb) {
+        throw new HttpsError('internal', 'Database service is not available.');
+    }
 
+    // A user is a "partner" if they are a member of an account owned by someone else.
+    // Query the `sharedAccounts` subcollection for the current user.
+    const sharedAccountsQuery = adminDb.collection('users').doc(userId).collection('sharedAccounts');
+    const sharedAccountsSnapshot = await sharedAccountsQuery.get();
+    
     if (!sharedAccountsSnapshot.empty) {
-        const accountDoc = sharedAccountsSnapshot.docs[0];
-        const memberIds = accountDoc.data().memberIds as string[];
-        const partnerId = memberIds.find(id => id !== userId);
-        return { partnerId: partnerId || null };
+        // Get the first shared account reference
+        const sharedAccountDoc = sharedAccountsSnapshot.docs[0];
+        const accountRefPath = sharedAccountDoc.data().accountRef;
+        const accountRef = adminDb.doc(accountRefPath);
+        const accountDoc = await accountRef.get();
+        
+        if (accountDoc.exists) {
+            const ownerId = accountDoc.data()?.ownerId;
+            return { partnerId: ownerId || null };
+        }
     }
     
-    // Check accounts owned by the user that are shared
-    const ownedAccountsQuery = adminDb!.collection('users').doc(userId).collection('accounts').where('isShared', '==', true);
+    // A user is also a "partner" if they own an account that has other members.
+    const ownedAccountsQuery = adminDb.collection('users').doc(userId).collection('accounts').where('isShared', '==', true);
     const ownedAccountsSnapshot = await ownedAccountsQuery.get();
+
     if (!ownedAccountsSnapshot.empty) {
         const accountDoc = ownedAccountsSnapshot.docs[0];
         const memberIds = accountDoc.data().memberIds as string[];
@@ -538,3 +549,5 @@ export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
         }
     }
 });
+
+    
