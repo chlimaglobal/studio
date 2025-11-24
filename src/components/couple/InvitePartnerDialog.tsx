@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFormState, useFormStatus } from 'react-dom';
 import { sendPartnerInvite } from '@/app/dashboard/couple/actions';
-import { useEffect } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 

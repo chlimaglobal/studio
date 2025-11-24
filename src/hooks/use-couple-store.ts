@@ -58,7 +58,7 @@ export function initializeCoupleStore() {
             setLoading(true);
 
             // Listen to the user's own document for coupleId changes
-            unsubUser = onSnapshot(doc(db, 'users', user.uid), async (userDoc) => {
+            unsubUser = onSnapshot(doc(db, 'users', user.uid), { includeMetadataChanges: true }, async (userDoc) => {
                 if (!userDoc.exists()) {
                     reset();
                     return;
@@ -99,7 +99,7 @@ export function initializeCoupleStore() {
 
                     // Listen for invites SENT BY the user
                     const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
-                    unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
+                    unsubSentInvites = onSnapshot(sentInvitesQuery, { includeMetadataChanges: true }, (snapshot) => {
                         if (!snapshot.empty) {
                             setInvite(snapshot.docs[0].data());
                             setStatus('pending_sent');
@@ -112,7 +112,7 @@ export function initializeCoupleStore() {
 
                     // Listen for invites SENT TO the user
                     const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
-                    unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
+                    unsubReceivedInvites = onSnapshot(receivedInvitesQuery, { includeMetadataChanges: true }, (snapshot) => {
                          if (!snapshot.empty) {
                             setInvite(snapshot.docs[0].data());
                             setStatus('pending_received');

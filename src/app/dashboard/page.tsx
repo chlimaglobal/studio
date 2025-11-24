@@ -317,17 +317,17 @@ export default function DashboardPage() {
 
     // Call the checkDashboardStatus function when the component mounts
     useEffect(() => {
-        if (user) {
-            const checkStatus = async () => {
-                try {
-                    const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
-                    await checkDashboardStatus();
-                } catch (error) {
-                    console.warn("Could not check dashboard status:", error);
-                }
-            };
-            checkStatus();
-        }
+        if (!user || !user.uid) return;
+        
+        const checkStatus = async () => {
+            try {
+                const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
+                await checkDashboardStatus();
+            } catch (error) {
+                console.warn("Could not check dashboard status:", error);
+            }
+        };
+        checkStatus();
     }, [user]);
 
      useEffect(() => {

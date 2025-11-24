@@ -273,13 +273,17 @@ export type AppUser = {
 };
 
 // Couple Feature Types
-export type Partner = {
-  uid: string;
-  name: string;
-  email: string;
-  photoURL?: string;
-  coupleId: string;
-}
+export const LuminaCoupleChatInputSchema = z.object({
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'model']),
+    text: z.string(),
+  })).describe('The recent history of the conversation.'),
+  userQuery: z.string().describe('The new message from the user.'),
+  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
+  user: z.any().describe('The user object of the person sending the message.'),
+  partner: z.any().describe('The user object of the partner.'),
+});
+export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
 
 export type CoupleLink = {
   id: string;
@@ -356,19 +360,6 @@ export const ExtractTransactionInputSchema = z.object({
   text: z.string().describe('O texto em linguagem natural fornecido pelo usuário sobre uma transação.'),
 });
 export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSchema>;
-
-export const LuminaCoupleChatInputSchema = z.object({
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string(),
-  })).describe('The recent history of the conversation.'),
-  userQuery: z.string().describe('The new message from the user.'),
-  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-  user: z.any().describe('The user object of the person sending the message.'),
-  partner: z.any().describe('The user object of the partner.'),
-});
-export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
-
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
