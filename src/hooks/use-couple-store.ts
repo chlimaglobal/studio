@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -12,18 +11,25 @@ export type CoupleStatus = "single" | "pending_sent" | "pending_received" | "lin
 interface CoupleState {
   partner: AppUser | null;
   status: CoupleStatus;
-  invite: { inviteId?: string; sentBy?: string, sentTo?: string, sentToEmail?: string, sentByName?: string; sentByEmail?: string } | null,
+  invite: {
+    inviteId?: string;
+    sentBy?: string;
+    sentTo?: string;
+    sentToEmail?: string;
+    sentByName?: string;
+    sentByEmail?: string;
+  } | null;
   coupleLink: CoupleLink | null;
   loading: boolean;
   setPartner: (partner: AppUser | null) => void;
   setStatus: (status: CoupleStatus) => void;
-  setInvite: (invite: { inviteId?: string; sentBy?: string, sentTo?: string, sentToEmail?: string, sentByName?: string; sentByEmail?: string } | null) => void;
+  setInvite: (invite: any | null) => void;
   setCoupleLink: (coupleLink: CoupleLink | null) => void;
   setLoading: (loading: boolean) => void;
   reset: () => void;
 }
 
-export const useCoupleStore = create<CoupleState>((set, get) => ({
+export const useCoupleStore = create<CoupleState>((set) => ({
   partner: null,
   status: 'single',
   invite: null,
@@ -34,108 +40,148 @@ export const useCoupleStore = create<CoupleState>((set, get) => ({
   setInvite: (invite) => set({ invite }),
   setCoupleLink: (coupleLink) => set({ coupleLink }),
   setLoading: (loading) => set({ loading }),
-  reset: () => set({ partner: null, status: 'single', loading: false, invite: null, coupleLink: null }),
+  reset: () =>
+    set({
+      partner: null,
+      status: 'single',
+      loading: false,
+      invite: null,
+      coupleLink: null,
+    }),
 }));
 
+// Global listeners
 let unsubUser: (() => void) | null = null;
 let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
 
-
 export function initializeCoupleStore() {
-    const auth = getAuth();
-    
-    auth.onAuthStateChanged(user => {
-        // Clear all previous listeners on auth state change
-        unsubUser?.();
-        unsubSentInvites?.();
-        unsubReceivedInvites?.();
+  const auth = getAuth();
+
+  auth.onAuthStateChanged(async (user) => {
+    // Clean previous listeners
+    unsubUser?.();
+    unsubSentInvites?.();
+    unsubReceivedInvites?.();
+    unsubPartner?.();
+
+    if (!user) {
+      useCoupleStore.getState().reset();
+      return;
+    }
+
+    const {
+      setLoading,
+      setStatus,
+      setPartner,
+      setInvite,
+      setCoupleLink,
+      reset,
+    } = useCoupleStore.getState();
+
+    setLoading(true);
+
+    // Listener do documento do próprio usuário
+    unsubUser = onSnapshot(
+      doc(db, 'users', user.uid),
+      { includeMetadataChanges: true },
+      async (userDoc) => {
+        if (!userDoc.exists()) {
+          console.log("User document not found, resetting state.");
+          reset();
+          return;
+        }
+
+        const userData = userDoc.data();
+        const coupleId = userData.coupleId;
+
         unsubPartner?.();
 
-        if (user) {
-            const { setLoading, setStatus, setPartner, setInvite, setCoupleLink, reset } = useCoupleStore.getState();
-            setLoading(true);
+        // ------------ 🔗 SE JÁ ESTÁ VINCULADO ------------
+        if (coupleId) {
+          setInvite(null);
 
-            // Listen to the user's own document for coupleId changes
-            unsubUser = onSnapshot(doc(db, 'users', user.uid), { includeMetadataChanges: true }, async (userDoc) => {
-                // If the user document is deleted or doesn't exist, reset the state.
-                if (!userDoc.exists()) {
-                    console.log("User document not found, resetting state.");
-                    reset();
-                    return;
-                }
-                
-                const userData = userDoc.data();
-                const coupleId = userData.coupleId;
+          const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
 
-                unsubPartner?.(); // Cancel any existing partner listener
+          if (!coupleLinkDoc.exists()) {
+            console.log("Couple link not found, resetting state.");
+            reset();
+            return;
+          }
 
-                if (coupleId) {
-                    setInvite(null); // No pending invites if linked
-                    
-                    const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
-                    if(coupleLinkDoc.exists()) {
-                        setStatus('linked');
-                        const coupleLinkData = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
-                        setCoupleLink({ id: coupleId, ...coupleLinkData });
-                        const partnerId = coupleLinkData.members.find(id => id !== user.uid);
-                        
-                        if (partnerId) {
-                             unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
-                                if (partnerDoc.exists()) {
-                                    setPartner(partnerDoc.data() as AppUser);
-                                } else {
-                                    setPartner(null);
-                                }
-                                setLoading(false);
-                            });
-                        } else {
-                            // If no partnerId found, something is wrong with the couple link
-                            reset();
-                            setLoading(false);
-                        }
-                    } else {
-                        // Data inconsistency, treat as single for now
-                        console.log("Couple link not found, resetting state.");
-                        reset();
-                    }
+          const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
 
-                } else {
-                    // Not linked, check for invites
-                    setPartner(null);
-                    setCoupleLink(null);
+          setStatus('linked');
+          setCoupleLink({ id: coupleId, ...data });
 
-                    // Listen for invites SENT BY the user
-                    const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
-                    unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
-                        if (!snapshot.empty) {
-                            setInvite(snapshot.docs[0].data());
-                            setStatus('pending_sent');
-                        } else if (useCoupleStore.getState().status === 'pending_sent') {
-                            setStatus('single');
-                            setInvite(null);
-                        }
-                        setLoading(false);
-                    });
+          const partnerId = data.members.find((id) => id !== user.uid);
 
-                    // Listen for invites SENT TO the user
-                    const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
-                    unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
-                         if (!snapshot.empty) {
-                            setInvite(snapshot.docs[0].data());
-                            setStatus('pending_received');
-                        } else if (useCoupleStore.getState().status === 'pending_received') {
-                            setStatus('single');
-                            setInvite(null);
-                        }
-                        setLoading(false);
-                    });
-                }
+          if (partnerId) {
+            unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
+              if (partnerDoc.exists()) {
+                setPartner(partnerDoc.data() as AppUser);
+              } else {
+                setPartner(null);
+              }
+              setLoading(false);
             });
-        } else {
-            // User logged out
-            useCoupleStore.getState().reset();
+          } else {
+            reset();
+            setLoading(false);
+          }
+
+          return; // ⛔ Impede execução da parte de convites
         }
-    });
+
+        // ------------ 🧍‍♂️ SE AINDA NÃO TEM PARCEIRO ------------
+        setPartner(null);
+        setCoupleLink(null);
+
+        // Cancel previous listeners
+        unsubSentInvites?.();
+        unsubReceivedInvites?.();
+
+        // 🔥 LISTENER 1 — CONVITES ENVIADOS PELO USER
+        const sentInvitesQuery = query(
+          collection(db, 'invites'),
+          where('sentBy', '==', user.uid),
+          where('status', '==', 'pending'),
+          limit(1)
+        );
+
+        unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
+          if (!snapshot.empty) {
+            const inviteData = snapshot.docs[0].data();
+            setInvite(inviteData);
+            setStatus('pending_sent');
+          } else if (useCoupleStore.getState().status === 'pending_sent') {
+            setStatus('single');
+            setInvite(null);
+          }
+          setLoading(false);
+        });
+
+        // 🔥 LISTENER 2 — CONVITES RECEBIDOS PELO USER
+        const receivedInvitesQuery = query(
+          collection(db, 'invites'),
+          where('sentTo', '==', user.uid),
+          where('status', '==', 'pending'),
+          limit(1)
+        );
+
+        unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
+          if (!snapshot.empty) {
+            const inviteData = snapshot.docs[0].data();
+            setInvite(inviteData);
+            setStatus('pending_received');
+          } else if (useCoupleStore.getState().status === 'pending_received') {
+            setStatus('single');
+            setInvite(null);
+          }
+          setLoading(false);
+        });
+      }
+    );
+  });
 }
