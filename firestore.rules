@@ -7,7 +7,7 @@ service cloud.firestore {
     // --- USERS COLLECTION ---
     match /users/{userId} {
       
-      // User can read their own document OR their partner's document if coupleId matches.
+      // Usuário pode ler seu próprio documento OU o documento de seu parceiro se o coupleId for o mesmo.
       allow read: if request.auth != null && (
         request.auth.uid == userId ||
         (
@@ -17,10 +17,10 @@ service cloud.firestore {
         )
       );
 
-      // User can only write to their own document.
+      // Usuário só pode escrever em seu próprio documento.
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // User subcollections (transactions, accounts, etc.)
+      // Subcoleções do usuário (transações, contas, etc.)
       match /{allChildren=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
@@ -31,28 +31,28 @@ service cloud.firestore {
 
       allow create: if request.auth != null;
 
-      // Allow read if:
-      // 1. The user sent it (sentBy == auth.uid)
-      // 2. The user received it (sentTo == auth.uid)
+      // Permitir leitura se:
+      // 1. O usuário enviou (sentBy == auth.uid)
+      // 2. O usuário recebeu (sentTo == auth.uid)
       allow read: if request.auth != null &&
         (resource.data.sentBy == request.auth.uid ||
-        resource.data.sentTo == request.auth.uid);
+         resource.data.sentTo == request.auth.uid);
 
-      // Only the sender can cancel/delete
+      // Apenas o remetente pode cancelar/deletar
       allow delete: if request.auth != null &&
         resource.data.sentBy == request.auth.uid;
     }
 
     // --- COUPLE LINKS ---
     match /couples/{coupleId} {
-      // Only members of the couple can read or write to the couple document
+      // Apenas membros do casal podem ler ou escrever no documento do casal
       allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
 
-      // Rule for the couple's message subcollection
+      // Regra para a subcoleção de mensagens do casal
       match /messages/{messageId} {
-        // Only members of the couple can read or create messages
+        // Apenas membros do casal podem ler ou criar mensagens
         allow read, create: if request.auth != null && get(/databases/$(database)/documents/couples/$(coupleId)).data.members.hasAny([request.auth.uid]);
-        // No one can update or delete messages to ensure history integrity
+        // Ninguém pode atualizar ou deletar mensagens para garantir a integridade do histórico
         allow update, delete: if false;
       }
     }
