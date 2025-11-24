@@ -180,10 +180,10 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('viewMode', mode);
     };
 
-    const getPartnerId = useCallback(async (userId: string): Promise<string | null> => {
+    const getPartnerId = useCallback(async (): Promise<string | null> => {
         try {
             const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
-            const result = await getPartnerIdFunction({ userId });
+            const result = await getPartnerIdFunction();
             // @ts-ignore
             return result.data.partnerId || null;
         } catch (error) {
@@ -195,7 +195,7 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         async function fetchPartnerData() {
             if (user && viewMode === 'together') {
-                const partnerId = await getPartnerId(user.uid);
+                const partnerId = await getPartnerId();
                 if (partnerId) {
                     const data = await getPartnerData(partnerId);
                     setPartnerData(data);
@@ -223,12 +223,12 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { viewMode } = useViewMode();
+  const { viewMode, partnerData } = useViewMode();
 
-   const getPartnerId = useCallback(async (userId: string): Promise<string | null> => {
+   const getPartnerId = useCallback(async (): Promise<string | null> => {
         try {
             const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
-            const result = await getPartnerIdFunction({ userId });
+            const result = await getPartnerIdFunction();
              // @ts-ignore
             return result.data.partnerId || null;
         } catch (error) {
@@ -242,22 +242,16 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
 
         const unsubUser = onTransactionsUpdate(user.uid, (userTransactions) => {
-            if (viewMode === 'separate') {
+            if (viewMode === 'separate' || !partnerData) {
                 setTransactions(userTransactions);
                 setIsLoading(false);
             } else {
-                 getPartnerId(user.uid).then(partnerId => {
-                    if (partnerId) {
-                        const unsubPartner = onTransactionsUpdate(partnerId, (partnerTransactions) => {
-                            setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-                            setIsLoading(false);
-                        });
-                        // This cleanup is tricky, but onTransactionsUpdate handles it.
-                    } else {
-                        setTransactions(userTransactions);
-                        setIsLoading(false);
-                    }
+                 const unsubPartner = onTransactionsUpdate(partnerData.uid, (partnerTransactions) => {
+                    setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                    setIsLoading(false);
                 });
+                // This is a bit tricky, but onTransactionsUpdate should handle its own cleanup.
+                // When viewMode changes, this whole effect re-runs, and old listeners should be cleaned up.
             }
         });
 
@@ -269,7 +263,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       setTransactions([]);
       setIsLoading(false);
     }
-  }, [user, viewMode, getPartnerId]);
+  }, [user, viewMode, partnerData]);
 
   const playSound = useCallback((soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
@@ -419,3 +413,5 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         </ThemeProvider>
     )
 }
+
+    

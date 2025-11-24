@@ -294,13 +294,30 @@ export const acceptInviteCode = onCall(async (request) => {
     }
     
     const accountData = accountDoc.data()!;
+    const inviterUid = accountData.ownerId;
 
     const batch = adminDb!.batch();
 
-    // Add member to account
+    // 1. Create a new couple document
+    const coupleRef = adminDb!.collection('couples').doc();
+    batch.set(coupleRef, {
+        coupleId: coupleRef.id,
+        members: [inviterUid, inviteeUid],
+        createdAt: Timestamp.now()
+    });
+
+    // 2. Update both user documents with the new coupleId
+    const inviterRef = adminDb!.collection('users').doc(inviterUid);
+    const inviteeRef = adminDb!.collection('users').doc(inviteeUid);
+    batch.update(inviterRef, { coupleId: coupleRef.id });
+    batch.update(inviteeRef, { coupleId: coupleRef.id });
+
+
+    // 3. Update the shared account logic
     batch.update(accountRef, {
         memberIds: FieldValue.arrayUnion(inviteeUid),
-        isShared: true
+        isShared: true,
+        coupleId: coupleRef.id
     });
     
     // Add shared account reference to invitee's user doc
@@ -325,36 +342,24 @@ export const getPartnerId = onCall(async (request) => {
         throw new HttpsError('internal', 'Database service is not available.');
     }
 
-    // A user is a "partner" if they are a member of an account owned by someone else.
-    // Query the `sharedAccounts` subcollection for the current user.
-    const sharedAccountsQuery = adminDb.collection('users').doc(userId).collection('sharedAccounts');
-    const sharedAccountsSnapshot = await sharedAccountsQuery.get();
+    const userDoc = await adminDb.collection('users').doc(userId).get();
+    const userData = userDoc.data();
     
-    if (!sharedAccountsSnapshot.empty) {
-        // Get the first shared account reference
-        const sharedAccountDoc = sharedAccountsSnapshot.docs[0];
-        const accountRefPath = sharedAccountDoc.data().accountRef;
-        const accountRef = adminDb.doc(accountRefPath);
-        const accountDoc = await accountRef.get();
-        
-        if (accountDoc.exists) {
-            const ownerId = accountDoc.data()?.ownerId;
-            return { partnerId: ownerId || null };
-        }
-    }
-    
-    // A user is also a "partner" if they own an account that has other members.
-    const ownedAccountsQuery = adminDb.collection('users').doc(userId).collection('accounts').where('isShared', '==', true);
-    const ownedAccountsSnapshot = await ownedAccountsQuery.get();
-
-    if (!ownedAccountsSnapshot.empty) {
-        const accountDoc = ownedAccountsSnapshot.docs[0];
-        const memberIds = accountDoc.data().memberIds as string[];
-        const partnerId = memberIds.find(id => id !== userId);
-        return { partnerId: partnerId || null };
+    if (!userData?.coupleId) {
+        return { partnerId: null };
     }
 
-    return { partnerId: null };
+    const coupleDoc = await adminDb.collection('couples').doc(userData.coupleId).get();
+    if (!coupleDoc.exists) {
+        // Data inconsistency, maybe clean up user's coupleId
+        await adminDb.collection('users').doc(userId).update({ coupleId: FieldValue.delete() });
+        return { partnerId: null };
+    }
+    
+    const members = coupleDoc.data()?.members as string[];
+    const partnerId = members.find(id => id !== userId);
+    
+    return { partnerId: partnerId || null };
 });
 
 export const handleUserLogin = onCall(async (request) => {
@@ -549,3 +554,5 @@ export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
         }
     }
 });
+
+    
