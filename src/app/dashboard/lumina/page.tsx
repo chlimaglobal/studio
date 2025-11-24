@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -129,11 +130,12 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ text }: { text: string }) => {
-    // This component will now render raw HTML, assuming the input is trusted.
     return (
-        <div dangerouslySetInnerHTML={{ __html: text }} />
+        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
+            <p className="whitespace-pre-wrap">{text}</p>
+        </div>
     );
-}
+};
 
 export default function LuminaPage() {
     const router = useRouter();
@@ -178,7 +180,7 @@ export default function LuminaPage() {
     }, [setHasUnread]);
 
     const saveMessage = useCallback(async (newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm && newMessage.role !== 'alerta')) return;
+        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm)) return;
 
         const messageWithAuthor = {
             ...newMessage,
@@ -199,7 +201,7 @@ export default function LuminaPage() {
         try {
             const chatHistoryForLumina = messages.slice(-10).map(msg => ({
                 role: msg.role === 'lumina' ? 'model' : 'user', // Map 'lumina' to 'model'
-                text: msg.text
+                text: msg.text || ''
             }));
 
             const luminaInput: LuminaChatInput = {
@@ -471,16 +473,19 @@ ${res.actionNow}
                                     )}
                                     <div className={cn('flex flex-col max-w-[80%] md:max-w-[70%]', isUser ? 'items-end' : 'items-start')}>
                                          { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
-                                        { msg.text && !isAlert && (
+                                        
+                                        { (msg.text && !isAlert) && (
                                             <div className={cn('p-3 rounded-lg border flex flex-col',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                                             </div>
                                         )}
+
                                         {isAlert && msg.text && (
                                             <AlertMessageCard text={msg.text} />
                                         )}
+
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
                                                 transaction={msg.transactionToConfirm}

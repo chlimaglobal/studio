@@ -458,16 +458,8 @@ export default function DashboardPage() {
         const userName = user.displayName?.split(' ')[0] || 'Usuário';
 
         const createAlertMessage = (titulo: string, mensagemPrincipal: string, mensagemSecundaria: string) => {
-            return `
-                <div class="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-xs space-y-1 inline-block max-w-[88%] self-start break-words">
-                  <div class="flex items-center gap-1 text-red-400 font-semibold text-[10px]">
-                    <span>❗</span>
-                    <span>${titulo}</span>
-                  </div>
-                  <p class="text-red-300">${mensagemPrincipal}</p>
-                  <p class="text-red-200 font-medium">${mensagemSecundaria}</p>
-                </div>
-            `;
+            // This now returns a simple string, to be rendered inside a standard bubble
+            return `${titulo}\n\n${mensagemPrincipal}\n\n${mensagemSecundaria}`;
         }
 
         // Logic for negative balance alert
@@ -476,15 +468,11 @@ export default function DashboardPage() {
             const lastMonthData = chartData.length > 1 ? chartData[chartData.length - 2] : null;
             if (lastMonthData && lastMonthData.resultado < 0 && userStatus.ultimoMesChecado !== format(subMonths(new Date(), 1), 'MM/yy')) {
                 
-                const htmlMessage = createAlertMessage(
-                    "Você fechou o mês no vermelho",
-                    "Sua renda não cobriu seus gastos este mês.",
-                    "Quer ver onde está o maior vazamento financeiro?"
-                );
+                const messageText = `${userName}, terminei sua análise mensal e identifiquei que você fechou o mês no negativo.\nQuer que eu te mostre:\n• quais despesas mais pesaram?\n• quais entradas ficaram abaixo da média?\n• e o que você pode ajustar para virar esse cenário no próximo mês?`;
                 
                 await addChatMessage(user.uid, {
-                    role: 'alerta',
-                    text: htmlMessage,
+                    role: 'lumina',
+                    text: messageText,
                     authorName: "Lúmina"
                 });
                 await updateUserStatus(user.uid, { ultimoMesChecado: format(subMonths(new Date(), 1), 'MM/yy') });
@@ -504,14 +492,14 @@ export default function DashboardPage() {
                 if (rendaMes < costOfLiving) {
                      alertContent = {
                          title: "Renda abaixo do custo de vida",
-                         main: `Sua renda (${formatCurrency(rendaMes)}) está abaixo do custo de vida (${formatCurrency(costOfLiving)}).`,
-                         secondary: "Quer ajustar metas ou revisar despesas?"
+                         main: `Sua renda atual (${formatCurrency(rendaMes)}) está abaixo do seu custo de vida (${formatCurrency(costOfLiving)}).`,
+                         secondary: "Quer que eu te mostre como equilibrar isso?"
                      }
                 }
                 
                 if (alertContent) {
-                    const htmlMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
-                    await addChatMessage(user.uid, { role: 'alerta', text: htmlMessage, authorName: 'Lúmina' });
+                    const textMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
+                    await addChatMessage(user.uid, { role: 'lumina', text: textMessage, authorName: 'Lúmina' });
                     await updateUserStatus(user.uid, { mesAlertadoRenda: currentMonthStr });
                 }
             }
@@ -522,6 +510,7 @@ export default function DashboardPage() {
             if (!partnerData || userStatus.mesAlertadoCasal === currentMonthStr) return;
 
             const rendaUsuario = chartData[chartData.length - 1]?.aReceber ?? 0;
+            // @ts-ignore
             const rendaParceiro = partnerData?.monthlyIncome ?? 0;
             const rendaTotalCasal = rendaUsuario + rendaParceiro;
             
@@ -544,8 +533,8 @@ export default function DashboardPage() {
                 }
                 
                 if (alertContent) {
-                     const htmlMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
-                     await addChatMessage(user.uid, { role: 'alerta', text: htmlMessage, authorName: 'Lúmina' });
+                     const textMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
+                     await addChatMessage(user.uid, { role: 'lumina', text: textMessage, authorName: 'Lúmina' });
                      await updateUserStatus(user.uid, { mesAlertadoCasal: currentMonthStr });
                 }
             }
