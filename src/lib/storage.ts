@@ -539,6 +539,43 @@ export async function addChatMessage(userId: string, message: Omit<ChatMessage, 
 }
 
 
+export function onCoupleChatUpdate(
+    coupleId: string, 
+    callback: (messages: ChatMessage[]) => void,
+): () => void {
+    if (!coupleId) return () => {};
+    
+    const messagesRef = collection(db, 'couples', coupleId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const newMessages: ChatMessage[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            newMessages.push({
+                id: doc.id,
+                ...data,
+                timestamp: (data.timestamp as Timestamp)?.toDate(),
+            } as ChatMessage);
+        });
+        callback(newMessages);
+    }, (error) => {
+        console.error("Error fetching couple chat messages:", error);
+    });
+    
+    return unsubscribe;
+}
+
+export async function addCoupleChatMessage(coupleId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) {
+    if (!coupleId) throw new Error("Couple ID not provided");
+    const chatMessage = {
+        ...message,
+        timestamp: Timestamp.now(),
+    };
+    await addDoc(collection(db, 'couples', coupleId, 'messages'), chatMessage);
+}
+
+
 // ======== BACKUP ========
 const collectionsToBackup = ['transactions', 'cards', 'goals', 'commissions'];
 
@@ -600,3 +637,5 @@ export async function getPartnerData(partnerId: string): Promise<User | null> {
 
 // Re-exporting getDoc and updateDoc for use in page.tsx
 export { getDoc, doc, updateDoc };
+
+    

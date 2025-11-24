@@ -16,7 +16,7 @@ import {
   getPartnerData 
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, User as AppUser } from '@/lib/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser } from '@/lib/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
