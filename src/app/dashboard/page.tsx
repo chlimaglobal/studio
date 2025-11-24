@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -30,6 +28,9 @@ import UpcomingBills from '@/components/upcoming-bills';
 import { httpsCallable } from 'firebase/functions';
 import { functions, db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
+import { useCoupleStore } from '@/hooks/use-couple-store';
+import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
+import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 
 
 interface SummaryData {
@@ -307,7 +308,7 @@ export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const { transactions, isLoading: isLoadingTransactions } = useTransactions();
     const { user } = useAuth();
-    const { viewMode, partnerData } = useViewMode();
+    const { status: coupleStatus } = useCoupleStore();
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
@@ -479,76 +480,9 @@ export default function DashboardPage() {
             }
         };
 
-
-        // Logic for individual income vs cost of living alert
-        const checkIndividualIncome = async () => {
-            const ultimoMesChartData = chartData[chartData.length - 1];
-            const rendaMes = ultimoMesChartData?.aReceber ?? 0;
-            
-            if (costOfLiving > 0 && rendaMes > 0 && userStatus.mesAlertadoRenda !== currentMonthStr) {
-                const rendaIdeal = costOfLiving * 1.4;
-                let alertContent: { title: string, main: string, secondary: string } | null = null;
-                
-                if (rendaMes < costOfLiving) {
-                     alertContent = {
-                         title: "Renda abaixo do custo de vida",
-                         main: `Sua renda atual (${formatCurrency(rendaMes)}) está abaixo do seu custo de vida (${formatCurrency(costOfLiving)}).`,
-                         secondary: "Quer que eu te mostre como equilibrar isso?"
-                     }
-                }
-                
-                if (alertContent) {
-                    const textMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
-                    await addChatMessage(user.uid, { role: 'lumina', text: textMessage, authorName: 'Lúmina' });
-                    await updateUserStatus(user.uid, { mesAlertadoRenda: currentMonthStr });
-                }
-            }
-        }
-        
-        // Logic for couple income vs cost of living alert
-        const checkCoupleIncome = async () => {
-            if (!partnerData || userStatus.mesAlertadoCasal === currentMonthStr) return;
-
-            const rendaUsuario = chartData[chartData.length - 1]?.aReceber ?? 0;
-            // @ts-ignore
-            const rendaParceiro = partnerData?.monthlyIncome ?? 0;
-            const rendaTotalCasal = rendaUsuario + rendaParceiro;
-            
-             if (costOfLiving > 0 && rendaTotalCasal > 0) {
-                const rendaIdealCasal = costOfLiving * 1.4;
-                let alertContent: { title: string, main: string, secondary: string } | null = null;
-                
-                if (rendaTotalCasal < costOfLiving) {
-                    alertContent = {
-                        title: "Renda conjunta abaixo do custo de vida",
-                        main: `A renda do casal (${formatCurrency(rendaTotalCasal)}) está abaixo do custo de vida (${formatCurrency(costOfLiving)}).`,
-                        secondary: "Quer ver como equilibrar?"
-                    };
-                } else if (rendaTotalCasal < rendaIdealCasal) {
-                     alertContent = {
-                        title: "Quase no nível financeiro ideal",
-                        main: `Vocês cobrem o custo de vida, mas a renda ideal seria ${formatCurrency(rendaIdealCasal)}.`,
-                        secondary: "Querem ver como alcançar isso juntos?"
-                     };
-                }
-                
-                if (alertContent) {
-                     const textMessage = createAlertMessage(alertContent.title, alertContent.main, alertContent.secondary);
-                     await addChatMessage(user.uid, { role: 'lumina', text: textMessage, authorName: 'Lúmina' });
-                     await updateUserStatus(user.uid, { mesAlertadoCasal: currentMonthStr });
-                }
-            }
-        }
-        
         checkNegativeBalance();
-        if (viewMode === 'separate') {
-            checkIndividualIncome();
-        } else {
-            checkCoupleIncome();
-        }
 
-
-    }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving, viewMode, partnerData]);
+    }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
     
     if (isLoadingTransactions || isLoadingBudgets) {
         return <DashboardLoadingSkeleton />;
@@ -563,6 +497,9 @@ export default function DashboardPage() {
         <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
         <NotificationPermission />
+
+        {coupleStatus === 'pending_received' && <PendingInviteCard />}
+        {coupleStatus === 'linked' && <PartnerInfoCard />}
         
         <div className="flex items-center justify-center gap-2">
           <Button variant="ghost" size="icon" onClick={handlePrevMonth} className="h-8 w-8">

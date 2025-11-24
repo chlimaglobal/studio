@@ -26,6 +26,8 @@ import { formatCurrency } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { initializeCoupleStore, useCoupleStore } from '@/hooks/use-couple-store';
+
 
 // 1. Auth Context
 interface AuthContextType {
@@ -62,22 +64,17 @@ type ViewMode = 'separate' | 'together';
 interface CoupleContextType {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
-  coupleId: string | null;
-  partnerId: string | null;
   partnerData: AppUser | null;
 }
 const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
 
-export function useCouple() {
+export function useViewMode() {
     const context = useContext(CoupleContext);
     if (!context) {
-        throw new Error('useCouple must be used within a CoupleProvider');
+        throw new Error('useViewMode must be used within a CoupleProvider');
     }
     return context;
 }
-
-// Re-export useViewMode for backward compatibility if needed, but it's better to refactor
-export const useViewMode = useCouple;
 
 
 // 4. Transactions Context
@@ -132,6 +129,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
+    // Initialize Zustand store listener
+    initializeCoupleStore();
+
     return () => unsubscribe();
   }, []);
 
@@ -174,75 +174,21 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
 }
 
 function CoupleProvider({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth();
-    const [coupleId, setCoupleId] = useState<string | null>(null);
-    const [partnerId, setPartnerId] = useState<string | null>(null);
-    const [partnerData, setPartnerData] = useState<AppUser | null>(null);
-
+    const { partner } = useCoupleStore();
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
         if (typeof window !== 'undefined') {
             return (localStorage.getItem('viewMode') as ViewMode) || 'separate';
         }
         return 'separate';
     });
-
-    // Listens to the user's own document to get their coupleId
-    useEffect(() => {
-        if (user) {
-            const unsubscribe = onUserUpdate(user.uid, (userData) => {
-                setCoupleId(userData?.coupleId || null);
-            });
-            return () => unsubscribe();
-        } else {
-            setCoupleId(null);
-        }
-    }, [user]);
-
-    // When coupleId changes, get the partner's ID
-    useEffect(() => {
-        const fetchPartnerId = async () => {
-            if (user && coupleId) {
-                try {
-                    const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
-                    const result = await getPartnerIdFunction();
-                    // @ts-ignore
-                    const id = result.data?.partnerId;
-                    setPartnerId(id || null);
-                } catch (error) {
-                    console.error("Error calling getPartnerId function:", error);
-                    setPartnerId(null);
-                }
-            } else {
-                setPartnerId(null);
-            }
-        };
-
-        fetchPartnerId();
-    }, [user, coupleId]);
-
-    // When partnerId changes, get the partner's full user data
-    useEffect(() => {
-        const fetchPartnerData = async () => {
-            if (partnerId) {
-                const data = await getPartnerData(partnerId);
-                setPartnerData(data);
-            } else {
-                setPartnerData(null);
-            }
-        };
-
-        fetchPartnerData();
-    }, [partnerId]);
-
-
+    
     const setViewMode = (mode: ViewMode) => {
         setViewModeInternal(mode);
         localStorage.setItem('viewMode', mode);
     };
 
-
     return (
-        <CoupleContext.Provider value={{ viewMode, setViewMode, coupleId, partnerId, partnerData }}>
+        <CoupleContext.Provider value={{ viewMode, setViewMode, partnerData: partner }}>
             {children}
         </CoupleContext.Provider>
     );
@@ -254,7 +200,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { viewMode, partnerId } = useCouple();
+  const { viewMode, partnerData } = useViewMode();
 
   // This effect now handles fetching transactions for one or both users
   useEffect(() => {
@@ -272,7 +218,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     const unsubUser = onTransactionsUpdate(user.uid, (newTxs) => {
       userTransactions = newTxs;
       // If in separate mode, or no partner, just show user's transactions
-      if (viewMode === 'separate' || !partnerId) {
+      if (viewMode === 'separate' || !partnerData?.uid) {
         setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       } else {
@@ -284,8 +230,8 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
 
     let unsubPartner: (() => void) | null = null;
     // If in 'together' mode and a partner exists, also subscribe to their transactions
-    if (viewMode === 'together' && partnerId) {
-      unsubPartner = onTransactionsUpdate(partnerId, (newTxs) => {
+    if (viewMode === 'together' && partnerData?.uid) {
+      unsubPartner = onTransactionsUpdate(partnerData.uid, (newTxs) => {
         partnerTransactions = newTxs;
         // Combine with user's transactions
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -306,7 +252,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         unsubPartner();
       }
     };
-  }, [user?.uid, viewMode, partnerId]);
+  }, [user?.uid, viewMode, partnerData]);
 
 
   const playSound = useCallback((soundFile: string) => {
@@ -393,7 +339,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
-    const { viewMode, coupleId } = useCouple();
+    const { viewMode, coupleLink } = useCoupleStore();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
@@ -425,14 +371,14 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
             }
         };
 
-        if (viewMode === 'together' && coupleId) {
-            unsubscribe = onCoupleChatUpdate(coupleId, handleNewMessages);
+        if (viewMode === 'together' && coupleLink) {
+            unsubscribe = onCoupleChatUpdate(coupleLink.id, handleNewMessages);
         } else {
             unsubscribe = onChatUpdate(user.uid, handleNewMessages);
         }
 
         return () => unsubscribe();
-    }, [user, isSubscribed, isAdmin, pathname, viewMode, coupleId]);
+    }, [user, isSubscribed, isAdmin, pathname, viewMode, coupleLink]);
 
     return (
         <LuminaContext.Provider value={{ hasUnread, setHasUnread }}>
