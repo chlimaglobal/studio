@@ -560,6 +560,100 @@ export const sendMonthlySummary = onSchedule("55 23 L * *", async (event) => {
     }
 });
 
+
+export const migrateSharedEmailAccount = onCall(async (request) => {
+    const originalUserId = request.auth?.uid;
+    if (!originalUserId || !request.auth.token.email) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado ou e-mail não disponível.');
+    }
+
+    if (!adminApp || !adminDb) {
+        throw new HttpsError('internal', 'Serviços de administrador não inicializados.');
+    }
+    const auth = getAuth(adminApp);
+    const db = adminDb;
+
+    const originalUserRef = db.collection('users').doc(originalUserId);
+    const originalUserDoc = await originalUserRef.get();
+    const originalUserData = originalUserDoc.data();
+
+    // 1. Validate: Check if the user is already in a couple
+    if (originalUserData?.coupleId) {
+        throw new HttpsError('already-exists', 'Esta conta já está vinculada a um parceiro.');
+    }
+
+    try {
+        const batch = db.batch();
+        const timestamp = Date.now();
+        
+        // 2. Create placeholder user for the partner
+        const partnerEmail = `partner+${timestamp}@financeflow.app`; // Unique, non-real email
+        const partnerPassword = randomBytes(16).toString('hex'); // Secure temporary password
+        const partnerName = `Parceiro(a) de ${originalUserData?.displayName || 'Usuário'}`;
+
+        const partnerUserRecord = await auth.createUser({
+            email: partnerEmail,
+            password: partnerPassword,
+            displayName: partnerName,
+        });
+        
+        const partnerId = partnerUserRecord.uid;
+        
+        // Create a user document for the partner
+        const partnerUserRef = db.collection('users').doc(partnerId);
+        batch.set(partnerUserRef, {
+            uid: partnerId,
+            email: partnerEmail,
+            displayName: partnerName,
+            photoURL: '',
+            createdAt: Timestamp.now(),
+            stripeSubscriptionStatus: 'inactive', // Partners inherit subscription status, this is just for init
+        });
+
+        // 3. Create coupleId and link both users
+        const coupleRef = db.collection('couples').doc();
+        const coupleId = coupleRef.id;
+
+        batch.set(coupleRef, {
+            coupleId: coupleId,
+            members: [originalUserId, partnerId],
+            createdAt: Timestamp.now()
+        });
+
+        batch.update(originalUserRef, { coupleId: coupleId });
+        batch.update(partnerUserRef, { coupleId: coupleId });
+
+        // Optionally, find any owned accounts by the original user and mark them as shared
+        const accountsRef = originalUserRef.collection('accounts');
+        const ownedAccountsSnapshot = await accountsRef.where('ownerId', '==', originalUserId).get();
+        ownedAccountsSnapshot.forEach(doc => {
+            batch.update(doc.ref, {
+                isShared: true,
+                coupleId: coupleId,
+                memberIds: FieldValue.arrayUnion(partnerId)
+            });
+            // Also create the sharedAccount reference for the new partner
+            const sharedAccountRef = partnerUserRef.collection('sharedAccounts').doc(doc.id);
+            batch.set(sharedAccountRef, { accountRef: doc.ref.path });
+        });
+        
+        await batch.commit();
+
+        // 4. Return temporary credentials for the partner
+        return {
+            success: true,
+            message: 'Conta do parceiro criada e vinculada com sucesso.',
+            partnerCredentials: {
+                email: partnerEmail,
+                password: partnerPassword,
+            }
+        };
+
+    } catch (error) {
+        console.error('Error during shared account migration:', error);
+        throw new HttpsError('internal', 'Ocorreu um erro ao migrar a conta. Tente novamente.');
+    }
+});
     
 
     
