@@ -13,10 +13,13 @@ import {
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
   onChatUpdate, 
-  getPartnerData 
+  getPartnerData,
+  onCoupleChatUpdate,
+  addCoupleChatMessage,
+  onUserUpdate // Import the new function
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, AppUser } from '@/lib/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/lib/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -54,19 +57,21 @@ export function useSubscription() {
   return context;
 }
 
-// 3. ViewMode Context
+// 3. Couple Context (formerly ViewMode)
 type ViewMode = 'separate' | 'together';
-interface ViewModeContextType {
+interface CoupleContextType {
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+  coupleId: string | null;
+  partnerId: string | null;
   partnerData: AppUser | null;
 }
-const ViewModeContext = createContext<ViewModeContextType | undefined>(undefined);
+const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
 
-export function useViewMode() {
-    const context = useContext(ViewModeContext);
+export function useCouple() {
+    const context = useContext(CoupleContext);
     if (!context) {
-        throw new Error('useViewMode must be used within a ViewModeProvider');
+        throw new Error('useCouple must be used within a CoupleProvider');
     }
     return context;
 }
@@ -165,9 +170,12 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-function ViewModeProvider({ children }: { children: React.ReactNode }) {
+function CoupleProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
+    const [coupleId, setCoupleId] = useState<string | null>(null);
+    const [partnerId, setPartnerId] = useState<string | null>(null);
     const [partnerData, setPartnerData] = useState<AppUser | null>(null);
+
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
         if (typeof window !== 'undefined') {
             return (localStorage.getItem('viewMode') as ViewMode) || 'separate';
@@ -175,45 +183,65 @@ function ViewModeProvider({ children }: { children: React.ReactNode }) {
         return 'separate';
     });
 
+    // Listens to the user's own document to get their coupleId
+    useEffect(() => {
+        if (user) {
+            const unsubscribe = onUserUpdate(user.uid, (userData) => {
+                setCoupleId(userData?.coupleId || null);
+            });
+            return () => unsubscribe();
+        } else {
+            setCoupleId(null);
+        }
+    }, [user]);
+
+    // When coupleId changes, get the partner's ID
+    useEffect(() => {
+        const fetchPartnerId = async () => {
+            if (user && coupleId) {
+                try {
+                    const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
+                    const result = await getPartnerIdFunction();
+                    // @ts-ignore
+                    const id = result.data?.partnerId;
+                    setPartnerId(id || null);
+                } catch (error) {
+                    console.error("Error calling getPartnerId function:", error);
+                    setPartnerId(null);
+                }
+            } else {
+                setPartnerId(null);
+            }
+        };
+
+        fetchPartnerId();
+    }, [user, coupleId]);
+
+    // When partnerId changes, get the partner's full user data
+    useEffect(() => {
+        const fetchPartnerData = async () => {
+            if (partnerId) {
+                const data = await getPartnerData(partnerId);
+                setPartnerData(data);
+            } else {
+                setPartnerData(null);
+            }
+        };
+
+        fetchPartnerData();
+    }, [partnerId]);
+
+
     const setViewMode = (mode: ViewMode) => {
         setViewModeInternal(mode);
         localStorage.setItem('viewMode', mode);
     };
 
-    const getPartnerId = useCallback(async (): Promise<string | null> => {
-        try {
-            const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
-            const result = await getPartnerIdFunction();
-            // @ts-ignore
-            return result.data.partnerId || null;
-        } catch (error) {
-            console.error("Error calling getPartnerId function:", error);
-            return null;
-        }
-    }, []);
-
-    useEffect(() => {
-        async function fetchPartnerData() {
-            if (user && viewMode === 'together') {
-                const partnerId = await getPartnerId();
-                if (partnerId) {
-                    const data = await getPartnerData(partnerId);
-                    setPartnerData(data);
-                } else {
-                    setPartnerData(null);
-                }
-            } else {
-                setPartnerData(null);
-            }
-        }
-        fetchPartnerData();
-    }, [user, viewMode, getPartnerId]);
-
 
     return (
-        <ViewModeContext.Provider value={{ viewMode, setViewMode, partnerData }}>
+        <CoupleContext.Provider value={{ viewMode, setViewMode, coupleId, partnerId, partnerData }}>
             {children}
-        </ViewModeContext.Provider>
+        </CoupleContext.Provider>
     );
 }
 
@@ -223,47 +251,42 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { viewMode, partnerData } = useViewMode();
+  const { viewMode, partnerId } = useCouple();
 
-   const getPartnerId = useCallback(async (): Promise<string | null> => {
-        try {
-            const getPartnerIdFunction = httpsCallable(functions, 'getPartnerId');
-            const result = await getPartnerIdFunction();
-             // @ts-ignore
-            return result.data.partnerId || null;
-        } catch (error) {
-            console.error("Error calling getPartnerId function:", error);
-            return null;
-        }
-    }, []);
 
   useEffect(() => {
     if (user?.uid) {
         setIsLoading(true);
 
         const unsubUser = onTransactionsUpdate(user.uid, (userTransactions) => {
-            if (viewMode === 'separate' || !partnerData) {
+            if (viewMode === 'separate' || !partnerId) {
                 setTransactions(userTransactions);
                 setIsLoading(false);
-            } else {
-                 const unsubPartner = onTransactionsUpdate(partnerData.uid, (partnerTransactions) => {
-                    setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-                    setIsLoading(false);
-                });
-                // This is a bit tricky, but onTransactionsUpdate should handle its own cleanup.
-                // When viewMode changes, this whole effect re-runs, and old listeners should be cleaned up.
             }
         });
 
+        let unsubPartner: (() => void) | null = null;
+        if (viewMode === 'together' && partnerId) {
+             const userTransactionsCache = [...transactions.filter(t => t.ownerId === user.uid)];
+             unsubPartner = onTransactionsUpdate(partnerId, (partnerTransactions) => {
+                setTransactions([...userTransactionsCache, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                setIsLoading(false);
+            });
+        }
+
+
         return () => {
             unsubUser();
+            if (unsubPartner) {
+                unsubPartner();
+            }
         };
 
     } else if (!user) {
       setTransactions([]);
       setIsLoading(false);
     }
-  }, [user, viewMode, partnerData]);
+  }, [user, viewMode, partnerId]);
 
   const playSound = useCallback((soundFile: string) => {
     if (!soundFile || soundFile === 'none' || typeof window === 'undefined') return;
@@ -349,6 +372,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
+    const { viewMode, coupleId } = useCouple();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
@@ -360,28 +384,34 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     }, [pathname]);
 
     useEffect(() => {
-        if (user && (isSubscribed || isAdmin)) {
-            const unsubscribe = onChatUpdate(
-                user.uid, 
-                (newMessages) => {
-                    const latestMessage = newMessages[newMessages.length - 1];
-                    if (!latestMessage) return;
+        if (!user || (!isSubscribed && !isAdmin)) return;
+        
+        let unsubscribe: () => void;
 
-                    const lastVisitString = localStorage.getItem('lastLuminaVisit');
-                    const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
-                    
-                    if (
-                        latestMessage.role !== 'user' && 
-                        latestMessage.timestamp > lastVisit && 
-                        pathname !== '/dashboard/lumina'
-                    ) {
-                        setHasUnread(true);
-                    }
-                }
-            );
-            return () => unsubscribe();
+        const handleNewMessages = (newMessages: ChatMessage[]) => {
+             const latestMessage = newMessages[newMessages.length - 1];
+            if (!latestMessage) return;
+
+            const lastVisitString = localStorage.getItem('lastLuminaVisit');
+            const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
+            
+            if (
+                latestMessage.authorId !== user.uid && 
+                new Date(latestMessage.timestamp) > lastVisit && 
+                pathname !== '/dashboard/lumina'
+            ) {
+                setHasUnread(true);
+            }
+        };
+
+        if (viewMode === 'together' && coupleId) {
+            unsubscribe = onCoupleChatUpdate(coupleId, handleNewMessages);
+        } else {
+            unsubscribe = onChatUpdate(user.uid, handleNewMessages);
         }
-    }, [user, isSubscribed, isAdmin, pathname]);
+
+        return () => unsubscribe();
+    }, [user, isSubscribed, isAdmin, pathname, viewMode, coupleId]);
 
     return (
         <LuminaContext.Provider value={{ hasUnread, setHasUnread }}>
@@ -400,18 +430,16 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         >
           <AuthProvider>
             <SubscriptionProvider>
-              <ViewModeProvider>
+              <CoupleProvider>
                 <TransactionsProvider>
                   <LuminaProvider>
                       {children}
                       <Toaster />
                   </LuminaProvider>
                 </TransactionsProvider>
-              </ViewModeProvider>
+              </CoupleProvider>
             </SubscriptionProvider>
           </AuthProvider>
         </ThemeProvider>
     )
 }
-
-    

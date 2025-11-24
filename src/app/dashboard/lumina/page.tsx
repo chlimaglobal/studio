@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
+import { useAuth, useSubscription, useTransactions, useLumina, useCouple } from '@/components/client-providers';
 import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -148,7 +148,7 @@ export default function LuminaPage() {
     const { user } = useAuth();
     const { transactions, addTransaction } = useTransactions();
     const { setHasUnread } = useLumina();
-    const { viewMode, partnerData } = useViewMode();
+    const { viewMode, coupleId, partnerData } = useCouple();
 
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -175,14 +175,14 @@ export default function LuminaPage() {
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             let unsubscribe: () => void;
-            if (viewMode === 'together' && partnerData?.coupleId) {
-                unsubscribe = onCoupleChatUpdate(partnerData.coupleId, setMessages);
+            if (viewMode === 'together' && coupleId) {
+                unsubscribe = onCoupleChatUpdate(coupleId, setMessages);
             } else {
                 unsubscribe = onChatUpdate(user.uid, setMessages);
             }
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, viewMode, partnerData]);
+    }, [user, isSubscribed, isAdmin, viewMode, coupleId]);
     
     useEffect(() => {
         setHasUnread(false);
@@ -199,8 +199,8 @@ export default function LuminaPage() {
             authorPhotoUrl: newMessage.authorPhotoUrl || user.photoURL || '',
         };
         
-        if (viewMode === 'together' && partnerData?.coupleId) {
-            await addCoupleChatMessage(partnerData.coupleId, messageWithAuthor);
+        if (viewMode === 'together' && coupleId) {
+            await addCoupleChatMessage(coupleId, messageWithAuthor);
         } else {
             await addChatMessage(user.uid, messageWithAuthor);
         }
@@ -208,7 +208,7 @@ export default function LuminaPage() {
         if (newMessage.role === 'user') {
             setMessage('');
         }
-    }, [user, viewMode, partnerData]);
+    }, [user, viewMode, coupleId]);
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
@@ -226,7 +226,7 @@ export default function LuminaPage() {
         };
 
         try {
-            if (viewMode === 'together' && partnerData) {
+            if (viewMode === 'together' && partnerData && coupleId) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
@@ -497,11 +497,11 @@ ${res.actionNow}
                             {messages.map((msg, index) => {
                                 const isCurrentUser = msg.authorId === user?.uid;
                                 const isLumina = msg.role === 'lumina';
-                                const isAlert = msg.role === 'alerta';
+                                const isAlert = msg.text?.startsWith('❗');
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isCurrentUser ? 'justify-end' : 'justify-start')}>
-                                    {!isCurrentUser && !isAlert && (
+                                    {!isCurrentUser && (
                                         <Avatar className="h-10 w-10 border-2 border-border flex-shrink-0">
                                             {isLumina ? (
                                                 <AvatarFallback className="bg-gradient-to-br from-primary/20 to-secondary text-primary">
@@ -516,18 +516,14 @@ ${res.actionNow}
                                         </Avatar>
                                     )}
                                     <div className={cn('flex flex-col', isCurrentUser ? 'items-end' : 'items-start')}>
-                                         { !isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span> }
+                                         {!isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>}
                                         
-                                        { msg.text && !isAlert && (
-                                            <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] w-fit break-words',
+                                        {msg.text && (
+                                             <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] w-fit break-words',
                                                 isCurrentUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
-                                        )}
-
-                                        {isAlert && msg.text && (
-                                            <AlertMessageCard text={msg.text} />
                                         )}
 
                                         {msg.transactionToConfirm && (

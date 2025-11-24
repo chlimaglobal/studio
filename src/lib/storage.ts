@@ -49,6 +49,25 @@ export async function updateUserFinancials(userId: string, data: { manualCostOfL
     await setDoc(userDocRef, cleanDataForFirestore(data), { merge: true });
 }
 
+export function onUserUpdate(userId: string, callback: (userData: AppUser | null) => void): () => void {
+    if (!userId) {
+        callback(null);
+        return () => {};
+    }
+    const userDocRef = doc(db, 'users', userId);
+    const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+            callback(doc.data() as AppUser);
+        } else {
+            callback(null);
+        }
+    }, (error) => {
+        console.error("Error listening to user document:", error);
+        callback(null);
+    });
+    return unsubscribe;
+}
+
 
 export function onUserSubscriptionUpdate(userId: string, callback: (status: string) => void): () => void {
     if (!userId) {
