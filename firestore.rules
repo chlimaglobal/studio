@@ -1,0 +1,43 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regra para a coleção 'users'
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Subcoleções do usuário (transações, contas, etc.)
+      match /{allChildren=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Regra para a coleção 'couples'
+    match /couples/{coupleId} {
+      // Apenas membros do casal podem ler ou escrever no documento do casal
+      allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
+
+      // Regra para a subcoleção de mensagens do casal
+      match /messages/{messageId} {
+        // Apenas membros do casal podem ler ou criar mensagens
+        allow read, create: if request.auth != null && get(/databases/$(database)/documents/couples/$(coupleId)).data.members.hasAny([request.auth.uid]);
+        // Ninguém pode atualizar ou deletar mensagens para garantir a integridade do histórico
+        allow update, delete: if false;
+      }
+    }
+    
+    // Regra para a coleção 'invites'
+    match /invites/{inviteCode} {
+        // O criador do convite pode ler o código que gerou
+        allow read: if request.auth != null && resource.data.inviterUid == request.auth.uid;
+        // Qualquer usuário autenticado pode criar um código (a lógica de permissão está na Function)
+        allow create: if request.auth != null;
+        // Apenas o usuário que vai aceitar o convite pode marcá-lo como 'usado'
+        allow update: if request.auth != null && request.auth.uid == request.resource.data.inviteeUid;
+        // Ninguém pode deletar convites
+        allow delete: if false;
+    }
+  }
+}
