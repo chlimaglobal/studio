@@ -4,46 +4,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Regra para a coleção 'users'
+    // --- USERS COLLECTION ---
     match /users/{userId} {
-      // Um usuário pode ler seu próprio perfil, OU o perfil de seu parceiro.
-      allow read: if request.auth != null && (request.auth.uid == userId || (
-                    resource.data.coupleId != null &&
-                    resource.data.coupleId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId
-                  ));
-      // Um usuário só pode escrever em seu próprio perfil.
+      
+      // User can read their own document OR their partner's document if coupleId matches.
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == resource.data.coupleId
+        )
+      );
+
+      // User can only write to their own document.
       allow write: if request.auth != null && request.auth.uid == userId;
 
-      // Subcoleções do usuário (transações, contas, etc.)
+      // User subcollections (transactions, accounts, etc.)
       match /{allChildren=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
 
-    // Regra para a coleção 'couples'
+    // --- COUPLE INVITES ---
+    match /invites/{inviteId} {
+
+      allow create: if request.auth != null;
+
+      // Allow read if:
+      // 1. The user sent it (sentBy == auth.uid)
+      // 2. The user received it (sentTo == auth.uid)
+      allow read: if request.auth != null &&
+        (resource.data.sentBy == request.auth.uid ||
+        resource.data.sentTo == request.auth.uid);
+
+      // Only the sender can cancel/delete
+      allow delete: if request.auth != null &&
+        resource.data.sentBy == request.auth.uid;
+    }
+
+    // --- COUPLE LINKS ---
     match /couples/{coupleId} {
-      // Apenas membros do casal podem ler ou escrever no documento do casal
+      // Only members of the couple can read or write to the couple document
       allow read, write: if request.auth != null && request.auth.uid in resource.data.members;
 
-      // Regra para a subcoleção de mensagens do casal
+      // Rule for the couple's message subcollection
       match /messages/{messageId} {
-        // Apenas membros do casal podem ler ou criar mensagens
+        // Only members of the couple can read or create messages
         allow read, create: if request.auth != null && get(/databases/$(database)/documents/couples/$(coupleId)).data.members.hasAny([request.auth.uid]);
-        // Ninguém pode atualizar ou deletar mensagens para garantir a integridade do histórico
+        // No one can update or delete messages to ensure history integrity
         allow update, delete: if false;
       }
-    }
-    
-    // Regra para a coleção 'invites'
-    match /invites/{inviteId} {
-        // O criador do convite ou o destinatário podem ler o convite.
-        allow read: if request.auth != null && (resource.data.inviterUid == request.auth.uid || resource.data.sentTo == request.auth.uid);
-        // Qualquer usuário autenticado pode criar um código (a lógica de permissão está na Function)
-        allow create: if request.auth != null;
-        // Apenas o usuário que vai aceitar o convite pode marcá-lo como 'usado'
-        allow update: if request.auth != null && request.resource.data.inviteeUid == request.auth.uid;
-        // Ninguém pode deletar convites
-        allow delete: if false;
     }
   }
 }
