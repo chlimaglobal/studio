@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -128,20 +129,10 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 }
 
 const AlertMessageCard = ({ text }: { text: string }) => {
-    const parts = text.split('\n');
-    const title = parts[0];
-    const details = parts.slice(1);
-
+    // This component will now render raw HTML, assuming the input is trusted.
     return (
-        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 w-full max-w-sm">
-            <div className="flex items-center gap-1 text-red-400 font-semibold text-xs">
-                <span>{title}</span>
-            </div>
-            {details.map((detail, index) => (
-                <p key={index} className="text-red-300 text-xs" dangerouslySetInnerHTML={{ __html: detail.replace(/(\d+,\d+)/g, '<span class="font-semibold">$1</span>') }} />
-            ))}
-        </div>
-    )
+        <div dangerouslySetInnerHTML={{ __html: text }} />
+    );
 }
 
 export default function LuminaPage() {
