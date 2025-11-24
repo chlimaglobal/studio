@@ -131,8 +131,7 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
 
 const AlertMessageCard = ({ text }: { text: string }) => {
     return (
-        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words">
-            <p className="whitespace-pre-wrap">{text}</p>
+        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words" dangerouslySetInnerHTML={{ __html: text.replace(/\n/g, '<br />') }}>
         </div>
     );
 };
@@ -478,7 +477,7 @@ ${res.actionNow}
                                             <div className={cn('p-3 rounded-lg border flex flex-col',
                                                 isUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
-                                                <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                                <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
                                             </div>
                                         )}
 
