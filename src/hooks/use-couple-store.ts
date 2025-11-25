@@ -20,12 +20,12 @@ interface CoupleState {
     sentByEmail?: string;
   } | null;
   coupleLink: CoupleLink | null;
-  loading: boolean;
+  isLoading: boolean;
   setPartner: (partner: AppUser | null) => void;
   setStatus: (status: CoupleStatus) => void;
   setInvite: (invite: any | null) => void;
   setCoupleLink: (coupleLink: CoupleLink | null) => void;
-  setLoading: (loading: boolean) => void;
+  setIsLoading: (loading: boolean) => void;
   reset: () => void;
 }
 
@@ -34,17 +34,17 @@ export const useCoupleStore = create<CoupleState>((set) => ({
   status: 'single',
   invite: null,
   coupleLink: null,
-  loading: true,
+  isLoading: true,
   setPartner: (partner) => set({ partner }),
   setStatus: (status) => set({ status }),
   setInvite: (invite) => set({ invite }),
   setCoupleLink: (coupleLink) => set({ coupleLink }),
-  setLoading: (loading) => set({ loading }),
+  setIsLoading: (loading) => set({ isLoading: loading }),
   reset: () =>
     set({
       partner: null,
       status: 'single',
-      loading: false,
+      isLoading: false,
       invite: null,
       coupleLink: null,
     }),
@@ -80,7 +80,7 @@ export function initializeCoupleStore() {
     }
 
     const {
-      setLoading,
+      setIsLoading,
       setStatus,
       setPartner,
       setInvite,
@@ -88,7 +88,7 @@ export function initializeCoupleStore() {
       reset,
     } = useCoupleStore.getState();
 
-    setLoading(true);
+    setIsLoading(true);
 
     const userDocRef = doc(db, 'users', user.uid);
     
@@ -131,7 +131,7 @@ export function initializeCoupleStore() {
               } else {
                 setPartner(null);
               }
-              setLoading(false);
+              setIsLoading(false);
             }, (error) => {
                 if (error.code === 'permission-denied') {
                     console.warn("Permission denied fetching partner data. This may be temporary.");
@@ -141,7 +141,7 @@ export function initializeCoupleStore() {
             });
           } else {
             reset();
-            setLoading(false);
+            setIsLoading(false);
           }
           return;
         }
@@ -165,7 +165,7 @@ export function initializeCoupleStore() {
             setStatus('single');
             setInvite(null);
           }
-          setLoading(false);
+          setIsLoading(false);
         });
 
         const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
@@ -178,7 +178,7 @@ export function initializeCoupleStore() {
             setStatus('single');
             setInvite(null);
           }
-          setLoading(false);
+          setIsLoading(false);
         });
       },
       (error) => {

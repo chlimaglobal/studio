@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -9,14 +8,17 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { InvitePartnerDialog } from './InvitePartnerDialog';
 import { useViewMode } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);
-    const { status } = useCoupleStore();
+    const { status, isLoading } = useCoupleStore();
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
-
+    
     const handleToggle = (newMode: 'separate' | 'together') => {
+        if (isLoading) return; // evita ações antes do store estar pronto
+
         if (newMode === 'together' && status !== 'linked') {
             toast({
                 title: 'Vincule um parceiro primeiro',
@@ -26,6 +28,10 @@ export function CoupleModeToggle() {
         } else {
             setViewMode(newMode);
         }
+    };
+
+    if (isLoading) {
+        return <Skeleton className="h-10 w-44 rounded-full" />
     }
 
     return (
