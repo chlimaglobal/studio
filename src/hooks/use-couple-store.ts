@@ -110,7 +110,7 @@ export function initializeCoupleStore() {
           return;
         }
 
-        const userData = userDoc.data();
+        const userData = userDoc.data() || {};
         const coupleId = userData.coupleId;
 
         unsubPartner?.();
@@ -128,7 +128,11 @@ export function initializeCoupleStore() {
           const partnerId = data.members.find((id) => id !== user.uid);
           if (partnerId) {
             unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
-              setPartner(partnerDoc.exists() ? partnerDoc.data() as AppUser : null);
+              if (partnerDoc.exists()) {
+                setPartner(partnerDoc.data() as AppUser);
+              } else {
+                setPartner(null);
+              }
               setLoading(false);
             }, (error) => {
                 if (error.code === 'permission-denied') {
