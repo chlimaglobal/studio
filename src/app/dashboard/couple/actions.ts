@@ -2,11 +2,10 @@
 'use server';
 
 import { z } from 'zod';
-import { adminApp, adminDb } from '@/lib/firebase-admin';
+import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
-import { auth as clientAuth } from '@/lib/firebase'; // Use client auth for current user
 
 // Zod Schemas
 const InviteSchema = z.object({
@@ -18,21 +17,19 @@ const InviteActionSchema = z.object({
 });
 
 
-// Helper function to get the current user from the session
-async function getCurrentUser(uid: string) {
-    if (!uid) return null;
-    if (!adminDb) return null;
-    const userDoc = await adminDb.collection('users').doc(uid).get();
-    if (!userDoc.exists) return null;
-    return { uid, ...userDoc.data() };
-}
-
 // 1. sendPartnerInvite
 export async function sendPartnerInvite(prevState: any, formData: FormData) {
-  const currentUserFromClient = clientAuth.currentUser;
-  if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
+  const headers = new Headers();
+  const token = headers.get("Authorization")?.split("Bearer ")[1];
   
-  const { uid, email: currentUserEmail, displayName } = currentUserFromClient;
+  const auth = getAuth(adminApp);
+  const decodedToken = token ? await auth.verifyIdToken(token) : null;
+  const uid = decodedToken?.uid;
+
+  if (!uid) return { error: 'Usuário não autenticado.' };
+  
+  const userDoc = await adminDb.collection('users').doc(uid).get();
+  const { email: currentUserEmail, displayName } = userDoc.data() as any;
 
   if (!adminDb || !adminApp) {
       return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
@@ -46,8 +43,7 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
     return { error: validatedFields.error.flatten().fieldErrors.email?.[0] };
   }
   
-  const currentUserData = await getCurrentUser(uid);
-  if (currentUserData?.coupleId) {
+  if (userDoc.data()?.coupleId) {
       return { error: 'Você já está vinculado a um parceiro.' };
   }
 
@@ -58,7 +54,6 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
   }
 
   try {
-    const auth = getAuth(adminApp);
     const partnerRecord = await auth.getUserByEmail(partnerEmail);
     const partnerDoc = await adminDb.collection('users').doc(partnerRecord.uid).get();
 
@@ -95,71 +90,67 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
 
 
 // 2. acceptPartnerInvite
-export async function acceptPartnerInvite(prevState: any, formData: FormData) {
-    const currentUserFromClient = clientAuth.currentUser;
-    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
-    const inviteeUid = currentUserFromClient.uid;
+export async function acceptPartnerInvite(inviteId: string, userId: string) {
+  const inviteRef = adminDb.collection("invites").doc(inviteId);
+  const inviteSnap = await inviteRef.get();
 
-    if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+  if (!inviteSnap.exists)
+    throw new Error("Invite not found");
 
-    const validatedFields = InviteActionSchema.safeParse({
-        inviteId: formData.get('inviteId'),
-    });
+  const invite = inviteSnap.data()!;
 
-    if (!validatedFields.success) {
-        return { error: 'ID do convite inválido.' };
-    }
-    
-    const { inviteId } = validatedFields.data;
-    const inviteRef = adminDb.collection('invites').doc(inviteId);
-    
-    const batch = adminDb.batch();
+  if (invite.sentTo !== userId)
+    throw new Error("Not authorized to accept this invite");
 
-    try {
-        const inviteDoc = await inviteRef.get();
-        if (!inviteDoc.exists || inviteDoc.data()?.status !== 'pending' || inviteDoc.data()?.sentTo !== inviteeUid) {
-            return { error: 'Convite inválido ou expirado.' };
-        }
+  const partnerId = invite.sentBy;
 
-        const inviteData = inviteDoc.data()!;
-        const inviterUid = inviteData.sentBy;
+  const coupleRef = adminDb.collection("couples").doc();
+  const coupleId = coupleRef.id;
+  
+  const batch = adminDb.batch();
 
-        // Create global couple link
-        const coupleRef = adminDb.collection('couples').doc();
-        batch.set(coupleRef, {
-            members: [inviterUid, inviteeUid],
-            createdAt: Timestamp.now(),
-            status: 'active'
-        });
+  batch.set(coupleRef, {
+    id: coupleId,
+    members: [userId, partnerId],
+    createdAt: Timestamp.now(),
+  });
 
-        const memberIds = [inviterUid, inviteeUid];
+  batch.update(adminDb.collection("users").doc(userId), {
+    coupleId,
+    memberIds: [userId, partnerId],
+  });
 
-        // Link users
-        const inviterRef = adminDb.collection('users').doc(inviterUid);
-        const inviteeRef = adminDb.collection('users').doc(inviteeUid);
+  batch.update(adminDb.collection("users").doc(partnerId), {
+    coupleId,
+    memberIds: [userId, partnerId],
+  });
 
-        batch.update(inviterRef, { coupleId: coupleRef.id, memberIds: memberIds });
-        batch.update(inviteeRef, { coupleId: coupleRef.id, memberIds: memberIds });
+  batch.update(inviteRef, {
+    status: "accepted"
+  });
 
+  const otherInvitesSnap = await adminDb.collection("invites")
+    .where("sentTo", "==", userId).get();
 
-        // Update invite status to 'accepted'
-        batch.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
+  otherInvitesSnap.forEach(doc => {
+    if (doc.id !== inviteId) batch.update(doc.ref, { status: "rejected" });
+  });
 
-        await batch.commit();
+  await batch.commit();
 
-        revalidatePath('/dashboard');
-        return { success: 'Parceiro vinculado com sucesso!' };
-
-    } catch (error) {
-        console.error('Error accepting invite:', error);
-        return { error: 'Ocorreu um erro ao aceitar o convite.' };
-    }
+  return { success: true, coupleId };
 }
+
 
 // 3. rejectPartnerInvite
 export async function rejectPartnerInvite(prevState: any, formData: FormData) {
-    const currentUserFromClient = clientAuth.currentUser;
-    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
+    const headers = new Headers();
+    const token = headers.get("Authorization")?.split("Bearer ")[1];
+  
+    const auth = getAuth(adminApp);
+    const decodedToken = token ? await auth.verifyIdToken(token) : null;
+  
+    if (!decodedToken) return { error: 'Usuário não autenticado.' };
     
     if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
 
@@ -175,8 +166,7 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
     const inviteRef = adminDb.collection('invites').doc(inviteId);
 
     try {
-        // Can be a soft delete (update status) or hard delete
-        await inviteRef.delete();
+        await inviteRef.update({ status: 'rejected' });
         revalidatePath('/dashboard');
         return { success: 'Convite recusado.' };
     } catch (error) {
@@ -187,9 +177,14 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
 // 4. disconnectPartner
 export async function disconnectPartner(prevState: any, formData: FormData) {
-    const currentUserFromClient = clientAuth.currentUser;
-    if (!currentUserFromClient) return { error: 'Usuário não autenticado.' };
-    const { uid } = currentUserFromClient;
+    const headers = new Headers();
+    const token = headers.get("Authorization")?.split("Bearer ")[1];
+  
+    const auth = getAuth(adminApp);
+    const decodedToken = token ? await auth.verifyIdToken(token) : null;
+    const uid = decodedToken?.uid;
+
+    if (!uid) return { error: 'Usuário não autenticado.' };
 
     if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
 
@@ -202,25 +197,44 @@ export async function disconnectPartner(prevState: any, formData: FormData) {
     }
     
     const coupleId = userData.coupleId;
-
     const coupleRef = adminDb.collection('couples').doc(coupleId);
     const coupleDoc = await coupleRef.get();
 
     if (!coupleDoc.exists) {
-         // Data inconsistency, clean up user's coupleId anyway
-         await userRef.update({ coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
+         await userRef.update({ 
+           coupleId: FieldValue.delete(), 
+           memberIds: [uid] 
+         });
          return { error: 'Vínculo do casal não encontrado, mas sua conta foi limpa.' };
     }
 
     const { members } = coupleDoc.data()!;
     const partnerId = members.find((id: string) => id !== uid);
-    const partnerRef = adminDb.collection('users').doc(partnerId);
-
+    
     const batch = adminDb.batch();
-    batch.update(userRef, { coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
-    batch.update(partnerRef, { coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
+
+    batch.update(userRef, { 
+      coupleId: FieldValue.delete(), 
+      memberIds: [uid] 
+    });
+
+    if (partnerId) {
+      const partnerRef = adminDb.collection('users').doc(partnerId);
+      batch.update(partnerRef, { 
+        coupleId: FieldValue.delete(), 
+        memberIds: [partnerId] 
+      });
+    }
+
     batch.delete(coupleRef);
     
+    // Also reject any pending invites for these users
+    const pendingSentInvites = await adminDb.collection('invites').where('sentBy', 'in', [uid, partnerId]).where('status', '==', 'pending').get();
+    pendingSentInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
+    
+    const pendingReceivedInvites = await adminDb.collection('invites').where('sentTo', 'in', [uid, partnerId]).where('status', '==', 'pending').get();
+    pendingReceivedInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
+
     try {
         await batch.commit();
         revalidatePath('/dashboard');

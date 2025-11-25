@@ -22,6 +22,7 @@ import { QrScannerDialog } from '@/components/qr-scanner-dialog';
 import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import { generateCoupleSuggestion } from '@/ai/flows/lumina-couple-chat';
 import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
+import { useCoupleStore } from '@/hooks/use-couple-store';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -149,7 +150,9 @@ export default function LuminaPage() {
     const { user } = useAuth();
     const { transactions, addTransaction } = useTransactions();
     const { setHasUnread } = useLumina();
-    const { viewMode, partnerData } = useViewMode();
+    const { viewMode } = useViewMode();
+    const { partner, coupleLink } = useCoupleStore();
+
 
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -176,14 +179,14 @@ export default function LuminaPage() {
     useEffect(() => {
         if (user && (isSubscribed || isAdmin)) {
             let unsubscribe: () => void;
-            if (viewMode === 'together' && partnerData?.coupleId) {
-                unsubscribe = onCoupleChatUpdate(partnerData.coupleId, setMessages);
+            if (viewMode === 'together' && coupleLink?.id) {
+                unsubscribe = onCoupleChatUpdate(coupleLink.id, setMessages);
             } else {
                 unsubscribe = onChatUpdate(user.uid, setMessages);
             }
             return () => unsubscribe();
         }
-    }, [user, isSubscribed, isAdmin, viewMode, partnerData]);
+    }, [user, isSubscribed, isAdmin, viewMode, coupleLink]);
     
     useEffect(() => {
         setHasUnread(false);
@@ -200,8 +203,8 @@ export default function LuminaPage() {
             authorPhotoUrl: newMessage.authorPhotoUrl || user.photoURL || '',
         };
         
-        if (viewMode === 'together' && partnerData?.coupleId) {
-            await addCoupleChatMessage(partnerData.coupleId, messageWithAuthor);
+        if (viewMode === 'together' && coupleLink?.id) {
+            await addCoupleChatMessage(coupleLink.id, messageWithAuthor);
         } else {
             await addChatMessage(user.uid, messageWithAuthor);
         }
@@ -209,49 +212,55 @@ export default function LuminaPage() {
         if (newMessage.role === 'user') {
             setMessage('');
         }
-    }, [user, viewMode, partnerData]);
+    }, [user, viewMode, coupleLink]);
 
     const callLumina = async (currentQuery: string) => {
         setIsLuminaThinking(true);
         
         const chatHistoryForLumina = messages.slice(-10).map(msg => ({
-            role: msg.role === 'lumina' ? 'model' : 'user',
+            role: msg.role === 'lumina' ? 'model' as const : 'user' as const,
             text: msg.text || ''
         }));
         
-        let luminaResponseData = {
-            role: 'lumina' as const,
+        let luminaResponseData: z.infer<typeof LuminaChatOutputSchema> = {
             text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?",
-            authorName: 'Lúmina',
-            authorPhotoUrl: '/lumina-avatar.png',
             suggestions: []
         };
 
         try {
-            if (viewMode === 'together' && partnerData) {
+            if (viewMode === 'together' && partner) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
-                    user: { displayName: user?.displayName, uid: user?.uid },
-                    partner: { displayName: partnerData?.displayName, uid: partnerData?.uid },
+                    user: { displayName: user?.displayName || '', uid: user?.uid || '' },
+                    partner: { displayName: partner?.displayName || '', uid: partner?.uid || ''},
                 };
-                const response = await generateCoupleSuggestion(luminaInput);
-                luminaResponseData = {...luminaResponseData, ...response};
+                luminaResponseData = await generateCoupleSuggestion(luminaInput);
             } else {
                  const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
                 };
-                const response = await generateSuggestion(luminaInput);
-                luminaResponseData = {...luminaResponseData, ...response};
+                luminaResponseData = await generateSuggestion(luminaInput);
             }
-            await saveMessage(luminaResponseData);
+            await saveMessage({
+              role: 'lumina',
+              ...luminaResponseData,
+              authorName: 'Lúmina', 
+              authorPhotoUrl: '/lumina-avatar.png'
+            });
 
         } catch (error) {
             console.error("Error with Lumina suggestion:", error);
-            await saveMessage(luminaResponseData);
+            await saveMessage({
+                role: 'lumina',
+                text: "Desculpe, não consegui gerar uma resposta. Tente novamente.",
+                authorName: 'Lúmina',
+                authorPhotoUrl: '/lumina-avatar.png',
+                suggestions: []
+            });
         } finally {
             setIsLuminaThinking(false);
         }
@@ -452,13 +461,13 @@ ${res.actionNow}
 
     const getAuthorAvatar = (msg: ChatMessage) => {
         if (msg.authorId === user?.uid) return user.photoURL;
-        if (partnerData && msg.authorId === partnerData.uid) return partnerData.photoURL;
+        if (partner && msg.authorId === partner.uid) return partner.photoURL;
         return msg.authorPhotoUrl;
     }
     
     const getAuthorFallback = (msg: ChatMessage) => {
          if (msg.authorId === user?.uid) return user.displayName?.charAt(0).toUpperCase() || 'U';
-         if (partnerData && msg.authorId === partnerData.uid) return partnerData.displayName?.charAt(0).toUpperCase() || 'P';
+         if (partner && msg.authorId === partner.uid) return partner.displayName?.charAt(0).toUpperCase() || 'P';
          return msg.authorName?.charAt(0).toUpperCase() || 'L';
     }
 

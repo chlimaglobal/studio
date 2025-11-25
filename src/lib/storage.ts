@@ -37,6 +37,7 @@ export const initializeUser = async (user: User) => {
                 photoURL: user.photoURL,
                 createdAt: Timestamp.now(),
                 stripeSubscriptionStatus: 'inactive', // Default status
+                memberIds: [user.uid], // Add memberIds on creation
             }, { merge: true });
         }
     } catch (error) {
