@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useFormStatus } from 'react-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../client-providers';
 
 function DisconnectButton() {
     const { pending } = useFormStatus();
@@ -42,6 +43,7 @@ export function PartnerInfoCard() {
     const { partner, coupleLink } = useCoupleStore();
     const [state, formAction] = useActionState(disconnectPartner, null);
     const { toast } = useToast();
+    const { user } = useAuth();
 
     useEffect(() => {
         if (state?.error) {
@@ -78,6 +80,7 @@ export function PartnerInfoCard() {
                 </CardContent>
                 <CardFooter>
                     <form action={formAction} className="w-full">
+                        <input type="hidden" name="userId" value={user?.uid} />
                         <DisconnectButton />
                          <AlertDialogContent>
                             <AlertDialogHeader>

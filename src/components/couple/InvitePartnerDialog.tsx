@@ -17,8 +17,8 @@ import { sendPartnerInvite } from '@/app/dashboard/couple/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
-import { getAuth } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { useAuth } from '../client-providers';
+
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -38,6 +38,7 @@ function SubmitButton() {
 export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogProps) {
   const [state, formAction] = useActionState(sendPartnerInvite, null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (state?.error) {
@@ -48,24 +49,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       onOpenChange(false);
     }
   }, [state, toast, onOpenChange]);
-
-
-  const actionWithAuth = async (formData: FormData) => {
-    const auth = getAuth(app);
-    const user = auth.currentUser;
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
-      return;
-    }
-    const token = await user.getIdToken();
-    
-    // We can't directly pass headers to a server action.
-    // The server action has been updated to read the token from the standard 'Authorization' header
-    // But we need a way to set that header for the server action call.
-    // A common way is to use fetch, but that complicates useActionState.
-    // For now, we'll use a modified formAction that reads headers.
-    formAction(formData);
-  };
   
 
   return (
@@ -78,6 +61,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
           </DialogDescription>
         </DialogHeader>
         <form action={formAction}>
+           <input type="hidden" name="userId" value={user?.uid} />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">

@@ -10,6 +10,7 @@ import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../client-providers';
 
 function ActionButton({ variant, children }: { variant: 'accept' | 'reject', children: React.ReactNode }) {
     const { pending } = useFormStatus();
@@ -27,19 +28,36 @@ function ActionButton({ variant, children }: { variant: 'accept' | 'reject', chi
 
 export function PendingInviteCard() {
     const { invite, status } = useCoupleStore();
-    const [acceptState, acceptAction] = useActionState(acceptPartnerInvite, null);
-    const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
+    const { user } = useAuth();
     const { toast } = useToast();
+
+    // The accept action is not a form action, so we handle it separately.
+    const [isAccepting, setIsAccepting] = useActionState(async () => {
+        if (!invite?.inviteId || !user?.uid) {
+            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível aceitar o convite.' });
+            return;
+        }
+        try {
+            const result = await acceptPartnerInvite(invite.inviteId, user.uid);
+            if (result.success) {
+                toast({ title: 'Sucesso!', description: 'Você e seu parceiro(a) estão conectados!' });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+            toast({ variant: 'destructive', title: 'Erro ao aceitar', description: errorMessage });
+        }
+    }, null);
+
+    const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
     
     useEffect(() => {
-        const state = acceptState || rejectState;
-        if (state?.error) {
-          toast({ variant: 'destructive', title: 'Erro', description: state.error });
+        if (rejectState?.error) {
+          toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
         }
-        if (state?.success) {
-          toast({ title: 'Sucesso!', description: state.success });
+        if (rejectState?.success) {
+          toast({ title: 'Ação Concluída', description: rejectState.success });
         }
-    }, [acceptState, rejectState, toast]);
+    }, [rejectState, toast]);
 
     if (!invite || status === 'linked') return null;
     
@@ -58,6 +76,7 @@ export function PendingInviteCard() {
                 <CardFooter>
                     <form action={rejectAction} className="w-full">
                          <input type="hidden" name="inviteId" value={invite.inviteId} />
+                         <input type="hidden" name="userId" value={user?.uid} />
                          <ActionButton variant="reject">
                             <X className="mr-2 h-4 w-4" /> Cancelar Convite
                         </ActionButton>
@@ -86,15 +105,15 @@ export function PendingInviteCard() {
             <CardFooter className="grid grid-cols-2 gap-4">
                  <form action={rejectAction}>
                     <input type="hidden" name="inviteId" value={invite.inviteId} />
+                    <input type="hidden" name="userId" value={user?.uid} />
                     <ActionButton variant="reject">
                         <X className="mr-2 h-4 w-4" /> Recusar
                     </ActionButton>
                 </form>
-                <form action={acceptAction}>
-                    <input type="hidden" name="inviteId" value={invite.inviteId} />
-                    <ActionButton variant="accept">
+                <form action={isAccepting}>
+                    <Button type="submit" className="w-full">
                         <UserPlus className="mr-2 h-4 w-4" /> Aceitar
-                    </ActionButton>
+                    </Button>
                 </form>
             </CardFooter>
         </Card>

@@ -8,6 +8,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 import * as sgMail from '@sendgrid/mail';
 import { headers } from 'next/headers';
+import { auth } from 'firebase-admin';
 
 // Initialize SendGrid
 const sendGridApiKey = process.env.SENDGRID_API_KEY;
@@ -32,9 +33,9 @@ async function getAuthenticatedUser() {
       return null;
   }
   
-  const auth = getAuth(adminApp);
+  const authAdmin = getAuth(adminApp);
   try {
-      return await auth.verifyIdToken(token);
+      return await authAdmin.verifyIdToken(token);
   } catch (error) {
       console.error('Error verifying auth token in Server Action:', error);
       return null;
@@ -45,6 +46,7 @@ async function getAuthenticatedUser() {
 // Zod Schemas
 const InviteSchema = z.object({
   email: z.string().email('O e-mail fornecido é inválido.'),
+  userId: z.string().min(1, 'ID do usuário é obrigatório.'),
 });
 
 const InviteActionSchema = z.object({
@@ -54,8 +56,15 @@ const InviteActionSchema = z.object({
 
 // 1. sendPartnerInvite
 export async function sendPartnerInvite(prevState: any, formData: FormData) {
-  const decodedToken = await getAuthenticatedUser();
-  const uid = decodedToken?.uid;
+  const validatedFields = InviteSchema.safeParse({
+    email: formData.get('email'),
+    userId: formData.get('userId'),
+  });
+
+  if (!validatedFields.success) {
+    return { error: 'Dados inválidos. Tente novamente.' };
+  }
+  const { email: partnerEmail, userId: uid } = validatedFields.data;
 
   if (!uid) return { error: 'Usuário não autenticado.' };
   
@@ -64,29 +73,22 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
   }
 
   const userDoc = await adminDb.collection('users').doc(uid).get();
+  if (!userDoc.exists) {
+      return { error: 'Usuário remetente não encontrado.' };
+  }
   const { email: currentUserEmail, displayName } = userDoc.data() as any;
 
-  const validatedFields = InviteSchema.safeParse({
-    email: formData.get('email'),
-  });
-
-  if (!validatedFields.success) {
-    return { error: validatedFields.error.flatten().fieldErrors.email?.[0] };
-  }
-  
   if (userDoc.data()?.coupleId) {
       return { error: 'Você já está vinculado a um parceiro.' };
   }
-
-  const { email: partnerEmail } = validatedFields.data;
 
   if (partnerEmail === currentUserEmail) {
       return { error: 'Você não pode convidar a si mesmo.' };
   }
 
-  const auth = getAuth(adminApp);
+  const authAdmin = getAuth(adminApp);
   try {
-    const partnerRecord = await auth.getUserByEmail(partnerEmail);
+    const partnerRecord = await authAdmin.getUserByEmail(partnerEmail);
     const partnerDoc = await adminDb.collection('users').doc(partnerRecord.uid).get();
 
     if (partnerDoc.exists && partnerDoc.data()?.coupleId) {
@@ -201,9 +203,8 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
 
 // 3. rejectPartnerInvite
 export async function rejectPartnerInvite(prevState: any, formData: FormData) {
-    const decodedToken = await getAuthenticatedUser();
-  
-    if (!decodedToken) return { error: 'Usuário não autenticado.' };
+    const userId = formData.get('userId') as string;
+    if (!userId) return { error: 'Usuário não autenticado.' };
     
     if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
 
@@ -217,6 +218,15 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
     const { inviteId } = validatedFields.data;
     const inviteRef = adminDb.collection('invites').doc(inviteId);
+    
+    const inviteDoc = await inviteRef.get();
+    if (!inviteDoc.exists) return { error: 'Convite não encontrado.' };
+    
+    // Security check: ensure the user rejecting is either the sender or receiver
+    const inviteData = inviteDoc.data()!;
+    if (userId !== inviteData.sentBy && userId !== inviteData.sentTo) {
+        return { error: 'Você não tem permissão para esta ação.' };
+    }
 
     try {
         await inviteRef.update({ status: 'rejected' });
@@ -230,9 +240,7 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
 // 4. disconnectPartner
 export async function disconnectPartner(prevState: any, formData: FormData) {
-    const decodedToken = await getAuthenticatedUser();
-    const uid = decodedToken?.uid;
-
+    const uid = formData.get('userId') as string;
     if (!uid) return { error: 'Usuário não autenticado.' };
 
     if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
