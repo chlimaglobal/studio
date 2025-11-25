@@ -22,6 +22,12 @@ const InviteSchema = z.object({
   userId: z.string().min(1, 'ID do usuário é obrigatório.'),
 });
 
+const InviteActionSchema = z.object({
+    inviteId: z.string().min(1, 'ID do convite é obrigatório.'),
+    userId: z.string().min(1, 'ID do usuário é obrigatório.'),
+});
+
+
 export async function sendPartnerInvite(prevState: any, formData: FormData) {
   const validatedFields = InviteSchema.safeParse({
     email: formData.get('email'),
@@ -158,4 +164,91 @@ export async function disconnectPartner(prevState: any, formData: FormData) {
     console.error('Error disconnecting partner:', error);
     return { error: 'Ocorreu um erro ao desvincular as contas.' };
   }
+}
+
+export async function acceptPartnerInvite(inviteId: string, userId: string) {
+  if (!adminDb) throw new Error("Database not initialized.");
+
+  const inviteRef = adminDb.collection("invites").doc(inviteId);
+  const inviteSnap = await inviteRef.get();
+
+  if (!inviteSnap.exists)
+    throw new Error("Convite não encontrado.");
+
+  const invite = inviteSnap.data()!;
+
+  if (invite.sentTo !== userId)
+    throw new Error("Não autorizado para aceitar este convite.");
+
+  const partnerId = invite.sentBy;
+
+  const coupleRef = adminDb.collection("couples").doc();
+  const coupleId = coupleRef.id;
+  
+  const batch = adminDb.batch();
+
+  batch.set(coupleRef, {
+    id: coupleId,
+    members: [userId, partnerId],
+    createdAt: Timestamp.now(),
+  });
+
+  batch.update(adminDb.collection("users").doc(userId), {
+    coupleId,
+    memberIds: FieldValue.arrayUnion(partnerId),
+  });
+
+  batch.update(adminDb.collection("users").doc(partnerId), {
+    coupleId,
+    memberIds: FieldValue.arrayUnion(userId),
+  });
+
+  batch.update(inviteRef, {
+    status: "accepted"
+  });
+
+  const otherInvitesSnap = await adminDb.collection("invites")
+    .where("sentTo", "==", userId).where('status', '==', 'pending').get();
+
+  otherInvitesSnap.forEach(doc => {
+    if (doc.id !== inviteId) batch.update(doc.ref, { status: "rejected" });
+  });
+
+  await batch.commit();
+
+  return { success: true, coupleId };
+}
+
+
+export async function rejectPartnerInvite(prevState: any, formData: FormData) {
+    const validatedFields = InviteActionSchema.safeParse({
+        inviteId: formData.get('inviteId'),
+        userId: formData.get('userId'),
+    });
+
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos.' };
+    }
+    
+    if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+
+    const { inviteId, userId } = validatedFields.data;
+    const inviteRef = adminDb.collection('invites').doc(inviteId);
+    
+    const inviteDoc = await inviteRef.get();
+    if (!inviteDoc.exists) return { error: 'Convite não encontrado.' };
+    
+    const inviteData = inviteDoc.data()!;
+    if (userId !== inviteData.sentBy && userId !== inviteData.sentTo) {
+        return { error: 'Você não tem permissão para esta ação.' };
+    }
+
+    try {
+        await inviteRef.update({ status: 'rejected' });
+        revalidatePath('/dashboard/couple'); 
+        return { success: 'Convite recusado/cancelado.' };
+    } catch (error) {
+        console.error('Error rejecting invite:', error);
+        return { error: 'Ocorreu um erro ao recusar o convite.' };
+    }
 }
