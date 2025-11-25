@@ -73,6 +73,7 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
         inviteId: inviteRef.id,
         sentBy: uid,
         sentTo: partnerRecord.uid,
+        sentToEmail: partnerEmail,
         sentByName: displayName,
         sentByEmail: currentUserEmail,
         createdAt: Timestamp.now(),
@@ -124,20 +125,22 @@ export async function acceptPartnerInvite(prevState: any, formData: FormData) {
         const inviterUid = inviteData.sentBy;
 
         // Create global couple link
-        const coupleLinkRef = adminDb.collection('coupleLinks').doc();
-        batch.set(coupleLinkRef, {
-            userA: inviterUid,
-            userB: inviteeUid,
+        const coupleRef = adminDb.collection('couples').doc();
+        batch.set(coupleRef, {
+            members: [inviterUid, inviteeUid],
             createdAt: Timestamp.now(),
             status: 'active'
         });
+
+        const memberIds = [inviterUid, inviteeUid];
 
         // Link users
         const inviterRef = adminDb.collection('users').doc(inviterUid);
         const inviteeRef = adminDb.collection('users').doc(inviteeUid);
 
-        batch.update(inviterRef, { coupleId: coupleLinkRef.id });
-        batch.update(inviteeRef, { coupleId: coupleLinkRef.id });
+        batch.update(inviterRef, { coupleId: coupleRef.id, memberIds: memberIds });
+        batch.update(inviteeRef, { coupleId: coupleRef.id, memberIds: memberIds });
+
 
         // Update invite status to 'accepted'
         batch.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
@@ -200,23 +203,23 @@ export async function disconnectPartner(prevState: any, formData: FormData) {
     
     const coupleId = userData.coupleId;
 
-    const coupleLinkRef = adminDb.collection('coupleLinks').doc(coupleId);
-    const coupleLinkDoc = await coupleLinkRef.get();
+    const coupleRef = adminDb.collection('couples').doc(coupleId);
+    const coupleDoc = await coupleRef.get();
 
-    if (!coupleLinkDoc.exists) {
+    if (!coupleDoc.exists) {
          // Data inconsistency, clean up user's coupleId anyway
-         await userRef.update({ coupleId: FieldValue.delete() });
+         await userRef.update({ coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
          return { error: 'Vínculo do casal não encontrado, mas sua conta foi limpa.' };
     }
 
-    const { userA, userB } = coupleLinkDoc.data()!;
-    const partnerId = uid === userA ? userB : userA;
+    const { members } = coupleDoc.data()!;
+    const partnerId = members.find((id: string) => id !== uid);
     const partnerRef = adminDb.collection('users').doc(partnerId);
 
     const batch = adminDb.batch();
-    batch.update(userRef, { coupleId: FieldValue.delete() });
-    batch.update(partnerRef, { coupleId: FieldValue.delete() });
-    batch.delete(coupleLinkRef);
+    batch.update(userRef, { coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
+    batch.update(partnerRef, { coupleId: FieldValue.delete(), memberIds: FieldValue.delete() });
+    batch.delete(coupleRef);
     
     try {
         await batch.commit();

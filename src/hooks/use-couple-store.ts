@@ -55,6 +55,8 @@ let unsubUser: (() => void) | null = null;
 let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
+let unsubCoupleLink: (() => void) | null = null;
+
 
 export function initializeCoupleStore() {
   const auth = getAuth();
@@ -65,6 +67,7 @@ export function initializeCoupleStore() {
     unsubSentInvites?.();
     unsubReceivedInvites?.();
     unsubPartner?.();
+    unsubCoupleLink?.();
 
     if (!user) {
       useCoupleStore.getState().reset();
@@ -96,40 +99,42 @@ export function initializeCoupleStore() {
         const userData = userDoc.data();
         const coupleId = userData.coupleId;
 
+        // Clean up partner listeners before proceeding
         unsubPartner?.();
+        unsubCoupleLink?.();
 
         // ------------ 🔗 SE JÁ ESTÁ VINCULADO ------------
         if (coupleId) {
-          setInvite(null);
+          setInvite(null); // Clear any lingering invite state
 
-          const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
+          unsubCoupleLink = onSnapshot(doc(db, 'couples', coupleId), (coupleLinkDoc) => {
+            if (!coupleLinkDoc.exists()) {
+              console.log("Couple link not found, resetting state.");
+              reset();
+              return;
+            }
 
-          if (!coupleLinkDoc.exists()) {
-            console.log("Couple link not found, resetting state.");
-            reset();
-            return;
-          }
+            const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
+            setStatus('linked');
+            setCoupleLink({ id: coupleId, ...data });
 
-          const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
+            const partnerId = data.members.find((id) => id !== user.uid);
 
-          setStatus('linked');
-          setCoupleLink({ id: coupleId, ...data });
-
-          const partnerId = data.members.find((id) => id !== user.uid);
-
-          if (partnerId) {
-            unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
-              if (partnerDoc.exists()) {
-                setPartner(partnerDoc.data() as AppUser);
-              } else {
-                setPartner(null);
-              }
+            if (partnerId) {
+              unsubPartner?.(); // Clean up previous partner listener
+              unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
+                if (partnerDoc.exists()) {
+                  setPartner(partnerDoc.data() as AppUser);
+                } else {
+                  setPartner(null);
+                }
+                setLoading(false);
+              });
+            } else {
+              reset();
               setLoading(false);
-            });
-          } else {
-            reset();
-            setLoading(false);
-          }
+            }
+          });
 
           return; // ⛔ Impede execução da parte de convites
         }
@@ -138,9 +143,11 @@ export function initializeCoupleStore() {
         setPartner(null);
         setCoupleLink(null);
 
-        // Cancel previous listeners
+        // Cancel previous invite listeners
         unsubSentInvites?.();
         unsubReceivedInvites?.();
+
+        let hasPendingInvite = false;
 
         // 🔥 LISTENER 1 — CONVITES ENVIADOS PELO USER
         const sentInvitesQuery = query(
@@ -152,12 +159,15 @@ export function initializeCoupleStore() {
 
         unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
           if (!snapshot.empty) {
+            hasPendingInvite = true;
             const inviteData = snapshot.docs[0].data();
             setInvite(inviteData);
             setStatus('pending_sent');
           } else if (useCoupleStore.getState().status === 'pending_sent') {
-            setStatus('single');
-            setInvite(null);
+             if (!hasPendingInvite) {
+                setStatus('single');
+                setInvite(null);
+            }
           }
           setLoading(false);
         });
@@ -172,12 +182,15 @@ export function initializeCoupleStore() {
 
         unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
           if (!snapshot.empty) {
+            hasPendingInvite = true;
             const inviteData = snapshot.docs[0].data();
             setInvite(inviteData);
             setStatus('pending_received');
           } else if (useCoupleStore.getState().status === 'pending_received') {
-            setStatus('single');
-            setInvite(null);
+             if (!hasPendingInvite) {
+                setStatus('single');
+                setInvite(null);
+            }
           }
           setLoading(false);
         });

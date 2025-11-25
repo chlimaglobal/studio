@@ -7,14 +7,12 @@ service cloud.firestore {
     // --- USERS COLLECTION ---
     match /users/{userId} {
       
-      // Usuário pode ler seu próprio documento OU o documento de seu parceiro se o coupleId for o mesmo.
+      // Um usuário pode ler um documento de usuário se:
+      // 1. For seu próprio documento.
+      // 2. O campo 'memberIds' do documento alvo contiver o ID do usuário autenticado (permitindo que parceiros leiam).
       allow read: if request.auth != null && (
-        request.auth.uid == userId ||
-        (
-          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == resource.data.coupleId
-        )
+        request.auth.uid == userId || 
+        (resource.data.memberIds != null && request.auth.uid in resource.data.memberIds)
       );
 
       // Usuário só pode escrever em seu próprio documento.
