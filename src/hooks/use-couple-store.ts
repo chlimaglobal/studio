@@ -93,6 +93,8 @@ export function initializeCoupleStore(user: User) {
     userDocRef,
     async (userDoc) => {
       if (!userDoc.exists()) {
+        reset();
+        setIsLoading(false);
         return;
       }
 
@@ -126,6 +128,7 @@ export function initializeCoupleStore(user: User) {
               } else {
                   console.error("Partner listener error:", error);
               }
+               setIsLoading(false);
           });
         } else {
           reset();
@@ -141,15 +144,18 @@ export function initializeCoupleStore(user: User) {
       
       let hasSentInvite = false;
       let hasReceivedInvite = false;
+      let sentDone = false;
+      let receivedDone = false;
 
       const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
       unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
         hasSentInvite = !snapshot.empty;
+        sentDone = true;
         if (hasSentInvite) {
           setInvite(snapshot.docs[0].data());
           setStatus('pending_sent');
           setIsLoading(false);
-        } else if (!hasReceivedInvite) {
+        } else if (!hasReceivedInvite && sentDone && receivedDone) {
           setStatus('single');
           setInvite(null);
           setIsLoading(false);
@@ -159,11 +165,12 @@ export function initializeCoupleStore(user: User) {
       const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
       unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
         hasReceivedInvite = !snapshot.empty;
+        receivedDone = true;
         if (hasReceivedInvite) {
           setInvite(snapshot.docs[0].data());
           setStatus('pending_received');
           setIsLoading(false);
-        } else if (!hasSentInvite) {
+        } else if (!hasSentInvite && sentDone && receivedDone) {
           setStatus('single');
           setInvite(null);
           setIsLoading(false);
