@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useActionState, useEffect } from 'react';
-import { sendPartnerInvite } from '@/app/dashboard/couple/actions';
+import { sendPartnerInvite } from '@/app/dashboard/couple/invite/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';

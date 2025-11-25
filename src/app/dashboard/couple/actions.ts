@@ -133,8 +133,8 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
     try {
         await inviteRef.update({ status: 'rejected' });
-        revalidatePath('/dashboard');
-        return { success: 'Convite recusado.' };
+        revalidatePath('/dashboard/couple/invite'); // Revalidate the correct path
+        return { success: 'Convite recusado/cancelado.' };
     } catch (error) {
         console.error('Error rejecting invite:', error);
         return { error: 'Ocorreu um erro ao recusar o convite.' };
