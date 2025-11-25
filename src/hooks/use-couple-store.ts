@@ -55,6 +55,7 @@ let unsubUser: (() => void) | null = null;
 let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
+let isInitialized = false;
 
 function cleanup() {
     unsubUser?.();
@@ -69,6 +70,11 @@ function cleanup() {
 
 
 export function initializeCoupleStore() {
+  if (isInitialized) {
+      return;
+  }
+  isInitialized = true;
+    
   const auth = getAuth();
 
   auth.onAuthStateChanged(async (user) => {
