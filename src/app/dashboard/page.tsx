@@ -18,7 +18,7 @@ import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/ut
 import { useTransactions, useAuth } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onBudgetsUpdate, getDoc, doc, updateUserStatus, addChatMessage } from '@/lib/storage';
+import { onBudgetsUpdate, getDoc, doc, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
@@ -606,3 +606,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
