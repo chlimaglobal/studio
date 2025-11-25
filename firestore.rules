@@ -1,42 +1,54 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSameCouple(userId) {
-      let requester = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      let targetUser = get(/databases/$(database)/documents/users/$(userId));
-      
-      return request.auth != null &&
-             requester.data.coupleId != null &&
-             targetUser.data.coupleId != null &&
-             requester.data.coupleId == targetUser.data.coupleId;
+    // Helper: safe check if user doc exists and has memberIds
+    function isSameCouple(targetUserId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && exists(/databases/$(database)/documents/users/$(targetUserId))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberIds != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberIds.hasAny([request.auth.uid])
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.memberIds.hasAny(get(/databases/$(database)/documents/users/$(targetUserId)).data.memberIds);
     }
 
     // USERS
     match /users/{userId} {
-      // Allow read if the user is the owner OR if they belong to the same couple.
-      allow read: if request.auth != null && (request.auth.uid == userId || isSameCouple(userId));
+      // Owner can read/write their document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Partner (member of same couple) can read
+      allow read: if request.auth != null
+        && resource.data.memberIds != null
+        && resource.data.memberIds.hasAny([request.auth.uid]);
       
-      // Allow create/update only if the user is the owner.
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      // Creation allowed for authenticated users
+      allow create: if request.auth != null;
     }
 
     // COUPLES
     match /couples/{coupleId} {
-      allow read, delete: if request.auth != null && (
-        resource.data.members != null &&
-        resource.data.members.hasAny([request.auth.uid])
-      );
-      allow write: if request.auth != null;
+      allow read: if request.auth != null
+        && resource.data.members != null
+        && resource.data.members.hasAny([request.auth.uid]);
+
+      // creation must be validated server-side (trusted)
+      allow create: if false; // disallow client creation; server should create couples
+      allow update, delete: if false; // disallow client-side updates; server should manage
     }
 
     // INVITES
     match /invites/{inviteId} {
-      allow read, write: if request.auth != null && (
-        resource.data.sentBy == request.auth.uid ||
-        resource.data.sentTo == request.auth.uid
-      );
+      // allow read/write only to sender or recipient
+      allow read, write: if request.auth != null &&
+        (resource.data.sentBy == request.auth.uid ||
+         resource.data.sentTo == request.auth.uid ||
+         (request.resource.data != null && request.resource.data.sentBy == request.auth.uid));
+    }
+
+    // Default: deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
