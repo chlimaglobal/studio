@@ -5,12 +5,14 @@ service cloud.firestore {
 
     // USERS
     match /users/{userId} {
-      allow read, update: if request.auth != null && (
-        request.auth.uid == userId ||
-        (resource.data.memberIds != null &&
-         resource.data.memberIds.hasAny([request.auth.uid]))
-      );
-      allow create: if request.auth != null;
+      // Allow read/update on own document
+      allow read, update, create: if request.auth != null && request.auth.uid == userId;
+
+      // Allow a user to read their partner's document if they share a coupleId
+      allow read: if request.auth != null &&
+                   exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
+                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == resource.data.coupleId;
     }
 
     // COUPLES
