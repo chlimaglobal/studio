@@ -1,4 +1,3 @@
-
 'use client';
 
 import { create } from 'zustand';
@@ -92,13 +91,12 @@ export function initializeCoupleStore() {
     setLoading(true);
 
     const userDocRef = doc(db, 'users', user.uid);
-    const docSnap = await getDoc(userDocRef);
-
-    if (!docSnap.exists()) {
-        console.warn('User document does not exist yet. Waiting for creation.');
-        setLoading(false);
-        // Optional: you could implement a retry mechanism here
-        return;
+    
+    // Initial check for doc existence
+    const initialDocSnap = await getDoc(userDocRef);
+    if (!initialDocSnap.exists()) {
+      console.warn("User document doesn't exist yet, listener will wait.");
+      // We still set up the listener, which will fire once the doc is created.
     }
 
     unsubUser = onSnapshot(
@@ -185,7 +183,7 @@ export function initializeCoupleStore() {
       },
       (error) => {
         if (error.code === 'permission-denied') {
-            console.warn('Permission denied to user document. This is unexpected.');
+            console.warn('Permission denied to user document. This is unexpected but handled.');
         } else {
             console.error("Error on user snapshot listener:", error);
         }
