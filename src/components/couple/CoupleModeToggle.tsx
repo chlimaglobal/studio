@@ -8,17 +8,14 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { InvitePartnerDialog } from './InvitePartnerDialog';
 import { useViewMode } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '../ui/skeleton';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);
-    const { status, isLoading } = useCoupleStore();
+    const { status } = useCoupleStore();
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
-    
-    const handleToggle = (newMode: 'separate' | 'together') => {
-        if (isLoading) return;
 
+    const handleToggle = (newMode: 'separate' | 'together') => {
         if (newMode === 'together' && status !== 'linked') {
             toast({
                 title: 'Vincule um parceiro primeiro',
@@ -29,10 +26,6 @@ export function CoupleModeToggle() {
             setViewMode(newMode);
         }
     };
-
-    if (isLoading) {
-        return <Skeleton className="h-10 w-44 rounded-full" />
-    }
 
     return (
         <>
