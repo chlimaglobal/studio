@@ -79,12 +79,12 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
 
   batch.update(adminDb.collection("users").doc(userId), {
     coupleId,
-    memberIds: [userId, partnerId],
+    memberIds: FieldValue.arrayUnion(partnerId),
   });
 
   batch.update(adminDb.collection("users").doc(partnerId), {
     coupleId,
-    memberIds: [userId, partnerId],
+    memberIds: FieldValue.arrayUnion(userId),
   });
 
   batch.update(inviteRef, {
@@ -104,7 +104,7 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
 }
 
 
-// 3. rejectPartnerInvite
+// 3. rejectPartnerInvite (also used for canceling)
 export async function rejectPartnerInvite(prevState: any, formData: FormData) {
     const userId = formData.get('userId') as string;
     if (!userId) return { error: 'Usuário não autenticado.' };
@@ -133,7 +133,7 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
     try {
         await inviteRef.update({ status: 'rejected' });
-        revalidatePath('/dashboard/couple/invite'); // Revalidate the correct path
+        revalidatePath('/dashboard/couple'); 
         return { success: 'Convite recusado/cancelado.' };
     } catch (error) {
         console.error('Error rejecting invite:', error);

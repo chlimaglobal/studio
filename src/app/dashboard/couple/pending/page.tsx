@@ -69,7 +69,7 @@ export default function PendingInvitePage() {
   }, [loading, status, router]);
   
   // Render nothing while redirecting
-  if (status !== 'pending_sent') {
+  if (status !== 'pending_sent' || !invite) {
     return null;
   }
 
