@@ -3,16 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSameCouple(userId) {
+      let requester = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      let targetUser = get(/databases/$(database)/documents/users/$(userId));
+      return requester.data.coupleId != null &&
+             requester.data.coupleId == targetUser.data.coupleId;
+    }
+
     // USERS
     match /users/{userId} {
       // Allow read/update on own document
-      allow read, update, create: if request.auth != null && request.auth.uid == userId;
-
-      // Allow a user to read their partner's document if they share a coupleId
-      allow read: if request.auth != null &&
-                   exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId != null &&
-                   get(/databases/$(database)/documents/users/$(request.auth.uid)).data.coupleId == resource.data.coupleId;
+      allow read, update: if request.auth != null && (
+        request.auth.uid == userId ||
+        isSameCouple(userId)
+      );
+      allow create: if request.auth != null;
     }
 
     // COUPLES
