@@ -90,8 +90,18 @@ export function initializeCoupleStore() {
 
     setLoading(true);
 
+    const userDocRef = doc(db, 'users', user.uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (!docSnap.exists()) {
+        console.warn('User document does not exist yet. Waiting for creation.');
+        setLoading(false);
+        // Optional: you could implement a retry mechanism here
+        return;
+    }
+
     unsubUser = onSnapshot(
-      doc(db, 'users', user.uid),
+      userDocRef,
       async (userDoc) => {
         if (!userDoc.exists()) {
           console.log("User document not found, resetting state.");
