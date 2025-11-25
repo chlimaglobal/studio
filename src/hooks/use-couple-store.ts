@@ -130,6 +130,12 @@ export function initializeCoupleStore() {
             unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
               setPartner(partnerDoc.exists() ? partnerDoc.data() as AppUser : null);
               setLoading(false);
+            }, (error) => {
+                if (error.code === 'permission-denied') {
+                    console.warn("Permission denied fetching partner data. This may be temporary.");
+                } else {
+                    console.error("Partner listener error:", error);
+                }
             });
           } else {
             reset();
@@ -174,7 +180,11 @@ export function initializeCoupleStore() {
         });
       },
       (error) => {
-        console.error("Error on user snapshot listener:", error);
+        if (error.code === 'permission-denied') {
+            console.warn('Permission denied to user document. This is unexpected.');
+        } else {
+            console.error("Error on user snapshot listener:", error);
+        }
         reset();
       }
     );
