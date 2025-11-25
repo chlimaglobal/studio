@@ -307,7 +307,7 @@ export default function DashboardPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const { transactions, isLoading: isLoadingTransactions } = useTransactions();
     const { user } = useAuth();
-    const { status: coupleStatus } = useCoupleStore();
+    const { status: coupleStatus, isLoading: isLoadingCouple } = useCoupleStore();
     const [budgets, setBudgets] = useState<Budget>({});
     const [isLoadingBudgets, setIsLoadingBudgets] = useState(true);
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
@@ -485,7 +485,7 @@ export default function DashboardPage() {
 
     }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
     
-    if (isLoadingTransactions || isLoadingBudgets) {
+    if (isLoadingTransactions || isLoadingBudgets || isLoadingCouple) {
         return <DashboardLoadingSkeleton />;
     }
 
@@ -606,4 +606,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 

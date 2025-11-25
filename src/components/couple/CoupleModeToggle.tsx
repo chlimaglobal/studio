@@ -8,10 +8,11 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { InvitePartnerDialog } from './InvitePartnerDialog';
 import { useViewMode } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '../ui/skeleton';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);
-    const { status } = useCoupleStore();
+    const { status, isLoading } = useCoupleStore();
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
 
@@ -26,6 +27,10 @@ export function CoupleModeToggle() {
             setViewMode(newMode);
         }
     };
+
+    if (isLoading) {
+        return <Skeleton className="h-10 w-44 rounded-full" />;
+    }
 
     return (
         <>

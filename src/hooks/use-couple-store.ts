@@ -73,12 +73,7 @@ export function initializeCoupleStore() {
 
   auth.onAuthStateChanged(async (user) => {
     cleanup();
-
-    if (!user) {
-      useCoupleStore.getState().reset();
-      return;
-    }
-
+    
     const {
       setIsLoading,
       setStatus,
@@ -88,23 +83,23 @@ export function initializeCoupleStore() {
       reset,
     } = useCoupleStore.getState();
 
+    if (!user) {
+      reset();
+      return;
+    }
+
+
     setIsLoading(true);
 
     const userDocRef = doc(db, 'users', user.uid);
     
-    // Initial check for doc existence
-    const initialDocSnap = await getDoc(userDocRef);
-    if (!initialDocSnap.exists()) {
-      console.warn("User document doesn't exist yet, listener will wait.");
-      // We still set up the listener, which will fire once the doc is created.
-    }
-
     unsubUser = onSnapshot(
       userDocRef,
       async (userDoc) => {
         if (!userDoc.exists()) {
-          console.log("User document not found, resetting state.");
-          reset();
+          // Document might not be created yet, so we wait.
+          // The state remains loading. If it never gets created, it will timeout or stay loading.
+          // This is better than resetting and causing a flash of 'single' state.
           return;
         }
 
@@ -141,11 +136,11 @@ export function initializeCoupleStore() {
             });
           } else {
             reset();
-            setIsLoading(false);
           }
           return;
         }
-
+        
+        // If no coupleId, proceed to check for invites
         setPartner(null);
         setCoupleLink(null);
 
@@ -161,11 +156,12 @@ export function initializeCoupleStore() {
           if (hasSentInvite) {
             setInvite(snapshot.docs[0].data());
             setStatus('pending_sent');
+            setIsLoading(false); // We have a definitive state
           } else if (!hasReceivedInvite) {
             setStatus('single');
             setInvite(null);
+            setIsLoading(false); // We have a definitive state
           }
-          setIsLoading(false);
         });
 
         const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
@@ -174,11 +170,12 @@ export function initializeCoupleStore() {
           if (hasReceivedInvite) {
             setInvite(snapshot.docs[0].data());
             setStatus('pending_received');
+            setIsLoading(false); // We have a definitive state
           } else if (!hasSentInvite) {
             setStatus('single');
             setInvite(null);
+            setIsLoading(false); // We have a definitive state
           }
-          setIsLoading(false);
         });
       },
       (error) => {
