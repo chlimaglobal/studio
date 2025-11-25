@@ -1,14 +1,15 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function isSameCouple(userId) {
       let requester = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      // Esta regra permite que um usuário leia o documento de outro se:
-      // 1. O solicitante estiver autenticado.
-      // 2. O próprio documento do solicitante existir.
-      // 3. O solicitante tiver um coupleId.
-      // 4. O coupleId do solicitante for igual ao coupleId do documento que está sendo lido.
+      // This rule allows a user to read another user's document if:
+      // 1. The requester is authenticated.
+      // 2. The requester's own document exists.
+      // 3. The requester has a coupleId.
+      // 4. The requester's coupleId is the same as the coupleId of the document being read.
       return request.auth != null &&
              requester.exists &&
              requester.data.coupleId != null &&
@@ -17,10 +18,10 @@ service cloud.firestore {
 
     // USERS
     match /users/{userId} {
-      // Permite leitura se o usuário for o proprietário OU se pertencer ao mesmo casal.
+      // Allow read if the user is the owner OR if they belong to the same couple.
       allow read: if request.auth != null && (request.auth.uid == userId || isSameCouple(userId));
       
-      // Permite criar/atualizar apenas se o usuário for o proprietário.
+      // Allow create/update only if the user is the owner.
       allow create, update: if request.auth != null && request.auth.uid == userId;
     }
 
