@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { onSnapshot, doc, collection, query, where, getDoc, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, CoupleLink } from '@/lib/types';
-import { getAuth } from 'firebase/auth';
+import { getAuth, User } from 'firebase/auth';
 
 export type CoupleStatus = "single" | "pending_sent" | "pending_received" | "linked";
 
@@ -55,7 +55,6 @@ let unsubUser: (() => void) | null = null;
 let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
-let isInitialized = false;
 
 function cleanup() {
     unsubUser?.();
@@ -69,129 +68,115 @@ function cleanup() {
 };
 
 
-export function initializeCoupleStore() {
-  if (isInitialized) {
-      return;
+export function initializeCoupleStore(user: User) {
+  cleanup();
+  
+  const {
+    setIsLoading,
+    setStatus,
+    setPartner,
+    setInvite,
+    setCoupleLink,
+    reset,
+  } = useCoupleStore.getState();
+
+  if (!user) {
+    reset();
+    return;
   }
-  isInitialized = true;
-    
-  const auth = getAuth();
 
-  auth.onAuthStateChanged(async (user) => {
-    cleanup();
-    
-    const {
-      setIsLoading,
-      setStatus,
-      setPartner,
-      setInvite,
-      setCoupleLink,
-      reset,
-    } = useCoupleStore.getState();
+  setIsLoading(true);
 
-    if (!user) {
-      reset();
-      return;
-    }
-
-
-    setIsLoading(true);
-
-    const userDocRef = doc(db, 'users', user.uid);
-    
-    unsubUser = onSnapshot(
-      userDocRef,
-      async (userDoc) => {
-        if (!userDoc.exists()) {
-          // Document might not be created yet, so we wait.
-          // The state remains loading. If it never gets created, it will timeout or stay loading.
-          // This is better than resetting and causing a flash of 'single' state.
-          return;
-        }
-
-        const userData = userDoc.data() || {};
-        const coupleId = userData.coupleId;
-
-        unsubPartner?.();
-
-        if (coupleId) {
-          setInvite(null);
-          const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
-          if (!coupleLinkDoc.exists()) {
-            reset();
-            return;
-          }
-          const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
-          setStatus('linked');
-          setCoupleLink({ id: coupleId, ...data });
-          const partnerId = data.members.find((id) => id !== user.uid);
-          if (partnerId) {
-            unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
-              if (partnerDoc.exists()) {
-                setPartner(partnerDoc.data() as AppUser);
-              } else {
-                setPartner(null);
-              }
-              setIsLoading(false);
-            }, (error) => {
-                if (error.code === 'permission-denied') {
-                    console.warn("Permission denied fetching partner data. This may be temporary.");
-                } else {
-                    console.error("Partner listener error:", error);
-                }
-            });
-          } else {
-            reset();
-          }
-          return;
-        }
-        
-        // If no coupleId, proceed to check for invites
-        setPartner(null);
-        setCoupleLink(null);
-
-        unsubSentInvites?.();
-        unsubReceivedInvites?.();
-        
-        let hasSentInvite = false;
-        let hasReceivedInvite = false;
-
-        const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
-        unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
-          hasSentInvite = !snapshot.empty;
-          if (hasSentInvite) {
-            setInvite(snapshot.docs[0].data());
-            setStatus('pending_sent');
-            setIsLoading(false); // We have a definitive state
-          } else if (!hasReceivedInvite) {
-            setStatus('single');
-            setInvite(null);
-            setIsLoading(false); // We have a definitive state
-          }
-        });
-
-        const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
-        unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
-          hasReceivedInvite = !snapshot.empty;
-          if (hasReceivedInvite) {
-            setInvite(snapshot.docs[0].data());
-            setStatus('pending_received');
-            setIsLoading(false); // We have a definitive state
-          } else if (!hasSentInvite) {
-            setStatus('single');
-            setInvite(null);
-            setIsLoading(false); // We have a definitive state
-          }
-        });
-      },
-      (error) => {
-        if (error.code === 'permission-denied') {
-            console.warn('Permission denied to user document. This is unexpected but handled.');
-        } else {
-            console.error("Error on user snapshot listener:", error);
-        }
-        reset();
+  const userDocRef = doc(db, 'users', user.uid);
+  
+  unsubUser = onSnapshot(
+    userDocRef,
+    async (userDoc) => {
+      if (!userDoc.exists()) {
+        return;
       }
-    );
-  });
+
+      const userData = userDoc.data() || {};
+      const coupleId = userData.coupleId;
+
+      unsubPartner?.();
+
+      if (coupleId) {
+        setInvite(null);
+        const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
+        if (!coupleLinkDoc.exists()) {
+          reset();
+          return;
+        }
+        const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
+        setStatus('linked');
+        setCoupleLink({ id: coupleId, ...data });
+        const partnerId = data.members.find((id) => id !== user.uid);
+        if (partnerId) {
+          unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
+            if (partnerDoc.exists()) {
+              setPartner(partnerDoc.data() as AppUser);
+            } else {
+              setPartner(null);
+            }
+            setIsLoading(false);
+          }, (error) => {
+              if (error.code === 'permission-denied') {
+                  console.warn("Permission denied fetching partner data. This may be temporary.");
+              } else {
+                  console.error("Partner listener error:", error);
+              }
+          });
+        } else {
+          reset();
+        }
+        return;
+      }
+      
+      setPartner(null);
+      setCoupleLink(null);
+
+      unsubSentInvites?.();
+      unsubReceivedInvites?.();
+      
+      let hasSentInvite = false;
+      let hasReceivedInvite = false;
+
+      const sentInvitesQuery = query(collection(db, 'invites'), where('sentBy', '==', user.uid), where('status', '==', 'pending'), limit(1));
+      unsubSentInvites = onSnapshot(sentInvitesQuery, (snapshot) => {
+        hasSentInvite = !snapshot.empty;
+        if (hasSentInvite) {
+          setInvite(snapshot.docs[0].data());
+          setStatus('pending_sent');
+          setIsLoading(false);
+        } else if (!hasReceivedInvite) {
+          setStatus('single');
+          setInvite(null);
+          setIsLoading(false);
+        }
+      });
+
+      const receivedInvitesQuery = query(collection(db, 'invites'), where('sentTo', '==', user.uid), where('status', '==', 'pending'), limit(1));
+      unsubReceivedInvites = onSnapshot(receivedInvitesQuery, (snapshot) => {
+        hasReceivedInvite = !snapshot.empty;
+        if (hasReceivedInvite) {
+          setInvite(snapshot.docs[0].data());
+          setStatus('pending_received');
+          setIsLoading(false);
+        } else if (!hasSentInvite) {
+          setStatus('single');
+          setInvite(null);
+          setIsLoading(false);
+        }
+      });
+    },
+    (error) => {
+      if (error.code === 'permission-denied') {
+          console.warn('Permission denied to user document. This is unexpected but handled.');
+      } else {
+          console.error("Error on user snapshot listener:", error);
+      }
+      reset();
+    }
+  );
 }

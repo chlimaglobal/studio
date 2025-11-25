@@ -118,12 +118,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const auth = getAuth(app);
-    // Initialize the Zustand store listener as soon as AuthProvider mounts
-    initializeCoupleStore(); 
-
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
+        initializeCoupleStore(user); // Initialize couple store ONLY after auth is confirmed
         setUser(user);
       } else {
         setUser(null);
