@@ -215,7 +215,7 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
   });
 
   await batch.commit();
-
+  revalidatePath('/dashboard/couple');
   return { success: true, coupleId };
 }
 

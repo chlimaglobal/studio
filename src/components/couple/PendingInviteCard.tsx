@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
-import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/actions';
+import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/invite/actions';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
