@@ -3,8 +3,8 @@
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Mail, UserPlus, X } from 'lucide-react';
-import { useActionState, useEffect, useState } from 'react';
+import { Loader2, UserPlus, X } from 'lucide-react';
+import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/invite/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -31,54 +31,49 @@ export default function InviteReceivedPage() {
     const { toast } = useToast();
     const router = useRouter();
 
-    const [isAccepting, setIsAccepting] = useState(false);
+    // ACTION STATES
     const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
-    
-     useEffect(() => {
-        // Redirect away if state is not correct
+    const [acceptState, acceptAction] = useActionState(acceptPartnerInvite, null);
+
+    // REDIRECT IF NOT EXPECTED STATE
+    useEffect(() => {
         if (!loading && status !== 'pending_received') {
             router.replace('/dashboard/couple/invite');
         }
     }, [loading, status, router]);
 
+    // TOASTS – REJECT
     useEffect(() => {
         if (rejectState?.error) {
-          toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
+            toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
         }
         if (rejectState?.success) {
-          toast({ title: 'Ação Concluída', description: rejectState.success });
+            toast({ title: 'Ação Concluída', description: rejectState.success });
+            router.refresh();
         }
-    }, [rejectState, toast]);
+    }, [rejectState, toast, router]);
 
-    const handleAccept = async () => {
-        if (!invite?.inviteId || !user?.uid) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível aceitar o convite.' });
-            return;
+    // TOASTS – ACCEPT
+    useEffect(() => {
+        if (acceptState?.error) {
+            toast({ variant: 'destructive', title: 'Erro ao aceitar', description: acceptState.error });
         }
-        setIsAccepting(true);
-        try {
-            const result = await acceptPartnerInvite(invite.inviteId, user.uid);
-            if (result.success) {
-                toast({ title: 'Sucesso!', description: 'Você e seu parceiro(a) estão conectados!' });
-            }
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-            toast({ variant: 'destructive', title: 'Erro ao aceitar', description: errorMessage });
-        } finally {
-            setIsAccepting(false);
+        if (acceptState?.success) {
+            toast({ title: 'Sucesso!', description: 'Vocês agora estão vinculados!' });
+            router.push('/dashboard');
         }
-    };
+    }, [acceptState, toast, router]);
 
 
     if (loading) {
-      return (
-        <div className="flex justify-center items-center h-full p-8">
-            <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-6 w-6 animate-spin" />
-                <span>Verificando convites...</span>
+        return (
+            <div className="flex justify-center items-center h-full p-8">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Verificando convites...</span>
+                </div>
             </div>
-        </div>
-      )
+        );
     }
 
     if (status !== 'pending_received' || !invite) {
@@ -94,15 +89,19 @@ export default function InviteReceivedPage() {
                         Você tem um convite!
                     </CardTitle>
                     <CardDescription>
-                        <b>{invite.sentByName || 'Alguém'}</b> ({invite.sentByEmail}) convidou você para vincular as contas no FinanceFlow.
+                        <b>{invite.sentByName || 'Alguém'}</b> ({invite.sentByEmail}) convidou você para vincular as contas.
                     </CardDescription>
                 </CardHeader>
+
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
-                        Ao aceitar, vocês poderão compartilhar transações, orçamentos e análises no "Modo Casal". Seus dados financeiros individuais permanecerão separados.
+                        Ao aceitar, vocês poderão compartilhar transações, orçamentos e análises no “Modo Casal”.
                     </p>
                 </CardContent>
+
                 <CardFooter className="grid grid-cols-2 gap-4">
+
+                    {/* REJECT */}
                     <form action={rejectAction}>
                         <input type="hidden" name="inviteId" value={invite.inviteId} />
                         <input type="hidden" name="userId" value={user?.uid} />
@@ -110,10 +109,17 @@ export default function InviteReceivedPage() {
                             <X className="mr-2 h-4 w-4" /> Recusar
                         </ActionButton>
                     </form>
-                    <Button onClick={handleAccept} disabled={isAccepting}>
-                        {isAccepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                        Aceitar
-                    </Button>
+
+                    {/* ACCEPT */}
+                    <form action={acceptAction}>
+                        <input type="hidden" name="inviteId" value={invite.inviteId} />
+                        <input type="hidden" name="userId" value={user?.uid} />
+                        <ActionButton variant="accept">
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Aceitar
+                        </ActionButton>
+                    </form>
+
                 </CardFooter>
             </Card>
         </div>

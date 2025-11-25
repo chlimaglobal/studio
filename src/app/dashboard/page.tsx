@@ -485,7 +485,7 @@ export default function DashboardPage() {
 
     }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
     
-    if (isLoadingTransactions || isLoadingBudgets) {
+    if (isLoadingTransactions || isLoadingBudgets || isLoadingCouple) {
         return <DashboardLoadingSkeleton />;
     }
 

@@ -8,6 +8,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 import { Transaction } from '@/lib/types';
+import { z } from 'zod';
 
 const sendGridApiKey = process.env.SENDGRID_API_KEY;
 if (sendGridApiKey) {
@@ -666,6 +667,184 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
         console.error('Error during shared account migration:', error);
         throw new HttpsError('internal', 'Ocorreu um erro ao migrar a conta. Tente novamente.');
     }
+});
+
+
+// ------------------------------
+// NEW CALLABLE FUNCTIONS
+// ------------------------------
+
+async function getUserData(uid: string) {
+    if (!adminDb) throw new HttpsError('internal', 'Database not initialized');
+    const userRef = adminDb.collection("users").doc(uid);
+    const snapshot = await userRef.get();
+    if (!snapshot.exists) throw new HttpsError('not-found', "User not found");
+    return snapshot.data();
+}
+
+async function sendPartnerInviteEmail({
+  senderName,
+  partnerEmail,
+  inviteLink,
+}: {
+  senderName: string;
+  partnerEmail: string;
+  inviteLink: string;
+}) {
+  if (!sendGridApiKey) {
+      console.error("SendGrid API key not configured.");
+      throw new HttpsError('internal', 'Email service not configured');
+  }
+  const msg = {
+    to: partnerEmail,
+    from: "contato@seuservico.com",
+    subject: `${senderName} convidou você para o Modo Casal da Lúmina`,
+    html: `
+      <div style="font-family: Arial; padding: 20px; border-radius: 10px; background: #f7f7f7;">
+        <h2 style="color: #333;">Convite para acessar o Modo Casal de Lúmina</h2>
+        <p><strong>${senderName}</strong> está compartilhando o acesso financeiro com você.</p>
+        <p>Clique no botão abaixo para aceitar o convite:</p>
+        <a href="${inviteLink}" 
+           style="display: inline-block; padding: 10px 20px; background: #4f46e5; color: #fff; border-radius: 6px; text-decoration: none;">
+          Aceitar Convite
+        </a>
+      </div>
+    `,
+  };
+  await sgMail.send(msg);
+}
+
+
+export const linkPartner = onCall(async (request) => {
+    const senderUid = request.auth?.uid;
+    if (!senderUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
+
+    const linkPartnerSchema = z.object({ partnerEmail: z.string().email() });
+    const parsed = linkPartnerSchema.safeParse(request.data);
+    if (!parsed.success) throw new HttpsError('invalid-argument', "Email inválido.");
+
+    const { partnerEmail } = parsed.data;
+
+    const auth = getAuth(adminApp);
+    const db = adminDb!;
+    let partnerUid: string;
+    try {
+        const partnerRecord = await auth.getUserByEmail(partnerEmail);
+        partnerUid = partnerRecord.uid;
+    } catch(e) {
+        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail.');
+    }
+    
+    const senderData = await getUserData(senderUid);
+    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/invite?partner=${senderUid}`;
+
+    // Create invite document
+    const inviteRef = db.collection("invites").doc();
+    await inviteRef.set({
+        sentBy: senderUid,
+        sentTo: partnerUid,
+        sentToEmail: partnerEmail,
+        sentByName: senderData?.displayName || 'Usuário',
+        sentByEmail: request.auth?.token.email || 'email@desconhecido.com',
+        status: 'pending',
+        createdAt: Timestamp.now()
+    });
+
+    await sendPartnerInviteEmail({
+        senderName: senderData?.displayName || 'Seu parceiro(a)',
+        partnerEmail: partnerEmail,
+        inviteLink,
+    });
+    
+    return { success: true, message: `Convite enviado com sucesso para ${partnerEmail}!` };
+});
+
+export const acceptPartnerInviteClient = onCall(async (request) => {
+    const receiverUid = request.auth?.uid;
+    if (!receiverUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
+
+    const acceptSchema = z.object({ inviteId: z.string().min(1) });
+    const parsed = acceptSchema.safeParse(request.data);
+    if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
+    const { inviteId } = parsed.data;
+    
+    const db = adminDb!;
+    const inviteRef = db.collection('invites').doc(inviteId);
+    const inviteDoc = await inviteRef.get();
+
+    if (!inviteDoc.exists || inviteDoc.data()?.sentTo !== receiverUid || inviteDoc.data()?.status !== 'pending') {
+        throw new HttpsError('not-found', 'Convite inválido ou expirado.');
+    }
+
+    const senderUid = inviteDoc.data()!.sentBy;
+    const coupleRef = db.collection("couples").doc();
+    const coupleId = coupleRef.id;
+
+    const batch = db.batch();
+    batch.set(coupleRef, { members: [senderUid, receiverUid], createdAt: Timestamp.now(), id: coupleId });
+    batch.update(db.collection('users').doc(senderUid), { coupleId });
+    batch.update(db.collection('users').doc(receiverUid), { coupleId });
+    batch.update(inviteRef, { status: 'accepted' });
+    
+    await batch.commit();
+
+    return { success: true };
+});
+
+
+export const rejectPartnerInvite = onCall(async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) throw new HttpsError('unauthenticated', 'User is not authenticated.');
+
+    const rejectSchema = z.object({ inviteId: z.string().min(1) });
+    const parsed = rejectSchema.safeParse(request.data);
+    if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
+    const { inviteId } = parsed.data;
+
+    const db = adminDb!;
+    const inviteRef = db.collection('invites').doc(inviteId);
+    const inviteDoc = await inviteRef.get();
+    
+    if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
+    const inviteData = inviteDoc.data()!;
+
+    // User can cancel an invite they sent, or reject an invite they received
+    if (inviteData.sentBy !== userId && inviteData.sentTo !== userId) {
+        throw new HttpsError('permission-denied', 'Você não tem permissão para modificar este convite.');
+    }
+
+    await inviteRef.delete();
+    
+    return { success: true, message: "Convite cancelado/recusado." };
+});
+
+export const disconnectPartner = onCall(async (request) => {
+    const userId = request.auth?.uid;
+    if (!userId) throw new HttpsError('unauthenticated', 'User is not authenticated.');
+    
+    const db = adminDb!;
+    const userDoc = await getUserData(userId);
+    const coupleId = userDoc?.coupleId;
+
+    if (!coupleId) throw new HttpsError('failed-precondition', 'Você não está em um relacionamento.');
+
+    const coupleRef = db.collection('couples').doc(coupleId);
+    const coupleDoc = await coupleRef.get();
+    if (!coupleDoc.exists) throw new HttpsError('not-found', 'Relacionamento não encontrado.');
+
+    const members = coupleDoc.data()!.members as string[];
+    const partnerId = members.find(id => id !== userId);
+    
+    const batch = db.batch();
+    batch.update(db.collection('users').doc(userId), { coupleId: FieldValue.delete() });
+    if (partnerId) {
+        batch.update(db.collection('users').doc(partnerId), { coupleId: FieldValue.delete() });
+    }
+    batch.delete(coupleRef);
+
+    await batch.commit();
+
+    return { success: true, message: "Parceiro(a) desvinculado com sucesso." };
 });
     
 

@@ -3,119 +3,113 @@
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Mail, UserPlus, X } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
-import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/invite/actions';
+import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../client-providers';
-
-function ActionButton({ variant, children }: { variant: 'accept' | 'reject', children: React.ReactNode }) {
-    const { pending } = useFormStatus();
-    return (
-        <Button 
-            type="submit" 
-            variant={variant === 'accept' ? 'default' : 'destructive'} 
-            className="w-full"
-            disabled={pending}
-        >
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
-        </Button>
-    )
-}
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
+import { useState } from 'react';
 
 export function PendingInviteCard() {
     const { invite, status } = useCoupleStore();
     const { user } = useAuth();
     const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
 
-    // The accept action is not a form action, so we handle it separately.
-    const [isAccepting, setIsAccepting] = useActionState(async () => {
-        if (!invite?.inviteId || !user?.uid) {
-            toast({ variant: 'destructive', title: 'Erro', description: 'Não foi possível aceitar o convite.' });
-            return;
-        }
+    const handleAction = async (action: 'accept' | 'reject') => {
+        if (!invite?.inviteId) return;
+
+        setIsLoading(true);
         try {
-            const result = await acceptPartnerInvite(invite.inviteId, user.uid);
-            if (result.success) {
-                toast({ title: 'Sucesso!', description: 'Você e seu parceiro(a) estão conectados!' });
-            }
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-            toast({ variant: 'destructive', title: 'Erro ao aceitar', description: errorMessage });
-        }
-    }, null);
+            const callableFunction = action === 'accept'
+                ? httpsCallable(functions, 'acceptPartnerInviteClient')
+                : httpsCallable(functions, 'rejectPartnerInvite');
+            
+            const result = await callableFunction({ inviteId: invite.inviteId });
+            const data = result.data as { success: boolean, message?: string };
 
-    const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
-    
-    useEffect(() => {
-        if (rejectState?.error) {
-          toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
+            if (data.success) {
+                toast({
+                    title: 'Sucesso!',
+                    description: action === 'accept' ? 'Você e seu parceiro(a) estão conectados!' : 'Convite recusado/cancelado.',
+                });
+                // The store will auto-update via the listener
+            } else {
+                // @ts-ignore
+                throw new Error(data.error || 'Ocorreu um erro.');
+            }
+        } catch (error: any) {
+             toast({
+                variant: 'destructive',
+                title: 'Erro',
+                description: error.message || `Falha ao ${action === 'accept' ? 'aceitar' : 'recusar'} o convite.`,
+            });
+        } finally {
+            setIsLoading(false);
         }
-        if (rejectState?.success) {
-          toast({ title: 'Ação Concluída', description: rejectState.success });
-        }
-    }, [rejectState, toast]);
+    };
+
 
     if (!invite || status === 'linked') return null;
-    
+
+    // --- Caso: convite enviado por você ---
     if (status === 'pending_sent') {
         return (
             <Card className="max-w-md mx-auto bg-secondary">
                 <CardHeader>
-                     <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2">
                         <Mail className="h-6 w-6 text-primary" />
                         Convite Enviado
                     </CardTitle>
                     <CardDescription>
-                        Você enviou um convite para vincular contas. Aguardando resposta de <strong>{invite.sentToEmail || 'seu parceiro(a)'}</strong>.
+                        Aguardando resposta de <strong>{invite.sentToEmail}</strong>.
                     </CardDescription>
                 </CardHeader>
+
                 <CardFooter>
-                    <form action={rejectAction} className="w-full">
-                         <input type="hidden" name="inviteId" value={invite.inviteId} />
-                         <input type="hidden" name="userId" value={user?.uid} />
-                         <ActionButton variant="reject">
-                            <X className="mr-2 h-4 w-4" /> Cancelar Convite
-                        </ActionButton>
-                    </form>
+                     <Button variant="destructive" className="w-full" disabled={isLoading} onClick={() => handleAction('reject')}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                        Cancelar Convite
+                    </Button>
                 </CardFooter>
             </Card>
-        )
+        );
     }
 
-    return (
-        <Card className="max-w-md mx-auto">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="h-6 w-6 text-primary" />
-                    Você tem um convite!
-                </CardTitle>
-                <CardDescription>
-                    <b>{invite.sentByName || 'Alguém'}</b> ({invite.sentByEmail}) convidou você para vincular as contas.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">
-                    Ao aceitar, vocês poderão compartilhar transações, orçamentos e análises no "Modo Casal".
-                </p>
-            </CardContent>
-            <CardFooter className="grid grid-cols-2 gap-4">
-                 <form action={rejectAction}>
-                    <input type="hidden" name="inviteId" value={invite.inviteId} />
-                    <input type="hidden" name="userId" value={user?.uid} />
-                    <ActionButton variant="reject">
-                        <X className="mr-2 h-4 w-4" /> Recusar
-                    </ActionButton>
-                </form>
-                <form action={isAccepting}>
-                    <Button type="submit" className="w-full">
-                        <UserPlus className="mr-2 h-4 w-4" /> Aceitar
+    // --- Caso: convite recebido ---
+    if (status === 'pending_received') {
+        return (
+            <Card className="max-w-md mx-auto">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <UserPlus className="h-6 w-6 text-primary" />
+                        Você tem um convite!
+                    </CardTitle>
+                    <CardDescription>
+                        <strong>{invite.sentByName || 'Alguém'}</strong> ({invite.sentByEmail}) convidou você.
+                    </CardDescription>
+                </CardHeader>
+
+                <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                        Aceitando, vocês ativam o Modo Casal.
+                    </p>
+                </CardContent>
+
+                <CardFooter className="grid grid-cols-2 gap-4">
+                    <Button variant="destructive" className="w-full" disabled={isLoading} onClick={() => handleAction('reject')}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                        Recusar
                     </Button>
-                </form>
-            </CardFooter>
-        </Card>
-    );
+                    <Button className="w-full" disabled={isLoading} onClick={() => handleAction('accept')}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                        Aceitar
+                    </Button>
+                </CardFooter>
+            </Card>
+        );
+    }
+
+    return null;
 }

@@ -12,43 +12,50 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useActionState, useEffect } from 'react';
-import { sendPartnerInvite } from '@/app/dashboard/couple/invite/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
 import { useAuth } from '../client-providers';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
+import React, { useState } from 'react';
 
 interface InvitePartnerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      Enviar Convite
-    </Button>
-  );
-}
-
 export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogProps) {
-  const [state, formAction] = useActionState(sendPartnerInvite, null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  useEffect(() => {
-    if (state?.error) {
-      toast({ variant: 'destructive', title: 'Erro', description: state.error });
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+        const linkPartnerCallable = httpsCallable(functions, 'linkPartner');
+        const result = await linkPartnerCallable({ partnerEmail: email });
+        const data = result.data as { success: boolean; message: string };
+
+        if (data.success) {
+            toast({
+                title: 'Sucesso!',
+                description: data.message,
+            });
+            onOpenChange(false);
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Enviar Convite',
+            description: error.message || 'Ocorreu um erro desconhecido.',
+        });
+    } finally {
+        setIsLoading(false);
     }
-    if (state?.success) {
-      toast({ title: 'Sucesso!', description: state.success });
-      onOpenChange(false);
-    }
-  }, [state, toast, onOpenChange]);
-  
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -59,8 +66,8 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
             Insira o e-mail do seu parceiro(a) para vincular suas contas. Ele(a) receberá um convite para se juntar a você.
           </DialogDescription>
         </DialogHeader>
-        <form action={formAction}>
-           <input type="hidden" name="userId" value={user?.uid || ''} />
+
+        <form onSubmit={handleInvite}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">
@@ -73,11 +80,16 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
                 placeholder="parceiro@email.com"
                 className="col-span-3"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <SubmitButton />
+             <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Enviar Convite
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
