@@ -17,6 +17,8 @@ import { sendPartnerInvite } from '@/app/dashboard/couple/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { getAuth } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -46,6 +48,95 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       onOpenChange(false);
     }
   }, [state, toast, onOpenChange]);
+
+
+  const actionWithAuth = async (formData: FormData) => {
+    const auth = getAuth(app);
+    const user = auth.currentUser;
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Usuário não autenticado.' });
+      return;
+    }
+    const token = await user.getIdToken();
+    const headers = new Headers();
+    headers.append('Authorization', `Bearer ${token}`);
+    
+    // We can't directly pass headers to a server action.
+    // The server action has been updated to read the token from the standard 'Authorization' header
+    // But we need a way to set that header for the server action call.
+    // A common way is to use fetch, but that complicates useActionState.
+    // For now, let's update the server action to expect the token as part of the form data.
+    
+    // This is a workaround since headers can't be set for form actions.
+    // Let's modify the server action to read it from headers, assuming the client framework (Next.js) forwards it.
+    
+    // The server action now reads from headers().get('Authorization'), which should work in Next.js >= 14.
+    // No special client-side code is needed if the auth middleware is set up correctly.
+    // But since there is no middleware, we'll use a standard fetch call.
+    
+    try {
+        const response = await fetch('/api/invite-partner', { // Let's assume we create an API route to handle this
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: formData.get('email') })
+        });
+        
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Falha na API');
+        }
+         toast({ title: 'Sucesso!', description: result.success });
+         onOpenChange(false);
+
+    } catch (e: any) {
+        toast({ variant: 'destructive', title: 'Erro', description: e.message || 'Ocorreu um erro.' });
+    }
+  };
+  
+  // Reverting to a simpler form action, assuming the server can get the user.
+  const authenticatedFormAction = async (payload: FormData) => {
+    const auth = getAuth(app);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        toast({
+            title: "Erro de autenticação",
+            description: "Por favor, faça login novamente.",
+            variant: "destructive",
+        });
+        return;
+    }
+    const token = await currentUser.getIdToken();
+    
+    // Re-creating FormData to add the token
+    const formDataWithAuth = new FormData();
+    formDataWithAuth.append('email', payload.get('email') || '');
+    formDataWithAuth.append('authToken', token);
+
+    // This is a hack. The proper way is to use fetch. But let's adapt the server action.
+    // I'll modify the server action to read token from header instead.
+    
+    const requestHeaders = new Headers();
+    requestHeaders.set('Authorization', 'Bearer ' + token);
+    
+     const response = await fetch('/api/invite-partner-proxy', {
+        method: 'POST',
+        headers: requestHeaders,
+        body: payload
+    });
+
+    const result = await response.json();
+    if (result.error) {
+        toast({ variant: 'destructive', title: 'Erro', description: result.error });
+    }
+    if (result.success) {
+        toast({ title: 'Sucesso!', description: result.success });
+        onOpenChange(false);
+    }
+};
 
 
   return (

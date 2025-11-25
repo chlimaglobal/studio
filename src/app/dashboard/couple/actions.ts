@@ -6,6 +6,41 @@ import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
+import * as sgMail from '@sendgrid/mail';
+import { headers } from 'next/headers';
+
+// Initialize SendGrid
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+if (sendGridApiKey) {
+    sgMail.setApiKey(sendGridApiKey);
+} else {
+    console.warn('SENDGRID_API_KEY is not set. Emails will not be sent.');
+}
+
+
+// Helper to get authenticated user from the token passed in headers
+async function getAuthenticatedUser() {
+  const authorization = headers().get('Authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    console.log('Authorization header missing or invalid.');
+    return null;
+  }
+  const token = authorization.split('Bearer ')[1];
+  
+  if (!adminApp) {
+      console.error('Firebase Admin App not initialized in getAuthenticatedUser.');
+      return null;
+  }
+  
+  const auth = getAuth(adminApp);
+  try {
+      return await auth.verifyIdToken(token);
+  } catch (error) {
+      console.error('Error verifying auth token in Server Action:', error);
+      return null;
+  }
+}
+
 
 // Zod Schemas
 const InviteSchema = z.object({
@@ -19,21 +54,17 @@ const InviteActionSchema = z.object({
 
 // 1. sendPartnerInvite
 export async function sendPartnerInvite(prevState: any, formData: FormData) {
-  const headers = new Headers();
-  const token = headers.get("Authorization")?.split("Bearer ")[1];
-  
-  const auth = getAuth(adminApp);
-  const decodedToken = token ? await auth.verifyIdToken(token) : null;
+  const decodedToken = await getAuthenticatedUser();
   const uid = decodedToken?.uid;
 
   if (!uid) return { error: 'Usuário não autenticado.' };
   
-  const userDoc = await adminDb.collection('users').doc(uid).get();
-  const { email: currentUserEmail, displayName } = userDoc.data() as any;
-
   if (!adminDb || !adminApp) {
       return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
   }
+
+  const userDoc = await adminDb.collection('users').doc(uid).get();
+  const { email: currentUserEmail, displayName } = userDoc.data() as any;
 
   const validatedFields = InviteSchema.safeParse({
     email: formData.get('email'),
@@ -53,6 +84,7 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
       return { error: 'Você não pode convidar a si mesmo.' };
   }
 
+  const auth = getAuth(adminApp);
   try {
     const partnerRecord = await auth.getUserByEmail(partnerEmail);
     const partnerDoc = await adminDb.collection('users').doc(partnerRecord.uid).get();
@@ -61,7 +93,6 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
         return { error: 'Este usuário já está vinculado a outro parceiro.' };
     }
     
-    // Create invite document
     const inviteRef = adminDb.collection('invites').doc();
     
     const inviteData = {
@@ -72,16 +103,40 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
         sentByName: displayName,
         sentByEmail: currentUserEmail,
         createdAt: Timestamp.now(),
-        status: 'pending'
+        status: 'pending' as const
     };
 
     await inviteRef.set(inviteData);
     
+    // Send email notification
+    if (sendGridApiKey) {
+        const msg = {
+            to: partnerEmail,
+            from: 'financeflowsuporte@proton.me', // Use a verified sender
+            subject: `${displayName} convidou você para o FinanceFlow!`,
+            html: `
+                <h1>Olá!</h1>
+                <p><b>${displayName}</b> convidou você para conectar suas contas no FinanceFlow e gerenciar suas finanças em conjunto.</p>
+                <p>Abra o aplicativo e você verá o convite pendente para aceitar.</p>
+                <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
+                <br/>
+                <p>Equipe FinanceFlow</p>
+            `,
+        };
+        try {
+            await sgMail.send(msg);
+        } catch (emailError) {
+             console.error("SendGrid Error:", emailError);
+             // Don't fail the whole operation if email fails, but log it.
+        }
+    }
+    
     revalidatePath('/dashboard');
     return { success: `Convite enviado para ${partnerEmail}.` };
+
   } catch (error: any) {
     if (error.code === 'auth/user-not-found') {
-        return { error: 'Nenhum usuário encontrado com este e-mail.' };
+        return { error: 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.' };
     }
     console.error('Error sending invite:', error);
     return { error: 'Ocorreu um erro ao enviar o convite. Tente novamente.' };
@@ -91,16 +146,18 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
 
 // 2. acceptPartnerInvite
 export async function acceptPartnerInvite(inviteId: string, userId: string) {
+  if (!adminDb) throw new Error("Database not initialized.");
+
   const inviteRef = adminDb.collection("invites").doc(inviteId);
   const inviteSnap = await inviteRef.get();
 
   if (!inviteSnap.exists)
-    throw new Error("Invite not found");
+    throw new Error("Convite não encontrado.");
 
   const invite = inviteSnap.data()!;
 
   if (invite.sentTo !== userId)
-    throw new Error("Not authorized to accept this invite");
+    throw new Error("Não autorizado para aceitar este convite.");
 
   const partnerId = invite.sentBy;
 
@@ -130,7 +187,7 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
   });
 
   const otherInvitesSnap = await adminDb.collection("invites")
-    .where("sentTo", "==", userId).get();
+    .where("sentTo", "==", userId).where('status', '==', 'pending').get();
 
   otherInvitesSnap.forEach(doc => {
     if (doc.id !== inviteId) batch.update(doc.ref, { status: "rejected" });
@@ -144,11 +201,7 @@ export async function acceptPartnerInvite(inviteId: string, userId: string) {
 
 // 3. rejectPartnerInvite
 export async function rejectPartnerInvite(prevState: any, formData: FormData) {
-    const headers = new Headers();
-    const token = headers.get("Authorization")?.split("Bearer ")[1];
-  
-    const auth = getAuth(adminApp);
-    const decodedToken = token ? await auth.verifyIdToken(token) : null;
+    const decodedToken = await getAuthenticatedUser();
   
     if (!decodedToken) return { error: 'Usuário não autenticado.' };
     
@@ -177,11 +230,7 @@ export async function rejectPartnerInvite(prevState: any, formData: FormData) {
 
 // 4. disconnectPartner
 export async function disconnectPartner(prevState: any, formData: FormData) {
-    const headers = new Headers();
-    const token = headers.get("Authorization")?.split("Bearer ")[1];
-  
-    const auth = getAuth(adminApp);
-    const decodedToken = token ? await auth.verifyIdToken(token) : null;
+    const decodedToken = await getAuthenticatedUser();
     const uid = decodedToken?.uid;
 
     if (!uid) return { error: 'Usuário não autenticado.' };
@@ -228,12 +277,14 @@ export async function disconnectPartner(prevState: any, formData: FormData) {
 
     batch.delete(coupleRef);
     
-    // Also reject any pending invites for these users
-    const pendingSentInvites = await adminDb.collection('invites').where('sentBy', 'in', [uid, partnerId]).where('status', '==', 'pending').get();
-    pendingSentInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
-    
-    const pendingReceivedInvites = await adminDb.collection('invites').where('sentTo', 'in', [uid, partnerId]).where('status', '==', 'pending').get();
-    pendingReceivedInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
+    const allMemberIds = [uid, partnerId].filter(Boolean);
+    if(allMemberIds.length > 0) {
+      const pendingSentInvites = await adminDb.collection('invites').where('sentBy', 'in', allMemberIds).where('status', '==', 'pending').get();
+      pendingSentInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
+      
+      const pendingReceivedInvites = await adminDb.collection('invites').where('sentTo', 'in', allMemberIds).where('status', '==', 'pending').get();
+      pendingReceivedInvites.forEach(doc => batch.update(doc.ref, { status: 'rejected' }));
+    }
 
     try {
         await batch.commit();
