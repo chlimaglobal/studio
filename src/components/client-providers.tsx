@@ -119,6 +119,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const auth = getAuth(app);
+    // Initialize the Zustand store listener as soon as AuthProvider mounts
+    initializeCoupleStore(); 
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
@@ -128,9 +131,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     });
-
-    // Initialize Zustand store listener
-    initializeCoupleStore();
 
     return () => unsubscribe();
   }, []);
