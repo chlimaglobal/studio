@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ export function CoupleModeToggle() {
     const { toast } = useToast();
     
     const handleToggle = (newMode: 'separate' | 'together') => {
-        if (isLoading) return; // evita ações antes do store estar pronto
+        if (isLoading) return;
 
         if (newMode === 'together' && status !== 'linked') {
             toast({
