@@ -1,7 +1,8 @@
+
 'use client';
 
 import { create } from 'zustand';
-import { onSnapshot, doc, collection, query, where, getDoc } from 'firebase/firestore';
+import { onSnapshot, doc, collection, query, where, getDoc, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, CoupleLink } from '@/lib/types';
 import { getAuth } from 'firebase/auth';
