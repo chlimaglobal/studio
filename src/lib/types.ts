@@ -212,7 +212,7 @@ export type Account = {
   memberIds: string[];
   isShared: boolean;
   currentBalance: number;
-  coupleId?: string; // Optional field for linking couples
+  coupleId?: string;
 } & z.infer<typeof AddAccountFormSchema>;
 
 // Types for Investor Profile Analysis
@@ -267,6 +267,7 @@ export type AppUser = {
     displayName?: string | null;
     photoURL?: string | null;
     coupleId?: string | null;
+    memberIds?: string[]; // NEW: list of userIds that are in the same couple (includes self)
     monthlyIncome?: number;
 };
 
@@ -301,7 +302,7 @@ export type CoupleLink = {
 // Type for Couple data structure
 export type Couple = {
   id: string;
-  members: [string, string]; // Array with exactly two user IDs
+  members: string[]; // array with two user IDs (enforced at server side)
   createdAt: any; // Firestore Timestamp
   updatedAt?: any; // Firestore Timestamp
 };
