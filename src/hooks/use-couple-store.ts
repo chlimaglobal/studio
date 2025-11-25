@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { onSnapshot, doc, getDoc, query, collection, where, limit } from 'firebase/firestore';
+import { onSnapshot, doc, collection, query, where, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, CoupleLink } from '@/lib/types';
 import { getAuth } from 'firebase/auth';
@@ -56,7 +56,7 @@ let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
 let unsubPartner: (() => void) | null = null;
 
-const cleanup = () => {
+function cleanup() {
     unsubUser?.();
     unsubSentInvites?.();
     unsubReceivedInvites?.();
