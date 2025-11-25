@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -9,11 +8,10 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { InvitePartnerDialog } from './InvitePartnerDialog';
 import { useViewMode } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '../ui/skeleton';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);
-    const { status, isLoading } = useCoupleStore();
+    const { status } = useCoupleStore();
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
 
@@ -27,10 +25,6 @@ export function CoupleModeToggle() {
         } else {
             setViewMode(newMode);
         }
-    };
-
-    if (isLoading) {
-        return <Skeleton className="h-10 w-44 rounded-full" />;
     }
 
     return (
