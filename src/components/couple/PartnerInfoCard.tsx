@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, Loader2, X } from 'lucide-react';
-import { disconnectPartner } from '@/app/dashboard/couple/actions';
+import { disconnectPartner } from '@/app/dashboard/couple/invite/actions';
 import {
   AlertDialog,
   AlertDialogAction,

@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { adminDb, adminApp } from '@/lib/firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
-import { Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 import * as sgMail from '@sendgrid/mail';
 
@@ -109,5 +109,53 @@ export async function sendPartnerInvite(prevState: any, formData: FormData) {
     }
     console.error('Error sending invite:', error);
     return { error: 'Ocorreu um erro ao enviar o convite. Tente novamente.' };
+  }
+}
+
+export async function disconnectPartner(prevState: any, formData: FormData) {
+  const userId = formData.get('userId') as string;
+  if (!userId) return { error: 'Usuário não autenticado.' };
+
+  if (!adminDb) return { error: 'Serviço indisponível. Tente novamente mais tarde.' };
+  
+  try {
+    const userRef = adminDb.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    const coupleId = userDoc.data()?.coupleId;
+
+    if (!coupleId) {
+      return { error: 'Você não está vinculado a um parceiro.' };
+    }
+
+    const coupleRef = adminDb.collection('couples').doc(coupleId);
+    const coupleDoc = await coupleRef.get();
+    
+    if (!coupleDoc.exists) {
+       // Data inconsistency, but we can still clean up the user.
+       await userRef.update({ coupleId: FieldValue.delete() });
+       return { success: 'Vínculo removido (relação de casal não encontrada).' };
+    }
+    
+    const partnerId = coupleDoc.data()?.members.find((id: string) => id !== userId);
+    
+    const batch = adminDb.batch();
+
+    // Remove coupleId from both users
+    batch.update(userRef, { coupleId: FieldValue.delete() });
+    if (partnerId) {
+       const partnerRef = adminDb.collection('users').doc(partnerId);
+       batch.update(partnerRef, { coupleId: FieldValue.delete() });
+    }
+
+    // Delete the couple document
+    batch.delete(coupleRef);
+
+    await batch.commit();
+    revalidatePath('/dashboard/couple');
+    return { success: 'Vínculo com o parceiro(a) foi removido com sucesso.' };
+
+  } catch (error) {
+    console.error('Error disconnecting partner:', error);
+    return { error: 'Ocorreu um erro ao desvincular as contas.' };
   }
 }
