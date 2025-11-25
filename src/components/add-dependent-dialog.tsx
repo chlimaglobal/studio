@@ -63,13 +63,12 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
     }
     
     try {
-        const sendDependentInvite = httpsCallable(functions, 'sendDependentInvite');
-        const result = await sendDependentInvite({
+        const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
+        const result = await sendDependentInviteCallable({
             dependentName: values.name,
             dependentEmail: values.email,
         });
 
-        // @ts-ignore
         const resultData = result.data as { success: boolean, message: string, error?: string };
 
         if (resultData.success) {

@@ -191,10 +191,22 @@ export const sendDependentInvite = onCall(async (request) => {
     const inviterDoc = await adminDb!.collection('users').doc(inviterUid).get();
     const inviterName = inviterDoc.data()?.displayName || 'um usuário';
 
-    // In a real app, you would generate a secure, short-lived token.
-    // For this example, we'll create a simple placeholder token.
-    const inviteToken = `INVITE_${Date.now()}`;
+    // Generate a secure, unique token
+    const inviteToken = randomBytes(20).toString('hex');
     const inviteLink = `https://financeflow-we0in.web.app/signup?invite=${inviteToken}`;
+    
+    // Store the invite in Firestore with an expiration date
+    const inviteRef = adminDb!.collection('invites').doc(inviteToken);
+    await inviteRef.set({
+        type: 'dependent',
+        inviterUid: inviterUid,
+        dependentEmail: dependentEmail,
+        dependentName: dependentName,
+        status: 'pending',
+        createdAt: Timestamp.now(),
+        expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
+    });
+
 
     const msg = {
         to: dependentEmail,
@@ -214,6 +226,7 @@ export const sendDependentInvite = onCall(async (request) => {
         return { success: true, message: 'O convite foi enviado com sucesso por e-mail.' };
     } catch (error) {
         console.error("SendGrid Error:", error);
+        await inviteRef.delete(); // Clean up invite doc if email fails
         throw new HttpsError('internal', 'Falha ao enviar o e-mail de convite.');
     }
 });
