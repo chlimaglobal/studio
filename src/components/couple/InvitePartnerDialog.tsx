@@ -18,8 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { useAuth } from '../client-providers';
-import { functions } from '@/lib/firebase';
-
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -62,7 +60,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
           </DialogDescription>
         </DialogHeader>
         <form action={formAction}>
-           <input type="hidden" name="userId" value={user?.uid} />
+           <input type="hidden" name="userId" value={user?.uid || ''} />
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">
