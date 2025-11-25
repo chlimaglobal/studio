@@ -55,17 +55,14 @@ export const useCoupleStore = create<CoupleState>((set) => ({
 let unsubUser: (() => void) | null = null;
 let unsubSentInvites: (() => void) | null = null;
 let unsubReceivedInvites: (() => void) | null = null;
-let unsubPartner: (() => void) | null = null;
 
 function cleanup() {
     unsubUser?.();
     unsubSentInvites?.();
     unsubReceivedInvites?.();
-    unsubPartner?.();
     unsubUser = null;
     unsubSentInvites = null;
     unsubReceivedInvites = null;
-    unsubPartner = null;
 };
 
 
@@ -102,38 +99,36 @@ export function initializeCoupleStore(user: User) {
       const userData = userDoc.data() || {};
       const coupleId = userData.coupleId;
 
-      unsubPartner?.();
-
       if (coupleId) {
         setInvite(null);
         const coupleLinkDoc = await getDoc(doc(db, 'couples', coupleId));
         if (!coupleLinkDoc.exists()) {
           reset();
+          setIsLoading(false);
           return;
         }
         const data = coupleLinkDoc.data() as Omit<CoupleLink, 'id'>;
         setStatus('linked');
         setCoupleLink({ id: coupleId, ...data });
         const partnerId = data.members.find((id) => id !== user.uid);
+
         if (partnerId) {
-          unsubPartner = onSnapshot(doc(db, 'users', partnerId), (partnerDoc) => {
+          // Fetch partner data once instead of listening
+          try {
+            const partnerDoc = await getDoc(doc(db, 'users', partnerId));
             if (partnerDoc.exists()) {
               setPartner(partnerDoc.data() as AppUser);
             } else {
               setPartner(null);
             }
-            setIsLoading(false);
-          }, (error) => {
-              if (error.code === 'permission-denied') {
-                  console.warn("Permission denied fetching partner data. This may be temporary.");
-              } else {
-                  console.error("Partner listener error:", error);
-              }
-               setIsLoading(false);
-          });
+          } catch(e) {
+            console.error("Could not fetch partner data", e)
+            setPartner(null);
+          }
         } else {
-          reset();
+          setPartner(null);
         }
+        setIsLoading(false);
         return;
       }
       
