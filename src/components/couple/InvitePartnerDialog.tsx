@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { useAuth } from '../client-providers';
+import { functions } from '@/lib/firebase';
 
 
 interface InvitePartnerDialogProps {
