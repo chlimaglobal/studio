@@ -32,7 +32,8 @@ const auth = initializeAuth(app, {
   ],
 });
 
-const functions = getFunctions(app, 'us-central1'); // Specify region if not us-central1
+// Correctly initialize Firebase Functions for the specific region
+const functions = getFunctions(app, 'southamerica-east1');
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 const messaging = async () => {
