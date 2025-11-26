@@ -23,6 +23,7 @@ import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import { generateCoupleSuggestion } from '@/ai/flows/lumina-couple-chat';
 import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
 import { useCoupleStore } from '@/hooks/use-couple-store';
+import { extractTransactionInfoFromText } from '@/app/actions';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -274,15 +275,38 @@ export default function LuminaPage() {
 
         await saveMessage({ role: 'user', text: currentMessage });
         
-        const lowerCaseMessage = currentMessage.toLowerCase();
-
-        // Check for trigger phrases
-        if (lowerCaseMessage === "lúmina, acione o protocolo de recuperação de performance.") {
-            await handleRecoveryProtocol('full');
-        } else if (lowerCaseMessage === "lúmina, modo flash") {
-            await handleRecoveryProtocol('flash');
-        } else {
-            await callLumina(currentMessage);
+        setIsLuminaThinking(true);
+        try {
+            // First, try to extract a transaction
+            const extractedResult = await extractTransactionInfoFromText(currentMessage);
+            
+            // @ts-ignore
+            if (!extractedResult.error && extractedResult.amount > 0) {
+                 // If extraction is successful, show confirmation card
+                await saveMessage({
+                    role: 'lumina',
+                    text: 'Encontrei uma transação no que você disse.',
+                    authorName: 'Lúmina',
+                    authorPhotoUrl: '/lumina-avatar.png',
+                    // @ts-ignore
+                    transactionToConfirm: extractedResult
+                });
+            } else {
+                // If no transaction found or amount is zero, proceed to general chat
+                const lowerCaseMessage = currentMessage.toLowerCase();
+                if (lowerCaseMessage === "lúmina, acione o protocolo de recuperação de performance.") {
+                    await handleRecoveryProtocol('full');
+                } else if (lowerCaseMessage === "lúmina, modo flash") {
+                    await handleRecoveryProtocol('flash');
+                } else {
+                    await callLumina(currentMessage);
+                }
+            }
+        } catch (error) {
+            console.error("Error handling message:", error);
+            await callLumina(currentMessage); // Fallback to general chat on error
+        } finally {
+             setIsLuminaThinking(false);
         }
     };
 
