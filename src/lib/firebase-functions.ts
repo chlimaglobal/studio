@@ -33,34 +33,55 @@ export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (ev
         return;
     }
     const invite = snapshot.data();
+    const inviteId = snapshot.id;
 
-    // Ensure it's a partner invite and has the necessary data
     if (invite.status !== 'pending' || !invite.sentToEmail) {
-        console.log(`Invite ${snapshot.id} is not a pending partner invite or has no email. Skipping.`);
+        console.log(`Invite ${inviteId} is not a pending invite or has no email. Skipping.`);
         return;
     }
     
-    const { sentByName, sentToEmail } = invite;
+    const { sentByName, sentToEmail, type, dependentName } = invite;
     const inviterName = sentByName || 'Alguém';
-    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard/couple`;
+    
+    let subject = '';
+    let html = '';
+    
+    if (type === 'dependent') {
+        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/signup?inviteToken=${inviteId}`;
+        subject = `${inviterName} convidou você para o FinanceFlow!`;
+        html = `
+            <h1>Olá, ${dependentName}!</h1>
+            <p>${inviterName} convidou você para se juntar ao FinanceFlow para gerenciar sua mesada e finanças.</p>
+            <p>Clique no link abaixo para criar sua conta:</p>
+            <p><a href="${inviteLink}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Criar minha conta</a></p>
+            <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
+        `;
+    } else { // Default to partner invite
+        const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard/couple`;
+        subject = `${inviterName} convidou você para o FinanceFlow`;
+        html = `
+            <p><b>${inviterName}</b> convidou você para conectar suas contas no FinanceFlow.</p>
+            <p>Acesse o app e você verá o convite pendente para aceitar.</p>
+            <p><a href="${inviteLink}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Abrir FinanceFlow</a></p>
+        `;
+    }
+
 
     const msg = {
         to: sentToEmail,
-        from: process.env.SENDGRID_FROM || 'financeflowsuporte@proton.me',
-        subject: `${inviterName} convidou você para o FinanceFlow`,
-        html: `
-            <p><b>${inviterName}</b> convidou você para conectar suas contas no FinanceFlow.</p>
-            <p>Acesse o app e você verá o convite pendente para aceitar.</p>
-            <p><a href="${inviteLink}">Abrir FinanceFlow</a></p>
-        `,
+        from: {
+            email: process.env.SENDGRID_FROM || 'financeflowsuporte@proton.me',
+            name: 'FinanceFlow'
+        },
+        subject,
+        html,
     };
 
     try {
         await sgMail.send(msg);
-        console.log(`Invite email sent to ${sentToEmail}`);
+        console.log(`Invite email (type: ${type}) sent to ${sentToEmail}`);
     } catch (error) {
         console.error("SendGrid Error onInviteCreated:", error);
-        // Don't re-throw, just log the error. The invite is still valid in the DB.
     }
 });
 
@@ -221,12 +242,7 @@ export const checkDashboardStatus = onCall(async (request) => {
 });
 
 
-export const sendDependentInvite = onCall({ allow: 'all' }, async (request) => {
-    if (!sendGridApiKey) {
-        console.error("SendGrid API Key not configured. Cannot send invite email.");
-        throw new HttpsError('internal', 'O serviço de e-mail não está configurado no servidor.');
-    }
-
+export const sendDependentInvite = onCall(async (request) => {
     const inviterUid = request.auth?.uid;
     if (!inviterUid) {
         throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
@@ -239,44 +255,22 @@ export const sendDependentInvite = onCall({ allow: 'all' }, async (request) => {
 
     const inviterDoc = await adminDb!.collection('users').doc(inviterUid).get();
     const inviterName = inviterDoc.data()?.displayName || 'um usuário';
-
-    // Generate a secure, unique token
-    const inviteToken = randomBytes(20).toString('hex');
-    const inviteLink = `https://financeflow-we0in.web.app/signup?invite=${inviteToken}`;
     
-    // Store the invite in Firestore with an expiration date
-    const inviteRef = adminDb!.collection('invites').doc(inviteToken);
-    await inviteRef.set({
-        type: 'dependent',
-        inviterUid: inviterUid,
-        dependentEmail: dependentEmail,
-        dependentName: dependentName,
-        status: 'pending',
-        createdAt: Timestamp.now(),
-        expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000) // Expires in 7 days
-    });
-
-
-    const msg = {
-        to: dependentEmail,
-        from: 'financeflowsuporte@proton.me', // Use a verified sender email
-        subject: `Você foi convidado para o FinanceFlow por ${inviterName}!`,
-        html: `
-            <h1>Olá, ${dependentName}!</h1>
-            <p>${inviterName} convidou você para se juntar a ele(a) no FinanceFlow e começar a gerenciar suas finanças.</p>
-            <p>Clique no link abaixo para criar sua conta:</p>
-            <a href="${inviteLink}">Criar minha conta no FinanceFlow</a>
-            <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
-        `,
-    };
-
+    // Just create the invite document. The onInviteCreated trigger will send the email.
     try {
-        await sgMail.send(msg);
+        await adminDb!.collection('invites').add({
+            type: 'dependent',
+            inviterUid: inviterUid,
+            sentByName: inviterName,
+            dependentEmail: dependentEmail,
+            dependentName: dependentName,
+            status: 'pending',
+            createdAt: Timestamp.now(),
+        });
         return { success: true, message: 'O convite foi enviado com sucesso por e-mail.' };
-    } catch (error) {
-        console.error("SendGrid Error:", error);
-        await inviteRef.delete(); // Clean up invite doc if email fails
-        throw new HttpsError('internal', 'Falha ao enviar o e-mail de convite.');
+    } catch(e) {
+        console.error("Error creating dependent invite document:", e);
+        throw new HttpsError('internal', 'Falha ao registrar o convite.');
     }
 });
 
@@ -908,3 +902,6 @@ export const disconnectPartner = onCall(async (request) => {
 
 
 
+
+
+    

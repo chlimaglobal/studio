@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
 import { initializeUser } from '@/lib/storage';
+import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="p-4 inline-block">
@@ -26,6 +27,7 @@ const Logo = () => (
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,6 +35,25 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const auth = getAuth(app);
+  const inviteToken = searchParams.get('inviteToken');
+
+  useEffect(() => {
+    async function prefillFromInvite() {
+        if (inviteToken) {
+            const inviteRef = doc(db, 'invites', inviteToken);
+            const inviteSnap = await getDoc(inviteRef);
+            if (inviteSnap.exists()) {
+                const inviteData = inviteSnap.data();
+                if (inviteData.dependentName) setName(inviteData.dependentName);
+                if (inviteData.dependentEmail) setEmail(inviteData.dependentEmail);
+            } else {
+                toast({ variant: 'destructive', title: 'Convite Inválido', description: 'Este link de convite não é válido ou já expirou.' });
+                router.push('/signup');
+            }
+        }
+    }
+    prefillFromInvite();
+  }, [inviteToken, router, toast]);
 
   const handleSignUp = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -49,25 +70,59 @@ export default function SignUpPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update user profile with display name
       if (userCredential.user) {
         await updateProfile(userCredential.user, {
             displayName: name,
         });
 
-        // Initialize user document in Firestore
+        // Initialize user document with basic info
         await initializeUser(userCredential.user);
 
-        // Store user info in localStorage
+        // Handle dependent invite if token is present
+        if (inviteToken) {
+            const inviteRef = doc(db, 'invites', inviteToken);
+            const inviteSnap = await getDoc(inviteRef);
+            if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
+                const inviteData = inviteSnap.data();
+                const inviterUid = inviteData.inviterUid;
+
+                // Update the new user's document to link them as a dependent
+                await setDoc(doc(db, 'users', userCredential.user.uid), {
+                    isDependent: true,
+                    parentUid: inviterUid,
+                }, { merge: true });
+
+                // Update the parent's document to add the new dependent
+                await setDoc(doc(db, 'users', inviterUid), {
+                    dependents: {
+                        [userCredential.user.uid]: {
+                            name: name,
+                            email: email,
+                        }
+                    }
+                }, { merge: true });
+
+                // Mark invite as used
+                await setDoc(inviteRef, { status: 'completed' }, { merge: true });
+                
+                toast({ title: 'Bem-vindo(a)!', description: `Sua conta foi criada e vinculada a ${inviteData.sentByName}.` });
+
+            }
+        } else {
+             toast({
+                title: 'Conta Criada!',
+                description: 'Seu cadastro foi realizado com sucesso. Faça o login para continuar.',
+            });
+        }
+
+        // Store user info in localStorage for all cases
         localStorage.setItem('userName', name);
         localStorage.setItem('userEmail', email);
+
+        router.push('/login');
+      } else {
+          throw new Error('Não foi possível obter os dados do usuário após o cadastro.');
       }
-      
-      toast({
-        title: 'Conta Criada!',
-        description: 'Seu cadastro foi realizado com sucesso. Faça o login para continuar.',
-      });
-      router.push('/login');
 
     } catch (error: any) {
       const errorCode = error.code;
@@ -94,9 +149,9 @@ export default function SignUpPage() {
           <div className="mx-auto mb-4">
             <Logo />
           </div>
-          <CardTitle>Crie sua conta</CardTitle>
+          <CardTitle>{inviteToken ? 'Complete seu Cadastro' : 'Crie sua conta'}</CardTitle>
           <CardDescription>
-            Comece a organizar suas finanças hoje mesmo.
+            {inviteToken ? 'Você foi convidado! Complete seus dados para começar.' : 'Comece a organizar suas finanças hoje mesmo.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,6 +165,7 @@ export default function SignUpPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={!!inviteToken}
               />
             </div>
             <div className="space-y-2">
@@ -121,6 +177,7 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={!!inviteToken}
               />
             </div>
             <div className="space-y-2">
@@ -158,19 +215,23 @@ export default function SignUpPage() {
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Criar Conta
+              {inviteToken ? 'Finalizar Cadastro e Aceitar Convite' : 'Criar Conta'}
             </Button>
           </form>
-          <div className="mt-6 text-center">
-            <Button variant="ghost" asChild>
-              <Link href="/login">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar para o login
-              </Link>
-            </Button>
-          </div>
+          {!inviteToken && (
+             <div className="mt-6 text-center">
+                <Button variant="ghost" asChild>
+                <Link href="/login">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Voltar para o login
+                </Link>
+                </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </main>
   );
 }
+
+    
