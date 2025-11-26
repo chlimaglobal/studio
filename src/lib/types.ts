@@ -269,6 +269,10 @@ export type AppUser = {
     coupleId?: string | null;
     memberIds?: string[]; // NEW: list of userIds that are in the same couple (includes self)
     monthlyIncome?: number;
+    // Parental Control
+    isDependent?: boolean;
+    parentUid?: string;
+    dependents?: Record<string, { name: string, email: string }>;
 };
 
 // Couple Feature Types

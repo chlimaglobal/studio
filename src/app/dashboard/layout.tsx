@@ -11,6 +11,10 @@ import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import NewsTicker from '@/components/news-ticker';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { AppUser } from '@/lib/types';
+
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
 
@@ -104,6 +108,7 @@ export default function DashboardLayout({
   const { isLoading, user } = useAuth();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
+  const [isDependent, setIsDependent] = useState<boolean | null>(null);
 
   useEffect(() => {
     // If auth is done loading and there's no user, redirect to login
@@ -111,6 +116,27 @@ export default function DashboardLayout({
       router.replace('/login');
     }
   }, [isLoading, user, router]);
+
+   useEffect(() => {
+    async function checkUserRole() {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          const userData = docSnap.data() as AppUser;
+          if (userData.isDependent) {
+            setIsDependent(true);
+            router.replace('/dashboard/dependent');
+          } else {
+            setIsDependent(false);
+          }
+        } else {
+            setIsDependent(false);
+        }
+      }
+    }
+    checkUserRole();
+  }, [user, router]);
 
   useEffect(() => {
     const isAppLockEnabled = localStorage.getItem('appLockEnabled') === 'true';
@@ -132,7 +158,7 @@ export default function DashboardLayout({
     setIsLocked(false);
   };
 
-  if (isLoading || !user) {
+  if (isLoading || !user || isDependent === null) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -150,9 +176,9 @@ export default function DashboardLayout({
         <main className="flex-1 overflow-y-auto pb-40 p-4">
           {children}
         </main>
-        <AddTransactionFab />
+        {!isDependent && <AddTransactionFab />}
         <div className="fixed bottom-20 left-0 w-full z-40">
-            <NewsTicker />
+            {!isDependent && <NewsTicker />}
         </div>
         <BottomNavBar />
       </div>

@@ -8,7 +8,7 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory, Budget, UserStatus } from '@/lib/types';
+import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
@@ -30,6 +30,7 @@ import { Timestamp } from 'firebase/firestore';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
+import { useRouter } from 'next/navigation';
 
 
 interface SummaryData {
@@ -313,6 +314,7 @@ export default function DashboardPage() {
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
     const [manualCostOfLiving, setManualCostOfLiving] = useState<number | null>(null);
     const [userStatus, setUserStatus] = useState<UserStatus>({});
+    const router = useRouter();
 
 
     // Call the checkDashboardStatus function when the component mounts
@@ -332,12 +334,16 @@ export default function DashboardPage() {
 
      useEffect(() => {
         if (user) {
-            // This is incorrect, user status should be fetched for the specific user.
-            // For now, let's assume it's for the logged-in user.
-            const unsub = onUserStatusUpdate(user.uid, setUserStatus);
+            const unsub = onUserStatusUpdate(user.uid, (status) => {
+                 setUserStatus(status);
+                 // Check if user is dependent
+                 if (status?.isDependent) {
+                     router.replace('/dashboard/dependent');
+                 }
+            });
             return () => unsub();
         }
-    }, [user]);
+    }, [user, router]);
     
     useEffect(() => {
         // We need to read from localstorage in a useEffect to avoid SSR issues.
@@ -485,7 +491,7 @@ export default function DashboardPage() {
 
     }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
     
-    if (isLoadingTransactions || isLoadingBudgets || isLoadingCouple) {
+    if (isLoadingTransactions || isLoadingBudgets || isLoadingCouple || userStatus.isDependent) {
         return <DashboardLoadingSkeleton />;
     }
 
