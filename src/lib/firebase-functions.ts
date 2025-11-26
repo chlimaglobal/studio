@@ -722,11 +722,48 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 // NEW CALLABLE FUNCTIONS
 // ------------------------------
 
-export const linkPartner = onCall({ allow: 'all' }, async (request) => {
+export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
     const senderUid = request.auth?.uid;
-    if (!senderUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
-    // Function body comes here
-    return { success: true, message: "This is a placeholder" };
+    if (!senderUid) throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+
+    const { partnerEmail } = request.data;
+    if (!partnerEmail) throw new HttpsError('invalid-argument', 'O e-mail do parceiro é obrigatório.');
+
+    const db = adminDb!;
+    const auth = getAuth(adminApp!);
+
+    // Check if sender is already in a couple
+    const senderDoc = await db.collection('users').doc(senderUid).get();
+    const senderData = senderDoc.data();
+    if (senderData?.coupleId) throw new HttpsError('failed-precondition', 'Você já está em um relacionamento.');
+
+    // Find partner by email
+    let receiverUser;
+    try {
+        receiverUser = await auth.getUserByEmail(partnerEmail);
+    } catch (error) {
+        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
+    }
+    const receiverUid = receiverUser.uid;
+
+    if (senderUid === receiverUid) throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
+    
+    // Check if receiver is already in a couple
+    const receiverDoc = await db.collection('users').doc(receiverUid).get();
+    if (receiverDoc.data()?.coupleId) throw new HttpsError('failed-precondition', 'Este usuário já está em um relacionamento.');
+
+    // Create invite
+    await db.collection('invites').add({
+      sentBy: senderUid,
+      sentByName: senderData?.displayName || 'Usuário',
+      sentByEmail: senderData?.email || '',
+      sentTo: receiverUid,
+      sentToEmail: partnerEmail,
+      status: 'pending',
+      createdAt: Timestamp.now(),
+    });
+
+    return { success: true, message: 'Convite enviado com sucesso!' };
 });
 
 
@@ -850,6 +887,7 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
 
 
 

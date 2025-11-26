@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -13,9 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import React, { useState, useTransition } from 'react';
-import { sendInvite } from '@/app/dashboard/couple/invite/actions';
+import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
+import { useCoupleStore } from '@/hooks/use-couple-store';
+import { useRouter } from 'next/navigation';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -23,41 +27,46 @@ interface InvitePartnerDialogProps {
 }
 
 export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogProps) {
-  const [isPending, startTransition] = useTransition();
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.'});
-        return;
+      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      return;
     }
+    setIsLoading(true);
+    try {
+      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+      const result = await sendInviteCallable({ partnerEmail: email });
+      const data = result.data as { success: boolean; message: string; error?: string };
 
-    startTransition(async () => {
-        const result = await sendInvite({
-            partnerEmail: email,
-            senderUid: user.uid,
-            senderName: user.displayName || 'Usuário',
-            senderEmail: user.email || ''
+      if (data.success) {
+        toast({
+          title: 'Sucesso!',
+          description: data.message,
         });
-
-        if (result.success) {
-            toast({
-                title: 'Sucesso!',
-                description: result.message,
-            });
-            onOpenChange(false);
-            setEmail('');
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Enviar Convite',
-                description: result.error || 'Não foi possível enviar o convite.',
-            });
-        }
-    });
+        useCoupleStore.getState().setInvite({ sentToEmail: email });
+        useCoupleStore.getState().setStatus('pending_sent');
+        router.push('/dashboard/couple/pending');
+        onOpenChange(false);
+        setEmail('');
+      } else {
+        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Enviar Convite',
+        description: error.message || 'Não foi possível enviar o convite. Verifique o e-mail e tente novamente.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -89,9 +98,9 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
             </div>
           </div>
           <DialogFooter>
-             <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar Convite
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enviar Convite
             </Button>
           </DialogFooter>
         </form>
