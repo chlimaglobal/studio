@@ -35,7 +35,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     try {
         const linkPartnerCallable = httpsCallable(functions, 'linkPartner');
         const result = await linkPartnerCallable({ partnerEmail: email });
-        const data = result.data as { success: boolean; message: string };
+        const data = result.data as { success: boolean; message: string, error?: string };
 
         if (data.success) {
             toast({
@@ -44,7 +44,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
             });
             onOpenChange(false);
         } else {
-            throw new Error(data.message);
+            throw new Error(data.error || 'Ocorreu um erro desconhecido.');
         }
     } catch (error: any) {
         toast({

@@ -725,7 +725,7 @@ export const linkPartner = onCall(async (request) => {
 
     const { partnerEmail } = parsed.data;
 
-    const auth = getAuth(adminApp);
+    const auth = getAuth(adminApp!);
     const db = adminDb!;
     let partnerUid: string;
     try {
@@ -759,7 +759,7 @@ export const linkPartner = onCall(async (request) => {
     return { success: true, message: `Convite enviado com sucesso para ${partnerEmail}!` };
 });
 
-export const acceptPartnerInviteClient = onCall(async (request) => {
+export const acceptPartnerInvite = onCall(async (request) => {
     const receiverUid = request.auth?.uid;
     if (!receiverUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
