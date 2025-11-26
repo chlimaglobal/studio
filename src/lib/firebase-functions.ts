@@ -674,7 +674,7 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 // NEW CALLABLE FUNCTIONS
 // ------------------------------
 
-export const sendPartnerInvite = onCall(async (request) => {
+export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
     const senderUid = request.auth?.uid;
     if (!senderUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
@@ -867,4 +867,5 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
 
