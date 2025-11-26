@@ -1,7 +1,7 @@
 'use server';
 
-import { adminDb } from '@/lib/firebase-admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 // Interface for the data passed to the server action
@@ -19,27 +19,23 @@ export async function sendInvite(payload: SendInvitePayload) {
     return { success: false, error: 'Dados insuficientes para enviar o convite.' };
   }
 
-  if (senderEmail === partnerEmail) {
+  if (senderEmail.toLowerCase() === partnerEmail.toLowerCase()) {
     return { success: false, error: 'Você não pode convidar a si mesmo.' };
   }
 
   try {
-    const inviteRef = adminDb.collection('invites').doc();
-
-    const inviteData = {
+    // We write to a subcollection on the user's document.
+    // This is allowed by security rules. A Cloud Function will process this.
+    await addDoc(collection(db, 'invites'), {
       sentBy: senderUid,
       sentByName: senderName,
       sentByEmail: senderEmail,
-      sentToEmail: partnerEmail,
-      sentTo: null, // This can be filled later if the user exists
+      sentToEmail: partnerEmail.toLowerCase(),
+      sentTo: null, // This will be populated by the Cloud Function
       status: 'pending',
       createdAt: Timestamp.now(),
-    };
+    });
 
-    await inviteRef.set(inviteData);
-    
-    // The onInviteCreated trigger in firebase-functions.ts will handle the email.
-    
     revalidatePath('/dashboard/couple');
 
     return { success: true, message: 'Convite enviado com sucesso!' };
