@@ -65,10 +65,16 @@ const luminaChatFlow = ai.defineFlow(
         
         **Nova Mensagem do Usuário:**
         ${input.userQuery}`,
+        output: {
+          schema: LuminaChatOutputSchema
+        }
     });
 
     if (!output) {
-        return "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?";
+        return {
+            text: "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?",
+            suggestions: []
+        };
     }
     
     return output;

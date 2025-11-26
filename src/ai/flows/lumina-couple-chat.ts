@@ -87,6 +87,9 @@ ${JSON.stringify(transactionsForContext, null, 2)}
 🗣️ **Nova mensagem de ${input.user.displayName}:**
 ${input.userQuery}
             `,
+      output: {
+        schema: LuminaChatOutputSchema
+      }
     });
 
     if (!output) {
@@ -96,9 +99,6 @@ ${input.userQuery}
       };
     }
 
-    return {
-      text: output,
-      suggestions: [],
-    };
+    return output;
   }
 );
