@@ -68,7 +68,8 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
   };
   
   const handleEdit = (e: React.MouseEvent, transaction: Transaction) => {
-    e.stopPropagation(); // Prevent dialog from opening
+    e.stopPropagation(); // Prevent dialog from opening on row click
+    setSelectedTransaction(null); // Close dialog if open
     router.push(`/dashboard/add-transaction?id=${transaction.id}`);
   }
 
@@ -284,7 +285,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
-                <Button onClick={() => selectedTransaction && handleEdit({} as React.MouseEvent, selectedTransaction)}>
+                <Button onClick={(e) => selectedTransaction && handleEdit(e, selectedTransaction)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     Editar
                 </Button>
