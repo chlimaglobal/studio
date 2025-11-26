@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 
 export default function CoupleHomePage() {
-  const { status, loading } = useCoupleStore();
+  const { status, isLoading } = useCoupleStore();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
+    if (!isLoading) {
       if (status === 'single') {
         router.replace('/dashboard/couple/invite');
       } else if (status === 'pending_sent') {
@@ -23,9 +23,9 @@ export default function CoupleHomePage() {
         router.replace('/dashboard/couple/invite-received');
       }
     }
-  }, [status, loading, router]);
+  }, [status, isLoading, router]);
   
-  if (loading || status !== 'linked') {
+  if (isLoading || status !== 'linked') {
     return (
       <div className="flex justify-center items-center h-full p-8">
         <div className="flex items-center gap-2 text-muted-foreground">

@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '../client-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 import React, { useState } from 'react';
@@ -33,8 +32,8 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     e.preventDefault();
     setIsLoading(true);
     try {
-        const linkPartnerCallable = httpsCallable(functions, 'linkPartner');
-        const result = await linkPartnerCallable({ partnerEmail: email });
+        const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+        const result = await sendInviteCallable({ partnerEmail: email });
         const data = result.data as { success: boolean; message: string, error?: string };
 
         if (data.success) {
@@ -50,7 +49,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         toast({
             variant: 'destructive',
             title: 'Erro ao Enviar Convite',
-            description: error.message || 'Ocorreu um erro desconhecido.',
+            description: error.message || 'Não foi possível enviar o convite. Verifique se o e-mail está correto e se o usuário já tem uma conta.',
         });
     } finally {
         setIsLoading(false);
@@ -63,7 +62,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         <DialogHeader>
           <DialogTitle>Convidar Parceiro(a)</DialogTitle>
           <DialogDescription>
-            Insira o e-mail do seu parceiro(a) para vincular suas contas. Ele(a) receberá um convite para se juntar a você.
+            Insira o e-mail do seu parceiro(a). Ele(a) precisa ter uma conta no FinanceFlow para que o convite funcione.
           </DialogDescription>
         </DialogHeader>
 

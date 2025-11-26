@@ -1,9 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect } from 'react';
-import { sendPartnerInvite } from './actions';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,37 +17,43 @@ import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      ) : (
-        <Heart className="mr-2 h-4 w-4" />
-      )}
-      {pending ? 'Enviando...' : 'Enviar Convite'}
-    </Button>
-  );
-}
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function InvitePartnerPage() {
-  const [state, formAction] = useActionState(sendPartnerInvite, null);
   const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-   useEffect(() => {
-    if (state?.error) {
-      toast({ variant: 'destructive', title: 'Erro', description: state.error });
-    }
-    if (state?.success) {
-      toast({ title: 'Sucesso!', description: state.success });
-      router.push('/dashboard/couple/pending');
-    }
-  }, [state, toast, router]);
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+        const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+        const result = await sendInviteCallable({ partnerEmail: email });
+        const data = result.data as { success: boolean; message: string; error?: string };
 
+        if (data.success) {
+            toast({
+                title: 'Sucesso!',
+                description: data.message,
+            });
+            router.push('/dashboard/couple/pending');
+        } else {
+            throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+        }
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Enviar Convite',
+            description: error.message || 'Não foi possível enviar o convite. Verifique se o e-mail está correto e se o usuário já tem uma conta.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-full p-4">
@@ -60,12 +64,11 @@ export default function InvitePartnerPage() {
                     Modo Casal
                 </CardTitle>
                 <CardDescription>
-                    Insira o e-mail do seu parceiro(a). Se ele(a) tiver uma conta, receberá um convite para vincular as finanças.
+                    Insira o e-mail do seu parceiro(a). Ele(a) precisa ter uma conta no FinanceFlow para que o convite funcione.
                 </CardDescription>
             </CardHeader>
-             <form action={formAction}>
+             <form onSubmit={handleInvite}>
                 <CardContent className="space-y-4">
-                    <input type="hidden" name="userId" value={user?.uid || ''} />
                     <div className="space-y-2">
                         <Label htmlFor="email">E-mail do parceiro(a)</Label>
                         <Input
@@ -74,14 +77,20 @@ export default function InvitePartnerPage() {
                             type="email"
                             name="email"
                             placeholder="parceiro@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <SubmitButton />
-                     {state?.error && (
-                        <p className="text-red-500 text-sm">{state.error}</p>
-                    )}
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Heart className="mr-2 h-4 w-4" />
+                      )}
+                      {isLoading ? 'Enviando...' : 'Enviar Convite'}
+                    </Button>
                 </CardFooter>
              </form>
         </Card>

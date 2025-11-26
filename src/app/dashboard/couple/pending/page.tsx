@@ -5,52 +5,20 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, X } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/client-providers';
-import { rejectPartnerInvite } from '@/app/dashboard/couple/actions';
 import { useRouter } from 'next/navigation';
-
-function CancelButton() {
-    const { pending } = useFormStatus();
-    return (
-        <Button
-            type="submit"
-            variant="destructive"
-            className="w-full"
-            disabled={pending}
-        >
-            {pending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-                <X className="mr-2 h-4 w-4" />
-            )}
-            {pending ? 'Cancelando...' : 'Cancelar Convite'}
-        </Button>
-    )
-}
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function PendingInvitePage() {
-  const { invite, status, loading } = useCoupleStore();
-  const { user } = useAuth();
+  const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
   const { toast } = useToast();
-  const [state, formAction] = useActionState(rejectPartnerInvite, null);
   const router = useRouter();
+  const [isActionLoading, setIsActionLoading] = useState(false);
   
-  useEffect(() => {
-    if (state?.error) {
-      toast({ variant: 'destructive', title: 'Erro', description: state.error });
-    }
-    if (state?.success) {
-      toast({ title: 'Ação Concluída', description: state.success });
-      // After canceling, we should go back to the invite page.
-      router.push('/dashboard/couple/invite');
-    }
-  }, [state, toast, router]);
-
   // If loading, show a spinner.
-  if (loading) {
+  if (isStoreLoading) {
       return (
         <div className="flex justify-center items-center h-full p-8">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -63,10 +31,32 @@ export default function PendingInvitePage() {
 
   // If the user lands here but is not in a pending_sent state, redirect them.
   useEffect(() => {
-      if (!loading && status !== 'pending_sent') {
-          router.replace('/dashboard/couple/invite');
+      if (!isStoreLoading && status !== 'pending_sent') {
+          router.replace('/dashboard/couple');
       }
-  }, [loading, status, router]);
+  }, [isStoreLoading, status, router]);
+
+  const handleCancel = async () => {
+      if (!invite?.inviteId) return;
+      
+      setIsActionLoading(true);
+      try {
+          const rejectCallable = httpsCallable(functions, 'rejectPartnerInvite');
+          const result = await rejectCallable({ inviteId: invite.inviteId });
+          const data = result.data as { success: boolean, message: string, error?: string };
+
+          if (data.success) {
+              toast({ title: 'Sucesso!', description: data.message });
+              router.push('/dashboard/couple/invite');
+          } else {
+              throw new Error(data.error);
+          }
+      } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Erro', description: error.message || "Não foi possível cancelar o convite." });
+      } finally {
+          setIsActionLoading(false);
+      }
+  }
   
   // Render nothing while redirecting
   if (status !== 'pending_sent' || !invite) {
@@ -92,11 +82,10 @@ export default function PendingInvitePage() {
             </div>
         </CardContent>
         <CardFooter>
-            <form action={formAction} className="w-full">
-                <input type="hidden" name="inviteId" value={invite?.inviteId || ''} />
-                <input type="hidden" name="userId" value={user?.uid || ''} />
-                <CancelButton />
-            </form>
+            <Button variant="destructive" className="w-full" onClick={handleCancel} disabled={isActionLoading}>
+                {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                {isActionLoading ? 'Cancelando...' : 'Cancelar Convite'}
+            </Button>
         </CardFooter>
       </Card>
     </div>

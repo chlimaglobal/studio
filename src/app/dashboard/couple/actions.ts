@@ -1,5 +1,6 @@
 'use server';
 
 // This file is intentionally left empty. 
-// Server actions for the couple flow have been centralized in 'src/app/dashboard/couple/invite/actions.ts'
-// to resolve client-side bundling issues.
+// All couple-related backend logic has been moved to Firebase Callable Functions 
+// in 'src/lib/firebase-functions.ts' to ensure a clear separation of concerns
+// and resolve client-side bundling issues.

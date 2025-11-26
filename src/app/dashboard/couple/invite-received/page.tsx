@@ -1,71 +1,64 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, X } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
-import { useFormStatus } from 'react-dom';
-import { acceptPartnerInvite, rejectPartnerInvite } from '@/app/dashboard/couple/invite/actions';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-
-function ActionButton({ variant, children }: { variant: 'accept' | 'reject', children: React.ReactNode }) {
-    const { pending } = useFormStatus();
-    return (
-        <Button
-            type="submit"
-            variant={variant === 'accept' ? 'default' : 'destructive'}
-            className="w-full"
-            disabled={pending}
-        >
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
-        </Button>
-    )
-}
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function InviteReceivedPage() {
-    const { invite, status, loading } = useCoupleStore();
+    const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
     const { user } = useAuth();
     const { toast } = useToast();
     const router = useRouter();
-
-    // ACTION STATES
-    const [rejectState, rejectAction] = useActionState(rejectPartnerInvite, null);
-    const [acceptState, acceptAction] = useActionState(acceptPartnerInvite, null);
+    const [isActionLoading, setIsActionLoading] = useState(false);
 
     // REDIRECT IF NOT EXPECTED STATE
     useEffect(() => {
-        if (!loading && status !== 'pending_received') {
-            router.replace('/dashboard/couple/invite');
+        if (!isStoreLoading && status !== 'pending_received') {
+            router.replace('/dashboard/couple');
         }
-    }, [loading, status, router]);
+    }, [isStoreLoading, status, router]);
 
-    // TOASTS – REJECT
-    useEffect(() => {
-        if (rejectState?.error) {
-            toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
-        }
-        if (rejectState?.success) {
-            toast({ title: 'Ação Concluída', description: rejectState.message });
-            router.refresh(); // Refresh to update store and UI
-        }
-    }, [rejectState, toast, router]);
+    const handleAction = async (action: 'accept' | 'reject') => {
+        if (!invite?.inviteId) return;
 
-    // TOASTS – ACCEPT
-    useEffect(() => {
-        if (acceptState?.error) {
-            toast({ variant: 'destructive', title: 'Erro ao aceitar', description: acceptState.error });
-        }
-        if (acceptState?.success) {
-            toast({ title: 'Sucesso!', description: 'Vocês agora estão vinculados!' });
-            router.push('/dashboard');
-        }
-    }, [acceptState, toast, router]);
+        setIsActionLoading(true);
+        try {
+            const callableFunction = action === 'accept' 
+                ? httpsCallable(functions, 'acceptPartnerInvite')
+                : httpsCallable(functions, 'rejectPartnerInvite');
+            
+            const result = await callableFunction({ inviteId: invite.inviteId });
+            const data = result.data as { success: boolean, message: string, error?: string };
 
+            if (data.success) {
+                toast({
+                    title: 'Sucesso!',
+                    description: data.message,
+                });
+                if (action === 'accept') {
+                    router.push('/dashboard');
+                } else {
+                    router.push('/dashboard/couple/invite');
+                }
+            } else {
+                throw new Error(data.error);
+            }
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'Erro', description: error.message || `Não foi possível ${action === 'accept' ? 'aceitar' : 'recusar'} o convite.` });
+        } finally {
+             setIsActionLoading(false);
+        }
+    }
 
-    if (loading) {
+    if (isStoreLoading) {
         return (
             <div className="flex justify-center items-center h-full p-8">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -100,26 +93,14 @@ export default function InviteReceivedPage() {
                 </CardContent>
 
                 <CardFooter className="grid grid-cols-2 gap-4">
-
-                    {/* REJECT */}
-                    <form action={rejectAction}>
-                        <input type="hidden" name="inviteId" value={invite.inviteId} />
-                        <input type="hidden" name="userId" value={user?.uid} />
-                        <ActionButton variant="reject">
-                            <X className="mr-2 h-4 w-4" /> Recusar
-                        </ActionButton>
-                    </form>
-
-                    {/* ACCEPT */}
-                    <form action={acceptAction}>
-                        <input type="hidden" name="inviteId" value={invite.inviteId} />
-                        <input type="hidden" name="userId" value={user?.uid} />
-                        <ActionButton variant="accept">
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Aceitar
-                        </ActionButton>
-                    </form>
-
+                    <Button variant="destructive" onClick={() => handleAction('reject')} disabled={isActionLoading}>
+                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                        Recusar
+                    </Button>
+                     <Button onClick={() => handleAction('accept')} disabled={isActionLoading}>
+                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                        Aceitar
+                    </Button>
                 </CardFooter>
             </Card>
         </div>

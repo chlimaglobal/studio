@@ -34,7 +34,7 @@ export function PartnerInfoCard() {
     try {
       const disconnectCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectCallable();
-      const data = result.data as { success: boolean, message: string };
+      const data = result.data as { success: boolean; message: string; error?: string };
 
       if (data.success) {
         toast({
@@ -43,7 +43,6 @@ export function PartnerInfoCard() {
         });
         // The store listener will automatically update the UI
       } else {
-        // @ts-ignore
         throw new Error(data.error || 'Ocorreu um erro desconhecido.');
       }
     } catch (error: any) {

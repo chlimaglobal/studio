@@ -674,70 +674,46 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 // NEW CALLABLE FUNCTIONS
 // ------------------------------
 
-async function getUserData(uid: string) {
-    if (!adminDb) throw new HttpsError('internal', 'Database not initialized');
-    const userRef = adminDb.collection("users").doc(uid);
-    const snapshot = await userRef.get();
-    if (!snapshot.exists) throw new HttpsError('not-found', "User not found");
-    return snapshot.data();
-}
-
-async function sendPartnerInviteEmail({
-  senderName,
-  partnerEmail,
-  inviteLink,
-}: {
-  senderName: string;
-  partnerEmail: string;
-  inviteLink: string;
-}) {
-  if (!sendGridApiKey) {
-      console.error("SendGrid API key not configured.");
-      throw new HttpsError('internal', 'Email service not configured');
-  }
-  const msg = {
-    to: partnerEmail,
-    from: "contato@seuservico.com",
-    subject: `${senderName} convidou você para o Modo Casal da Lúmina`,
-    html: `
-      <div style="font-family: Arial; padding: 20px; border-radius: 10px; background: #f7f7f7;">
-        <h2 style="color: #333;">Convite para acessar o Modo Casal de Lúmina</h2>
-        <p><strong>${senderName}</strong> está compartilhando o acesso financeiro com você.</p>
-        <p>Clique no botão abaixo para aceitar o convite:</p>
-        <a href="${inviteLink}" 
-           style="display: inline-block; padding: 10px 20px; background: #4f46e5; color: #fff; border-radius: 6px; text-decoration: none;">
-          Aceitar Convite
-        </a>
-      </div>
-    `,
-  };
-  await sgMail.send(msg);
-}
-
-
-export const linkPartner = onCall(async (request) => {
+export const sendPartnerInvite = onCall(async (request) => {
     const senderUid = request.auth?.uid;
     if (!senderUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
-    const linkPartnerSchema = z.object({ partnerEmail: z.string().email() });
-    const parsed = linkPartnerSchema.safeParse(request.data);
+    const schema = z.object({ partnerEmail: z.string().email() });
+    const parsed = schema.safeParse(request.data);
     if (!parsed.success) throw new HttpsError('invalid-argument', "Email inválido.");
 
     const { partnerEmail } = parsed.data;
 
     const auth = getAuth(adminApp!);
     const db = adminDb!;
+
+    // Check if sender has a coupleId already
+    const senderDoc = await db.collection('users').doc(senderUid).get();
+    const senderData = senderDoc.data();
+    if (senderData?.coupleId) {
+        throw new HttpsError('failed-precondition', 'Você já está vinculado a um parceiro.');
+    }
+    if (senderData?.email === partnerEmail) {
+        throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
+    }
+
     let partnerUid: string;
     try {
         const partnerRecord = await auth.getUserByEmail(partnerEmail);
         partnerUid = partnerRecord.uid;
-    } catch(e) {
-        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail.');
+        
+        const partnerDoc = await db.collection('users').doc(partnerUid).get();
+        if (partnerDoc.exists && partnerDoc.data()?.coupleId) {
+             throw new HttpsError('failed-precondition', 'Este usuário já está vinculado a outro parceiro.');
+        }
+
+    } catch (e: any) {
+        if (e.code === 'auth/user-not-found') {
+            throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
+        }
+        throw new HttpsError('internal', e.message);
     }
     
-    const senderData = await getUserData(senderUid);
-    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/invite?partner=${senderUid}`;
-
     // Create invite document
     const inviteRef = db.collection("invites").doc();
     await inviteRef.set({
@@ -750,11 +726,23 @@ export const linkPartner = onCall(async (request) => {
         createdAt: Timestamp.now()
     });
 
-    await sendPartnerInviteEmail({
-        senderName: senderData?.displayName || 'Seu parceiro(a)',
-        partnerEmail: partnerEmail,
-        inviteLink,
-    });
+    if (sendGridApiKey) {
+        try {
+            await sgMail.send({
+                to: partnerEmail,
+                from: process.env.SENDGRID_FROM || "financeflowsuporte@proton.me",
+                subject: `${senderData?.displayName || 'Alguém'} convidou você para o FinanceFlow`,
+                html: `
+                <p><b>${senderData?.displayName || 'Alguém'}</b> convidou você para conectar suas contas no FinanceFlow.</p>
+                <p>Acesse o app e você verá o convite pendente para aceitar.</p>
+                <p><a href="${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard">Abrir FinanceFlow</a></p>
+                `,
+            });
+        } catch (error) {
+            console.error("SendGrid error, but proceeding:", error);
+            // Don't fail the operation if email fails, the invite is still in the DB
+        }
+    }
     
     return { success: true, message: `Convite enviado com sucesso para ${partnerEmail}!` };
 });
@@ -763,8 +751,8 @@ export const acceptPartnerInvite = onCall(async (request) => {
     const receiverUid = request.auth?.uid;
     if (!receiverUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
-    const acceptSchema = z.object({ inviteId: z.string().min(1) });
-    const parsed = acceptSchema.safeParse(request.data);
+    const schema = z.object({ inviteId: z.string().min(1) });
+    const parsed = schema.safeParse(request.data);
     if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
     const { inviteId } = parsed.data;
     
@@ -782,13 +770,27 @@ export const acceptPartnerInvite = onCall(async (request) => {
 
     const batch = db.batch();
     batch.set(coupleRef, { members: [senderUid, receiverUid], createdAt: Timestamp.now(), id: coupleId });
-    batch.update(db.collection('users').doc(senderUid), { coupleId });
-    batch.update(db.collection('users').doc(receiverUid), { coupleId });
-    batch.update(inviteRef, { status: 'accepted' });
+    
+    const userRefA = db.collection('users').doc(senderUid);
+    const userRefB = db.collection('users').doc(receiverUid);
+
+    batch.update(userRefA, { coupleId, memberIds: FieldValue.arrayUnion(receiverUid) });
+    batch.update(userRefB, { coupleId, memberIds: FieldValue.arrayUnion(senderUid) });
+    
+    batch.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
+
+     // Reject other pending invites for this user
+    const otherInvitesQuery = db.collection('invites').where('sentTo', '==', receiverUid).where('status', '==', 'pending');
+    const otherInvitesSnap = await otherInvitesQuery.get();
+    otherInvitesSnap.forEach(doc => {
+        if (doc.id !== inviteId) {
+            batch.update(doc.ref, { status: 'rejected' });
+        }
+    });
     
     await batch.commit();
 
-    return { success: true };
+    return { success: true, message: "Parabéns, vocês estão conectados!" };
 });
 
 
@@ -796,8 +798,8 @@ export const rejectPartnerInvite = onCall(async (request) => {
     const userId = request.auth?.uid;
     if (!userId) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
-    const rejectSchema = z.object({ inviteId: z.string().min(1) });
-    const parsed = rejectSchema.safeParse(request.data);
+    const schema = z.object({ inviteId: z.string().min(1) });
+    const parsed = schema.safeParse(request.data);
     if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
     const { inviteId } = parsed.data;
 
@@ -808,14 +810,14 @@ export const rejectPartnerInvite = onCall(async (request) => {
     if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
     const inviteData = inviteDoc.data()!;
 
-    // User can cancel an invite they sent, or reject an invite they received
     if (inviteData.sentBy !== userId && inviteData.sentTo !== userId) {
         throw new HttpsError('permission-denied', 'Você não tem permissão para modificar este convite.');
     }
-
-    await inviteRef.delete();
     
-    return { success: true, message: "Convite cancelado/recusado." };
+    // Using update to change status instead of deleting
+    await inviteRef.update({ status: 'rejected' });
+    
+    return { success: true, message: "Convite recusado/cancelado." };
 });
 
 export const disconnectPartner = onCall(async (request) => {
@@ -823,8 +825,10 @@ export const disconnectPartner = onCall(async (request) => {
     if (!userId) throw new HttpsError('unauthenticated', 'User is not authenticated.');
     
     const db = adminDb!;
-    const userDoc = await getUserData(userId);
-    const coupleId = userDoc?.coupleId;
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    const userData = userDoc.data();
+    const coupleId = userData?.coupleId;
 
     if (!coupleId) throw new HttpsError('failed-precondition', 'Você não está em um relacionamento.');
 
@@ -836,10 +840,22 @@ export const disconnectPartner = onCall(async (request) => {
     const partnerId = members.find(id => id !== userId);
     
     const batch = db.batch();
-    batch.update(db.collection('users').doc(userId), { coupleId: FieldValue.delete() });
+    
+    // Remove coupleId and memberIds from the user
+    batch.update(userRef, { 
+        coupleId: FieldValue.delete(),
+        memberIds: FieldValue.arrayRemove(partnerId)
+    });
+
     if (partnerId) {
-        batch.update(db.collection('users').doc(partnerId), { coupleId: FieldValue.delete() });
+         // Remove coupleId and memberIds from the partner
+        batch.update(db.collection('users').doc(partnerId), { 
+            coupleId: FieldValue.delete(),
+            memberIds: FieldValue.arrayRemove(userId)
+         });
     }
+
+    // Delete the couple document
     batch.delete(coupleRef);
 
     await batch.commit();
@@ -851,3 +867,4 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
