@@ -1,115 +1,130 @@
-
 'use client';
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../client-providers';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
-import { useState } from 'react';
-
-export function PendingInviteCard() {
-    const { invite, status } = useCoupleStore();
-    const { user } = useAuth();
-    const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleAction = async (action: 'accept' | 'reject') => {
-        if (!invite?.inviteId) return;
-
-        setIsLoading(true);
-        try {
-            const callableFunction = action === 'accept'
-                ? httpsCallable(functions, 'acceptPartnerInviteClient')
-                : httpsCallable(functions, 'rejectPartnerInvite');
-            
-            const result = await callableFunction({ inviteId: invite.inviteId });
-            const data = result.data as { success: boolean, message?: string };
-
-            if (data.success) {
-                toast({
-                    title: 'Sucesso!',
-                    description: action === 'accept' ? 'Você e seu parceiro(a) estão conectados!' : 'Convite recusado/cancelado.',
-                });
-                // The store will auto-update via the listener
-            } else {
-                // @ts-ignore
-                throw new Error(data.error || 'Ocorreu um erro.');
-            }
-        } catch (error: any) {
-             toast({
-                variant: 'destructive',
-                title: 'Erro',
-                description: error.message || `Falha ao ${action === 'accept' ? 'aceitar' : 'recusar'} o convite.`,
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+import { useActionState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useFormStatus } from 'react-dom';
 
 
-    if (!invite || status === 'linked') return null;
+type ServerAction = (formData: FormData) => Promise<{ success: boolean; error?: string; message?: string } | null>;
 
-    // --- Caso: convite enviado por você ---
-    if (status === 'pending_sent') {
-        return (
-            <Card className="max-w-md mx-auto bg-secondary">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Mail className="h-6 w-6 text-primary" />
-                        Convite Enviado
-                    </CardTitle>
-                    <CardDescription>
-                        Aguardando resposta de <strong>{invite.sentToEmail}</strong>.
-                    </CardDescription>
-                </CardHeader>
+interface PendingInviteCardProps {
+    acceptAction: ServerAction;
+    rejectAction: ServerAction;
+}
 
-                <CardFooter>
-                     <Button variant="destructive" className="w-full" disabled={isLoading} onClick={() => handleAction('reject')}>
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-                        Cancelar Convite
-                    </Button>
-                </CardFooter>
-            </Card>
-        );
-    }
 
-    // --- Caso: convite recebido ---
-    if (status === 'pending_received') {
-        return (
-            <Card className="max-w-md mx-auto">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <UserPlus className="h-6 w-6 text-primary" />
-                        Você tem um convite!
-                    </CardTitle>
-                    <CardDescription>
-                        <strong>{invite.sentByName || 'Alguém'}</strong> ({invite.sentByEmail}) convidou você.
-                    </CardDescription>
-                </CardHeader>
+function ActionButton({ variant, children, action }: { variant: 'accept' | 'reject', children: React.ReactNode, action: ServerAction }) {
+    const { pending } = useFormStatus();
 
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        Aceitando, vocês ativam o Modo Casal.
-                    </p>
-                </CardContent>
+    return (
+        <Button
+            type="submit"
+            variant={variant === 'accept' ? 'default' : 'destructive'}
+            className="w-full"
+            disabled={pending}
+            formAction={action}
+        >
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : children}
+        </Button>
+    )
+}
 
-                <CardFooter className="grid grid-cols-2 gap-4">
-                    <Button variant="destructive" className="w-full" disabled={isLoading} onClick={() => handleAction('reject')}>
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-                        Recusar
-                    </Button>
-                    <Button className="w-full" disabled={isLoading} onClick={() => handleAction('accept')}>
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                        Aceitar
-                    </Button>
-                </CardFooter>
-            </Card>
-        );
-    }
+export function PendingInviteCard({ acceptAction, rejectAction }: PendingInviteCardProps) {
+  const { invite, status } = useCoupleStore();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-    return null;
+  const [acceptState, wrappedAcceptAction] = useActionState(acceptAction, null);
+  const [rejectState, wrappedRejectAction] = useActionState(rejectAction, null);
+
+  useEffect(() => {
+    if (rejectState?.error) toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
+    if (rejectState?.success) toast({ title: 'Sucesso', description: rejectState.message });
+
+    if (acceptState?.error) toast({ variant: 'destructive', title: 'Erro ao aceitar', description: acceptState.error });
+    if (acceptState?.success) toast({ title: 'Sucesso!', description: 'Vocês agora estão conectados!' });
+
+  }, [acceptState, rejectState, toast]);
+
+
+  if (!invite || status === 'linked') return null;
+
+  // --- Case: YOU sent the invite ---
+  if (status === 'pending_sent') {
+    return (
+      <Card className="max-w-md mx-auto bg-secondary">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-6 w-6 text-primary" />
+            Convite Enviado
+          </CardTitle>
+          <CardDescription>
+            Aguardando resposta de <strong>{invite.sentToEmail}</strong>.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+            <form action={wrappedRejectAction} className="w-full">
+                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
+                <input type="hidden" name="userId" value={user?.uid || ''} />
+                <ActionButton variant="reject" action={wrappedRejectAction}>
+                    <X className="mr-2 h-4 w-4" />
+                    Cancelar Convite
+                </ActionButton>
+            </form>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  // --- Case: YOU received the invite ---
+  if (status === 'pending_received') {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-6 w-6 text-primary" />
+            Você tem um convite!
+          </CardTitle>
+          <CardDescription>
+            <strong>{invite.sentByName || 'Alguém'}</strong> ({invite.sentByEmail}) convidou você.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Aceitando, vocês ativam o Modo Casal.
+          </p>
+        </CardContent>
+        <CardFooter className="grid grid-cols-2 gap-4">
+            <form action={wrappedRejectAction}>
+                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
+                <input type="hidden" name="userId" value={user?.uid || ''} />
+                <ActionButton variant="reject" action={wrappedRejectAction}>
+                    <X className="mr-2 h-4 w-4" /> Recusar
+                </ActionButton>
+            </form>
+             <form action={wrappedAcceptAction}>
+                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
+                <input type="hidden" name="userId" value={user?.uid || ''} />
+                <ActionButton variant="accept" action={wrappedAcceptAction}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Aceitar
+                </ActionButton>
+            </form>
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  return null;
 }

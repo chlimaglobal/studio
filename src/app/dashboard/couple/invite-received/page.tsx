@@ -48,8 +48,8 @@ export default function InviteReceivedPage() {
             toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
         }
         if (rejectState?.success) {
-            toast({ title: 'Ação Concluída', description: rejectState.success });
-            router.refresh();
+            toast({ title: 'Ação Concluída', description: rejectState.message });
+            router.refresh(); // Refresh to update store and UI
         }
     }, [rejectState, toast, router]);
 
