@@ -5,6 +5,7 @@ import { getMessaging } from 'firebase-admin/messaging';
 import * as sgMail from '@sendgrid/mail';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { randomBytes } from 'crypto';
 import { Transaction } from '@/lib/types';
@@ -16,6 +17,53 @@ if (sendGridApiKey) {
 } else {
     console.warn('SENDGRID_API_KEY is not set. Emails will not be sent.');
 }
+
+/**
+ * Triggers when a new invite is created and sends an email.
+ */
+export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (event) => {
+    if (!sendGridApiKey) {
+        console.log("SendGrid API Key not configured. Skipping email.");
+        return;
+    }
+
+    const snapshot = event.data;
+    if (!snapshot) {
+        console.log("No data associated with the event");
+        return;
+    }
+    const invite = snapshot.data();
+
+    // Ensure it's a partner invite and has the necessary data
+    if (invite.status !== 'pending' || !invite.sentToEmail) {
+        console.log(`Invite ${snapshot.id} is not a pending partner invite or has no email. Skipping.`);
+        return;
+    }
+    
+    const { sentByName, sentToEmail } = invite;
+    const inviterName = sentByName || 'Alguém';
+    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard`;
+
+    const msg = {
+        to: sentToEmail,
+        from: process.env.SENDGRID_FROM || 'financeflowsuporte@proton.me',
+        subject: `${inviterName} convidou você para o FinanceFlow`,
+        html: `
+            <p><b>${inviterName}</b> convidou você para conectar suas contas no FinanceFlow.</p>
+            <p>Acesse o app e você verá o convite pendente para aceitar.</p>
+            <p><a href="${inviteLink}">Abrir FinanceFlow</a></p>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg);
+        console.log(`Invite email sent to ${sentToEmail}`);
+    } catch (error) {
+        console.error("SendGrid Error onInviteCreated:", error);
+        // Don't re-throw, just log the error. The invite is still valid in the DB.
+    }
+});
+
 
 /**
  * Triggers when a new transaction is created and sends a push notification to the user.
@@ -173,7 +221,7 @@ export const checkDashboardStatus = onCall(async (request) => {
 });
 
 
-export const sendDependentInvite = onCall(async (request) => {
+export const sendDependentInvite = onCall({ allow: 'all' }, async (request) => {
     if (!sendGridApiKey) {
         console.error("SendGrid API Key not configured. Cannot send invite email.");
         throw new HttpsError('internal', 'O serviço de e-mail não está configurado no servidor.');
@@ -674,78 +722,13 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 // NEW CALLABLE FUNCTIONS
 // ------------------------------
 
-export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
+export const linkPartner = onCall({ allow: 'all' }, async (request) => {
     const senderUid = request.auth?.uid;
     if (!senderUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
-
-    const schema = z.object({ partnerEmail: z.string().email() });
-    const parsed = schema.safeParse(request.data);
-    if (!parsed.success) throw new HttpsError('invalid-argument', "Email inválido.");
-
-    const { partnerEmail } = parsed.data;
-
-    const auth = getAuth(adminApp!);
-    const db = adminDb!;
-
-    // Check if sender has a coupleId already
-    const senderDoc = await db.collection('users').doc(senderUid).get();
-    const senderData = senderDoc.data();
-    if (senderData?.coupleId) {
-        throw new HttpsError('failed-precondition', 'Você já está vinculado a um parceiro.');
-    }
-    if (senderData?.email === partnerEmail) {
-        throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
-    }
-
-    let partnerUid: string;
-    try {
-        const partnerRecord = await auth.getUserByEmail(partnerEmail);
-        partnerUid = partnerRecord.uid;
-        
-        const partnerDoc = await db.collection('users').doc(partnerUid).get();
-        if (partnerDoc.exists && partnerDoc.data()?.coupleId) {
-             throw new HttpsError('failed-precondition', 'Este usuário já está vinculado a outro parceiro.');
-        }
-
-    } catch (e: any) {
-        if (e.code === 'auth/user-not-found') {
-            throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
-        }
-        throw new HttpsError('internal', e.message);
-    }
-    
-    // Create invite document
-    const inviteRef = db.collection("invites").doc();
-    await inviteRef.set({
-        sentBy: senderUid,
-        sentTo: partnerUid,
-        sentToEmail: partnerEmail,
-        sentByName: senderData?.displayName || 'Usuário',
-        sentByEmail: request.auth?.token.email || 'email@desconhecido.com',
-        status: 'pending',
-        createdAt: Timestamp.now()
-    });
-
-    if (sendGridApiKey) {
-        try {
-            await sgMail.send({
-                to: partnerEmail,
-                from: process.env.SENDGRID_FROM || "financeflowsuporte@proton.me",
-                subject: `${senderData?.displayName || 'Alguém'} convidou você para o FinanceFlow`,
-                html: `
-                <p><b>${senderData?.displayName || 'Alguém'}</b> convidou você para conectar suas contas no FinanceFlow.</p>
-                <p>Acesse o app e você verá o convite pendente para aceitar.</p>
-                <p><a href="${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard">Abrir FinanceFlow</a></p>
-                `,
-            });
-        } catch (error) {
-            console.error("SendGrid error, but proceeding:", error);
-            // Don't fail the operation if email fails, the invite is still in the DB
-        }
-    }
-    
-    return { success: true, message: `Convite enviado com sucesso para ${partnerEmail}!` };
+    // Function body comes here
+    return { success: true, message: "This is a placeholder" };
 });
+
 
 export const acceptPartnerInvite = onCall(async (request) => {
     const receiverUid = request.auth?.uid;
@@ -867,5 +850,6 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
 
 

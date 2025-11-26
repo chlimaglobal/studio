@@ -14,9 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
 import React, { useState } from 'react';
+import { sendInvite } from '@/app/dashboard/couple/invite/actions'; // Import Server Action
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -32,24 +31,22 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     e.preventDefault();
     setIsLoading(true);
     try {
-        const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-        const result = await sendInviteCallable({ partnerEmail: email });
-        const data = result.data as { success: boolean; message: string, error?: string };
+        const result = await sendInvite(email);
 
-        if (data.success) {
+        if (result.success) {
             toast({
                 title: 'Sucesso!',
-                description: data.message,
+                description: result.data as string,
             });
             onOpenChange(false);
         } else {
-            throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+            throw new Error(result.error || 'Ocorreu um erro desconhecido.');
         }
     } catch (error: any) {
         toast({
             variant: 'destructive',
             title: 'Erro ao Enviar Convite',
-            description: error.message || 'Não foi possível enviar o convite. Verifique se o e-mail está correto e se o usuário já tem uma conta.',
+            description: error.message || 'Não foi possível enviar o convite.',
         });
     } finally {
         setIsLoading(false);
