@@ -15,8 +15,8 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-
-import { disconnectPartner } from '@/app/dashboard/couple/invite/actions';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 import {
   AlertDialog,
@@ -42,20 +42,17 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const token = await user.getIdToken();
+      const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
+      const result = await disconnectPartnerCallable();
+      const data = result.data as { success: boolean; message?: string; error?: string };
 
-      const formData = new FormData();
-      formData.append('token', token);
-
-      const result = await disconnectPartner(formData);
-
-      if (result?.success) {
+      if (data.success) {
         toast({
           title: 'Sucesso!',
-          description: result.message || 'Vocês foram desvinculados.',
+          description: data.message || 'Vocês foram desvinculados.',
         });
       } else {
-        throw new Error(result?.error || 'Erro desconhecido.');
+        throw new Error(data.error || 'Erro desconhecido.');
       }
     } catch (error: any) {
       toast({
