@@ -726,39 +726,19 @@ export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
     const senderUid = request.auth?.uid;
     if (!senderUid) throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
 
+    const senderDoc = await adminDb!.collection('users').doc(senderUid).get();
+    if (!senderDoc.exists) throw new HttpsError('not-found', 'Usuário remetente não encontrado.');
+    const senderData = senderDoc.data()!;
+
     const { partnerEmail } = request.data;
     if (!partnerEmail) throw new HttpsError('invalid-argument', 'O e-mail do parceiro é obrigatório.');
 
-    const db = adminDb!;
-    const auth = getAuth(adminApp!);
-
-    // Check if sender is already in a couple
-    const senderDoc = await db.collection('users').doc(senderUid).get();
-    const senderData = senderDoc.data();
-    if (senderData?.coupleId) throw new HttpsError('failed-precondition', 'Você já está em um relacionamento.');
-
-    // Find partner by email
-    let receiverUser;
-    try {
-        receiverUser = await auth.getUserByEmail(partnerEmail);
-    } catch (error) {
-        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
-    }
-    const receiverUid = receiverUser.uid;
-
-    if (senderUid === receiverUid) throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
-    
-    // Check if receiver is already in a couple
-    const receiverDoc = await db.collection('users').doc(receiverUid).get();
-    if (receiverDoc.data()?.coupleId) throw new HttpsError('failed-precondition', 'Este usuário já está em um relacionamento.');
-
-    // Create invite
-    await db.collection('invites').add({
+    // Just create the invite document. The validation will happen on acceptance.
+    await adminDb!.collection('invites').add({
       sentBy: senderUid,
-      sentByName: senderData?.displayName || 'Usuário',
-      sentByEmail: senderData?.email || '',
-      sentTo: receiverUid,
-      sentToEmail: partnerEmail,
+      sentByName: senderData.displayName || 'Usuário',
+      sentByEmail: senderData.email || '',
+      sentToEmail: partnerEmail, // Store the email to find the user later
       status: 'pending',
       createdAt: Timestamp.now(),
     });
@@ -780,11 +760,23 @@ export const acceptPartnerInvite = onCall(async (request) => {
     const inviteRef = db.collection('invites').doc(inviteId);
     const inviteDoc = await inviteRef.get();
 
-    if (!inviteDoc.exists || inviteDoc.data()?.sentTo !== receiverUid || inviteDoc.data()?.status !== 'pending') {
-        throw new HttpsError('not-found', 'Convite inválido ou expirado.');
+    // Verify the invite is still valid and meant for this user.
+    const inviteData = inviteDoc.data();
+    if (!inviteDoc.exists || inviteData?.sentTo !== receiverUid || inviteData?.status !== 'pending') {
+        throw new HttpsError('not-found', 'Convite inválido, expirado ou não destinado a você.');
     }
 
-    const senderUid = inviteDoc.data()!.sentBy;
+    const senderUid = inviteData!.sentBy;
+    
+    // Check if either user is already in a couple
+    const senderDoc = await db.collection('users').doc(senderUid).get();
+    const receiverDoc = await db.collection('users').doc(receiverUid).get();
+    if (senderDoc.data()?.coupleId || receiverDoc.data()?.coupleId) {
+        // Clean up the invite
+        await inviteRef.update({ status: 'rejected' });
+        throw new HttpsError('failed-precondition', 'Um dos usuários já está em um relacionamento.');
+    }
+
     const coupleRef = db.collection("couples").doc();
     const coupleId = coupleRef.id;
 
@@ -887,6 +879,7 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
 
 
 

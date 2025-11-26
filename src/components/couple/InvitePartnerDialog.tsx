@@ -31,7 +31,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,9 +49,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
           title: 'Sucesso!',
           description: data.message,
         });
-        useCoupleStore.getState().setInvite({ sentToEmail: email });
-        useCoupleStore.getState().setStatus('pending_sent');
-        router.push('/dashboard/couple/pending');
         onOpenChange(false);
         setEmail('');
       } else {
@@ -62,7 +58,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
-        description: error.message || 'Não foi possível enviar o convite. Verifique o e-mail e tente novamente.',
+        description: error.message || 'Não foi possível enviar o convite. Verifique se o usuário com este e-mail já existe.',
       });
     } finally {
       setIsLoading(false);
