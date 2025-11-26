@@ -41,7 +41,11 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
     try {
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-      const result = await sendInviteCallable({ partnerEmail: email });
+      const result = await sendInviteCallable({ 
+          partnerEmail: email,
+          senderName: user.displayName || 'Usuário',
+          senderEmail: user.email || '',
+      });
       const data = result.data as { success: boolean; message: string; error?: string };
 
       if (data.success) {

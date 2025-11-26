@@ -724,49 +724,31 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 
 export const sendPartnerInvite = onCall(async (request) => {
     const senderUid = request.auth?.uid;
-    if (!senderUid) throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
-
-    const senderDoc = await adminDb!.collection('users').doc(senderUid).get();
-    if (!senderDoc.exists) throw new HttpsError('not-found', 'Usuário remetente não encontrado.');
-    const senderData = senderDoc.data()!;
-
-    const { partnerEmail } = request.data;
-    if (!partnerEmail) throw new HttpsError('invalid-argument', 'O e-mail do parceiro é obrigatório.');
-
-    // Look up partner by email
-    const partnerQuery = await adminDb!.collection('users').where('email', '==', partnerEmail).limit(1).get();
-    if (partnerQuery.empty) {
-        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
+    if (!senderUid) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
     }
-    const partnerDoc = partnerQuery.docs[0];
-    const partnerUid = partnerDoc.id;
-
-    if (senderUid === partnerUid) {
-        throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
+    
+    const { partnerEmail, senderName, senderEmail } = request.data;
+    if (!partnerEmail || !senderName || !senderEmail) {
+        throw new HttpsError('invalid-argument', 'Faltam dados para enviar o convite.');
     }
-
-    // Check if either user is already in a couple
-    if (senderData.coupleId || partnerDoc.data().coupleId) {
-        throw new HttpsError('failed-precondition', 'Um dos usuários já está em um relacionamento.');
+    
+    // This function now ONLY creates the invite document. It does not query users.
+    // The query and validation will happen in `acceptPartnerInvite`.
+    try {
+        await adminDb!.collection('invites').add({
+            sentBy: senderUid,
+            sentByName: senderName,
+            sentByEmail: senderEmail,
+            sentToEmail: partnerEmail, // Store the email to find the user later
+            status: 'pending',
+            createdAt: Timestamp.now(),
+        });
+         return { success: true, message: 'Convite enviado com sucesso!' };
+    } catch (error) {
+        console.error("Error creating invite document:", error);
+        throw new HttpsError('internal', "Não foi possível registrar o convite no banco de dados.");
     }
-
-    // Check for existing pending invites
-    const existingInviteQuery = adminDb!.collection('invites').where('sentBy', '==', senderUid).where('sentTo', '==', partnerUid).where('status', '==', 'pending');
-    if (!(await existingInviteQuery.get()).empty) {
-        throw new HttpsError('already-exists', 'Você já enviou um convite para este usuário.');
-    }
-
-    await adminDb!.collection('invites').add({
-        sentBy: senderUid,
-        sentByName: senderData.displayName || 'Usuário',
-        sentByEmail: senderData.email || '',
-        sentTo: partnerUid,
-        sentToEmail: partnerEmail,
-        status: 'pending',
-        createdAt: Timestamp.now(),
-    });
-
-    return { success: true, message: 'Convite enviado com sucesso!' };
 });
 
 
@@ -786,8 +768,14 @@ export const acceptPartnerInvite = onCall(async (request) => {
         if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
         const inviteData = inviteDoc.data()!;
         
-        if (inviteData.sentTo !== receiverUid || inviteData.status !== 'pending') {
-            throw new HttpsError('failed-precondition', 'Convite inválido, expirado ou não destinado a você.');
+        // Find receiver user by email from the invite to ensure it's the correct person
+        const receiverQuery = await db.collection('users').where('email', '==', inviteData.sentToEmail).limit(1).get();
+        if (receiverQuery.empty || receiverQuery.docs[0].id !== receiverUid) {
+            throw new HttpsError('permission-denied', 'Este convite não é destinado a você.');
+        }
+
+        if (inviteData.status !== 'pending') {
+            throw new HttpsError('failed-precondition', 'Convite inválido, expirado ou já utilizado.');
         }
 
         const senderUid = inviteData.sentBy;
@@ -795,6 +783,10 @@ export const acceptPartnerInvite = onCall(async (request) => {
         const receiverRef = db.collection('users').doc(receiverUid);
         const senderDoc = await transaction.get(senderRef);
         const receiverDoc = await transaction.get(receiverRef);
+
+        if (!senderDoc.exists || !receiverDoc.exists) {
+             throw new HttpsError('not-found', 'Um dos usuários não foi encontrado.');
+        }
 
         if (senderDoc.data()?.coupleId || receiverDoc.data()?.coupleId) {
             transaction.update(inviteRef, { status: 'rejected' });
@@ -809,10 +801,10 @@ export const acceptPartnerInvite = onCall(async (request) => {
         transaction.update(senderRef, { coupleId, memberIds: FieldValue.arrayUnion(receiverUid) });
         transaction.update(receiverRef, { coupleId, memberIds: FieldValue.arrayUnion(senderUid) });
         
-        transaction.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
+        transaction.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now(), sentTo: receiverUid }); // Now we can safely add sentTo ID.
 
         // Invalidate other invites for the receiver
-        const otherInvitesQuery = db.collection('invites').where('sentTo', '==', receiverUid).where('status', '==', 'pending');
+        const otherInvitesQuery = db.collection('invites').where('sentToEmail', '==', inviteData.sentToEmail).where('status', '==', 'pending');
         const otherInvitesSnap = await otherInvitesQuery.get();
         otherInvitesSnap.forEach(doc => {
             if (doc.id !== inviteId) {
@@ -834,19 +826,28 @@ export const rejectPartnerInvite = onCall(async (request) => {
 
     const db = adminDb!;
     const inviteRef = db.collection('invites').doc(inviteId);
-    const inviteDoc = await inviteRef.get();
     
-    if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
-    const inviteData = inviteDoc.data()!;
+    // We need to run this as a transaction to safely check permissions
+    return db.runTransaction(async (transaction) => {
+        const inviteDoc = await transaction.get(inviteRef);
+        if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
+        
+        const inviteData = inviteDoc.data()!;
 
-    if (inviteData.sentBy !== userId && inviteData.sentTo !== userId) {
-        throw new HttpsError('permission-denied', 'Você não tem permissão para modificar este convite.');
-    }
-    
-    await inviteRef.update({ status: 'rejected' });
-    
-    return { success: true, message: "Convite recusado/cancelado." };
+        // Find the receiver by email to check if the current user is the intended receiver
+        const receiverQuery = await db.collection('users').where('email', '==', inviteData.sentToEmail).limit(1).get();
+        const intendedReceiverId = !receiverQuery.empty ? receiverQuery.docs[0].id : null;
+
+        // A user can reject if they are the sender OR the intended receiver
+        if (inviteData.sentBy !== userId && intendedReceiverId !== userId) {
+            throw new HttpsError('permission-denied', 'Você não tem permissão para modificar este convite.');
+        }
+        
+        transaction.update(inviteRef, { status: 'rejected' });
+        return { success: true, message: "Convite recusado/cancelado." };
+    });
 });
+
 
 export const disconnectPartner = onCall(async (request) => {
     const userId = request.auth?.uid;
@@ -899,6 +900,7 @@ export const disconnectPartner = onCall(async (request) => {
     
 
     
+
 
 
 

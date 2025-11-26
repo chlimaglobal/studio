@@ -27,15 +27,17 @@ export default function InviteReceivedPage() {
     }, [isStoreLoading, status, router]);
 
     const handleAction = async (action: 'accept' | 'reject') => {
-        if (!invite?.inviteId) return;
+        if (!invite?.id) {
+            console.error("No invite ID found");
+            return;
+        };
 
         setIsActionLoading(true);
         try {
-            const callableFunction = action === 'accept' 
-                ? httpsCallable(functions, 'acceptPartnerInvite')
-                : httpsCallable(functions, 'rejectPartnerInvite');
+            const callableFunctionName = action === 'accept' ? 'acceptPartnerInvite' : 'rejectPartnerInvite';
+            const callableFunction = httpsCallable(functions, callableFunctionName);
             
-            const result = await callableFunction({ inviteId: invite.inviteId });
+            const result = await callableFunction({ inviteId: invite.id });
             const data = result.data as { success: boolean, message: string, error?: string };
 
             if (data.success) {

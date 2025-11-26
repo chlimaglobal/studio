@@ -37,12 +37,15 @@ export default function PendingInvitePage() {
   }, [isStoreLoading, status, router]);
 
   const handleCancel = async () => {
-      if (!invite?.inviteId) return;
+      if (!invite?.id) {
+          console.error("No invite ID found");
+          return;
+      };
       
       setIsActionLoading(true);
       try {
           const rejectCallable = httpsCallable(functions, 'rejectPartnerInvite');
-          const result = await rejectCallable({ inviteId: invite.inviteId });
+          const result = await rejectCallable({ inviteId: invite.id });
           const data = result.data as { success: boolean, message: string, error?: string };
 
           if (data.success) {

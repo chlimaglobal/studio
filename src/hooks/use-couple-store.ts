@@ -1,3 +1,4 @@
+
 'use client';
 
 import { create } from 'zustand';
@@ -13,7 +14,7 @@ interface CoupleState {
   partner: AppUser | null;
   status: CoupleStatus;
   invite: {
-    inviteId?: string;
+    id?: string;
     sentBy?: string;
     sentTo?: string;
     sentToEmail?: string;
@@ -195,7 +196,7 @@ export function initializeCoupleStore(user: User | null) {
               hasSentInvite = !snapshot.empty;
               if (hasSentInvite) {
                 const docSnap = snapshot.docs[0];
-                setInvite({ inviteId: docSnap.id, ...docSnap.data() });
+                setInvite({ id: docSnap.id, ...docSnap.data() });
                 setStatus('pending_sent');
                 setIsLoading(false);
               } else {
@@ -222,46 +223,58 @@ export function initializeCoupleStore(user: User | null) {
           }
         );
 
-        // Listener: invites received by user
-        const receivedInvitesQuery = query(
-          collection(db, 'invites'),
-          where('sentTo', '==', user.uid),
-          where('status', '==', 'pending'),
-          limit(1)
-        );
+        // Listener: invites received by user email
+        if (user.email) {
+          const receivedInvitesQuery = query(
+            collection(db, 'invites'),
+            where('sentToEmail', '==', user.email),
+            where('status', '==', 'pending'),
+            limit(1)
+          );
 
-        unsubReceivedInvites = onSnapshot(
-          receivedInvitesQuery,
-          (snapshot) => {
-            try {
-              receivedDone = true;
-              hasReceivedInvite = !snapshot.empty;
-              if (hasReceivedInvite) {
-                const docSnap = snapshot.docs[0];
-                setInvite({ inviteId: docSnap.id, ...docSnap.data() });
-                setStatus('pending_received');
-                setIsLoading(false);
-              } else {
-                if (sentDone && !hasSentInvite) {
-                  setStatus('single');
-                  setInvite(null);
+          unsubReceivedInvites = onSnapshot(
+            receivedInvitesQuery,
+            (snapshot) => {
+              try {
+                receivedDone = true;
+                hasReceivedInvite = !snapshot.empty;
+                if (hasReceivedInvite) {
+                  const docSnap = snapshot.docs[0];
+                  setInvite({ id: docSnap.id, ...docSnap.data() });
+                  setStatus('pending_received');
                   setIsLoading(false);
+                } else {
+                  if (sentDone && !hasSentInvite) {
+                    setStatus('single');
+                    setInvite(null);
+                    setIsLoading(false);
+                  }
                 }
+              } catch (e) {
+                console.error("Error in receivedInvites listener:", e);
               }
-            } catch (e) {
-              console.error("Error in receivedInvites listener:", e);
+            },
+            (error) => {
+              console.warn('receivedInvites listener error', error);
+              receivedDone = true;
+              if (sentDone && !hasSentInvite) {
+                setStatus('single');
+                setInvite(null);
+                setIsLoading(false);
+              }
             }
-          },
-          (error) => {
-            console.warn('receivedInvites listener error', error);
-            receivedDone = true;
-            if (sentDone && !hasSentInvite) {
-              setStatus('single');
-              setInvite(null);
-              setIsLoading(false);
-            }
+          );
+        } else {
+          // If no email, can't have received invites
+          receivedDone = true;
+          hasReceivedInvite = false;
+          if (sentDone && !hasSentInvite) {
+            setStatus('single');
+            setInvite(null);
+            setIsLoading(false);
           }
-        );
+        }
+        
       } catch (e) {
         console.error("Unexpected error in user snapshot:", e);
         // defensive reset so UI can continue
