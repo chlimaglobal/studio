@@ -1,78 +1,51 @@
-
 'use server';
 
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
-import { z } from 'zod';
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { revalidatePath } from 'next/cache';
 
-const InviteSchema = z.object({
-  email: z.string().email({ message: "Formato de e-mail inválido." }),
-});
-
-export async function sendInvite(partnerEmail: string) {
-  'use server';
-
-  const validation = InviteSchema.safeParse({ email: partnerEmail });
-  if (!validation.success) {
-      return { success: false, error: validation.error.errors[0].message };
-  }
-
-  try {
-      const fn = httpsCallable(functions, 'sendPartnerInvite');
-      const res = await fn({ partnerEmail });
-      const data = res.data as { success: boolean, message: string, error?: string };
-      
-      if (!data.success) {
-        throw new Error(data.error || 'A Cloud Function retornou um erro.');
-      }
-      
-      revalidatePath('/dashboard/couple');
-      return { success: true, data: data.message };
-  } catch (err: any) {
-      console.error("Server Action 'sendInvite' error:", err);
-      // Extrai a mensagem de erro do Firebase se disponível
-      const errorMessage = err.details?.message || err.message || 'Erro desconhecido no servidor.';
-      return { success: false, error: errorMessage };
-  }
+// Interface for the data passed to the server action
+interface SendInvitePayload {
+    partnerEmail: string;
+    senderUid: string;
+    senderName: string;
+    senderEmail: string;
 }
 
+export async function sendInvite(payload: SendInvitePayload) {
+  const { partnerEmail, senderUid, senderName, senderEmail } = payload;
 
-export async function acceptInvite(inviteId: string) {
-  'use server';
-  try {
-    const fn = httpsCallable(functions, 'acceptPartnerInvite');
-    const res = await fn({ inviteId });
-    revalidatePath('/dashboard/couple');
-    return { success: true, data: res.data };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  if (!partnerEmail || !senderUid || !senderName || !senderEmail) {
+    return { success: false, error: 'Dados insuficientes para enviar o convite.' };
   }
-}
 
-export async function rejectInvite(inviteId: string) {
-  'use server';
-  try {
-    const fn = httpsCallable(functions, 'rejectPartnerInvite');
-    const res = await fn({ inviteId });
-    revalidatePath('/dashboard/couple');
-    return { success: true, data: res.data };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  if (senderEmail === partnerEmail) {
+    return { success: false, error: 'Você não pode convidar a si mesmo.' };
   }
-}
 
-export async function cancelInvite(inviteId: string) {
-  'use server';
-  // Reutiliza a mesma cloud function, pois a lógica de backend é a mesma
   try {
-    const fn = httpsCallable(functions, 'rejectPartnerInvite');
-    const res = await fn({ inviteId });
+    const inviteRef = adminDb.collection('invites').doc();
+
+    const inviteData = {
+      sentBy: senderUid,
+      sentByName: senderName,
+      sentByEmail: senderEmail,
+      sentToEmail: partnerEmail,
+      sentTo: null, // This can be filled later if the user exists
+      status: 'pending',
+      createdAt: Timestamp.now(),
+    };
+
+    await inviteRef.set(inviteData);
+    
+    // The onInviteCreated trigger in firebase-functions.ts will handle the email.
+    
     revalidatePath('/dashboard/couple');
-    return { success: true, data: res.data };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+
+    return { success: true, message: 'Convite enviado com sucesso!' };
+
+  } catch (error) {
+    console.error('Error in sendInvite Server Action:', error);
+    return { success: false, error: 'Ocorreu um erro no servidor ao tentar enviar o convite.' };
   }
 }
