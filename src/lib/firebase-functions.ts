@@ -42,7 +42,7 @@ export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (ev
     
     const { sentByName, sentToEmail } = invite;
     const inviterName = sentByName || 'Alguém';
-    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard`;
+    const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || ''}/dashboard/couple`;
 
     const msg = {
         to: sentToEmail,
@@ -722,7 +722,7 @@ export const migrateSharedEmailAccount = onCall(async (request) => {
 // NEW CALLABLE FUNCTIONS
 // ------------------------------
 
-export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
+export const sendPartnerInvite = onCall(async (request) => {
     const senderUid = request.auth?.uid;
     if (!senderUid) throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
 
@@ -733,14 +733,37 @@ export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
     const { partnerEmail } = request.data;
     if (!partnerEmail) throw new HttpsError('invalid-argument', 'O e-mail do parceiro é obrigatório.');
 
-    // Just create the invite document. The validation will happen on acceptance.
+    // Look up partner by email
+    const partnerQuery = await adminDb!.collection('users').where('email', '==', partnerEmail).limit(1).get();
+    if (partnerQuery.empty) {
+        throw new HttpsError('not-found', 'Nenhum usuário encontrado com este e-mail. Peça para seu parceiro(a) criar uma conta primeiro.');
+    }
+    const partnerDoc = partnerQuery.docs[0];
+    const partnerUid = partnerDoc.id;
+
+    if (senderUid === partnerUid) {
+        throw new HttpsError('invalid-argument', 'Você não pode convidar a si mesmo.');
+    }
+
+    // Check if either user is already in a couple
+    if (senderData.coupleId || partnerDoc.data().coupleId) {
+        throw new HttpsError('failed-precondition', 'Um dos usuários já está em um relacionamento.');
+    }
+
+    // Check for existing pending invites
+    const existingInviteQuery = adminDb!.collection('invites').where('sentBy', '==', senderUid).where('sentTo', '==', partnerUid).where('status', '==', 'pending');
+    if (!(await existingInviteQuery.get()).empty) {
+        throw new HttpsError('already-exists', 'Você já enviou um convite para este usuário.');
+    }
+
     await adminDb!.collection('invites').add({
-      sentBy: senderUid,
-      sentByName: senderData.displayName || 'Usuário',
-      sentByEmail: senderData.email || '',
-      sentToEmail: partnerEmail, // Store the email to find the user later
-      status: 'pending',
-      createdAt: Timestamp.now(),
+        sentBy: senderUid,
+        sentByName: senderData.displayName || 'Usuário',
+        sentByEmail: senderData.email || '',
+        sentTo: partnerUid,
+        sentToEmail: partnerEmail,
+        status: 'pending',
+        createdAt: Timestamp.now(),
     });
 
     return { success: true, message: 'Convite enviado com sucesso!' };
@@ -749,60 +772,56 @@ export const sendPartnerInvite = onCall({ allow: 'all' }, async (request) => {
 
 export const acceptPartnerInvite = onCall(async (request) => {
     const receiverUid = request.auth?.uid;
-    if (!receiverUid) throw new HttpsError('unauthenticated', 'User is not authenticated.');
+    if (!receiverUid) throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
 
-    const schema = z.object({ inviteId: z.string().min(1) });
-    const parsed = schema.safeParse(request.data);
-    if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
-    const { inviteId } = parsed.data;
+    const { inviteId } = request.data;
+    if (!inviteId) throw new HttpsError('invalid-argument', "ID do convite inválido.");
     
     const db = adminDb!;
     const inviteRef = db.collection('invites').doc(inviteId);
-    const inviteDoc = await inviteRef.get();
-
-    // Verify the invite is still valid and meant for this user.
-    const inviteData = inviteDoc.data();
-    if (!inviteDoc.exists || inviteData?.sentTo !== receiverUid || inviteData?.status !== 'pending') {
-        throw new HttpsError('not-found', 'Convite inválido, expirado ou não destinado a você.');
-    }
-
-    const senderUid = inviteData!.sentBy;
     
-    // Check if either user is already in a couple
-    const senderDoc = await db.collection('users').doc(senderUid).get();
-    const receiverDoc = await db.collection('users').doc(receiverUid).get();
-    if (senderDoc.data()?.coupleId || receiverDoc.data()?.coupleId) {
-        // Clean up the invite
-        await inviteRef.update({ status: 'rejected' });
-        throw new HttpsError('failed-precondition', 'Um dos usuários já está em um relacionamento.');
-    }
+    return db.runTransaction(async (transaction) => {
+        const inviteDoc = await transaction.get(inviteRef);
 
-    const coupleRef = db.collection("couples").doc();
-    const coupleId = coupleRef.id;
-
-    const batch = db.batch();
-    batch.set(coupleRef, { members: [senderUid, receiverUid], createdAt: Timestamp.now(), id: coupleId });
-    
-    const userRefA = db.collection('users').doc(senderUid);
-    const userRefB = db.collection('users').doc(receiverUid);
-
-    batch.update(userRefA, { coupleId, memberIds: FieldValue.arrayUnion(receiverUid) });
-    batch.update(userRefB, { coupleId, memberIds: FieldValue.arrayUnion(senderUid) });
-    
-    batch.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
-
-     // Reject other pending invites for this user
-    const otherInvitesQuery = db.collection('invites').where('sentTo', '==', receiverUid).where('status', '==', 'pending');
-    const otherInvitesSnap = await otherInvitesQuery.get();
-    otherInvitesSnap.forEach(doc => {
-        if (doc.id !== inviteId) {
-            batch.update(doc.ref, { status: 'rejected' });
+        if (!inviteDoc.exists) throw new HttpsError('not-found', 'Convite não encontrado.');
+        const inviteData = inviteDoc.data()!;
+        
+        if (inviteData.sentTo !== receiverUid || inviteData.status !== 'pending') {
+            throw new HttpsError('failed-precondition', 'Convite inválido, expirado ou não destinado a você.');
         }
-    });
-    
-    await batch.commit();
 
-    return { success: true, message: "Parabéns, vocês estão conectados!" };
+        const senderUid = inviteData.sentBy;
+        const senderRef = db.collection('users').doc(senderUid);
+        const receiverRef = db.collection('users').doc(receiverUid);
+        const senderDoc = await transaction.get(senderRef);
+        const receiverDoc = await transaction.get(receiverRef);
+
+        if (senderDoc.data()?.coupleId || receiverDoc.data()?.coupleId) {
+            transaction.update(inviteRef, { status: 'rejected' });
+            throw new HttpsError('failed-precondition', 'Um dos usuários já está em um relacionamento.');
+        }
+
+        const coupleRef = db.collection("couples").doc();
+        const coupleId = coupleRef.id;
+
+        transaction.set(coupleRef, { members: [senderUid, receiverUid], createdAt: Timestamp.now(), id: coupleId });
+        
+        transaction.update(senderRef, { coupleId, memberIds: FieldValue.arrayUnion(receiverUid) });
+        transaction.update(receiverRef, { coupleId, memberIds: FieldValue.arrayUnion(senderUid) });
+        
+        transaction.update(inviteRef, { status: 'accepted', acceptedAt: Timestamp.now() });
+
+        // Invalidate other invites for the receiver
+        const otherInvitesQuery = db.collection('invites').where('sentTo', '==', receiverUid).where('status', '==', 'pending');
+        const otherInvitesSnap = await otherInvitesQuery.get();
+        otherInvitesSnap.forEach(doc => {
+            if (doc.id !== inviteId) {
+                transaction.update(doc.ref, { status: 'rejected' });
+            }
+        });
+
+        return { success: true, message: "Parabéns, vocês estão conectados!" };
+    });
 });
 
 
@@ -810,10 +829,8 @@ export const rejectPartnerInvite = onCall(async (request) => {
     const userId = request.auth?.uid;
     if (!userId) throw new HttpsError('unauthenticated', 'User is not authenticated.');
 
-    const schema = z.object({ inviteId: z.string().min(1) });
-    const parsed = schema.safeParse(request.data);
-    if (!parsed.success) throw new HttpsError('invalid-argument', "ID do convite inválido.");
-    const { inviteId } = parsed.data;
+    const { inviteId } = request.data;
+    if (!inviteId) throw new HttpsError('invalid-argument', "ID do convite inválido.");
 
     const db = adminDb!;
     const inviteRef = db.collection('invites').doc(inviteId);
@@ -826,7 +843,6 @@ export const rejectPartnerInvite = onCall(async (request) => {
         throw new HttpsError('permission-denied', 'Você não tem permissão para modificar este convite.');
     }
     
-    // Using update to change status instead of deleting
     await inviteRef.update({ status: 'rejected' });
     
     return { success: true, message: "Convite recusado/cancelado." };
@@ -838,47 +854,52 @@ export const disconnectPartner = onCall(async (request) => {
     
     const db = adminDb!;
     const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-    const userData = userDoc.data();
-    const coupleId = userData?.coupleId;
-
-    if (!coupleId) throw new HttpsError('failed-precondition', 'Você não está em um relacionamento.');
-
-    const coupleRef = db.collection('couples').doc(coupleId);
-    const coupleDoc = await coupleRef.get();
-    if (!coupleDoc.exists) throw new HttpsError('not-found', 'Relacionamento não encontrado.');
-
-    const members = coupleDoc.data()!.members as string[];
-    const partnerId = members.find(id => id !== userId);
     
-    const batch = db.batch();
-    
-    // Remove coupleId and memberIds from the user
-    batch.update(userRef, { 
-        coupleId: FieldValue.delete(),
-        memberIds: FieldValue.arrayRemove(partnerId)
-    });
+    return db.runTransaction(async (transaction) => {
+        const userDoc = await transaction.get(userRef);
+        const userData = userDoc.data();
+        const coupleId = userData?.coupleId;
 
-    if (partnerId) {
-         // Remove coupleId and memberIds from the partner
-        batch.update(db.collection('users').doc(partnerId), { 
+        if (!coupleId) throw new HttpsError('failed-precondition', 'Você não está em um relacionamento.');
+
+        const coupleRef = db.collection('couples').doc(coupleId);
+        const coupleDoc = await transaction.get(coupleRef);
+        if (!coupleDoc.exists) {
+            // Data is inconsistent, just clean up the user doc
+            transaction.update(userRef, { coupleId: FieldValue.delete(), memberIds: [userId] });
+            return { success: true, message: "Dados do casal inconsistentes foram limpos." };
+        }
+
+        const members = coupleDoc.data()!.members as string[];
+        const partnerId = members.find(id => id !== userId);
+        
+        // Update user
+        transaction.update(userRef, { 
             coupleId: FieldValue.delete(),
-            memberIds: FieldValue.arrayRemove(userId)
-         });
-    }
+            memberIds: [userId] // Reset to just self
+        });
 
-    // Delete the couple document
-    batch.delete(coupleRef);
+        if (partnerId) {
+            // Update partner
+            const partnerRef = db.collection('users').doc(partnerId);
+             transaction.update(partnerRef, { 
+                coupleId: FieldValue.delete(),
+                memberIds: [partnerId]
+            });
+        }
 
-    await batch.commit();
+        // Delete the couple document
+        transaction.delete(coupleRef);
 
-    return { success: true, message: "Parceiro(a) desvinculado com sucesso." };
+        return { success: true, message: "Parceiro(a) desvinculado com sucesso." };
+    });
 });
     
 
     
 
     
+
 
 
 

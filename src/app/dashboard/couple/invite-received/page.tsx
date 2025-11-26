@@ -43,11 +43,7 @@ export default function InviteReceivedPage() {
                     title: 'Sucesso!',
                     description: data.message,
                 });
-                if (action === 'accept') {
-                    router.push('/dashboard');
-                } else {
-                    router.push('/dashboard/couple/invite');
-                }
+                // The store listener will automatically redirect the user
             } else {
                 throw new Error(data.error);
             }
