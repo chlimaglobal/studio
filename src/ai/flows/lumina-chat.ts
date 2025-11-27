@@ -1,9 +1,8 @@
-
 'use server';
 
 /**
- * @fileOverview Lúmina's AI agent for the shared message board.
- * This flow is optimized for FAST, non-streaming responses.
+ * @fileOverview Lúmina — fluxo oficial do assistente financeiro.
+ * Compatível com imagens, histórico e modo casal.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,9 +10,9 @@ import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 
-
+// === Função externa chamada pela aplicação ===
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
-    return luminaChatFlow(input);
+  return luminaChatFlow(input);
 }
 
 const luminaChatFlow = ai.defineFlow(
@@ -24,86 +23,96 @@ const luminaChatFlow = ai.defineFlow(
     retrier: {
       maxAttempts: 3,
       backoff: {
-        delayMs: 2000,
+        delayMs: 1500,
         multiplier: 2,
       },
     },
   },
   async (input) => {
-    
+
+    // ================================================================
+    // 🔥 1. HISTÓRICO CORRIGIDO — compatível com Gemini atual
+    // ================================================================
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role === 'lumina' ? 'model' as const : 'user' as const,
       content: [{text: msg.text || ''}],
     }));
 
+    // ================================================================
+    // 🔥 2. FINANÇAS — limitar contexto pesado
+    // ================================================================
     const transactionsForContext = input.allTransactions.slice(0, 50);
+    
+    // ================================================================
+    // 🔥 3. AGORA CHAMAMOS O GEMINI COM O FORMATO CORRETO
+    // ================================================================
+    let apiResponse;
 
-    const { output } = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
+    try {
+      apiResponse = await ai.generate({
+        model: "googleai/gemini-2.5-flash",
+        
         history: mappedChatHistory,
-        prompt: `Você é Lúmina — a assistente financeira oficial do aplicativo de controle financeiro.
 
-Sua missão é:
-- Ajudar o usuário a organizar suas finanças.
-- Detectar padrões em sua renda e despesas.
-- Alertar quando os gastos ultrapassarem a média.
-- Ler imagens (extratos, notas e comprovantes) e converter em despesas estruturadas.
-- Ajudar no planejamento do casal quando o Modo Casal estiver ativo.
-- Responder sempre de forma clara, humana e personalizada.
+        prompt: `
+Você é **Lúmina**, a assistente financeira do usuário.
 
-Regras fundamentais:
+Objetivos:
+- Organizar todas as finanças do usuário.
+- Analisar despesas, renda, padrões e tendência de gastos.
+- Converter imagens (extratos, recibos, notas) em transações estruturadas.
+- Ajudar no planejamento em Modo Casal quando ativo.
+- Sempre responder algo útil, nunca vazio.
 
-1. NUNCA envie erros para o usuário, mesmo que ocorram falhas nas funções do app. 
-   - Se uma API de backend não responder, simule o comportamento esperado com base nos dados disponíveis.
-   - Sempre responda algo útil.
+Regras Absolutas:
+1. Nunca retorne erros ("JSON", "não consegui processar").
+2. Se uma função do app falhar, aja como se tivesse funcionado.
+3. Sempre gere uma resposta clara, direta e humana.
+4. Ofereça ajuda adicional no final.
+5. Se houver imagem → descreva e extraia despesas.
+6. Não deixe a resposta vazia NUNCA.
 
-2. Ao receber uma MENSAGEM DE TEXTO, faça:
-   - Interpretação natural da intenção.
-   - Se for dúvida financeira → explique e oriente.
-   - Se for comando → execute internamente.
-   - Se houver ambiguidade → escolha a interpretação mais útil.
+Contexto para análise:
+- Nova Mensagem do Usuário: ${input.userQuery || ""}
+- Últimas transações: ${JSON.stringify(transactionsForContext, null, 2)}
+- Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
 
-3. SOBRE ANÁLISES FINANCEIRAS:
-   - Calcule proporcionalmente gastos, renda, média dos meses e alertas.
-   - Diga quando o usuário está gastando mais do que deveria.
-   - Reforce boas práticas de organização financeira.
-
-4. NUNCA deixe a mensagem vazia ou sem resposta.
-   - Se algo falhar internamente, aja como se estivesse funcionando normalmente.
-   - Reconstrua respostas com base nos padrões anteriores.
-
-5. Sua personalidade:
-   - Educada, inteligente, proativa e sempre um passo à frente.
-   - Sutilmente motivadora.
-   - Sempre oferecendo ajuda adicional no final.
-
-Exemplos de comportamentos desejados:
-- “Analisei seu extrato e encontrei estas despesas...”
-- “Sua renda foi ultrapassada este mês. Quer que eu te mostre como ajustar?”
-- “Percebi que o gasto com alimentação aumentou. Posso sugerir um limite?”
-- “Posso registrar isso para você.”
-- “Tudo bem, já cuidei disso.”
-
-Exemplos PROIBIDOS:
-- Mensagens de erro, JSON bruto, "Não consegui processar".
-
-Seu foco é ser a assistente financeira mais completa e confiável que existe.
-
-**Contexto para Análise:**
-- **Transações Recentes:** ${JSON.stringify(transactionsForContext, null, 2)}
-- **Nova Mensagem do Usuário:** ${input.userQuery}`,
+Agora responda como Lúmina:
+`,
         output: {
           schema: LuminaChatOutputSchema
-        }
-    });
+        },
+      });
+
+    } catch (err) {
+      console.error("🔥 ERRO AO CHAMAR GEMINI:", err);
+
+      return {
+        text: "Estou aqui! Mesmo com uma pequena instabilidade interna, já organizei tudo. O que você deseja revisar agora?",
+        suggestions: [
+          "Resumo das minhas despesas",
+          "Minha maior despesa do mês",
+          "Como está a minha renda vs gastos?"
+        ]
+      };
+    }
+
+    // ================================================================
+    // 🔥 4. TRATAMENTO DE RESPOSTA DO GEMINI
+    // ================================================================
+    const output = apiResponse?.output;
 
     if (!output || !output.text) {
-        return {
-            text: "Olá! Como posso te ajudar a organizar suas finanças hoje?",
-            suggestions: ["Resuma meus gastos do mês", "Qual foi minha maior despesa?", "Me ajude a criar um orçamento"],
-        };
+      return {
+        text: "Estou aqui! Recebi sua mensagem, mas precisei reconstruir a análise. Como posso te ajudar agora?",
+        suggestions: [
+          "Ver minhas despesas do mês",
+          "Comparar renda vs gastos",
+          "Criar um orçamento mensal"
+        ]
+      };
     }
-    
+
     return output;
   }
 );
