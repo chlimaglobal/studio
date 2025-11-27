@@ -131,20 +131,6 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
-const DiagnosticCard = ({ diagnostic }: { diagnostic: any }) => {
-    return (
-        <Alert variant="destructive" className="max-w-[88%] self-start break-words w-fit my-2">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Erro de Diagnóstico da Lúmina</AlertTitle>
-            <AlertDescription className="space-y-1 text-xs">
-                <p><strong>Etapa:</strong> {diagnostic.etapa}</p>
-                <p><strong>Causa:</strong> {diagnostic.causa}</p>
-                <p><strong>Solução:</strong> {diagnostic.solucao}</p>
-            </AlertDescription>
-        </Alert>
-    );
-};
-
 export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
@@ -194,7 +180,7 @@ export default function LuminaPage() {
     }, [setHasUnread]);
 
     const saveMessage = useCallback(async (newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm && !(newMessage as any).status)) return;
+        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm)) return;
 
         const messageWithAuthor = {
             ...newMessage,
@@ -222,11 +208,6 @@ export default function LuminaPage() {
             text: msg.text || ''
         }));
         
-        let luminaResponseData: z.infer<typeof LuminaChatOutputSchema> = {
-            text: "Desculpe, não consegui processar a informação agora. Podemos tentar mais tarde?",
-            suggestions: []
-        };
-
         try {
             let result;
             if (viewMode === 'together' && partner) {
@@ -249,7 +230,6 @@ export default function LuminaPage() {
 
             await saveMessage({
               role: 'lumina',
-              // @ts-ignore
               ...result,
               authorName: 'Lúmina', 
               authorPhotoUrl: '/lumina-avatar.png'
@@ -526,7 +506,6 @@ ${res.actionNow}
                             {messages.map((msg, index) => {
                                 const isCurrentUser = msg.authorId === user?.uid;
                                 const isLumina = msg.role === 'lumina';
-                                const isDiagnostic = (msg as any).status === 'erro';
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isCurrentUser ? 'justify-end' : 'justify-start')}>
@@ -545,17 +524,15 @@ ${res.actionNow}
                                         </Avatar>
                                     )}
                                     <div className={cn('flex flex-col', isCurrentUser ? 'items-end' : 'items-start')}>
-                                         {!isDiagnostic && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>}
+                                         <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>
                                         
-                                        {isDiagnostic ? (
-                                            <DiagnosticCard diagnostic={msg} />
-                                        ) : msg.text ? (
+                                        {msg.text && (
                                              <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] w-fit break-words',
                                                 isCurrentUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
-                                        ) : null}
+                                        )}
 
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
