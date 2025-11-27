@@ -30,8 +30,8 @@ const luminaChatFlow = ai.defineFlow(
       { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
       { role: 'model', content: [{ text: 'Entendido. Estou pronta para ajudar.' }] },
       ...input.chatHistory.map((msg) => ({
-        role: msg.role,
-        content: [{ text: msg.text }],
+        role: msg.role === 'user' ? 'user' : 'model',
+        content: [{ text: msg.text || '' }],
       })),
     ] as any[];
 
