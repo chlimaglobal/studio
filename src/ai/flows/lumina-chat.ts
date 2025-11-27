@@ -35,26 +35,12 @@ const luminaChatFlow = ai.defineFlow(
     // ================================================================
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
-      content: [
-          { text: msg.text || '' }
-      ]
+      content: [{ text: msg.text || '' }]
     }));
 
     const transactionsForContext = input.allTransactions.slice(0, 30);
 
-    // ================================================================
-    // 🔥 2. CHAMADA PARA O GEMINI
-    // ================================================================
-    let apiResponse;
-
-    try {
-      const model = ai.getmodel("googleai/gemini-2.5-flash");
-      
-      const history = [
-        ...mappedChatHistory,
-      ]
-
-      const prompt = `Você é Lúmina, uma assistente financeira. Analise a query do usuário e o histórico de transações para fornecer uma resposta útil e sugestões.
+    const promptText = `Você é Lúmina, uma assistente financeira. Analise a query do usuário e o histórico de transações para fornecer uma resposta útil e sugestões.
       
       Transações: ${JSON.stringify(transactionsForContext, null, 2)}
       Query: ${input.userQuery || ""}
@@ -62,10 +48,18 @@ const luminaChatFlow = ai.defineFlow(
       Áudio Transcrito: ${input.audioText || 'N/A'}
       `;
 
+    // ================================================================
+    // 🔥 2. CHAMADA PARA O GEMINI
+    // ================================================================
+    let apiResponse;
+
+    try {
+      const model = ai.getModel("googleai/gemini-2.5-flash");
+      
       apiResponse = await ai.generate({
         model,
-        prompt: prompt,
-        history,
+        prompt: promptText,
+        history: mappedChatHistory,
         attachments: input.imageBase64 ? [{ data: input.imageBase64, mimeType: 'image/jpeg' }] : undefined,
         output: {
           schema: LuminaChatOutputSchema,
