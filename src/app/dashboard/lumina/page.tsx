@@ -7,25 +7,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
-import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import type { ChatMessage, ExtractedTransaction, LuminaChatInput, LuminaCoupleChatInput } from '@/lib/types';
+import type { ChatMessage, ExtractedTransaction, LuminaCoupleChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from '@/lib/storage';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency, fileToBase64 } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { extractFromImage } from '@/ai/flows/extract-from-image';
 import { z } from 'zod';
 import { TransactionFormSchema } from '@/lib/types';
 import { QrScannerDialog } from '@/components/qr-scanner-dialog';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
-import { generateCoupleSuggestion } from '@/ai/flows/lumina-couple-chat';
 import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Image from 'next/image';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -132,6 +131,49 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
+// Wrapper to avoid build errors with new API
+async function sendMessageToLumina(payload: {
+  text?: string;
+  imageFile?: File | null;
+  chatHistory: any[];
+  allTransactions: any[];
+  isCoupleMode?: boolean;
+}) {
+  let imageBase64 = null;
+  if (payload.imageFile) {
+    imageBase64 = await fileToBase64(payload.imageFile);
+  }
+
+  const body = {
+    userQuery: payload.text || "",
+    imageBase64,
+    chatHistory: payload.chatHistory,
+    allTransactions: payload.allTransactions,
+    isCoupleMode: !!payload.isCoupleMode,
+  };
+
+  const res = await fetch('/api/lumina/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    console.error("API Error:", await res.text());
+    return {
+      text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
+      suggestions: [
+        "Resumo das minhas despesas",
+        "Analisar minhas finanças",
+        "Criar um orçamento"
+      ]
+    };
+  }
+
+  return res.json();
+}
+
+
 export default function LuminaPage() {
     const router = useRouter();
     const { user } = useAuth();
@@ -142,6 +184,9 @@ export default function LuminaPage() {
 
 
     const [message, setMessage] = useState('');
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
@@ -198,10 +243,12 @@ export default function LuminaPage() {
 
         if (newMessage.role === 'user') {
             setMessage('');
+            setImageFile(null);
+            setImagePreview(null);
         }
     }, [user, viewMode, coupleLink]);
 
-    const callLumina = useCallback(async (currentQuery: string) => {
+    const callLumina = useCallback(async (currentQuery: string, imageFile: File | null) => {
         setIsLuminaThinking(true);
         
         const chatHistoryForLumina = messages.slice(-10).map(msg => ({
@@ -211,24 +258,13 @@ export default function LuminaPage() {
         }));
         
         try {
-            let result;
-            if (viewMode === 'together' && partner && user) {
-                const luminaInput: LuminaCoupleChatInput = {
-                    chatHistory: chatHistoryForLumina,
-                    userQuery: currentQuery,
-                    allTransactions: transactions,
-                    user: { displayName: user.displayName || 'Você', uid: user.uid },
-                    partner: { displayName: partner.displayName || 'Parceiro(a)', uid: partner.uid },
-                };
-                result = await generateCoupleSuggestion(luminaInput);
-            } else {
-                 const luminaInput: LuminaChatInput = {
-                    chatHistory: chatHistoryForLumina,
-                    userQuery: currentQuery,
-                    allTransactions: transactions,
-                };
-                result = await generateSuggestion(luminaInput);
-            }
+            const result = await sendMessageToLumina({
+                text: currentQuery,
+                imageFile,
+                chatHistory: chatHistoryForLumina,
+                allTransactions: transactions,
+                isCoupleMode: viewMode === 'together' && !!partner,
+            });
 
             await saveMessage({
               role: 'lumina',
@@ -250,15 +286,23 @@ export default function LuminaPage() {
         } finally {
             setIsLuminaThinking(false);
         }
-    }, [messages, viewMode, partner, user, transactions, saveMessage]);
+    }, [messages, viewMode, partner, transactions, saveMessage]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         const currentMessage = message.trim();
-        if (!currentMessage) return;
+        if (!currentMessage && !imageFile) return;
 
+        // Save the user's message first
         await saveMessage({ role: 'user', text: currentMessage });
-        
+
+        // If there's an image, let callLumina handle it
+        if (imageFile) {
+            await callLumina(currentMessage, imageFile);
+            return;
+        }
+
+        // If it's just text, check for special commands/extractions
         try {
             const extractedResult = await extractTransactionInfoFromText(currentMessage);
             
@@ -277,14 +321,15 @@ export default function LuminaPage() {
                 } else if (lowerCaseMessage === "lúmina, modo flash") {
                     await handleRecoveryProtocol('flash');
                 } else {
-                    await callLumina(currentMessage);
+                    await callLumina(currentMessage, null);
                 }
             }
         } catch (error) {
             console.error("Error handling message:", error);
-            await callLumina(currentMessage);
+            await callLumina(currentMessage, null); // Fallback to normal chat
         }
     };
+
 
     const handleRecoveryProtocol = async (type: 'full' | 'flash') => {
         setIsLuminaThinking(true);
@@ -389,28 +434,11 @@ ${res.actionNow}
         }
     };
     
-    const handleImageProcessing = async (imageDataUri: string) => {
-        setIsLuminaThinking(true);
-        try {
-            const result = await extractFromImage({ imageDataUri });
-            await saveMessage({role: 'lumina', text: 'Analisei a imagem.', authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png', transactionToConfirm: result});
-        } catch (error) {
-            const errorMessage = "Desculpe, não consegui extrair nenhuma informação útil desta imagem. Por favor, tente uma foto mais nítida de um comprovante ou anotação.";
-            await saveMessage({role: 'lumina', text: errorMessage, authorName: 'Lúmina', authorPhotoUrl: '/lumina-avatar.png'});
-        } finally {
-            setIsLuminaThinking(false);
-        }
-    };
-
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const imageDataUri = e.target?.result as string;
-                await handleImageProcessing(imageDataUri);
-            };
-            reader.readAsDataURL(file);
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
         }
         event.target.value = ''; // Reset file input
     };
@@ -579,42 +607,58 @@ ${res.actionNow}
                         <div ref={messagesEndRef} />
                     </ScrollArea>
                     <div className="p-4 border-t bg-background">
-                         <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                             {isRecording ? (
-                                <AudioRecordingUI onStop={handleAudioRecording} onCancel={cancelRecording} />
-                             ) : (
-                                <>
-                                    <Input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        className="hidden" 
-                                        accept="image/*"
-                                        onChange={handleFileChange}
-                                    />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaThinking}>
-                                        <Paperclip className="h-5 w-5"/>
+                         <form onSubmit={handleSendMessage} className="space-y-2">
+                             {imagePreview && (
+                                <div className="relative w-24 h-24">
+                                    <Image src={imagePreview} alt="Preview" layout="fill" className="rounded-md object-cover" />
+                                     <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                                        onClick={() => { setImageFile(null); setImagePreview(null); }}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
-                                     <Button type="button" variant="ghost" size="icon" onClick={() => setIsQrScannerOpen(true)} disabled={isLuminaThinking}>
-                                        <Camera className="h-5 w-5" />
-                                    </Button>
-                                    <Input 
-                                        placeholder="Digite sua mensagem..." 
-                                        className="flex-1"
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        disabled={isLuminaThinking}
-                                    />
-                                    {message.trim() ? (
-                                        <Button type="submit" size="icon" disabled={isLuminaThinking}>
-                                            <Send className="h-5 w-5"/>
-                                        </Button>
-                                    ) : (
-                                        <Button type="button" variant="ghost" size="icon" onClick={handleAudioRecording} disabled={isLuminaThinking}>
-                                            <Mic className="h-5 w-5"/>
-                                        </Button>
-                                    )}
-                                </>
+                                </div>
                              )}
+                             <div className="flex items-center gap-2">
+                                 {isRecording ? (
+                                    <AudioRecordingUI onStop={handleAudioRecording} onCancel={cancelRecording} />
+                                 ) : (
+                                    <>
+                                        <Input 
+                                            type="file" 
+                                            ref={fileInputRef} 
+                                            className="hidden" 
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                        />
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaThinking}>
+                                            <Paperclip className="h-5 w-5"/>
+                                        </Button>
+                                         <Button type="button" variant="ghost" size="icon" onClick={() => setIsQrScannerOpen(true)} disabled={isLuminaThinking}>
+                                            <Camera className="h-5 w-5" />
+                                        </Button>
+                                        <Input 
+                                            placeholder="Digite sua mensagem ou anexe uma imagem..." 
+                                            className="flex-1"
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            disabled={isLuminaThinking}
+                                        />
+                                        {message.trim() || imageFile ? (
+                                            <Button type="submit" size="icon" disabled={isLuminaThinking}>
+                                                <Send className="h-5 w-5"/>
+                                            </Button>
+                                        ) : (
+                                            <Button type="button" variant="ghost" size="icon" onClick={handleAudioRecording} disabled={isLuminaThinking}>
+                                                <Mic className="h-5 w-5"/>
+                                            </Button>
+                                        )}
+                                    </>
+                                 )}
+                             </div>
                         </form>
                     </div>
                 </div>

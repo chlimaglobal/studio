@@ -267,6 +267,8 @@ export const LuminaChatInputSchema = z.object({
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
+  imageBase64: z.string().optional().nullable(),
+  isCoupleMode: z.boolean().optional(),
 });
 export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 

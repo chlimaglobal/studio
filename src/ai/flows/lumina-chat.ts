@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -30,31 +31,15 @@ const luminaChatFlow = ai.defineFlow(
   },
   async (input) => {
 
-    // ================================================================
-    // 🔥 1. HISTÓRICO CORRIGIDO — compatível com Gemini atual
-    // ================================================================
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role === 'lumina' ? 'model' as const : 'user' as const,
       content: [{text: msg.text || ''}],
     }));
 
-    // ================================================================
-    // 🔥 2. FINANÇAS — limitar contexto pesado
-    // ================================================================
     const transactionsForContext = input.allTransactions.slice(0, 50);
     
-    // ================================================================
-    // 🔥 3. AGORA CHAMAMOS O GEMINI COM O FORMATO CORRETO
-    // ================================================================
-    let apiResponse;
-
-    try {
-      apiResponse = await ai.generate({
-        model: "googleai/gemini-2.5-flash",
-        
-        history: mappedChatHistory,
-
-        prompt: `
+    let promptContent: any[] = [{
+      text: `
 Você é **Lúmina**, a assistente financeira do usuário.
 
 Objetivos:
@@ -77,8 +62,23 @@ Contexto para análise:
 - Últimas transações: ${JSON.stringify(transactionsForContext, null, 2)}
 - Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
 
-Agora responda como Lúmina:
-`,
+Agora responda como Lúmina:`
+    }];
+
+    if (input.imageBase64) {
+      promptContent.push({ media: { url: input.imageBase64 } });
+    }
+    
+    let apiResponse;
+
+    try {
+      apiResponse = await ai.generate({
+        model: "googleai/gemini-2.5-flash",
+        
+        history: mappedChatHistory,
+
+        prompt: promptContent,
+
         output: {
           schema: LuminaChatOutputSchema
         },
@@ -97,9 +97,6 @@ Agora responda como Lúmina:
       };
     }
 
-    // ================================================================
-    // 🔥 4. TRATAMENTO DE RESPOSTA DO GEMINI
-    // ================================================================
     const output = apiResponse?.output;
 
     if (!output || !output.text) {

@@ -71,3 +71,15 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
     // which is expected behavior for a moving average.
     return totalEssentialExpenses > 0 ? totalEssentialExpenses / 3 : 0;
 }
+
+
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+
+    reader.readAsDataURL(file);
+  });
+}
