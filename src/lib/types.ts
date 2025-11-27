@@ -1,4 +1,5 @@
 
+
 import { z } from "zod";
 
 export const categoryData = {
@@ -259,9 +260,10 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
 };
 
 export const LuminaChatInputSchema = z.object({
-  chatHistory: z.array(z.object({ // Can't use ChatMessageSchema because of the Date object
+  chatHistory: z.array(z.object({
     role: z.enum(['user', 'model']),
     text: z.string(),
+    timestamp: z.string(),
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
@@ -289,11 +291,18 @@ export const LuminaCoupleChatInputSchema = z.object({
   chatHistory: z.array(z.object({
     role: z.enum(['user', 'model']),
     text: z.string(),
+    timestamp: z.string(),
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
-  user: z.custom<AppUser>().describe('The user object of the person sending the message.'),
-  partner: z.custom<AppUser>().describe('The user object of the partner.'),
+  user: z.object({
+      displayName: z.string(),
+      uid: z.string(),
+  }).describe('The user object of the person sending the message.'),
+  partner: z.object({
+      displayName: z.string(),
+      uid: z.string(),
+  }).describe('The user object of the partner.'),
 });
 export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
-import type { ChatMessage, ExtractedTransaction } from '@/lib/types';
+import type { ChatMessage, ExtractedTransaction, LuminaChatInput, LuminaCoupleChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from '@/lib/storage';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -205,13 +206,14 @@ export default function LuminaPage() {
         
         const chatHistoryForLumina = messages.slice(-10).map(msg => ({
             role: msg.role === 'lumina' ? 'model' as const : 'user' as const,
-            text: msg.text || ''
+            text: msg.text || '',
+            timestamp: msg.timestamp.toISOString(),
         }));
         
         try {
             let result;
             if (viewMode === 'together' && partner && user) {
-                const luminaInput = {
+                const luminaInput: LuminaCoupleChatInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
@@ -220,7 +222,7 @@ export default function LuminaPage() {
                 };
                 result = await generateCoupleSuggestion(luminaInput);
             } else {
-                 const luminaInput = {
+                 const luminaInput: LuminaChatInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
@@ -230,7 +232,8 @@ export default function LuminaPage() {
 
             await saveMessage({
               role: 'lumina',
-              ...result,
+              text: result.text,
+              suggestions: result.suggestions,
               authorName: 'Lúmina', 
               authorPhotoUrl: '/lumina-avatar.png'
             });
