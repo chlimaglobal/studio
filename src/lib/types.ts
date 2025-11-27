@@ -266,6 +266,7 @@ export const LuminaChatInputSchema = z.object({
     timestamp: z.string(),
   })).describe('The recent history of the conversation.'),
   userQuery: z.string().describe('The new message from the user.'),
+  audioText: z.string().optional().describe('The transcribed text from an audio message.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
   imageBase64: z.string().optional().nullable(),
   isCoupleMode: z.boolean().optional(),
@@ -337,6 +338,7 @@ export type UserStatus = {
     ultimoMesChecado?: string; // format MM/yy
     mesAlertadoRenda?: string; // format YYYY-MM
     mesAlertadoCasal?: string; // format YYYY-MM
+    isDependent?: boolean;
 };
 
 
