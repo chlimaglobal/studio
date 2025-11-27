@@ -1,17 +1,12 @@
 
 'use server';
 
-/**
- * @fileOverview Lúmina — fluxo oficial do assistente financeiro.
- * Compatível com imagens, histórico e modo casal.
- */
-
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { LUMINA_BASE_PROMPT } from '../lumina/prompt/luminaBasePrompt';
 
-// === Função externa chamada pela aplicação ===
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
   return luminaChatFlow(input);
 }
@@ -30,72 +25,56 @@ const luminaChatFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    // ================================================================
-    // 🔥 1. PREPARAÇÃO DOS DADOS DE ENTRADA
-    // ================================================================
-    const mappedChatHistory = input.chatHistory.map(msg => ({
-      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
-      content: [{ text: msg.text || '' }]
-    }));
+    // 1. Prepare history
+    const history = [
+      { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
+      { role: 'model', content: [{ text: 'Entendido. Estou pronta para ajudar.' }] },
+      ...input.chatHistory.map((msg) => ({
+        role: msg.role,
+        content: [{ text: msg.text }],
+      })),
+    ] as any[];
 
+    // 2. Prepare the full prompt text with all context
     const transactionsForContext = input.allTransactions.slice(0, 30);
+    const fullPrompt = `
+      - Transações Recentes (para contexto): ${JSON.stringify(transactionsForContext, null, 2)}
+      - Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}
+      - Mensagem do Usuário: "${input.userQuery || ''}"
+      - Áudio Transcrito (se houver): "${input.audioText || 'N/A'}"
+    `;
 
-    const promptText = `Você é Lúmina, uma assistente financeira. Analise a query do usuário e o histórico de transações para fornecer uma resposta útil e sugestões.
-      
-      Transações: ${JSON.stringify(transactionsForContext, null, 2)}
-      Query: ${input.userQuery || ""}
-      Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
-      Áudio Transcrito: ${input.audioText || 'N/A'}
-      `;
-
-    // ================================================================
-    // 🔥 2. CHAMADA PARA O GEMINI
-    // ================================================================
-    let apiResponse;
-
+    // 3. Call Gemini
     try {
-      const model = ai.getModel("googleai/gemini-2.5-flash");
+      const model = 'googleai/gemini-2.5-flash';
       
-      apiResponse = await ai.generate({
+      const { output } = await ai.generate({
         model,
-        prompt: promptText,
-        history: mappedChatHistory,
-        attachments: input.imageBase64 ? [{ data: input.imageBase64, mimeType: 'image/jpeg' }] : undefined,
+        prompt: fullPrompt,
+        history,
         output: {
           schema: LuminaChatOutputSchema,
         },
+        attachments: input.imageBase64 ? [{ data: input.imageBase64 }] : undefined,
       });
 
+      if (!output || !output.text) {
+        throw new Error('A Lúmina não retornou uma resposta válida.');
+      }
+
+      return output;
 
     } catch (err) {
-      console.error("🔥 ERRO AO CHAMAR GEMINI:", err);
-      // Fallback de erro
+      console.error('🔥 ERRO AO CHAMAR GEMINI:', err);
+      // Fallback de erro para garantir que sempre haja uma resposta
       return {
-        text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
+        text: 'Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?',
         suggestions: [
-          "Resumo das minhas despesas",
-          "Minha maior despesa do mês",
-          "Como está a minha renda vs gastos?"
-        ]
+          'Resumo das minhas despesas',
+          'Minha maior despesa do mês',
+          'Como está a minha renda vs gastos?',
+        ],
       };
     }
-    
-    // ================================================================
-    // 🔥 3. TRATAMENTO DA RESPOSTA
-    // ================================================================
-    const output = apiResponse?.output;
-
-    if (!output || !output.text) {
-      return {
-        text: "Estou aqui! Recebi sua mensagem, mas precisei reconstruir a análise. Como posso te ajudar agora?",
-        suggestions: [
-          "Ver minhas despesas do mês",
-          "Comparar renda vs gastos",
-          "Criar um orçamento mensal"
-        ]
-      };
-    }
-
-    return output;
   }
 );
