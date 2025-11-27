@@ -66,7 +66,7 @@ const luminaChatFlow = ai.defineFlow(
           schema: LuminaChatOutputSchema,
         },
         attachments: input.imageBase64
-          ? [ { data: input.imageBase64 } ]
+          ? [ { data: input.imageBase64, mimeType: 'image/jpeg' } ] // Adicionado mimeType
           : undefined,
       });
 
