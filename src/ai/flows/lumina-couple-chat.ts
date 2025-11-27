@@ -32,9 +32,20 @@ const luminaCoupleChatFlow = ai.defineFlow(
   },
   async (input) => {
     
+    const history = [
+        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
+        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar o casal." }] },
+        ...input.chatHistory.map(msg => ({
+          role: msg.role === 'lumina' ? 'model' : 'user',
+          content: [
+              { text: msg.text || '' }
+          ]
+        }))
+    ] as any[];
+
     const transactionsForContext = input.allTransactions.slice(0, 50);
 
-    const prompt_context = `
+    const fullPrompt = `
       - User: ${input.user.displayName} (ID: ${input.user.uid})
       - Partner: ${input.partner.displayName} (ID: ${input.partner.uid})
       - Transações: ${JSON.stringify(transactionsForContext, null, 2)}
@@ -43,31 +54,21 @@ const luminaCoupleChatFlow = ai.defineFlow(
       - Áudio Transcrito: ${input.audioText || 'N/A'}
     `;
 
-    const mappedChatHistory = input.chatHistory.map(msg => ({
-      role: msg.role === 'lumina' ? 'model' : 'user',
-      content: [
-          { text: msg.text || '' }
-      ]
-    }));
-    
-    let apiResponse;
     try {
-        const model = ai.getmodel("googleai/gemini-2.5-flash");
-        
-        const history = [
-            { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
-            { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar o casal." }] },
-            ...mappedChatHistory
-        ];
-        
-        apiResponse = await ai.generate({
-            model,
-            prompt: input.userQuery || '',
+        const { output } = await ai.generate({
+            model: 'googleai/gemini-2.5-flash',
+            prompt: fullPrompt,
             history,
             output: {
                 schema: LuminaChatOutputSchema,
             },
         });
+
+      if (!output || !output.text) {
+        throw new Error("A Lúmina não retornou uma resposta válida para o casal.");
+      }
+      
+      return output;
 
     } catch (err) {
       console.error("🔥 ERRO AO CHAMAR GEMINI (COUPLE):", err);
@@ -80,20 +81,5 @@ const luminaCoupleChatFlow = ai.defineFlow(
         ]
       };
     }
-    
-    const output = apiResponse?.output;
-
-    if (!output || !output.text) {
-      return {
-        text: "Recebi a mensagem de vocês, mas precisei de um momento para recalcular nossa análise. Como posso ajudar agora?",
-        suggestions: [
-          "Ver despesas compartilhadas",
-          "Analisar gastos individuais",
-          "Como podemos economizar juntos?"
-        ]
-      };
-    }
-
-    return output;
   }
 );
