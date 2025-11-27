@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import { generateSuggestion } from '@/ai/lumina/flows/lumina-chat-flow';
 import type { LuminaChatInput } from '@/lib/types';
 
 export async function POST(req: Request) {
