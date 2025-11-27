@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -239,7 +238,7 @@ export default function LuminaPage() {
             console.error("Error with Lumina suggestion:", error);
             await saveMessage({
                 role: 'lumina',
-                text: "Desculpe, não consegui gerar uma resposta. Tente novamente.",
+                text: "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?",
                 authorName: 'Lúmina',
                 authorPhotoUrl: '/lumina-avatar.png',
                 suggestions: []
@@ -460,15 +459,17 @@ ${res.actionNow}
     }
 
     const getAuthorAvatar = (msg: ChatMessage) => {
+        if (msg.role === 'lumina') return '/lumina-avatar.png';
         if (msg.authorId === user?.uid) return user.photoURL;
         if (partner && msg.authorId === partner.uid) return partner.photoURL;
-        return msg.authorPhotoUrl;
+        return msg.authorPhotoUrl; // Fallback
     }
     
     const getAuthorFallback = (msg: ChatMessage) => {
-         if (msg.authorId === user?.uid) return user.displayName?.charAt(0).toUpperCase() || 'U';
-         if (partner && msg.authorId === partner.uid) return partner.displayName?.charAt(0).toUpperCase() || 'P';
-         return msg.authorName?.charAt(0).toUpperCase() || 'L';
+         if (msg.role === 'lumina') return 'L';
+         if (msg.authorId === user?.uid) return user?.displayName?.charAt(0).toUpperCase() || 'U';
+         if (partner && msg.authorId === partner.uid) return partner?.displayName?.charAt(0).toUpperCase() || 'P';
+         return msg.authorName?.charAt(0).toUpperCase() || '?';
     }
 
     if (isSubscriptionLoading) {
