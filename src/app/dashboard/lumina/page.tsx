@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import Link from 'next/link';
 import type { ChatMessage, ExtractedTransaction, LuminaCoupleChatInput } from '@/lib/types';
 import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from '@/lib/storage';
-import { cn, formatCurrency, fileToBase64 } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { extractFromImage } from '@/ai/flows/extract-from-image';
 import { z } from 'zod';
@@ -131,48 +131,14 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
-// Wrapper to avoid build errors with new API
-async function sendMessageToLumina(payload: {
-  text?: string;
-  imageFile?: File | null;
-  chatHistory: any[];
-  allTransactions: any[];
-  isCoupleMode?: boolean;
-}) {
-  let imageBase64 = null;
-  if (payload.imageFile) {
-    imageBase64 = await fileToBase64(payload.imageFile);
-  }
-
-  const body = {
-    userQuery: payload.text || "",
-    imageBase64,
-    chatHistory: payload.chatHistory,
-    allTransactions: payload.allTransactions,
-    isCoupleMode: !!payload.isCoupleMode,
-  };
-
-  const res = await fetch('/api/lumina/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    console.error("API Error:", await res.text());
-    return {
-      text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
-      suggestions: [
-        "Resumo das minhas despesas",
-        "Analisar minhas finanças",
-        "Criar um orçamento"
-      ]
-    };
-  }
-
-  return res.json();
+function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
 }
-
 
 export default function LuminaPage() {
     const router = useRouter();
@@ -258,13 +224,30 @@ export default function LuminaPage() {
         }));
         
         try {
-            const result = await sendMessageToLumina({
-                text: currentQuery,
-                imageFile,
+            let imageBase64: string | null = null;
+            if (imageFile) {
+                imageBase64 = await fileToBase64(imageFile);
+            }
+
+            const body = {
+                userQuery: currentQuery,
+                imageBase64,
                 chatHistory: chatHistoryForLumina,
                 allTransactions: transactions,
                 isCoupleMode: viewMode === 'together' && !!partner,
+            };
+
+            const res = await fetch('/api/lumina/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             });
+
+            if (!res.ok) {
+                 throw new Error(`API Error: ${res.statusText}`);
+            }
+
+            const result = await res.json();
 
             await saveMessage({
               role: 'lumina',
