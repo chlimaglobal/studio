@@ -10,6 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 
 // === Função externa chamada pela aplicação ===
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
@@ -34,13 +35,20 @@ const luminaChatFlow = ai.defineFlow(
     // 🔥 1. PREPARAÇÃO DOS DADOS DE ENTRADA
     // ================================================================
     const mappedChatHistory = input.chatHistory.map(msg => ({
-      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
+      role: msg.role === 'lumina' ? 'model' : 'user',
       content: [
           { text: msg.text || '' }
       ]
     }));
 
     const transactionsForContext = input.allTransactions.slice(0, 30);
+
+    const prompt_context = `
+      - Transações: ${JSON.stringify(transactionsForContext, null, 2)}
+      - Query: ${input.userQuery || ""}
+      - Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
+      - Áudio Transcrito: ${input.audioText || 'N/A'}
+    `;
 
     // ================================================================
     // 🔥 2. CHAMADA PARA O GEMINI
@@ -51,22 +59,20 @@ const luminaChatFlow = ai.defineFlow(
       const model = ai.getmodel("googleai/gemini-2.5-flash");
       
       const history = [
+        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
+        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar." }] },
         ...mappedChatHistory,
       ]
 
-      const prompt = `Você é Lúmina, uma assistente financeira. Analise a query do usuário e o histórico de transações para fornecer uma resposta útil e sugestões.
-      
-      Transações: ${JSON.stringify(transactionsForContext, null, 2)}
-      Query: ${input.userQuery || ""}
-      Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
-      Áudio Transcrito: ${input.audioText || 'N/A'}
-      `;
-
       apiResponse = await ai.generate({
         model,
-        prompt: prompt,
+        prompt: input.userQuery || '',
         history,
-        attachments: input.imageBase64 ? [{ data: input.imageBase64, mimeType: 'image/jpeg' }] : undefined,
+        attachments: input.imageBase64
+          ? [ {
+                data: input.imageBase64,
+             } ]
+          : undefined,
         output: {
           schema: LuminaChatOutputSchema,
         },
