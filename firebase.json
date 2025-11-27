@@ -1,8 +1,8 @@
 {
   "hosting": {
-    "source": ".",
-    "apphosting": {
-      "backendId": "nextn"
-    }
+    "source": "app"
+  },
+  "apphosting": {
+    "backend": "nextjs"
   }
 }
