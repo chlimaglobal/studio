@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -199,7 +200,7 @@ export default function LuminaPage() {
         }
     }, [user, viewMode, coupleLink]);
 
-    const callLumina = async (currentQuery: string) => {
+    const callLumina = useCallback(async (currentQuery: string) => {
         setIsLuminaThinking(true);
         
         const chatHistoryForLumina = messages.slice(-10).map(msg => ({
@@ -209,13 +210,13 @@ export default function LuminaPage() {
         
         try {
             let result;
-            if (viewMode === 'together' && partner) {
+            if (viewMode === 'together' && partner && user) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
-                    user: { displayName: user?.displayName || '', uid: user?.uid || '' },
-                    partner: { displayName: partner?.displayName || '', uid: partner?.uid || ''},
+                    user: { displayName: user.displayName || 'Você', uid: user.uid },
+                    partner: { displayName: partner.displayName || 'Parceiro(a)', uid: partner.uid },
                 };
                 result = await generateCoupleSuggestion(luminaInput);
             } else {
@@ -246,7 +247,7 @@ export default function LuminaPage() {
         } finally {
             setIsLuminaThinking(false);
         }
-    }
+    }, [messages, viewMode, partner, user, transactions, saveMessage]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -255,7 +256,6 @@ export default function LuminaPage() {
 
         await saveMessage({ role: 'user', text: currentMessage });
         
-        setIsLuminaThinking(true);
         try {
             const extractedResult = await extractTransactionInfoFromText(currentMessage);
             
@@ -280,8 +280,6 @@ export default function LuminaPage() {
         } catch (error) {
             console.error("Error handling message:", error);
             await callLumina(currentMessage);
-        } finally {
-             setIsLuminaThinking(false);
         }
     };
 
@@ -494,7 +492,7 @@ ${res.actionNow}
                 </div>
                 <div>
                     <h1 className="text-xl font-semibold flex items-center gap-2">
-                        Mural do Casal
+                        Mural de Conversa
                     </h1>
                     <p className="text-sm text-muted-foreground">Converse sobre finanças e receba dicas da Lúmina.</p>
                 </div>

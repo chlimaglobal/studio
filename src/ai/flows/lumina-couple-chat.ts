@@ -12,7 +12,7 @@ import type { LuminaChatOutput } from '@/lib/types';
 import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema, DiagnosticSchema, type LuminaCoupleChatInput } from '@/lib/types';
 
 
-export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<LúminaChatOutput> {
+export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<LuminaChatOutput> {
   return luminaCoupleChatFlow(input);
 }
 
