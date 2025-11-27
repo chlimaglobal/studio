@@ -27,47 +27,20 @@ const prompt = ai.definePrompt({
   input: { schema: ExtractTransactionInputSchema },
   output: { schema: ExtractTransactionOutputSchema },
   model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto de linguagem natural para extrair detalhes de transações.
-  Sua tarefa é analisar o texto do usuário e extrair a descrição, o valor, o tipo de transação (receita ou despesa) e se é um pagamento parcelado.
-  A descrição deve ser um resumo curto e objetivo do que foi a transação.
-  O valor deve ser um número. Interprete valores como "cento e cinquenta e 75" como 150.75. **SEMPRE** interprete "vírgula" ou "e" como um separador decimal quando apropriado para a moeda.
-  Se o usuário mencionar "parcelado", "vezes", "x" (ex: 10x de...), "parcelas", identifique como 'installments' em 'paymentMethod' e extraia o número de parcelas. O valor da transação deve ser o VALOR TOTAL da compra, não o valor da parcela.
+  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
-  - Se o usuário disser "gastei", "comprei", "paguei", "despesa", "conta de", etc., o tipo é 'expense'.
-  - Se o usuário disser "recebi", "ganhei", "vendi", "receita", "salário", etc., o tipo é 'income'.
-  - Se mencionar serviços como Netflix, Spotify, Amazon Prime, o tipo é 'expense' e a categoria é 'Streamings'.
+  **Sua Missão:**
+  1.  **Extraia os Dados:** Analise o texto para obter: descrição, valor, tipo e parcelamento.
+  2.  **Seja Resiliente:** Se um dado estiver faltando, infira o valor mais lógico.
+      -   Se o valor não for mencionado, extraia a descrição e defina o valor como 0.
+      -   Se o tipo não for claro, assuma 'expense' (despesa).
+  3.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão.
+  4.  **Cálculo de Parcelas:** Se o usuário mencionar "em 10 vezes", "10x", etc., o valor deve ser o TOTAL da compra, 'paymentMethod' é 'installments' e 'installments' é "10".
 
   **Exemplos:**
-
-  1.  **Texto do Usuário:** "gastei 25 reais no almoço de hoje"
-      **Saída Esperada:** { "description": "Almoço", "amount": 25, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
-
-  2.  **Texto do Usuário:** "recebi 500 de comissão"
-      **Saída Esperada:** { "description": "Comissão", "amount": 500, "type": "income", "category": "Comissão", "paymentMethod": "one-time" }
-      
-  3.  **Texto do Usuário:** "Comprei um celular novo por 3 mil reais em 10 vezes"
-      **Saída Esperada:** { "description": "Celular novo", "amount": 3000, "type": "expense", "category": "Compras", "paymentMethod": "installments", "installments": "10" }
-
-  4.  **Texto do Usuário:** "pagamento da fatura do cartão 1200"
-      **Saída Esperada:** { "description": "Pagamento da fatura do cartão", "amount": 1200, "type": "expense", "category": "Cartão de Crédito", "paymentMethod": "one-time" }
-
-  5.  **Texto do Usuário:** "farmácia 271,70 em 10x"
-      **Saída Esperada:** { "description": "Farmácia", "amount": 271.70, "type": "expense", "category": "Farmácia", "paymentMethod": "installments", "installments": "10" }
-
-  6.  **Texto do Usuário:** "cinquenta e cinco e cinquenta no ifood"
-      **Saída Esperada:** { "description": "iFood", "amount": 55.50, "type": "expense", "category": "Delivery", "paymentMethod": "one-time" }
-      
-  7.  **Texto do Usuário:** "uber 23,40"
-      **Saída Esperada:** { "description": "Uber", "amount": 23.40, "type": "expense", "category": "Táxi/Uber", "paymentMethod": "one-time" }
-
-  8.  **Texto do Usuário:** "paguei o spotify"
-      **Saída Esperada:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Streamings", "paymentMethod": "one-time" }
-      
-  9.  **Texto do Usuário:** "netflix R$ 39.90"
-      **Saída Esperada:** { "description": "Netflix", "amount": 39.90, "type": "expense", "category": "Streamings", "paymentMethod": "one-time" }
-
-  10. **Texto do Usuário:** "teste trezentos e treze e trinta"
-      **Saída Esperada:** { "description": "Teste", "amount": 313.30, "type": "expense", "category": "Outros", "paymentMethod": "one-time" }
+  - **Texto:** "gastei 25 reais no almoço" -> **Saída:** { "description": "Almoço", "amount": 25, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
+  - **Texto:** "paguei o spotify" -> **Saída:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Streamings", "paymentMethod": "one-time" }
+  - **Texto:** "Comprei um celular novo por 3 mil reais em 10 vezes" -> **Saída:** { "description": "Celular novo", "amount": 3000, "type": "expense", "category": "Compras", "paymentMethod": "installments", "installments": "10" }
 
   **Texto do usuário para análise:**
   {{{text}}}
@@ -92,7 +65,14 @@ const extractTransactionFlow = ai.defineFlow(
     // Relaxed validation: only description and type are strictly required to proceed.
     // Amount can be zero if not detected, and category is optional.
     if (!output || !output.description || !output.type) {
-      throw new Error('A Lúmina não conseguiu processar a solicitação ou os dados essenciais (descrição e tipo) estão incompletos.');
+       // Fallback in case the model returns absolutely nothing
+      return {
+        description: input.text,
+        amount: 0,
+        type: 'expense',
+        category: 'Outros',
+        paymentMethod: 'one-time',
+      };
     }
     return output;
   }

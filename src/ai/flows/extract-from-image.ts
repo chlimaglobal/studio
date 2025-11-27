@@ -23,32 +23,34 @@ const prompt = ai.definePrompt({
   input: { schema: ExtractFromImageInputSchema },
   output: { schema: ExtractFromImageOutputSchema },
   model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar imagens, como comprovantes, recibos e anotações, para extrair detalhes de transações.
-  Sua tarefa é analisar a imagem fornecida e extrair a descrição, o valor total, o tipo de transação (receita ou despesa), sugerir uma categoria e, CRUCIALMENTE, identificar se a compra foi parcelada.
-  
-  - **Descrição**: Um resumo curto e objetivo do que foi a transação (ex: "Pagamento para Drogasil").
-  - **Valor**: O valor TOTAL da transação. Se a imagem mostrar "10x de R$27,17", o valor a ser extraído é 271,70.
-  - **Tipo**: 'expense' para pagamentos/compras, 'income' para recebimentos.
-  - **Parcelamento**: Se a imagem indicar um parcelamento (ex: "10x", "em 5 vezes", "parcelado em..."), defina 'paymentMethod' como 'installments' e extraia o número de parcelas para o campo 'installments'. Caso contrário, use 'one-time'.
+  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar imagens (extratos, faturas, comprovantes). Sua tarefa é extrair os dados e NUNCA falhar.
+
+  **Sua Missão:**
+  1.  **Extraia os Dados:** Analise a imagem para obter: descrição, valor total, tipo e parcelamento.
+  2.  **Seja Resiliente:** Se um dado estiver faltando, infira o valor mais lógico.
+      -   Se o valor não for claro, mas houver uma descrição, extraia a descrição e defina o valor como 0.
+      -   Se o tipo não for claro, assuma 'expense' (despesa).
+      -   Se a categoria não for clara, use 'Outros'.
+      -   Se o parcelamento não for mencionado, use 'one-time'.
+  3.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão devido a dados ausentes.
+  4.  **Cálculo de Parcelas:** Se a imagem mostrar "10x de R$27,17", o valor a ser extraído é o TOTAL (271,70), 'paymentMethod' é 'installments' e 'installments' é "10".
 
   **Categorias Disponíveis:**
   {{#each categories}}
   - {{this}}
   {{/each}}
 
-  **Exemplos:**
-  1.  **Imagem:** Comprovante da Drogasil mostrando um total de R$271,70 e um texto "10x de R$27,17".
-      **Saída Esperada:** { "description": "Drogasil", "amount": 271.70, "type": "expense", "category": "Farmácia", "paymentMethod": "installments", "installments": "10" }
+  **Exemplos de Resiliência:**
+  - **Imagem com "Restaurante Sabor Divino" mas valor borrado:**
+    **Saída Esperada:** { "description": "Restaurante Sabor Divino", "amount": 0, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
+  - **Imagem com anotação "Recebi do freela" mas sem valor:**
+    **Saída Esperada:** { "description": "Recebimento de freela", "amount": 0, "type": "income", "category": "Outros", "paymentMethod": "one-time" }
 
-  2.  **Imagem:** Foto de um recibo de um restaurante chamado "Cantina da Nona" no valor de R$120,50, pago no PIX.
-      **Saída Esperada:** { "description": "Cantina da Nona", "amount": 120.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
-
-  3.  **Imagem:** Anotação em um caderno "Recebi 200 do freela".
-      **Saída Esperada:** { "description": "Recebimento de freela", "amount": 200, "type": "income", "category": "Outros", "paymentMethod": "one-time" }
 
   **Imagem para Análise:**
   {{media url=imageDataUri}}
-  `,
+
+  Analise a imagem, siga as regras de resiliência e retorne um JSON válido.`,
   templateOptions: {
     // @ts-ignore
     categories: transactionCategories,
@@ -70,8 +72,15 @@ const extractFromImageFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output || !output.description || !output.type || !output.amount) {
-      throw new Error('A Lúmina não conseguiu processar a imagem ou os dados essenciais (descrição, valor e tipo) estão incompletos.');
+    if (!output) {
+      // Fallback in case the model returns absolutely nothing
+      return {
+        description: 'Não foi possível ler a imagem',
+        amount: 0,
+        type: 'expense',
+        category: 'Outros',
+        paymentMethod: 'one-time',
+      }
     }
     return output;
   }
