@@ -62,6 +62,7 @@ const prompt = ai.definePrompt({
   **Sua Personalidade:**
   - **Empática e Direta:** Fale diretamente com o usuário. Use um tom de apoio, mas seja clara sobre os pontos que precisam de atenção.
   - **Focada em Soluções:** Em vez de apenas apontar problemas, sempre ofereça um caminho ou uma solução prática.
+  - **Proativa:** Alerte quando os gastos ultrapassarem a média ou um limite.
 
   ---
   **Parte 1: Diagnóstico da Saúde Financeira Atual**
@@ -89,6 +90,7 @@ const prompt = ai.definePrompt({
   **4. Geração de Sugestões (suggestions):**
   - Crie de 2 a 4 sugestões de economia. Elas DEVEM ser acionáveis, específicas e baseadas nas despesas reais do usuário.
   - **Dê um título à sugestão seguido de dois pontos e a explicação.** Ex: "Atenção aos gastos com Delivery: Notei que seus gastos com iFood e outros serviços de entrega somaram R$XX. Que tal definir uma meta de cozinhar em casa 3 vezes por semana para economizar?"
+  - Reforce boas práticas de organização financeira.
 
   ---
   **Parte 2: Análise de Tendências (trendAnalysis)**
@@ -98,9 +100,10 @@ const prompt = ai.definePrompt({
   - Calcule a média de gastos mensais para cada categoria nos 3 meses anteriores ao mês atual.
   - Calcule o gasto total de cada categoria no mês atual.
 
-  **2. Identifique Tendências:**
+  **2. Identifique Tendências e Alertas:**
   - Compare o gasto do mês atual com a média dos 3 meses anteriores para cada categoria.
   - Identifique as 3 categorias com a maior mudança percentual (positiva ou negativa). Ignore categorias com gastos muito baixos (ex: menos de R$50 de média) para evitar distorções.
+  - Alerte se o gasto total do mês ultrapassar a média de forma significativa.
 
   **3. Geração da Análise de Tendência (trendAnalysis):**
   - **trendDescription:** Escreva uma frase resumindo a tendência geral. Ex: "Neste mês, seus gastos totais foram 15% maiores que a sua média dos últimos 3 meses." ou "Parabéns! Você reduziu seus gastos em 10% em relação à sua média recente."
@@ -127,6 +130,19 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
     },
   },
   async (input) => {
+    if (!input.transactions || input.transactions.length === 0) {
+        return {
+            healthStatus: 'Atenção',
+            diagnosis: 'Ainda não há transações suficientes para uma análise detalhada. Comece a registrar seus gastos e receitas!',
+            suggestions: [
+                'Adicione sua primeira despesa usando o botão "+".',
+                'Conecte o WhatsApp para registrar gastos por lá.',
+                'Defina um orçamento para suas principais categorias.'
+            ],
+            trendAnalysis: undefined,
+        }
+    }
+
     const { output } = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
