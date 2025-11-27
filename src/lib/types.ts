@@ -233,6 +233,15 @@ export const InvestorProfileOutputSchema = z.object({
 });
 export type InvestorProfileOutput = z.infer<typeof InvestorProfileOutputSchema>;
 
+// Diagnostic Schema for AI
+export const DiagnosticSchema = z.object({
+  status: z.literal("erro"),
+  etapa: z.string().describe("Descrição da etapa onde a falha ocorreu."),
+  causa: z.string().describe("Causa provável do erro."),
+  solucao: z.string().describe("Como corrigir o problema."),
+  stack: z.string().optional().describe("Stack trace do erro, se aplicável.")
+});
+
 // Types for Lumina Chat Flow
 export const ChatMessageSchema = z.object({
   role: z.enum(['user', 'partner', 'lumina', 'alerta']),

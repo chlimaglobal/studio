@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
-import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { LuminaChatInputSchema, LuminaChatOutputSchema, DiagnosticSchema } from '@/lib/types';
 
 
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
@@ -20,7 +20,7 @@ const luminaChatFlow = ai.defineFlow(
   {
     name: 'luminaChatFlow',
     inputSchema: LuminaChatInputSchema,
-    outputSchema: LuminaChatOutputSchema,
+    outputSchema: z.union([LuminaChatOutputSchema, DiagnosticSchema]),
     retrier: {
       maxAttempts: 3,
       backoff: {
@@ -31,49 +31,64 @@ const luminaChatFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // Map roles to what the Gemini model expects: 'user' and 'model'
     const mappedChatHistory = input.chatHistory.map(msg => ({
       role: msg.role,
       content: [{text: msg.text}],
     }));
 
-    const transactionsForContext = input.allTransactions.slice(0, 50); // Limit context size
+    const transactionsForContext = input.allTransactions.slice(0, 50);
 
-    // Use the standard `generate` call for a fast, complete response.
     const { output } = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         history: mappedChatHistory,
-        prompt: `Você é a Lúmina, uma planejadora financeira empática, positiva e especialista em finanças para casais.
+        prompt: `Você é a Lúmina, uma planejadora financeira e também uma assistente de diagnóstico técnico.
 
-        **Sua Personalidade:**
-        - **Empática e Positiva:** Sempre comece de forma compreensiva. Evite culpar ou criticar.
-        - **Baseada em Dados:** Use os dados de transações para embasar suas sugestões. Seja específica (ex: "Notei gastos de R$X em 'Delivery'").
-        - **Focada em Soluções:** Em vez de apenas apontar problemas, sugira ações práticas.
-        - **Concisa e Conversacional:** Mantenha as respostas curtas, como em um chat.
-
-        **Suas Habilidades Analíticas:**
-        Para responder perguntas, você DEVE usar os dados financeiros fornecidos abaixo. Suas habilidades incluem:
-        1.  **Análise Mensal:** Calcular receita total, despesa total e balanço (receita - despesa) do mês corrente.
-        2.  **Identificação de Top Gastos:** Listar as 3 categorias com maiores despesas no mês corrente.
-        3.  **Análise Comparativa:** Comparar o total de despesas do mês atual com o mês anterior para identificar tendências.
-        4.  **Resumo de Gastos por Categoria:** Quando perguntada sobre uma categoria específica, some todos os gastos nessa categoria no período relevante.
+        **Sua Tarefa Principal (Planejadora Financeira):**
+        - **Personalidade:** Empática, positiva, baseada em dados, concisa e focada em soluções.
+        - **Habilidades Analíticas:** Use os dados de transações fornecidos para responder perguntas sobre:
+          1.  Análise Mensal (receita, despesa, balanço).
+          2.  Identificação de Top Gastos.
+          3.  Análise Comparativa (mês atual vs. anterior).
+          4.  Resumo de Gastos por Categoria.
+        - **Formato de Saída (Sucesso):** Responda em um JSON com as chaves "text" (sua resposta) e "suggestions" (sugestões de follow-up).
 
         ---
-        **Dados Financeiros para Análise (últimas 50 transações):**
-        ${JSON.stringify(transactionsForContext, null, 2)}
+        **Sua Tarefa Secundária (Diagnóstico Técnico):**
+        Se você encontrar QUALQUER erro, anomalia, dado faltante ou inconsistência durante sua análise, sua prioridade MÁXIMA é parar o processamento normal e retornar um diagnóstico.
+
+        **Gatilhos de Diagnóstico:**
+        - A requisição do frontend está mal formatada ou campos essenciais (chatHistory, userQuery, allTransactions) estão ausentes?
+        - O processamento da IA gerou uma resposta vazia, erro interno ou falhou na validação do schema?
+        - A pipeline de OCR, resumo de extrato ou chat falhou em uma etapa anterior (contextual)?
+
+        **Formato de Saída (Erro de Diagnóstico):**
+        Se um erro for detectado, retorne um JSON estritamente no seguinte formato:
+        {
+          "status": "erro",
+          "etapa": "Onde a falha ocorreu (ex: 'Validação de Entrada', 'Análise de Transações', 'Geração de Resposta da IA')",
+          "causa": "A causa provável do erro (ex: 'O array de transações está vazio', 'A IA retornou um formato inesperado')",
+          "solucao": "Como o desenvolvedor pode corrigir isso (ex: 'Garanta que o frontend envie o histórico do chat', 'Verifique o prompt e o schema de saída do Genkit')",
+          "stack": "Se houver um erro técnico ou stack trace, inclua aqui. Caso contrário, 'N/A'."
+        }
         ---
-        
-        **Nova Mensagem do Usuário:**
-        ${input.userQuery}`,
+
+        **Contexto para Análise:**
+        - **Transações:** ${JSON.stringify(transactionsForContext, null, 2)}
+        - **Nova Mensagem do Usuário:** ${input.userQuery}
+
+        Execute sua análise e responda com a resposta financeira ou com o diagnóstico de erro, conforme apropriado.`,
         output: {
-          schema: LuminaChatOutputSchema
+          schema: z.union([LuminaChatOutputSchema, DiagnosticSchema])
         }
     });
 
     if (!output) {
         return {
-            text: "Desculpe, não consegui pensar em uma resposta. Podemos tentar de novo?",
-            suggestions: []
+            status: 'erro',
+            etapa: 'Geração de Resposta da IA',
+            causa: 'O modelo de IA não retornou nenhuma saída (output is null/undefined).',
+            solucao: 'Verifique a conectividade com a API do Genkit/Google AI, a chave de API e se há problemas de faturamento na conta do Google Cloud.',
+            stack: 'N/A'
         };
     }
     

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth, useSubscription, useTransactions, useLumina, useViewMode } from '@/components/client-providers';
-import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, Sparkles, Star, Mic, Trash2, Paperclip, Camera, MessageSquare, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import { generateCoupleSuggestion } from '@/ai/flows/lumina-couple-chat';
 import { runRecoveryProtocol, RecoveryProtocolOutput, FlashRecoveryOutput } from '@/ai/flows/recovery-protocol-flow';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { extractTransactionInfoFromText } from '@/app/actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const PremiumBlocker = () => (
     <div className="flex flex-col h-full items-center justify-center">
@@ -130,21 +131,19 @@ const TransactionConfirmationCard = ({ transaction, onConfirm, onCancel }: { tra
     );
 }
 
-const AlertMessageCard = ({ text }: { text: string }) => {
-    const [title, ...bodyParts] = text.split('\n');
-    const body = bodyParts.join('\n').trim();
-
+const DiagnosticCard = ({ diagnostic }: { diagnostic: any }) => {
     return (
-        <div className="bg-red-900/40 border border-red-700/40 rounded-md p-2.5 text-sm space-y-1 inline-block max-w-[88%] self-start break-words w-fit">
-            <div className="flex items-center gap-1 text-red-400 font-semibold text-xs">
-                <span>❗</span>
-                <span>{title}</span>
-            </div>
-            {body && <p className="text-red-300 whitespace-pre-wrap">{body}</p>}
-        </div>
+        <Alert variant="destructive" className="max-w-[88%] self-start break-words w-fit my-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Erro de Diagnóstico da Lúmina</AlertTitle>
+            <AlertDescription className="space-y-1 text-xs">
+                <p><strong>Etapa:</strong> {diagnostic.etapa}</p>
+                <p><strong>Causa:</strong> {diagnostic.causa}</p>
+                <p><strong>Solução:</strong> {diagnostic.solucao}</p>
+            </AlertDescription>
+        </Alert>
     );
 };
-
 
 export default function LuminaPage() {
     const router = useRouter();
@@ -195,7 +194,7 @@ export default function LuminaPage() {
     }, [setHasUnread]);
 
     const saveMessage = useCallback(async (newMessage: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm)) return;
+        if (!user || (!newMessage.text?.trim() && !newMessage.transactionToConfirm && !(newMessage as any).status)) return;
 
         const messageWithAuthor = {
             ...newMessage,
@@ -229,6 +228,7 @@ export default function LuminaPage() {
         };
 
         try {
+            let result;
             if (viewMode === 'together' && partner) {
                 const luminaInput = {
                     chatHistory: chatHistoryForLumina,
@@ -237,18 +237,20 @@ export default function LuminaPage() {
                     user: { displayName: user?.displayName || '', uid: user?.uid || '' },
                     partner: { displayName: partner?.displayName || '', uid: partner?.uid || ''},
                 };
-                luminaResponseData = await generateCoupleSuggestion(luminaInput);
+                result = await generateCoupleSuggestion(luminaInput);
             } else {
                  const luminaInput = {
                     chatHistory: chatHistoryForLumina,
                     userQuery: currentQuery,
                     allTransactions: transactions,
                 };
-                luminaResponseData = await generateSuggestion(luminaInput);
+                result = await generateSuggestion(luminaInput);
             }
+
             await saveMessage({
               role: 'lumina',
-              ...luminaResponseData,
+              // @ts-ignore
+              ...result,
               authorName: 'Lúmina', 
               authorPhotoUrl: '/lumina-avatar.png'
             });
@@ -267,7 +269,6 @@ export default function LuminaPage() {
         }
     }
 
-
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         const currentMessage = message.trim();
@@ -277,22 +278,17 @@ export default function LuminaPage() {
         
         setIsLuminaThinking(true);
         try {
-            // First, try to extract a transaction
             const extractedResult = await extractTransactionInfoFromText(currentMessage);
             
-            // @ts-ignore
-            if (!extractedResult.error && extractedResult.amount > 0) {
-                 // If extraction is successful, show confirmation card
+            if (!('error' in extractedResult) && (extractedResult.amount || 0) > 0) {
                 await saveMessage({
                     role: 'lumina',
                     text: 'Encontrei uma transação no que você disse.',
                     authorName: 'Lúmina',
                     authorPhotoUrl: '/lumina-avatar.png',
-                    // @ts-ignore
-                    transactionToConfirm: extractedResult
+                    transactionToConfirm: extractedResult as ExtractedTransaction
                 });
             } else {
-                // If no transaction found or amount is zero, proceed to general chat
                 const lowerCaseMessage = currentMessage.toLowerCase();
                 if (lowerCaseMessage === "lúmina, acione o protocolo de recuperação de performance.") {
                     await handleRecoveryProtocol('full');
@@ -304,7 +300,7 @@ export default function LuminaPage() {
             }
         } catch (error) {
             console.error("Error handling message:", error);
-            await callLumina(currentMessage); // Fallback to general chat on error
+            await callLumina(currentMessage);
         } finally {
              setIsLuminaThinking(false);
         }
@@ -495,7 +491,6 @@ ${res.actionNow}
          return msg.authorName?.charAt(0).toUpperCase() || 'L';
     }
 
-
     if (isSubscriptionLoading) {
         return (
             <div className="flex justify-center items-center h-full p-8">
@@ -531,7 +526,7 @@ ${res.actionNow}
                             {messages.map((msg, index) => {
                                 const isCurrentUser = msg.authorId === user?.uid;
                                 const isLumina = msg.role === 'lumina';
-                                const isAlert = msg.text?.startsWith('❗');
+                                const isDiagnostic = (msg as any).status === 'erro';
                                 
                                 return (
                                 <div key={msg.id || index} className={cn('flex items-end gap-3 w-full', isCurrentUser ? 'justify-end' : 'justify-start')}>
@@ -550,15 +545,17 @@ ${res.actionNow}
                                         </Avatar>
                                     )}
                                     <div className={cn('flex flex-col', isCurrentUser ? 'items-end' : 'items-start')}>
-                                         {!isAlert && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>}
+                                         {!isDiagnostic && <span className="text-xs text-muted-foreground mb-1 px-2">{msg.authorName}</span>}
                                         
-                                        {msg.text && (
+                                        {isDiagnostic ? (
+                                            <DiagnosticCard diagnostic={msg} />
+                                        ) : msg.text ? (
                                              <div className={cn('p-3 rounded-lg border flex flex-col max-w-[88%] w-fit break-words',
                                                 isCurrentUser ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-secondary rounded-tl-none'
                                             )}>
                                                 <p className={cn("text-sm", isLumina ? 'whitespace-pre-wrap' : 'whitespace-normal' )}>{msg.text}</p>
                                             </div>
-                                        )}
+                                        ) : null}
 
                                         {msg.transactionToConfirm && (
                                             <TransactionConfirmationCard 
