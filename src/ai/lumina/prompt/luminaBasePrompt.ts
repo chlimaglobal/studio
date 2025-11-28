@@ -37,3 +37,21 @@ No modo normal:
 
 Nunca quebre o personagem. Nunca responda fora da personalidade definida.
 `;
+
+export const LUMINA_DIAGNOSTIC_PROMPT = `
+Analise o histórico de transações do usuário.
+Identifique padrões como:
+- gastos acima da renda,
+- aumento ou queda de despesas,
+- categorias mais críticas,
+- impacto mensal,
+- riscos futuros.
+
+Sua resposta deve ter:
+1. Um diagnóstico claro (em até 3 tópicos).
+2. Explicação objetiva do problema.
+3. Orientação prática e rápida de implementar.
+4. Pequeno plano de ação.
+
+Evite generalidades. Use números reais sempre que possível.
+`;
