@@ -8,19 +8,6 @@
     ],
     "frameworksBackend": {
       "region": "us-central1"
-    },
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      },
-      {
-        "source": "/api/**",
-        "run": {
-          "serviceId": "finance-flow-functions",
-          "region": "us-central1"
-        }
-      }
-    ]
+    }
   }
 }

@@ -644,5 +644,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
