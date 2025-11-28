@@ -12,3 +12,4 @@ import '@/ai/flows/lumina-couple-chat.ts';
 import '@/ai/flows/mediate-goals.ts';
 import '@/ai/flows/extract-from-image.ts';
 import '@/ai/flows/recovery-protocol-flow.ts';
+import '@/ai/lumina/prompt/luminaRecoveryPrompt.ts';
