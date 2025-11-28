@@ -26,8 +26,7 @@ import { formatCurrency } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { initializeCoupleStore, useCoupleStore } from '@/hooks/use-couple-store';
-
+import { useCoupleStore, initializeCoupleStore } from '@/hooks/use-couple-store';
 
 // 1. Auth Context
 interface AuthContextType {
@@ -200,6 +199,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { viewMode, partnerData } = useViewMode();
+  const { coupleLink } = useCoupleStore();
 
   // This effect now handles fetching transactions for one or both users
   useEffect(() => {
@@ -387,6 +387,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
     return (
         <ThemeProvider
           attribute="class"
@@ -409,3 +410,5 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         </ThemeProvider>
     )
 }
+
+export { useCoupleStore };

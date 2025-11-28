@@ -8,15 +8,19 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AddTransactionSheet } from '@/components/add-transaction-sheet';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactions } from '@/components/client-providers';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
-export default function CardDetailsPage({ params }: { params: { id: string } }) {
+export default function CardDetailsPage({ params }: Props) {
   const cardName = decodeURIComponent(params.id);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { transactions } = useTransactions();
 
@@ -35,7 +39,6 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
   }
 
   return (
-    <AddTransactionSheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <div className="flex flex-col h-full">
         {/* Header */}
         <header className="flex items-center justify-between p-4">
@@ -160,13 +163,8 @@ export default function CardDetailsPage({ params }: { params: { id: string } }) 
                 <Button className="flex-1 bg-primary hover:bg-primary/90 text-lg font-bold rounded-full">
                     Assinante
                 </Button>
-                <Button asChild size="icon" className="rounded-full h-14 w-14 bg-primary text-primary-foreground text-3xl">
-                    <AddTransactionSheet.Trigger>
-                        +
-                    </AddTransactionSheet.Trigger>
-                </Button>
+                
         </div>
         </div>
-    </AddTransactionSheet>
   );
 }
