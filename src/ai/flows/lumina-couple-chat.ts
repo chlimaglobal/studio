@@ -10,6 +10,7 @@ import { z } from 'zod';
 import type { LuminaCoupleChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
+import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
 
 
 // === Função externa chamada pela aplicação ===
@@ -45,6 +46,7 @@ const luminaCoupleChatFlow = ai.defineFlow(
 
     const promptContext = [
         LUMINA_BASE_PROMPT,
+        LUMINA_COUPLE_PROMPT,
         '',
         '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
         '- MODO CASAL ATIVADO',
