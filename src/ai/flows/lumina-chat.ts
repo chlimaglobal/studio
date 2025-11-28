@@ -56,7 +56,7 @@ const luminaChatFlow = ai.defineFlow(
     let apiResponse;
 
     try {
-      const model = ai.getmodel("googleai/gemini-2.5-flash");
+      const model = 'googleai/gemini-2.5-flash';
       
       const history = [
         { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
@@ -70,7 +70,7 @@ const luminaChatFlow = ai.defineFlow(
         history,
         attachments: input.imageBase64
           ? [ {
-                data: input.imageBase64,
+                media: { url: input.imageBase64 },
              } ]
           : undefined,
         output: {
