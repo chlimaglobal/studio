@@ -387,7 +387,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-    const { user } = useAuth();
     return (
         <ThemeProvider
           attribute="class"
@@ -412,3 +411,5 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 }
 
 export { useCoupleStore };
+
+    
