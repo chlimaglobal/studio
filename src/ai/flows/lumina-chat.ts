@@ -34,51 +34,54 @@ const luminaChatFlow = ai.defineFlow(
     // ================================================================
     // 🔥 1. PREPARAÇÃO DOS DADOS DE ENTRADA
     // ================================================================
-    const history = [
-        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
-        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar." }] },
-        ...input.chatHistory.map(msg => ({
-            role: msg.role === 'lumina' ? 'model' : 'user',
-            content: [
-                { text: msg.text || '' }
-            ]
-        }))
-    ] as any[];
+    const mappedChatHistory = input.chatHistory.map(msg => ({
+      role: msg.role === 'lumina' ? 'model' : 'user',
+      content: [
+          { text: msg.text || '' }
+      ]
+    }));
 
     const transactionsForContext = input.allTransactions.slice(0, 30);
 
-    const fullPrompt = `
-      - Transações Recentes (para contexto): ${JSON.stringify(transactionsForContext, null, 2)}
+    const prompt_context = `
+      - Transações: ${JSON.stringify(transactionsForContext, null, 2)}
+      - Query: ${input.userQuery || ""}
       - Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
-      - Mensagem do Usuário: "${input.userQuery || ''}"
-      - Áudio Transcrito (se houver): "${input.audioText || 'N/A'}"
+      - Áudio Transcrito: ${input.audioText || 'N/A'}
     `;
 
     // ================================================================
     // 🔥 2. CHAMADA PARA O GEMINI
     // ================================================================
+    let apiResponse;
+
     try {
-      const { output } = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
-        prompt: fullPrompt,
+      const model = ai.getmodel("googleai/gemini-2.5-flash");
+      
+      const history = [
+        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
+        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar." }] },
+        ...mappedChatHistory,
+      ]
+
+      apiResponse = await ai.generate({
+        model,
+        prompt: input.userQuery || '',
         history,
+        attachments: input.imageBase64
+          ? [ {
+                data: input.imageBase64,
+             } ]
+          : undefined,
         output: {
           schema: LuminaChatOutputSchema,
         },
-        attachments: input.imageBase64
-          ? [ { data: input.imageBase64, mimeType: 'image/jpeg' } ] // Adicionado mimeType
-          : undefined,
       });
 
-      if (!output || !output.text) {
-        throw new Error("A Lúmina não retornou uma resposta válida.");
-      }
-      
-      return output;
 
     } catch (err) {
       console.error("🔥 ERRO AO CHAMAR GEMINI:", err);
-      // Fallback de erro para garantir que sempre haja uma resposta
+      // Fallback de erro
       return {
         text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
         suggestions: [
@@ -88,5 +91,23 @@ const luminaChatFlow = ai.defineFlow(
         ]
       };
     }
+    
+    // ================================================================
+    // 🔥 3. TRATAMENTO DA RESPOSTA
+    // ================================================================
+    const output = apiResponse?.output;
+
+    if (!output || !output.text) {
+      return {
+        text: "Estou aqui! Recebi sua mensagem, mas precisei reconstruir a análise. Como posso te ajudar agora?",
+        suggestions: [
+          "Ver minhas despesas do mês",
+          "Comparar renda vs gastos",
+          "Criar um orçamento mensal"
+        ]
+      };
+    }
+
+    return output;
   }
 );
