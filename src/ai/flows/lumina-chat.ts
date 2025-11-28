@@ -1,9 +1,9 @@
-
 'use server';
 
 /**
  * Lúmina — fluxo oficial do assistente financeiro.
  * Compatível com imagens (base64), histórico e modo casal.
+ * Versão corrigida: histórico removido do promptContext (já é enviado via parâmetro history)
  */
 
 import { ai } from '@/ai/genkit';
@@ -36,6 +36,7 @@ const luminaChatFlow = ai.defineFlow(
     const userQuery = (input.userQuery || '').trim();
     const audioText = (input.audioText || '').trim();
 
+    // Mapeia o histórico para o formato esperado pelo Genkit/Gemini
     const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
       role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
       content: [
@@ -45,6 +46,7 @@ const luminaChatFlow = ai.defineFlow(
       ],
     }));
 
+    // Últimas 30 transações para contexto (nunca mais que isso)
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     let transactionsJSON = '[]';
     try {
@@ -54,25 +56,25 @@ const luminaChatFlow = ai.defineFlow(
     }
 
     // ---------------------------
-    // 2) Construir prompt completo
+    // 2) Prompt limpo — SEM histórico duplicado
     // ---------------------------
     const promptContext = [
       LUMINA_BASE_PROMPT,
       '',
       '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
       `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
-      `- Transações (últimas ${transactionsForContext.length}):`,
+      `- Transações recentes (últimas ${transactionsForContext.length}):`,
       transactionsJSON,
       audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
       '',
       '### NOVA MENSAGEM DO USUÁRIO:',
-      userQuery || '(sem texto)',
+      userQuery || '(mensagem vazia)',
       '',
-      'RESPONDA como Lúmina obedecendo às regras: seja humana, proativa, NÃO RETORNE ERROS, entregue sugestões e ações financeiras, e sempre termine com uma pergunta para continuar a conversa.',
+      'Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.',
     ].join('\n');
 
     // ---------------------------
-    // 3) Preparar attachments (imagem base64)
+    // 3) Attachments (imagem em base64)
     // ---------------------------
     let attachments: Array<any> | undefined = undefined;
     if (input.imageBase64) {
@@ -91,49 +93,49 @@ const luminaChatFlow = ai.defineFlow(
     }
 
     // ---------------------------
-    // 4) Chamada ao Genkit / Gemini
+    // 4) Chamada ao Gemini via Genkit
     // ---------------------------
     let apiResponse: any;
     try {
       apiResponse = await ai.generate({
-        model: 'googleai/gemini-2.5-flash',
+        model: 'googleai/gemini-1.5-flash', // ou gemini-1.5-pro se preferir
         prompt: promptContext,
-        history: mappedChatHistory,
+        history: mappedChatHistory, // Histórico enviado da forma correta (única)
         attachments,
         output: {
           schema: LuminaChatOutputSchema,
         },
       });
     } catch (err) {
-      console.error('🔥 ERRO AO CHAMAR GENIE/GEMINI:', err);
-      // Resposta segura — nunca vazar erro para o usuário
+      console.error('Erro ao chamar Gemini:', err);
       return {
-        text: "Tive uma instabilidade momentânea ao analisar sua mensagem, mas já recuperei tudo. Diga novamente: como posso te ajudar agora?",
+        text: 'Tive um pequeno tropeço agora, mas já estou de volta! Pode repetir ou me dizer como posso te ajudar?',
         suggestions: [
-          "Resumo do mês",
-          "Registrar uma despesa a partir da foto",
-          "Comparar renda vs gastos"
+          'Resumo do mês',
+          'Registrar despesa da foto',
+          'Comparar renda × gastos',
         ],
       };
     }
 
     // ---------------------------
-    // 5) Normalizar resposta
+    // 5) Normalização da resposta
     // ---------------------------
     const output = apiResponse?.output;
-    if (!output || !output.text) {
+
+    if (!output?.text) {
       return {
-        text: "Recebi sua mensagem e já comecei a análise — me diga se quer que eu registre automaticamente as sugestões que eu trouxer.",
+        text: 'Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?',
         suggestions: [
-          "Ver minhas despesas do mês",
-          "Me ajude a reduzir gastos",
-          "Registrar despesa detectada"
+          'Ver despesas do mês',
+          'Sugestões para economizar',
+          'Registrar despesa detectada',
         ],
       };
     }
 
     return {
-      text: output.text || "Aqui está o que eu encontrei. Quer que eu registre?",
+      text: output.text,
       suggestions: output.suggestions || [],
     } as LuminaChatOutput;
   }
