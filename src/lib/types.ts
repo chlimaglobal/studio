@@ -261,10 +261,10 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
 
 export const LuminaChatInputSchema = z.object({
   chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string(),
-    timestamp: z.string(),
-  })).describe('The recent history of the conversation.'),
+    role: z.enum(['user', 'lumina', 'model']),
+    text: z.string().optional(),
+    timestamp: z.any().optional(), // Can be Date or string
+  })).optional(),
   userQuery: z.string().describe('The new message from the user.'),
   audioText: z.string().optional().describe('The transcribed text from an audio message.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),

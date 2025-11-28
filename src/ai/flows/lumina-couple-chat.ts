@@ -32,33 +32,39 @@ const luminaCoupleChatFlow = ai.defineFlow(
   },
   async (input) => {
     
-    const history = [
-        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
-        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar o casal." }] },
-        ...input.chatHistory.map(msg => ({
-          role: msg.role === 'lumina' ? 'model' : 'user',
-          content: [
-              { text: msg.text || '' }
-          ]
-        }))
-    ] as any[];
+    const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
+      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
+      content: [
+        {
+          text: (msg.text || '').toString(),
+        },
+      ],
+    }));
 
-    const transactionsForContext = input.allTransactions.slice(0, 50);
+    const transactionsForContext = (input.allTransactions || []).slice(0, 50);
 
-    const fullPrompt = `
-      - User: ${input.user.displayName} (ID: ${input.user.uid})
-      - Partner: ${input.partner.displayName} (ID: ${input.partner.uid})
-      - Transações: ${JSON.stringify(transactionsForContext, null, 2)}
-      - Query: ${input.userQuery || ""}
-      - Modo Casal: Ativado
-      - Áudio Transcrito: ${input.audioText || 'N/A'}
-    `;
+    const promptContext = [
+        LUMINA_BASE_PROMPT,
+        '',
+        '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
+        '- MODO CASAL ATIVADO',
+        `- Usuário Atual: ${input.user.displayName} (ID: ${input.user.uid})`,
+        `- Parceiro(a): ${input.partner.displayName} (ID: ${input.partner.uid})`,
+        `- Transações do casal (últimas ${transactionsForContext.length}):`,
+        JSON.stringify(transactionsForContext, null, 2),
+        input.audioText ? `- Áudio transcrito: ${input.audioText}` : '- Áudio transcrito: N/A',
+        '',
+        '### NOVA MENSAGEM DO USUÁRIO:',
+        input.userQuery || '(mensagem vazia)',
+        '',
+        'Responda como Lúmina, dirigindo-se ao casal de forma inclusiva, humana e proativa. Sempre termine com uma pergunta para engajar a conversa.',
+    ].join('\n');
 
     try {
         const { output } = await ai.generate({
-            model: 'googleai/gemini-2.5-flash',
-            prompt: fullPrompt,
-            history,
+            model: 'googleai/gemini-1.5-flash',
+            prompt: promptContext,
+            history: mappedChatHistory,
             output: {
                 schema: LuminaChatOutputSchema,
             },
