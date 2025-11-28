@@ -1,8 +1,26 @@
 {
   "hosting": {
-    "source": "app"
-  },
-  "apphosting": {
-    "backend": "nextjs"
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    },
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "finance-flow-functions",
+          "region": "us-central1"
+        }
+      }
+    ]
   }
 }
