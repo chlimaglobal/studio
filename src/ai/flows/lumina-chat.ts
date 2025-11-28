@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -32,31 +33,23 @@ const luminaChatFlow = ai.defineFlow(
     // 1) Normalizações / Segurança
     // ---------------------------
 
-    // Garantir que strings nunca sejam undefined
     const userQuery = (input.userQuery || '').trim();
     const audioText = (input.audioText || '').trim();
 
-    // Convert chatHistory removing Date objects (timestamp -> ISO string)
     const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
-      role: msg.role === 'lumina' ? 'model' : 'user',
+      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
       content: [
         {
           text: (msg.text || '').toString(),
         },
       ],
-      // @ts-ignore - Meta is for context, not sent to model history directly
-      meta: {
-        timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : undefined,
-      },
     }));
 
-    // Limit transactions for context and stringify safely
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     let transactionsJSON = '[]';
     try {
       transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
     } catch (e) {
-      // fallback to empty if serialization fails
       transactionsJSON = '[]';
     }
 
@@ -72,9 +65,6 @@ const luminaChatFlow = ai.defineFlow(
       transactionsJSON,
       audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
       '',
-      // @ts-ignore
-      mappedChatHistory.map((h) => `(${h.meta.timestamp || 'no-ts'}) ${h.role}: ${h.content[0].text}`).join('\n'),
-      '',
       '### NOVA MENSAGEM DO USUÁRIO:',
       userQuery || '(sem texto)',
       '',
@@ -86,7 +76,6 @@ const luminaChatFlow = ai.defineFlow(
     // ---------------------------
     let attachments: Array<any> | undefined = undefined;
     if (input.imageBase64) {
-      // Se o front envia apenas a parte raw base64 sem data:, garantir prefixo data URL
       const value = input.imageBase64 as string;
       const isDataUrl = /^data:.*;base64,/.test(value.trim());
       const mediaUrl = isDataUrl ? value.trim() : `data:image/png;base64,${value.trim()}`;
@@ -109,10 +98,7 @@ const luminaChatFlow = ai.defineFlow(
       apiResponse = await ai.generate({
         model: 'googleai/gemini-2.5-flash',
         prompt: promptContext,
-        history: mappedChatHistory.map(h => ({
-          role: h.role,
-          content: h.content,
-        })),
+        history: mappedChatHistory,
         attachments,
         output: {
           schema: LuminaChatOutputSchema,
