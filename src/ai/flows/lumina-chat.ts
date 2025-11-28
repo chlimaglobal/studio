@@ -1,18 +1,15 @@
-
 'use server';
 
 /**
- * @fileOverview Lúmina — fluxo oficial do assistente financeiro.
- * Compatível com imagens, histórico e modo casal.
+ * Lúmina — fluxo oficial do assistente financeiro.
+ * Compatível com imagens (base64), histórico e modo casal.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 
-// === Função externa chamada pela aplicação ===
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
   return luminaChatFlow(input);
 }
@@ -31,83 +28,127 @@ const luminaChatFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    // ================================================================
-    // 🔥 1. PREPARAÇÃO DOS DADOS DE ENTRADA
-    // ================================================================
-    const mappedChatHistory = input.chatHistory.map(msg => ({
+    // ---------------------------
+    // 1) Normalizações / Segurança
+    // ---------------------------
+
+    // Garantir que strings nunca sejam undefined
+    const userQuery = (input.userQuery || '').trim();
+    const audioText = (input.audioText || '').trim();
+
+    // Convert chatHistory removing Date objects (timestamp -> ISO string)
+    const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
       role: msg.role === 'lumina' ? 'model' : 'user',
       content: [
-          { text: msg.text || '' }
-      ]
+        {
+          text: (msg.text || '').toString(),
+        },
+      ],
+      // @ts-ignore - Meta is for context, not sent to model history directly
+      meta: {
+        timestamp: msg.timestamp ? new Date(msg.timestamp).toISOString() : undefined,
+      },
     }));
 
-    const transactionsForContext = input.allTransactions.slice(0, 30);
-
-    const prompt_context = `
-      - Transações: ${JSON.stringify(transactionsForContext, null, 2)}
-      - Query: ${input.userQuery || ""}
-      - Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}
-      - Áudio Transcrito: ${input.audioText || 'N/A'}
-    `;
-
-    // ================================================================
-    // 🔥 2. CHAMADA PARA O GEMINI
-    // ================================================================
-    let apiResponse;
-
+    // Limit transactions for context and stringify safely
+    const transactionsForContext = (input.allTransactions || []).slice(0, 30);
+    let transactionsJSON = '[]';
     try {
-      const model = 'googleai/gemini-2.5-flash';
-      
-      const history = [
-        { role: 'user', content: [{ text: LUMINA_BASE_PROMPT }] },
-        { role: 'model', content: [{ text: "Entendido. Estou pronta para ajudar." }] },
-        ...mappedChatHistory,
-      ]
+      transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
+    } catch (e) {
+      // fallback to empty if serialization fails
+      transactionsJSON = '[]';
+    }
 
+    // ---------------------------
+    // 2) Construir prompt completo
+    // ---------------------------
+    const promptContext = [
+      LUMINA_BASE_PROMPT,
+      '',
+      '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
+      `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
+      `- Transações (últimas ${transactionsForContext.length}):`,
+      transactionsJSON,
+      audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
+      '',
+      // @ts-ignore
+      mappedChatHistory.map((h) => `(${h.meta.timestamp || 'no-ts'}) ${h.role}: ${h.content[0].text}`).join('\n'),
+      '',
+      '### NOVA MENSAGEM DO USUÁRIO:',
+      userQuery || '(sem texto)',
+      '',
+      'RESPONDA como Lúmina obedecendo às regras: seja humana, proativa, NÃO RETORNE ERROS, entregue sugestões e ações financeiras, e sempre termine com uma pergunta para continuar a conversa.',
+    ].join('\n');
+
+    // ---------------------------
+    // 3) Preparar attachments (imagem base64)
+    // ---------------------------
+    let attachments: Array<any> | undefined = undefined;
+    if (input.imageBase64) {
+      // Se o front envia apenas a parte raw base64 sem data:, garantir prefixo data URL
+      const value = input.imageBase64 as string;
+      const isDataUrl = /^data:.*;base64,/.test(value.trim());
+      const mediaUrl = isDataUrl ? value.trim() : `data:image/png;base64,${value.trim()}`;
+
+      attachments = [
+        {
+          media: {
+            url: mediaUrl,
+            contentType: 'image/png',
+          },
+        },
+      ];
+    }
+
+    // ---------------------------
+    // 4) Chamada ao Genkit / Gemini
+    // ---------------------------
+    let apiResponse: any;
+    try {
       apiResponse = await ai.generate({
-        model,
-        prompt: input.userQuery || '',
-        history,
-        attachments: input.imageBase64
-          ? [ {
-                media: { url: input.imageBase64 },
-             } ]
-          : undefined,
+        model: 'googleai/gemini-2.5-flash',
+        prompt: promptContext,
+        history: mappedChatHistory.map(h => ({
+          role: h.role,
+          content: h.content,
+        })),
+        attachments,
         output: {
           schema: LuminaChatOutputSchema,
         },
       });
-
-
     } catch (err) {
-      console.error("🔥 ERRO AO CHAMAR GEMINI:", err);
-      // Fallback de erro
+      console.error('🔥 ERRO AO CHAMAR GENIE/GEMINI:', err);
+      // Resposta segura — nunca vazar erro para o usuário
       return {
-        text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
+        text: "Tive uma instabilidade momentânea ao analisar sua mensagem, mas já recuperei tudo. Diga novamente: como posso te ajudar agora?",
         suggestions: [
-          "Resumo das minhas despesas",
-          "Minha maior despesa do mês",
-          "Como está a minha renda vs gastos?"
-        ]
+          "Resumo do mês",
+          "Registrar uma despesa a partir da foto",
+          "Comparar renda vs gastos"
+        ],
       };
     }
-    
-    // ================================================================
-    // 🔥 3. TRATAMENTO DA RESPOSTA
-    // ================================================================
-    const output = apiResponse?.output;
 
+    // ---------------------------
+    // 5) Normalizar resposta
+    // ---------------------------
+    const output = apiResponse?.output;
     if (!output || !output.text) {
       return {
-        text: "Estou aqui! Recebi sua mensagem, mas precisei reconstruir a análise. Como posso te ajudar agora?",
+        text: "Recebi sua mensagem e já comecei a análise — me diga se quer que eu registre automaticamente as sugestões que eu trouxer.",
         suggestions: [
           "Ver minhas despesas do mês",
-          "Comparar renda vs gastos",
-          "Criar um orçamento mensal"
-        ]
+          "Me ajude a reduzir gastos",
+          "Registrar despesa detectada"
+        ],
       };
     }
 
-    return output;
+    return {
+      text: output.text || "Aqui está o que eu encontrei. Quer que eu registre?",
+      suggestions: output.suggestions || [],
+    } as LuminaChatOutput;
   }
 );
