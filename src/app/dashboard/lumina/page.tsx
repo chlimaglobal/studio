@@ -188,7 +188,16 @@ export default function Chat() {
     <div className="flex flex-col h-full bg-background">
         <audio ref={audioRef} className="hidden" />
         <header className="p-4 border-b flex justify-between items-center">
-             <h1 className="text-xl font-semibold">Mural da Lúmina</h1>
+            <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)]">
+                    <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
+                    <AvatarFallback>L</AvatarFallback>
+                </Avatar>
+                <div>
+                    <h1 className="text-base font-semibold">Lúmina – sua assistente financeira</h1>
+                    <p className="text-xs text-muted-foreground">Planejamento. Análise. Ação.</p>
+                </div>
+            </div>
              <Button
                 variant="ghost"
                 size="icon"
@@ -312,3 +321,5 @@ export default function Chat() {
     </div>
   );
 }
+
+    
