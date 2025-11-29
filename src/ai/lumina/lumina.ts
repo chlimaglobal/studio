@@ -5,7 +5,7 @@ import { generateSuggestion } from '../flows/lumina-chat';
 import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
 
-async function single(input: LuminaChatInput) {
+export async function sendMessageToLuminaSingle(input: LuminaChatInput) {
     const { userQuery, allTransactions, chatHistory, imageBase64, isTTSActive, audioText, user } = input;
     if (!user?.uid) throw new Error("Usuário não autenticado.");
 
@@ -38,7 +38,7 @@ async function single(input: LuminaChatInput) {
     });
 }
 
-async function couple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
+export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
      const { userQuery, allTransactions, chatHistory, user, partner } = input;
     if (!user?.uid || !partner?.uid) throw new Error("Usuário ou parceiro não autenticado.");
 
@@ -70,9 +70,4 @@ async function couple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | nul
         authorPhotoUrl: '/lumina-avatar.png',
         suggestions: luminaResponse.suggestions,
     });
-}
-
-export const sendMessageToLumina = {
-    single,
-    couple
 }

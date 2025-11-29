@@ -14,7 +14,7 @@ import { onChatUpdate, addChatMessage, onCoupleChatUpdate } from "@/lib/storage"
 import type { ChatMessage } from "@/lib/types";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { sendMessageToLumina } from "@/ai/lumina/lumina";
+import { sendMessageToLuminaSingle, sendMessageToLuminaCouple } from "@/ai/lumina/lumina";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -129,7 +129,7 @@ export default function Chat() {
     };
 
     if (viewMode === 'together' && partner) {
-        await sendMessageToLumina.couple({
+        await sendMessageToLuminaCouple({
             ...commonInput,
             partner: {
                 uid: partner.uid,
@@ -139,7 +139,7 @@ export default function Chat() {
             },
         }, coupleLink);
     } else {
-        await sendMessageToLumina.single(commonInput);
+        await sendMessageToLuminaSingle(commonInput);
     }
     // The onSnapshot listener will handle displaying the new messages.
 
