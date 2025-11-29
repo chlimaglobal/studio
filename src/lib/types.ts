@@ -1,5 +1,4 @@
 
-
 import { z } from "zod";
 
 export const categoryData = {
@@ -257,6 +256,7 @@ export const ChatMessageSchema = z.object({
 export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
     id?: string;
     timestamp: Date;
+    audioUrl?: string;
 };
 
 export const LuminaChatInputSchema = z.object({

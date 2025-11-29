@@ -14,4 +14,5 @@ import '@/ai/flows/extract-from-image.ts';
 import '@/ai/flows/recovery-protocol-flow.ts';
 import '@/ai/flows/calculate-savings-goal.ts';
 import '@/ai/lumina/prompt/luminaRecoveryPrompt.ts';
+import '@/ai/flows/text-to-speech.ts';
 

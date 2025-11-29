@@ -1,11 +1,10 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { sendMessageToLumina } from "@/lib/lumina/agent";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
-import { Loader2 } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Play } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from "@/lib/storage";
 import type { ChatMessage } from "@/lib/types";
+import { textToSpeech } from "@/ai/flows/text-to-speech";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -27,6 +27,10 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLuminaTyping, setIsLuminaTyping] = useState(false);
+  const [isTTSEnabled, setIsTTSEnabled] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const bottomRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -42,7 +46,21 @@ export default function Chat() {
     setIsLoading(true);
     let unsubscribe: () => void;
 
-    const handleMessages = (newMessages: ChatMessage[]) => {
+    const handleMessages = async (newMessages: ChatMessage[]) => {
+      const lastMessage = newMessages[newMessages.length - 1];
+      if (lastMessage && lastMessage.role === 'lumina' && !lastMessage.audioUrl && isTTSEnabled) {
+        try {
+            const { audioUrl } = await textToSpeech(lastMessage.text || '');
+            lastMessage.audioUrl = audioUrl;
+            if (audioRef.current && audioUrl) {
+                audioRef.current.src = audioUrl;
+                audioRef.current.play().catch(e => console.warn("Autoplay was prevented.", e));
+                setCurrentlyPlaying(lastMessage.id || null);
+            }
+        } catch (e) {
+            console.error("TTS generation failed", e);
+        }
+      }
       setMessages(newMessages);
       setIsLoading(false);
       setIsLuminaTyping(false);
@@ -55,7 +73,7 @@ export default function Chat() {
     }
 
     return () => unsubscribe();
-  }, [user, viewMode, coupleLink]);
+  }, [user, viewMode, coupleLink, isTTSEnabled]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -66,6 +84,25 @@ export default function Chat() {
     localStorage.setItem('lastLuminaVisit', new Date().toISOString());
   }, [setHasUnread]);
 
+  const handlePlayAudio = useCallback((audioUrl: string, messageId: string) => {
+    if (audioRef.current) {
+      if (currentlyPlaying === messageId) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setCurrentlyPlaying(null);
+      } else {
+        audioRef.current.src = audioUrl;
+        audioRef.current.play();
+        setCurrentlyPlaying(messageId);
+      }
+    }
+  }, [currentlyPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+        audioRef.current.onended = () => setCurrentlyPlaying(null);
+    }
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || !user) return;
@@ -90,6 +127,19 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-full bg-background">
+        <audio ref={audioRef} className="hidden" />
+        <header className="p-4 border-b flex justify-between items-center">
+             <h1 className="text-xl font-semibold">Mural da Lúmina</h1>
+             <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsTTSEnabled(!isTTSEnabled)}
+                title={isTTSEnabled ? 'Desativar áudio' : 'Ativar áudio'}
+             >
+                {isTTSEnabled ? <Volume2 className="h-6 w-6 text-primary" /> : <VolumeX className="h-6 w-6" />}
+             </Button>
+        </header>
+
       <ScrollArea className="flex-1 p-4">
         {isLoading ? (
             <div className="flex justify-center items-center h-full">
@@ -102,7 +152,7 @@ export default function Chat() {
                     const authorName = isUser ? 'Você' : m.authorName || 'Lúmina';
                     
                     return (
-                        <div key={i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
+                        <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
                                 <Avatar className="h-8 w-8">
                                     <AvatarImage src={m.authorPhotoUrl} />
@@ -117,6 +167,16 @@ export default function Chat() {
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
                                 {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                                {!isUser && m.audioUrl && (
+                                     <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="mt-2 h-8 w-8 text-current"
+                                        onClick={() => handlePlayAudio(m.audioUrl as string, m.id || `${i}`)}
+                                     >
+                                        <Play className={cn("h-5 w-5", currentlyPlaying === (m.id || `${i}`) && "text-primary")} />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )
