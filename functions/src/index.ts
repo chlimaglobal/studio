@@ -271,6 +271,17 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     // 1. Calcular o ritmo de gastos diário do usuário.
     // 2. Projetar o gasto total até o fim do mês.
     // 3. Se a projeção de (receitas - despesas) for negativa, enviar alerta com o déficit estimado.
+
+    // 📈 ANÁLISE FINANCEIRA PROATIVA
+    // Lógica a ser implementada em rotina agendada ou em triggers complexos:
+    // 1. Calcular média de gastos por categoria.
+    // 2. Prever gastos para os próximos 30 dias.
+    // 3. Projetar o saldo final do mês.
+    // 4. Calcular o ponto de ruptura (dia em que o dinheiro pode acabar).
+    // 5. Avaliar a capacidade de investimento com base no excedente.
+    // 6. Enviar notificações se houver mudanças significativas nesses indicadores.
     
     return null;
   });
+
+    
