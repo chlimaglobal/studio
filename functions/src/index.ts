@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
@@ -125,5 +126,25 @@ export const disconnectPartner = functions.https.onCall(
         "Ocorreu um erro inesperado ao tentar desvincular o parceiro."
       );
     }
+  }
+);
+
+
+export const checkDashboardStatus = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated", "O usuário precisa estar autenticado."
+      );
+    }
+    
+    // Este é um placeholder. A lógica real de análise e alerta seria implementada aqui.
+    // Por exemplo, buscar transações, passar para a IA, e se necessário,
+    // usar o Firebase Cloud Messaging para enviar uma notificação.
+    
+    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
+    
+    // Retorna um sucesso simples por enquanto.
+    return { success: true, message: "Verificação concluída." };
   }
 );
