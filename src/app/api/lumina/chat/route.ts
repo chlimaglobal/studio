@@ -1,40 +1,45 @@
-import { NextResponse } from "next/server";
-import { generateSuggestionStream } from "@/ai/flows/lumina-chat";
-import type { LuminaChatInput } from "@/lib/types";
+'use server';
 
-export const dynamic = "force-dynamic";
-export const maxDuration = 60; // Set timeout to 60 seconds
+import { luminaChatFlow } from '@/ai/flows/lumina-chat';
+import type { LuminaChatInput } from '@/lib/types';
 
-export async function POST(req: Request) {
-  try {
-    const data: LuminaChatInput = await req.json();
-    const genkitStream = await generateSuggestionStream(data);
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-    const stream = new ReadableStream({
-        async start(controller) {
-            for await (const chunk of genkitStream) {
-                controller.enqueue(chunk.text);
-            }
-            controller.close();
-        },
-    });
-    
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-    });
+export async function POST(request: Request) {
+  const input: LuminaChatInput = await request.json();
 
-  } catch (error) {
-    console.error("[LUMINA_CHAT_API_ERROR]", error);
-    const readableStream = new ReadableStream({
-      start(controller) {
-        controller.enqueue(
-          "Desculpe, ocorreu um erro no servidor. A equipe já foi notificada."
-        );
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+
+      try {
+        const result = await luminaChatFlow(input); // sua função normal que já funciona
+
+        // Envia a resposta completa em pedaços pequenos pra simular streaming rápido
+        const words = result.text.split(' ');
+        for (const word of words) {
+          controller.enqueue(encoder.encode(word + ' '));
+          await new Promise(r => setTimeout(r, 30)); // velocidade perfeita da Lúmina
+        }
+
+        // Envia as sugestões rápidas no final
+        if (result.suggestions?.length) {
+          controller.enqueue(encoder.encode('\n\n💡 ' + result.suggestions.join(' · ')));
+        }
+      } catch (error) {
+        controller.enqueue(encoder.encode('Desculpe, tive um pequeno tropeço. Pode repetir?'));
+      } finally {
         controller.close();
-      },
-    });
-    return new Response(readableStream, { status: 500 });
-  }
+      }
+    }
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
 }

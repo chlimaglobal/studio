@@ -2,14 +2,11 @@
 'use server';
 
 import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
-import { generateSuggestion, generateSuggestionStream } from '../flows/lumina-chat';
+import { generateSuggestion } from '../flows/lumina-chat';
 import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
 import { extractFromImage } from '../flows/extract-from-image';
 
-export function sendMessageToLuminaStream(input: LuminaChatInput) {
-    return generateSuggestionStream(input);
-}
 
 export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
      const { userQuery, allTransactions, chatHistory, user, partner, imageBase64 } = input;

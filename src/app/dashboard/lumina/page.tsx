@@ -72,7 +72,6 @@ export default function Chat() {
     const handleMessages = async (newMessages: ChatMessage[]) => {
       setMessages(newMessages);
       setIsLoading(false);
-      // We no longer set isLuminaTyping to false here; streaming handles it.
     };
 
     if (viewMode === 'together' && coupleLink) {
@@ -120,20 +119,15 @@ export default function Chat() {
     setFilePreview(null);
     const fileToSend = attachedFile;
     setAttachedFile(null);
-    setIsLuminaTyping(true);
 
-    let imageBase64: string | null = null;
-    if (fileToSend) {
-        imageBase64 = await fileToBase64(fileToSend);
-    }
-
-    // Add user message to DB
-    const userMessageData = {
-        role: "user" as const,
+    // Add user message to DB and local state immediately
+    const userMessageData: ChatMessage = {
+        role: "user",
         text: messageText,
         authorId: user.uid,
         authorName: user.displayName || 'Você',
         authorPhotoUrl: user.photoURL || '',
+        timestamp: new Date(),
     };
     
     if (viewMode === 'together' && coupleLink) {
@@ -141,37 +135,40 @@ export default function Chat() {
     } else {
         await addChatMessage(user.uid, userMessageData);
     }
-    const currentChatHistory = [...messages, { ...userMessageData, timestamp: new Date() }];
 
-    // Prepare for streaming response
-    const luminaMessageId = Math.random().toString(36).substring(7);
-    let luminaMessageText = '';
+    setIsLuminaTyping(true);
 
-    const luminaMessageData: ChatMessage = {
-        id: luminaMessageId,
-        role: "lumina",
-        text: '',
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-        suggestions: [],
-        timestamp: new Date()
+    let imageBase64: string | null = null;
+    if (fileToSend) {
+        imageBase64 = await fileToBase64(fileToSend);
+    }
+
+    // Add an empty placeholder for Lumina's message to local state
+    const luminaMessageId = `lumina-placeholder-${Date.now()}`;
+    const luminaPlaceholder: ChatMessage = {
+      id: luminaMessageId,
+      role: 'lumina',
+      text: '',
+      authorName: 'Lúmina',
+      authorPhotoUrl: '/lumina-avatar.png',
+      timestamp: new Date(),
     };
-    
-    // Add an empty message for Lumina to start
-    setMessages(prev => [...prev, luminaMessageData]);
+    setMessages(prev => [...prev, luminaPlaceholder]);
 
     try {
         const response = await fetch('/api/lumina/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                 userQuery: messageText,
+                userQuery: messageText,
                 audioText: fromAudio ? messageText : undefined,
-                chatHistory: currentChatHistory,
+                chatHistory: messages, // Send current history
                 allTransactions: transactions,
                 imageBase64,
                 isCoupleMode: viewMode === 'together',
                 isTTSActive: isTTSEnabled,
+                user: { uid: user.uid, displayName: user.displayName || '' },
+                partner: partner ? { uid: partner.uid, displayName: partner.displayName || '' } : undefined,
             }),
         });
 
@@ -181,8 +178,9 @@ export default function Chat() {
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let luminaMessageText = '';
         
-        setIsLuminaTyping(false); // Stop typing indicator as soon as stream starts
+        setIsLuminaTyping(false);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -197,23 +195,42 @@ export default function Chat() {
             ));
         }
 
+        const luminaMessageData = {
+          role: 'lumina',
+          text: luminaMessageText.trim(),
+          authorName: 'Lúmina',
+          authorPhotoUrl: '/lumina-avatar.png',
+          suggestions: [], // Suggestions are part of the text now
+        };
+
         // Final update to DB after stream is complete
-        const finalMessageData = { text: luminaMessageText, suggestions: [] }; // Assume suggestions come separately or not at all in stream
         if (viewMode === 'together' && coupleLink) {
-            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, finalMessageData);
+            await addCoupleChatMessage(coupleLink.id, luminaMessageData);
         } else {
-            await updateChatMessage(user.uid, luminaMessageId, finalMessageData);
+            await addChatMessage(user.uid, luminaMessageData);
         }
+        
+        // Remove placeholder and let the DB listener add the final message
+        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
 
     } catch (error) {
         setIsLuminaTyping(false);
         const errorMessage = "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?";
-        const finalErrorData = { text: errorMessage, suggestions: [] };
+        
+        const errorData = {
+          role: 'lumina' as const,
+          text: errorMessage,
+          authorName: "Lúmina",
+          authorPhotoUrl: "/lumina-avatar.png"
+        };
+        // Save error message to DB
         if (viewMode === 'together' && coupleLink) {
-            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, finalErrorData);
+             await addCoupleChatMessage(coupleLink.id, errorData);
         } else {
-            await updateChatMessage(user.uid, luminaMessageId, finalErrorData);
+             await addChatMessage(user.uid, errorData);
         }
+        // Remove placeholder
+        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
     }
 
   }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink, attachedFile]);
@@ -305,7 +322,7 @@ export default function Chat() {
                         </div>
                     )
                 })}
-                 {isLuminaTyping && (
+                 {isLuminaTyping && messages[messages.length-1]?.id?.startsWith('lumina-placeholder') === false && (
                     <div className="flex items-end gap-2">
                          <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-[0_0_12px_rgba(255,215,130,0.4)] lumina-avatar-pulse">
                             <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
