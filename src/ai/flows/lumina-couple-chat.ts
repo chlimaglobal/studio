@@ -61,12 +61,18 @@ const luminaCoupleChatFlow = ai.defineFlow(
         '',
         'Responda como Lúmina, dirigindo-se ao casal de forma inclusiva, humana e proativa. Sempre termine com uma pergunta para engajar a conversa.',
     ].join('\n');
+    
+    let attachments: Array<any> | undefined = undefined;
+    if (input.imageBase64) {
+        attachments = [{ media: { url: input.imageBase64, contentType: 'image/png' } }];
+    }
 
     try {
         const { output } = await ai.generate({
             model: 'googleai/gemini-1.5-flash',
             prompt: promptContext,
             history: mappedChatHistory,
+            attachments,
             output: {
                 schema: LuminaChatOutputSchema,
             },

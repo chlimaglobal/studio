@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
@@ -39,7 +40,7 @@ export async function sendMessageToLuminaSingle(input: LuminaChatInput) {
 }
 
 export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
-     const { userQuery, allTransactions, chatHistory, user, partner } = input;
+     const { userQuery, allTransactions, chatHistory, user, partner, imageBase64 } = input;
     if (!user?.uid || !partner?.uid) throw new Error("Usuário ou parceiro não autenticado.");
 
     if (!coupleLink) throw new Error("Vínculo de casal não encontrado.");
@@ -60,6 +61,7 @@ export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, co
         chatHistory,
         user,
         partner,
+        imageBase64
     });
 
     // 3. Adiciona a resposta da Lúmina ao histórico compartilhado

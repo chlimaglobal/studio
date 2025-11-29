@@ -4,9 +4,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
-import { Loader2, Volume2, VolumeX, Play, Mic } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Play, Mic, Paperclip, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, fileToBase64 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -32,10 +32,13 @@ export default function Chat() {
   const [isTTSEnabled, setIsTTSEnabled] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
-
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { user } = useAuth();
   const { transactions } = useTransactions();
   const { viewMode, partnerData } = useViewMode();
@@ -108,16 +111,25 @@ export default function Chat() {
   }, []);
 
   const handleSend = useCallback(async (messageText: string, fromAudio: boolean = false) => {
-    if (!messageText.trim() || !user) return;
+    if ((!messageText.trim() && !attachedFile) || !user) return;
     
     setInput("");
+    setFilePreview(null);
+    const fileToSend = attachedFile;
+    setAttachedFile(null);
     setIsLuminaTyping(true);
+
+    let imageBase64: string | null = null;
+    if (fileToSend) {
+        imageBase64 = await fileToBase64(fileToSend);
+    }
 
     const commonInput = {
         userQuery: messageText,
         audioText: fromAudio ? messageText : undefined,
         chatHistory: messages,
         allTransactions: transactions,
+        imageBase64,
         isCoupleMode: viewMode === 'together',
         isTTSActive: isTTSEnabled,
         user: { 
@@ -143,7 +155,26 @@ export default function Chat() {
     }
     // The onSnapshot listener will handle displaying the new messages.
 
-  }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink]);
+  }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink, attachedFile]);
+  
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview(null); // No preview for non-image files, just show name
+      }
+    }
+     // Reset file input value to allow selecting the same file again
+    event.target.value = '';
+  };
+
 
   const handleTextSend = () => {
       handleSend(input, false);
@@ -225,7 +256,24 @@ export default function Chat() {
         )}
       </ScrollArea>
 
-      <div className="p-4 border-t bg-background">
+       <div className="p-4 border-t bg-background">
+        {attachedFile && (
+          <div className="relative mb-2 p-2 border rounded-lg flex items-center gap-2 bg-secondary/50">
+            {filePreview && <Image src={filePreview} alt="Preview" width={40} height={40} className="rounded-md object-cover h-10 w-10" />}
+            <span className="text-sm text-muted-foreground truncate flex-1">{attachedFile.name}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                setAttachedFile(null);
+                setFilePreview(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <div className="flex items-center gap-2">
             <Input
             value={input}
@@ -238,10 +286,20 @@ export default function Chat() {
                 }
             }}
             />
+             <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="image/*,application/pdf,.csv,.ofx"
+            />
+            <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="outline">
+                <Paperclip className="h-5 w-5" />
+            </Button>
             <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="outline">
                 <Mic className="h-5 w-5" />
             </Button>
-            <Button onClick={handleTextSend} disabled={!input.trim() || isLuminaTyping}>
+            <Button onClick={handleTextSend} disabled={(!input.trim() && !attachedFile) || isLuminaTyping}>
                 Enviar
             </Button>
         </div>
