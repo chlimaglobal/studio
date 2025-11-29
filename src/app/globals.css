@@ -152,21 +152,36 @@
   }
 
   .lumina-avatar-pulse {
-    animation: pulse 4s infinite ease-in-out;
+    animation: pulse 2.5s infinite ease-in-out;
+  }
+
+  .typing-dot {
+    background-color: hsl(var(--primary));
+    box-shadow: 0 0 5px hsl(var(--primary) / 0.8), 0 0 10px hsl(var(--primary) / 0.6);
+    animation: fluid-bounce 1.4s infinite ease-in-out both;
+  }
+
+  @keyframes fluid-bounce {
+    0%, 80%, 100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1.0);
+    }
   }
 
   @keyframes pulse {
     0% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
     }
     70% {
       transform: scale(1);
-      box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+      box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
     }
     100% {
       transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
     }
   }
 }

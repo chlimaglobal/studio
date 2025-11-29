@@ -18,9 +18,9 @@ import { sendMessageToLuminaSingle, sendMessageToLuminaCouple } from "@/ai/lumin
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
-        <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-        <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-        <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce"></span>
+        <span className="h-2.5 w-2.5 typing-dot rounded-full" style={{ animationDelay: '-0.3s' }}></span>
+        <span className="h-2.5 w-2.5 typing-dot rounded-full" style={{ animationDelay: '-0.15s' }}></span>
+        <span className="h-2.5 w-2.5 typing-dot rounded-full"></span>
     </div>
 );
 
@@ -222,7 +222,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className={cn("h-8 w-8", !isUser && "lumina-avatar-pulse")}>
+                                <Avatar className="h-8 w-8">
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -255,7 +255,7 @@ export default function Chat() {
                             <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
                             <AvatarFallback>L</AvatarFallback>
                         </Avatar>
-                        <div className="p-3 rounded-2xl bg-muted text-muted-foreground">
+                        <div className="p-3 rounded-2xl lumina-bubble">
                             <TypingIndicator />
                         </div>
                     </div>
@@ -321,5 +321,3 @@ export default function Chat() {
     </div>
   );
 }
-
-    
