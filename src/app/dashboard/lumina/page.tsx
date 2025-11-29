@@ -208,7 +208,6 @@ export default function Chat() {
 
 
     } catch (error) {
-        console.error("Streaming failed:", error);
         setIsLuminaTyping(false);
         const errorMessage = "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?";
         setMessages(prev => prev.map(msg => 

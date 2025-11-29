@@ -3,7 +3,6 @@
 /**
  * Lúmina — fluxo oficial do assistente financeiro.
  * Compatível com imagens (base64), histórico e modo casal.
- * Versão corrigida: histórico removido do promptContext (já é enviado via parâmetro history)
  */
 
 import { ai } from "@/ai/genkit";
@@ -14,6 +13,11 @@ import {
   LUMINA_VOICE_COMMAND_PROMPT,
   LUMINA_SPEECH_SYNTHESIS_PROMPT,
 } from "@/ai/lumina/prompt/luminaBasePrompt";
+import {
+  GenerateRequest,
+  generate,
+  GenerationCommon,
+} from "genkit/generate";
 
 export async function generateSuggestion(
   input: LuminaChatInput
@@ -32,30 +36,7 @@ export async function generateSuggestion(
   return luminaResponse;
 }
 
-export async function generateSuggestionStream(input: LuminaChatInput): Promise<ReadableStream<string>> {
-    const stream = new ReadableStream({
-        async start(controller) {
-            try {
-                const luminaStream = luminaChatFlowStream(input);
-                for await (const chunk of luminaStream) {
-                    controller.enqueue(chunk);
-                }
-            } catch (e) {
-                console.error("Error in stream generation: ", e);
-                controller.enqueue(
-                    "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?"
-                );
-            } finally {
-                controller.close();
-            }
-        },
-    });
-    return stream;
-}
-
-async function* luminaChatFlowStream(
-  input: LuminaChatInput
-): AsyncGenerator<string, void, unknown> {
+export async function generateSuggestionStream(input: LuminaChatInput) {
   // 1) Normalizações / Segurança
   const userQuery = (input.userQuery || "").trim();
   const audioText = (input.audioText || "").trim();
@@ -91,7 +72,7 @@ async function* luminaChatFlowStream(
   ].join("\n");
 
   // 3) Attachments (imagem em base64)
-  let attachments: Array<any> | undefined = undefined;
+  let attachments: GenerationCommon["attachments"] = undefined;
   if (input.imageBase64) {
     const value = input.imageBase64 as string;
     const isDataUrl = /^data:.*;base64,/.test(value.trim());
@@ -109,9 +90,7 @@ async function* luminaChatFlowStream(
     attachments,
   });
 
-  for await (const chunk of stream) {
-    yield chunk.text;
-  }
+  return stream;
 }
 
 const luminaChatFlow = ai.defineFlow(
@@ -180,7 +159,7 @@ const luminaChatFlow = ai.defineFlow(
     // ---------------------------
     // 3) Attachments (imagem em base64)
     // ---------------------------
-    let attachments: Array<any> | undefined = undefined;
+    let attachments: GenerationCommon["attachments"] = undefined;
     if (input.imageBase64) {
       const value = input.imageBase64 as string;
       const isDataUrl = /^data:.*;base64,/.test(value.trim());
