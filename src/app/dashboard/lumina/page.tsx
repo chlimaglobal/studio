@@ -317,7 +317,7 @@ export default function Chat() {
                                 )}
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
-                                {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
+                                {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
                                 {!isUser && m.audioUrl && (
                                      <Button
                                         variant="ghost"
