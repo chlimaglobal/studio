@@ -10,11 +10,11 @@ import { cn, fileToBase64 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { onChatUpdate, addChatMessage, onCoupleChatUpdate } from "@/lib/storage";
+import { onChatUpdate, addChatMessage, addCoupleChatMessage, updateChatMessage, updateCoupleChatMessage } from '@/lib/storage';
 import type { ChatMessage } from "@/lib/types";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { sendMessageToLuminaSingle, sendMessageToLuminaCouple } from "@/ai/lumina/lumina";
+import { sendMessageToLuminaStream } from "@/ai/lumina/lumina";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -72,23 +72,9 @@ export default function Chat() {
     let unsubscribe: () => void;
 
     const handleMessages = async (newMessages: ChatMessage[]) => {
-      const lastMessage = newMessages[newMessages.length - 1];
-      if (lastMessage && lastMessage.role === 'lumina' && !lastMessage.audioUrl && isTTSEnabled) {
-        try {
-            const { audioUrl } = await textToSpeech(lastMessage.text || '');
-            lastMessage.audioUrl = audioUrl;
-            if (audioRef.current && audioUrl) {
-                audioRef.current.src = audioUrl;
-                audioRef.current.play().catch(e => console.warn("Autoplay was prevented.", e));
-                setCurrentlyPlaying(lastMessage.id || null);
-            }
-        } catch (e) {
-            console.error("TTS generation failed", e);
-        }
-      }
       setMessages(newMessages);
       setIsLoading(false);
-      setIsLuminaTyping(false);
+      // We no longer set isLuminaTyping to false here; streaming handles it.
     };
 
     if (viewMode === 'together' && coupleLink) {
@@ -98,7 +84,7 @@ export default function Chat() {
     }
 
     return () => unsubscribe();
-  }, [user, viewMode, coupleLink, isTTSEnabled]);
+  }, [user, viewMode, coupleLink]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,58 +129,98 @@ export default function Chat() {
         imageBase64 = await fileToBase64(fileToSend);
     }
 
-    const commonInput = {
-        userQuery: messageText,
-        audioText: fromAudio ? messageText : undefined,
-        chatHistory: messages,
-        allTransactions: transactions,
-        imageBase64,
-        isCoupleMode: viewMode === 'together',
-        isTTSActive: isTTSEnabled,
-        user: { 
-            uid: user.uid, 
-            displayName: user.displayName || 'Usuário',
-            email: user.email,
-            photoURL: user.photoURL
-        },
+    // Add user message to DB
+    const userMessageData = {
+        role: "user" as const,
+        text: messageText,
+        authorId: user.uid,
+        authorName: user.displayName || 'Você',
+        authorPhotoUrl: user.photoURL || '',
     };
-
-    if (viewMode === 'together' && partner) {
-        await sendMessageToLuminaCouple({
-            ...commonInput,
-            partner: {
-                uid: partner.uid,
-                displayName: partner.displayName || 'Parceiro(a)',
-                email: partner.email,
-                photoURL: partner.photoURL
-            },
-        }, coupleLink);
+    
+    if (viewMode === 'together' && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, userMessageData);
     } else {
-        await sendMessageToLuminaSingle(commonInput);
+        await addChatMessage(user.uid, userMessageData);
     }
-    // The onSnapshot listener will handle displaying the new messages.
+    const currentChatHistory = [...messages, { ...userMessageData, timestamp: new Date() }];
+
+    // Prepare for streaming response
+    const luminaMessageId = Math.random().toString(36).substring(7);
+    let luminaMessageText = '';
+
+    const luminaMessageData: ChatMessage = {
+        id: luminaMessageId,
+        role: "lumina",
+        text: '',
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+        suggestions: [],
+        timestamp: new Date()
+    };
+    
+    // Add an empty message for Lumina to start
+    setMessages(prev => [...prev, luminaMessageData]);
+
+    try {
+        const response = await fetch('/api/lumina/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                 userQuery: messageText,
+                audioText: fromAudio ? messageText : undefined,
+                chatHistory: currentChatHistory,
+                allTransactions: transactions,
+                imageBase64,
+                isCoupleMode: viewMode === 'together',
+                isTTSActive: isTTSEnabled,
+            }),
+        });
+
+        if (!response.ok || !response.body) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        
+        setIsLuminaTyping(false); // Stop typing indicator as soon as stream starts
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            luminaMessageText += decoder.decode(value, { stream: true });
+            
+            setMessages(prev => prev.map(msg => 
+                msg.id === luminaMessageId 
+                ? { ...msg, text: luminaMessageText } 
+                : msg
+            ));
+        }
+
+        // Final update to DB after stream is complete
+        const finalMessageData = { ...luminaMessageData, text: luminaMessageText };
+        if (viewMode === 'together' && coupleLink) {
+            await addCoupleChatMessage(coupleLink.id, finalMessageData);
+        } else {
+            await addChatMessage(user.uid, finalMessageData);
+        }
+
+
+    } catch (error) {
+        console.error("Streaming failed:", error);
+        setIsLuminaTyping(false);
+        const errorMessage = "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?";
+        setMessages(prev => prev.map(msg => 
+            msg.id === luminaMessageId 
+            ? { ...msg, text: errorMessage } 
+            : msg
+        ));
+    }
 
   }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink, attachedFile]);
   
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setAttachedFile(file);
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFilePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setFilePreview(null); // No preview for non-image files, just show name
-      }
-    }
-     // Reset file input value to allow selecting the same file again
-    event.target.value = '';
-  };
-
-
   const handleTextSend = () => {
       handleSend(input, false);
   }

@@ -569,7 +569,13 @@ export async function addChatMessage(userId: string, message: Omit<ChatMessage, 
         ...message,
         timestamp: Timestamp.now(),
     };
-    await addDoc(collection(db, 'users', userId, 'chat'), chatMessage);
+    return await addDoc(collection(db, 'users', userId, 'chat'), chatMessage);
+}
+
+export async function updateChatMessage(userId: string, messageId: string, message: Partial<ChatMessage>) {
+    if (!userId) throw new Error("User not authenticated");
+    const docRef = doc(db, 'users', userId, 'chat', messageId);
+    await updateDoc(docRef, message);
 }
 
 
@@ -606,7 +612,13 @@ export async function addCoupleChatMessage(coupleId: string, message: Omit<ChatM
         ...message,
         timestamp: Timestamp.now(),
     };
-    await addDoc(collection(db, 'couples', coupleId, 'messages'), chatMessage);
+    return await addDoc(collection(db, 'couples', coupleId, 'messages'), chatMessage);
+}
+
+export async function updateCoupleChatMessage(coupleId: string, messageId: string, message: Partial<ChatMessage>) {
+    if (!coupleId) throw new Error("Couple ID not provided");
+    const docRef = doc(db, 'couples', coupleId, 'messages', messageId);
+    await updateDoc(docRef, message);
 }
 
 
@@ -671,5 +683,3 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
 
 // Re-exporting getDoc and updateDoc for use in page.tsx
 export { getDoc, doc, updateDoc };
-
-    

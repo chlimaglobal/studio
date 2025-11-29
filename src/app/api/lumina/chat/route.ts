@@ -1,21 +1,28 @@
 
 import { NextResponse } from 'next/server';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import { generateSuggestionStream } from '@/ai/flows/lumina-chat';
 import type { LuminaChatInput } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Set timeout to 60 seconds
 
 export async function POST(req: Request) {
   try {
     const data: LuminaChatInput = await req.json();
-    const output = await generateSuggestion(data);
-    return NextResponse.json(output);
+    const stream = generateSuggestionStream(data);
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+        },
+    });
   } catch (error) {
     console.error('[LUMINA_CHAT_API_ERROR]', error);
-    return new NextResponse(
-      JSON.stringify({
-        text: "Ocorreu um erro no servidor ao processar sua solicitação. A equipe já foi notificada.",
-        suggestions: []
-      }), 
-      { status: 500 }
-    );
+    const readableStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue("Desculpe, ocorreu um erro no servidor. A equipe já foi notificada.");
+        controller.close();
+      }
+    });
+    return new Response(readableStream, { status: 500 });
   }
 }

@@ -13,8 +13,94 @@ import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
-  return luminaChatFlow(input);
+  const luminaResponse = await luminaChatFlow(input);
+  if (!luminaResponse?.text) {
+      return {
+        text: 'Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?',
+        suggestions: [
+          'Ver despesas do mês',
+          'Sugestões para economizar',
+          'Registrar despesa detectada',
+        ],
+      };
+    }
+    return luminaResponse;
 }
+
+export function generateSuggestionStream(input: LuminaChatInput): ReadableStream<string> {
+    const stream = new ReadableStream({
+        async start(controller) {
+            try {
+                const luminaStream = await luminaChatFlowStream(input);
+                for await (const chunk of luminaStream) {
+                    controller.enqueue(chunk);
+                }
+            } catch(e) {
+                console.error("Error in stream generation: ", e);
+                controller.enqueue("Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?");
+            } finally {
+                controller.close();
+            }
+        },
+    });
+    return stream;
+}
+
+async function* luminaChatFlowStream(input: LuminaChatInput): AsyncGenerator<string, void, unknown> {
+    // 1) Normalizações / Segurança
+    const userQuery = (input.userQuery || '').trim();
+    const audioText = (input.audioText || '').trim();
+    const isTTSActive = input.isTTSActive || false;
+    const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
+      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
+      content: [{ text: (msg.text || '').toString() }],
+    }));
+    const transactionsForContext = (input.allTransactions || []).slice(0, 30);
+    let transactionsJSON = '[]';
+    try {
+      transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
+    } catch (e) { /* ignore */ }
+
+    // 2) Prompt dinâmico
+    const promptContext = [
+      LUMINA_BASE_PROMPT,
+      audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
+      isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
+      '',
+      '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
+      `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
+      `- Transações recentes (últimas ${transactionsForContext.length}):`,
+      transactionsJSON,
+      audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
+      '',
+      '### NOVA MENSAGEM DO USUÁRIO:',
+      userQuery || '(mensagem vazia)',
+      '',
+      'Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.',
+    ].join('\n');
+
+    // 3) Attachments (imagem em base64)
+    let attachments: Array<any> | undefined = undefined;
+    if (input.imageBase64) {
+      const value = input.imageBase64 as string;
+      const isDataUrl = /^data:.*;base64,/.test(value.trim());
+      const mediaUrl = isDataUrl ? value.trim() : `data:image/png;base64,${value.trim()}`;
+      attachments = [{ media: { url: mediaUrl, contentType: 'image/png' } }];
+    }
+    
+    // 4) Chamada ao Gemini via Genkit (STREAMING)
+    const { stream } = ai.generateStream({
+        model: 'googleai/gemini-1.5-flash',
+        prompt: promptContext,
+        history: mappedChatHistory,
+        attachments,
+    });
+    
+    for await (const chunk of stream) {
+        yield chunk.text;
+    }
+}
+
 
 const luminaChatFlow = ai.defineFlow(
   {
