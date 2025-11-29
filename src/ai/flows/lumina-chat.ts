@@ -1,3 +1,4 @@
+
 "use server";
 
 /**
@@ -36,7 +37,7 @@ export async function generateSuggestionStream(input: LuminaChatInput): Promise<
     const stream = new ReadableStream({
         async start(controller) {
             try {
-                const luminaStream = await luminaChatFlowStream(input);
+                const luminaStream = luminaChatFlowStream(input);
                 for await (const chunk of luminaStream) {
                     controller.enqueue(chunk);
                 }
