@@ -325,10 +325,10 @@ export default function Chat() {
               accept="image/*,application/pdf,.csv,.ofx"
             />
             <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="ghost">
-                <Paperclip className="h-5 w-5" />
+                <Paperclip className="h-5 w-5 text-foreground" />
             </Button>
             <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="ghost">
-                <Mic className="h-5 w-5" />
+                <Mic className="h-5 w-5 text-foreground" />
             </Button>
             <Button onClick={handleTextSend} disabled={(!input.trim() && !attachedFile) || isLuminaTyping}>
                 Enviar
