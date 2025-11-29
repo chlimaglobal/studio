@@ -169,12 +169,11 @@ export const onTransactionCreated = functions.firestore
       return null;
     }
 
-    // --- LÓGICA DE ALERTA 1: GASTOS > RECEITAS ---
+    // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
     const now = new Date();
     const currentMonthKey = format(now, "yyyy-MM");
     const lastAlertedMonth = userData?.mesAlertadoRenda;
 
-    // Se já foi alertado este mês, não continua esta verificação
     if (lastAlertedMonth !== currentMonthKey) {
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
@@ -191,7 +190,6 @@ export const onTransactionCreated = functions.firestore
 
         snapshot.forEach((doc) => {
             const transaction = doc.data();
-            // Excluir investimentos do cálculo de fluxo de caixa
             if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
                 if (transaction.type === "income") {
                     totalIncome += transaction.amount;
@@ -201,13 +199,11 @@ export const onTransactionCreated = functions.firestore
             }
         });
 
-        // Se despesas ultrapassam receitas
         if (totalExpenses > totalIncome) {
             try {
                 const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas.
 Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
 
-                // Adiciona a mensagem ao chat da Lúmina
                 await db.collection(`users/${userId}/chat`).add({
                     role: "alerta",
                     text: messageText,
@@ -216,7 +212,6 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                     suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
                 });
 
-                // Marca que o alerta foi enviado este mês para não repetir
                 await userDocRef.update({ mesAlertadoRenda: currentMonthKey });
 
             } catch (error) {
@@ -261,6 +256,21 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     // 1. Ao receber uma receita grande (ex: salário) ou em uma rotina mensal.
     // 2. Calcular o balanço atual do mês.
     // 3. Se houver um excedente significativo, sugerir o investimento.
+
+    // --- PLACEHOLDER PARA TRIGGERS DE MONITORAMENTO CONTÍNUO ---
+
+    // ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%)
+    // Lógica a ser implementada:
+    // 1. Buscar o orçamento definido para a categoria da newTransaction.
+    // 2. Calcular o total gasto na categoria no mês atual.
+    // 3. Se o total atingir 80% do orçamento, enviar alerta de "próximo ao limite".
+    // 4. Se o total ultrapassar 100%, enviar alerta de "limite ultrapassado".
+    
+    // 📉 ALERTA DE PROJEÇÃO NEGATIVA
+    // Lógica a ser implementada:
+    // 1. Calcular o ritmo de gastos diário do usuário.
+    // 2. Projetar o gasto total até o fim do mês.
+    // 3. Se a projeção de (receitas - despesas) for negativa, enviar alerta com o déficit estimado.
     
     return null;
   });
