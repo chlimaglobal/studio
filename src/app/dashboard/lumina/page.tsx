@@ -222,7 +222,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className="h-8 w-8">
+                                <Avatar className={cn("h-8 w-8", isLuminaTyping && "lumina-avatar-pulse")}>
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -285,15 +285,16 @@ export default function Chat() {
         )}
         <div className="flex items-center gap-2">
             <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Converse com a Lúmina..."
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleTextSend();
-                }
-            }}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Converse com a Lúmina..."
+              onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleTextSend();
+                  }
+              }}
+              className="rounded-xl border-[#6d562a] focus-visible:ring-primary/50"
             />
              <input
               type="file"
@@ -302,10 +303,10 @@ export default function Chat() {
               className="hidden"
               accept="image/*,application/pdf,.csv,.ofx"
             />
-            <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="outline">
+            <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="ghost" className="text-white">
                 <Paperclip className="h-5 w-5" />
             </Button>
-            <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="outline">
+            <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="ghost" className="text-white">
                 <Mic className="h-5 w-5" />
             </Button>
             <Button onClick={handleTextSend} disabled={(!input.trim() && !attachedFile) || isLuminaTyping}>
