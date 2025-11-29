@@ -198,22 +198,22 @@ export default function Chat() {
         }
 
         // Final update to DB after stream is complete
-        const finalMessageData = { ...luminaMessageData, text: luminaMessageText };
+        const finalMessageData = { text: luminaMessageText, suggestions: [] }; // Assume suggestions come separately or not at all in stream
         if (viewMode === 'together' && coupleLink) {
-            await addCoupleChatMessage(coupleLink.id, finalMessageData);
+            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, finalMessageData);
         } else {
-            await addChatMessage(user.uid, finalMessageData);
+            await updateChatMessage(user.uid, luminaMessageId, finalMessageData);
         }
-
 
     } catch (error) {
         setIsLuminaTyping(false);
         const errorMessage = "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?";
-        setMessages(prev => prev.map(msg => 
-            msg.id === luminaMessageId 
-            ? { ...msg, text: errorMessage } 
-            : msg
-        ));
+        const finalErrorData = { text: errorMessage, suggestions: [] };
+        if (viewMode === 'together' && coupleLink) {
+            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, finalErrorData);
+        } else {
+            await updateChatMessage(user.uid, luminaMessageId, finalErrorData);
+        }
     }
 
   }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink, attachedFile]);
