@@ -324,5 +324,6 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     
     return null;
   });
+    
 
     
