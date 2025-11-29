@@ -14,7 +14,6 @@ import { onChatUpdate, addChatMessage, addCoupleChatMessage, updateChatMessage, 
 import type { ChatMessage } from "@/lib/types";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { sendMessageToLuminaStream } from "@/ai/lumina/lumina";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -221,6 +220,18 @@ export default function Chat() {
 
   }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink, attachedFile]);
   
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setAttachedFile(file);
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+                setFilePreview(loadEvent.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+  
   const handleTextSend = () => {
       handleSend(input, false);
   }
@@ -234,7 +245,7 @@ export default function Chat() {
         <audio ref={audioRef} className="hidden" />
         <header className="p-4 border-b flex justify-between items-center">
             <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)]">
+                <Avatar className="h-10 w-10 border-2 border-primary/50 shadow-[0_0_12px_rgba(255,215,130,0.4)]">
                     <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
                     <AvatarFallback>L</AvatarFallback>
                 </Avatar>
@@ -269,7 +280,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className={cn("h-8 w-8 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)]", isLuminaTyping && i === messages.length - 1 && "lumina-avatar-pulse")}>
+                                 <Avatar className={cn("h-8 w-8 border-2 border-primary/50 shadow-[0_0_12px_rgba(255,215,130,0.4)]", isLuminaTyping && i === messages.length - 1 && "lumina-avatar-pulse")}>
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -298,7 +309,7 @@ export default function Chat() {
                 })}
                  {isLuminaTyping && (
                     <div className="flex items-end gap-2">
-                         <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)] lumina-avatar-pulse">
+                         <Avatar className="h-8 w-8 border-2 border-primary/50 shadow-[0_0_12px_rgba(255,215,130,0.4)] lumina-avatar-pulse">
                             <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
                             <AvatarFallback>L</AvatarFallback>
                         </Avatar>
@@ -348,7 +359,7 @@ export default function Chat() {
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept="image/*,application/pdf,.csv,.ofx"
+              accept="image/*"
             />
             <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="ghost">
                 <Paperclip className="h-5 w-5 text-foreground" />
