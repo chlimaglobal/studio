@@ -1,5 +1,4 @@
-
-'use server';
+"use server";
 
 /**
  * Lúmina — fluxo oficial do assistente financeiro.
@@ -7,24 +6,30 @@
  * Versão corrigida: histórico removido do promptContext (já é enviado via parâmetro history)
  */
 
-import { ai } from '@/ai/genkit';
-import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
-import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
-import { LUMINA_BASE_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
+import { ai } from "@/ai/genkit";
+import type { LuminaChatInput, LuminaChatOutput } from "@/lib/types";
+import { LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
+import {
+  LUMINA_BASE_PROMPT,
+  LUMINA_VOICE_COMMAND_PROMPT,
+  LUMINA_SPEECH_SYNTHESIS_PROMPT,
+} from "@/ai/lumina/prompt/luminaBasePrompt";
 
-export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
+export async function generateSuggestion(
+  input: LuminaChatInput
+): Promise<LuminaChatOutput> {
   const luminaResponse = await luminaChatFlow(input);
   if (!luminaResponse?.text) {
-      return {
-        text: 'Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?',
-        suggestions: [
-          'Ver despesas do mês',
-          'Sugestões para economizar',
-          'Registrar despesa detectada',
-        ],
-      };
-    }
-    return luminaResponse;
+    return {
+      text: "Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?",
+      suggestions: [
+        "Ver despesas do mês",
+        "Sugestões para economizar",
+        "Registrar despesa detectada",
+      ],
+    };
+  }
+  return luminaResponse;
 }
 
 export async function generateSuggestionStream(input: LuminaChatInput): Promise<ReadableStream<string>> {
@@ -35,9 +40,11 @@ export async function generateSuggestionStream(input: LuminaChatInput): Promise<
                 for await (const chunk of luminaStream) {
                     controller.enqueue(chunk);
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error("Error in stream generation: ", e);
-                controller.enqueue("Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?");
+                controller.enqueue(
+                    "Desculpe, tive um problema para processar sua solicitação. Poderia tentar novamente?"
+                );
             } finally {
                 controller.close();
             }
@@ -46,65 +53,70 @@ export async function generateSuggestionStream(input: LuminaChatInput): Promise<
     return stream;
 }
 
-async function* luminaChatFlowStream(input: LuminaChatInput): AsyncGenerator<string, void, unknown> {
-    // 1) Normalizações / Segurança
-    const userQuery = (input.userQuery || '').trim();
-    const audioText = (input.audioText || '').trim();
-    const isTTSActive = input.isTTSActive || false;
-    const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
-      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
-      content: [{ text: (msg.text || '').toString() }],
-    }));
-    const transactionsForContext = (input.allTransactions || []).slice(0, 30);
-    let transactionsJSON = '[]';
-    try {
-      transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
-    } catch (e) { /* ignore */ }
+async function* luminaChatFlowStream(
+  input: LuminaChatInput
+): AsyncGenerator<string, void, unknown> {
+  // 1) Normalizações / Segurança
+  const userQuery = (input.userQuery || "").trim();
+  const audioText = (input.audioText || "").trim();
+  const isTTSActive = input.isTTSActive || false;
+  const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
+    role: msg.role === "lumina" ? ("model" as const) : ("user" as const),
+    content: [{ text: (msg.text || "").toString() }],
+  }));
+  const transactionsForContext = (input.allTransactions || []).slice(0, 30);
+  let transactionsJSON = "[]";
+  try {
+    transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
+  } catch (e) {
+    /* ignore */
+  }
 
-    // 2) Prompt dinâmico
-    const promptContext = [
-      LUMINA_BASE_PROMPT,
-      audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
-      isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
-      '',
-      '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
-      `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
-      `- Transações recentes (últimas ${transactionsForContext.length}):`,
-      transactionsJSON,
-      audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
-      '',
-      '### NOVA MENSAGEM DO USUÁRIO:',
-      userQuery || '(mensagem vazia)',
-      '',
-      'Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.',
-    ].join('\n');
+  // 2) Prompt dinâmico
+  const promptContext = [
+    LUMINA_BASE_PROMPT,
+    audioText ? LUMINA_VOICE_COMMAND_PROMPT : "",
+    isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : "",
+    "",
+    "### CONTEXTO SISTEMA (não repita literalmente ao usuário):",
+    `- Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}`,
+    `- Transações recentes (últimas ${transactionsForContext.length}):`,
+    transactionsJSON,
+    audioText ? `- Áudio transcrito: ${audioText}` : "- Áudio transcrito: N/A",
+    "",
+    "### NOVA MENSAGEM DO USUÁRIO:",
+    userQuery || "(mensagem vazia)",
+    "",
+    "Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.",
+  ].join("\n");
 
-    // 3) Attachments (imagem em base64)
-    let attachments: Array<any> | undefined = undefined;
-    if (input.imageBase64) {
-      const value = input.imageBase64 as string;
-      const isDataUrl = /^data:.*;base64,/.test(value.trim());
-      const mediaUrl = isDataUrl ? value.trim() : `data:image/png;base64,${value.trim()}`;
-      attachments = [{ media: { url: mediaUrl, contentType: 'image/png' } }];
-    }
-    
-    // 4) Chamada ao Gemini via Genkit (STREAMING)
-    const { stream } = ai.generateStream({
-        model: 'googleai/gemini-1.5-flash',
-        prompt: promptContext,
-        history: mappedChatHistory,
-        attachments,
-    });
-    
-    for await (const chunk of stream) {
-        yield chunk.text;
-    }
+  // 3) Attachments (imagem em base64)
+  let attachments: Array<any> | undefined = undefined;
+  if (input.imageBase64) {
+    const value = input.imageBase64 as string;
+    const isDataUrl = /^data:.*;base64,/.test(value.trim());
+    const mediaUrl = isDataUrl
+      ? value.trim()
+      : `data:image/png;base64,${value.trim()}`;
+    attachments = [{ media: { url: mediaUrl, contentType: "image/png" } }];
+  }
+
+  // 4) Chamada ao Gemini via Genkit (STREAMING)
+  const { stream } = ai.generateStream({
+    model: "googleai/gemini-1.5-flash",
+    prompt: promptContext,
+    history: mappedChatHistory,
+    attachments,
+  });
+
+  for await (const chunk of stream) {
+    yield chunk.text;
+  }
 }
-
 
 const luminaChatFlow = ai.defineFlow(
   {
-    name: 'luminaChatFlow',
+    name: "luminaChatFlow",
     inputSchema: LuminaChatInputSchema,
     outputSchema: LuminaChatOutputSchema,
     retrier: {
@@ -120,27 +132,27 @@ const luminaChatFlow = ai.defineFlow(
     // 1) Normalizações / Segurança
     // ---------------------------
 
-    const userQuery = (input.userQuery || '').trim();
-    const audioText = (input.audioText || '').trim();
+    const userQuery = (input.userQuery || "").trim();
+    const audioText = (input.audioText || "").trim();
     const isTTSActive = input.isTTSActive || false;
 
     // Mapeia o histórico para o formato esperado pelo Genkit/Gemini
     const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
-      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
+      role: msg.role === "lumina" ? ("model" as const) : ("user" as const),
       content: [
         {
-          text: (msg.text || '').toString(),
+          text: (msg.text || "").toString(),
         },
       ],
     }));
 
     // Últimas 30 transações para contexto (nunca mais que isso)
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
-    let transactionsJSON = '[]';
+    let transactionsJSON = "[]";
     try {
       transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
     } catch (e) {
-      transactionsJSON = '[]';
+      transactionsJSON = "[]";
     }
 
     // ---------------------------
@@ -149,21 +161,21 @@ const luminaChatFlow = ai.defineFlow(
     const promptContext = [
       LUMINA_BASE_PROMPT,
       // Adiciona o prompt de comando de voz se a entrada for de áudio
-      audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
+      audioText ? LUMINA_VOICE_COMMAND_PROMPT : "",
       // Adiciona o prompt de síntese de voz se o TTS estiver ativo
-      isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
-      '',
-      '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
-      `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
+      isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : "",
+      "",
+      "### CONTEXTO SISTEMA (não repita literalmente ao usuário):",
+      `- Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}`,
       `- Transações recentes (últimas ${transactionsForContext.length}):`,
       transactionsJSON,
-      audioText ? `- Áudio transcrito: ${audioText}` : '- Áudio transcrito: N/A',
-      '',
-      '### NOVA MENSAGEM DO USUÁRIO:',
-      userQuery || '(mensagem vazia)',
-      '',
-      'Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.',
-    ].join('\n');
+      audioText ? `- Áudio transcrito: ${audioText}` : "- Áudio transcrito: N/A",
+      "",
+      "### NOVA MENSAGEM DO USUÁRIO:",
+      userQuery || "(mensagem vazia)",
+      "",
+      "Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.",
+    ].join("\n");
 
     // ---------------------------
     // 3) Attachments (imagem em base64)
@@ -172,13 +184,15 @@ const luminaChatFlow = ai.defineFlow(
     if (input.imageBase64) {
       const value = input.imageBase64 as string;
       const isDataUrl = /^data:.*;base64,/.test(value.trim());
-      const mediaUrl = isDataUrl ? value.trim() : `data:image/png;base64,${value.trim()}`;
+      const mediaUrl = isDataUrl
+        ? value.trim()
+        : `data:image/png;base64,${value.trim()}`;
 
       attachments = [
         {
           media: {
             url: mediaUrl,
-            contentType: 'image/png',
+            contentType: "image/png",
           },
         },
       ];
@@ -190,7 +204,7 @@ const luminaChatFlow = ai.defineFlow(
     let apiResponse: any;
     try {
       apiResponse = await ai.generate({
-        model: 'googleai/gemini-1.5-flash', // ou gemini-1.5-pro se preferir
+        model: "googleai/gemini-1.5-flash", // ou gemini-1.5-pro se preferir
         prompt: promptContext,
         history: mappedChatHistory, // Histórico enviado da forma correta (única)
         attachments,
@@ -199,13 +213,13 @@ const luminaChatFlow = ai.defineFlow(
         },
       });
     } catch (err) {
-      console.error('Erro ao chamar Gemini:', err);
+      console.error("Erro ao chamar Gemini:", err);
       return {
-        text: 'Tive um pequeno tropeço agora, mas já estou de volta! Pode repetir ou me dizer como posso te ajudar?',
+        text: "Tive um pequeno tropeço agora, mas já estou de volta! Pode repetir ou me dizer como posso te ajudar?",
         suggestions: [
-          'Resumo do mês',
-          'Registrar despesa da foto',
-          'Comparar renda × gastos',
+          "Resumo do mês",
+          "Registrar despesa da foto",
+          "Comparar renda × gastos",
         ],
       };
     }
@@ -217,11 +231,11 @@ const luminaChatFlow = ai.defineFlow(
 
     if (!output?.text) {
       return {
-        text: 'Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?',
+        text: "Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?",
         suggestions: [
-          'Ver despesas do mês',
-          'Sugestões para economizar',
-          'Registrar despesa detectada',
+          "Ver despesas do mês",
+          "Sugestões para economizar",
+          "Registrar despesa detectada",
         ],
       };
     }
