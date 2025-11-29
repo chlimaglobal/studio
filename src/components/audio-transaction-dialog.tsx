@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,16 +13,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2, AlertTriangle, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { extractTransactionInfoFromText } from '@/app/actions';
 import { Alert, AlertTitle, AlertDescription } from './ui/alert';
-import type { TransactionFormSchema } from '@/lib/types';
-import { z } from 'zod';
 import { cn } from '@/lib/utils';
 
-type AudioTransactionDialogProps = {
+
+type AudioInputDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onTransactionExtracted: (data: Partial<z.infer<typeof TransactionFormSchema>>) => void;
+  onTranscript: (transcript: string) => void;
   children?: React.ReactNode;
 }
 
@@ -34,49 +31,15 @@ const SoundWave = () => (
     </div>
 );
 
-export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtracted, children }: AudioTransactionDialogProps) {
+export function AudioInputDialog({ open, onOpenChange, onTranscript, children }: AudioInputDialogProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // To handle the period after recording stops
   const [error, setError] = useState<string | null>(null);
   const [permissionState, setPermissionState] = useState<PermissionState | 'unsupported'>('prompt');
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const { toast } = useToast();
 
-  const processTranscript = useCallback(async (transcript: string) => {
-    setIsProcessing(true);
-    setError(null);
-
-    const command = transcript.trim();
-    if (!command) {
-        setError("Não consegui ouvir nada. Por favor, tente novamente.");
-        setIsProcessing(false);
-        return;
-    }
-
-    try {
-      const result = await extractTransactionInfoFromText(command);
-      // @ts-ignore
-      if (result.error) {
-        // @ts-ignore
-        const errorMessage = result.error || 'Não foi possível extrair os detalhes. Tente ser mais claro.';
-        toast({ variant: 'destructive', title: 'Não foi possível entender', description: `${errorMessage} Por favor, tente novamente.` });
-        setError(errorMessage);
-      } else {
-        // @ts-ignore
-        onTransactionExtracted(result);
-        onOpenChange(false); // Fecha o diálogo de áudio
-      }
-    } catch (e) {
-      const errorMessage = 'Ocorreu um erro ao falar com a Lúmina. Tente novamente.';
-      toast({ variant: 'destructive', title: 'Erro de Processamento', description: errorMessage });
-      setError(errorMessage);
-    } finally {
-        setIsProcessing(false);
-    }
-  }, [toast, onOpenChange, onTransactionExtracted]);
-
-  
   useEffect(() => {
     // Check permission status when the dialog opens
     const checkPermission = async () => {
@@ -112,6 +75,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
   const handleToggleRecording = async () => {
     if (isRecording) {
       recognitionRef.current?.stop();
+      setIsProcessing(true); // Show loader while waiting for final result
       return;
     }
     
@@ -143,6 +107,7 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
 
     recognition.onend = () => {
         setIsRecording(false);
+        setIsProcessing(false);
     };
 
     recognition.onerror = (event) => {
@@ -157,16 +122,18 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
         }
         setError(errorMessage);
         setIsRecording(false);
+        setIsProcessing(false);
     };
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         if (transcript) {
-          processTranscript(transcript);
+          onTranscript(transcript);
+          onOpenChange(false);
         } else {
             setError('Não consegui ouvir nada. Por favor, tente novamente.');
-            setIsProcessing(false);
         }
+        setIsProcessing(false);
     };
     
     recognition.start();
@@ -181,9 +148,9 @@ export function AudioTransactionDialog({ open, onOpenChange, onTransactionExtrac
       {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="sm:rounded-2xl bg-background/80 backdrop-blur-sm border-border/50">
         <DialogHeader className="text-center">
-          <DialogTitle>Adicionar por Voz</DialogTitle>
+          <DialogTitle>Comando de Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Analisando..." : (isRecording ? "Estou ouvindo..." : "Diga o que você gastou ou recebeu, como 'gastei 50 reais no almoço'.")}
+            {isProcessing ? "Processando..." : (isRecording ? "Estou ouvindo..." : "Pressione o microfone e fale com a Lúmina.")}
           </DialogDescription>
         </DialogHeader>
 

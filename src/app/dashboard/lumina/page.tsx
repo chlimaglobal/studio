@@ -4,15 +4,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
-import { Loader2, Volume2, VolumeX, Play } from "lucide-react";
+import { Loader2, Volume2, VolumeX, Play, Mic } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { onChatUpdate, addChatMessage, onCoupleChatUpdate, addCoupleChatMessage } from "@/lib/storage";
+import { onChatUpdate, addChatMessage, onCoupleChatUpdate } from "@/lib/storage";
 import type { ChatMessage } from "@/lib/types";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
+import { AudioInputDialog } from "@/components/audio-transaction-dialog";
+import { sendMessageToLumina } from "@/lib/lumina/agent";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -29,15 +31,16 @@ export default function Chat() {
   const [isLuminaTyping, setIsLuminaTyping] = useState(false);
   const [isTTSEnabled, setIsTTSEnabled] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
+
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
   const bottomRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { transactions } = useTransactions();
   const { viewMode, partnerData } = useViewMode();
   const { hasUnread, setHasUnread } = useLumina();
-  const { coupleLink } = useCoupleStore();
+  const { coupleLink, partner } = useCoupleStore();
 
 
   useEffect(() => {
@@ -104,26 +107,44 @@ export default function Chat() {
     }
   }, []);
 
-  const handleSend = async () => {
-    if (!input.trim() || !user) return;
+  const handleSend = useCallback(async (messageText: string, fromAudio: boolean = false) => {
+    if (!messageText.trim() || !user) return;
+    
+    setInput("");
+    setIsLuminaTyping(true);
 
     const userMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
       role: "user",
-      text: input,
+      text: messageText,
       authorId: user.uid,
       authorName: user.displayName || 'Você',
       authorPhotoUrl: user.photoURL || '',
     };
     
-    setInput("");
-    setIsLuminaTyping(true);
+    const luminaInput = {
+      message: messageText,
+      audioText: fromAudio ? messageText : undefined,
+      imageFile: null, // For now, image handling is separate
+      chatHistory: messages,
+      allTransactions: transactions,
+      isCoupleMode: viewMode === 'together',
+      isTTSActive: isTTSEnabled,
+      user,
+      partner
+    };
 
-    if (viewMode === 'together' && coupleLink) {
-        await addCoupleChatMessage(coupleLink.id, userMessage);
-    } else {
-        await addChatMessage(user.uid, userMessage);
-    }
-  };
+    await sendMessageToLumina(luminaInput);
+    // The onSnapshot listener will handle displaying the new messages.
+
+  }, [user, messages, transactions, viewMode, isTTSEnabled, partner]);
+
+  const handleTextSend = () => {
+      handleSend(input, false);
+  }
+
+  const handleAudioTranscript = (transcript: string) => {
+      handleSend(transcript, true);
+  }
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -162,7 +183,7 @@ export default function Chat() {
                             <div
                                 className={cn(
                                 "p-3 rounded-2xl max-w-[75%]",
-                                isUser ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                isUser ? "bg-primary text-primary-foreground" : "bg-muted"
                                 )}
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
@@ -184,6 +205,7 @@ export default function Chat() {
                  {isLuminaTyping && (
                     <div className="flex items-end gap-2">
                          <Avatar className="h-8 w-8">
+                            <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
                             <AvatarFallback>L</AvatarFallback>
                         </Avatar>
                         <div className="p-3 rounded-2xl bg-muted text-muted-foreground">
@@ -205,15 +227,23 @@ export default function Chat() {
             onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSend();
+                handleTextSend();
                 }
             }}
             />
-            <Button onClick={handleSend} disabled={!input.trim()}>
+            <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="outline">
+                <Mic className="h-5 w-5" />
+            </Button>
+            <Button onClick={handleTextSend} disabled={!input.trim() || isLuminaTyping}>
                 Enviar
             </Button>
         </div>
       </div>
+       <AudioInputDialog 
+            open={isAudioDialogOpen}
+            onOpenChange={setIsAudioDialogOpen}
+            onTranscript={handleAudioTranscript}
+        />
     </div>
   );
 }

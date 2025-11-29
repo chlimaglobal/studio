@@ -1,5 +1,7 @@
-
 'use client';
+
+import { sendMessageToLumina as callLuminaApi } from '@/ai/lumina/lumina';
+import type { ChatMessage, AppUser } from '../types';
 
 // Helper function to convert a File to a Base64 string
 export function fileToBase64(file: File): Promise<string> {
@@ -14,18 +16,24 @@ export function fileToBase64(file: File): Promise<string> {
 // Main function to send data to the Lumina API endpoint
 export async function sendMessageToLumina({
   message,
+  audioText,
   imageFile,
   chatHistory,
   allTransactions,
   isCoupleMode,
-  isTTSActive
+  isTTSActive,
+  user,
+  partner
 }: {
   message: string,
+  audioText?: string,
   imageFile: File | null,
-  chatHistory: any[],
+  chatHistory: ChatMessage[],
   allTransactions: any[],
   isCoupleMode: boolean,
-  isTTSActive: boolean
+  isTTSActive: boolean,
+  user: AppUser,
+  partner: AppUser | null,
 }) {
   let imageBase64: string | null = null;
 
@@ -33,48 +41,33 @@ export async function sendMessageToLumina({
   if (imageFile) {
     imageBase64 = await fileToBase64(imageFile);
   }
+  
+  // Choose the correct API endpoint based on the mode
+  const apiFunction = isCoupleMode ? callLuminaApi.couple : callLuminaApi.single;
 
-  // Prepare the body for the API request
   const body = {
-    userQuery: message || "",
+    userQuery: message,
+    audioText,
     imageBase64,
     chatHistory: chatHistory.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       text: msg.text || '',
-      timestamp: new Date().toISOString(),
     })),
     allTransactions,
-    isCoupleMode: !!isCoupleMode,
-    isTTSActive: isTTSActive
+    isCoupleMode,
+    isTTSActive,
+    user: { displayName: user.displayName || '', uid: user.uid },
+    partner: partner ? { displayName: partner.displayName || '', uid: partner.uid } : undefined,
   };
 
   try {
-    const res = await fetch('/api/lumina/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+    // Await the API call directly. The Genkit flow is now responsible for updating Firestore.
+    // The client will get the update via the onSnapshot listener.
+    await apiFunction(body as any);
 
-    if (!res.ok) {
-      console.error("API response not OK", res);
-      // Return a standard error message for the UI
-      return {
-        text: "Tive uma pequena instabilidade, mas já recuperei tudo. Como posso te ajudar agora?",
-        suggestions: [
-          "Resumo das minhas despesas",
-          "Analisar minhas finanças",
-          "Criar um orçamento"
-        ]
-      };
-    }
-
-    return await res.json();
   } catch (error) {
     console.error("Error sending message to Lumina:", error);
-    // Return a standard error message for network or other fetch errors
-     return {
-        text: "Não consegui me conectar. Verifique sua internet e tente novamente.",
-        suggestions: []
-      };
+    // You might want to update the UI to show an error state here,
+    // though the Genkit flow should ideally handle its own errors.
   }
 }
