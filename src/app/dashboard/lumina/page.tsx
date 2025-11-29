@@ -312,7 +312,7 @@ export default function Chat() {
                             )}
                             <div
                                 className={cn(
-                                "p-3 rounded-2xl max-w-[75%]",
+                                "p-3 rounded-2xl max-w-[85%]",
                                 isUser ? "user-bubble" : "lumina-bubble"
                                 )}
                             >
