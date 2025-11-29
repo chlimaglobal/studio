@@ -243,7 +243,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className={cn("h-8 w-8 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)]", isLuminaTyping && "lumina-avatar-pulse")}>
+                                <Avatar className={cn("h-8 w-8 border-2 border-primary/50 shadow-[0_0_8px_rgba(255,215,130,0.5)]", isLuminaTyping && i === messages.length - 1 && "lumina-avatar-pulse")}>
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -324,10 +324,10 @@ export default function Chat() {
               className="hidden"
               accept="image/*,application/pdf,.csv,.ofx"
             />
-            <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="ghost" className="text-white">
+            <Button onClick={() => fileInputRef.current?.click()} size="icon" variant="ghost">
                 <Paperclip className="h-5 w-5" />
             </Button>
-            <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="ghost" className="text-white">
+            <Button onClick={() => setIsAudioDialogOpen(true)} size="icon" variant="ghost">
                 <Mic className="h-5 w-5" />
             </Button>
             <Button onClick={handleTextSend} disabled={(!input.trim() && !attachedFile) || isLuminaTyping}>
