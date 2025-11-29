@@ -1,6 +1,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import {format, startOfMonth, endOfMonth} from "date-fns";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -148,3 +149,84 @@ export const checkDashboardStatus = functions.https.onCall(
     return { success: true, message: "Verificação concluída." };
   }
 );
+
+/**
+ * Triggered when a new transaction is created.
+ * Checks for financial health rules, like expenses exceeding income.
+ */
+export const onTransactionCreated = functions.firestore
+  .document("users/{userId}/transactions/{transactionId}")
+  .onCreate(async (snap, context) => {
+    const { userId } = context.params;
+
+    const userDocRef = db.doc(`users/${userId}`);
+    const userDoc = await userDocRef.get();
+    const userData = userDoc.data();
+
+    // Do not run for dependents
+    if (userData?.isDependent) {
+      return null;
+    }
+
+    const now = new Date();
+    const currentMonthKey = format(now, "yyyy-MM");
+    const lastAlertedMonth = userData?.mesAlertadoRenda;
+
+    // Se já foi alertado este mês, não faz nada
+    if (lastAlertedMonth === currentMonthKey) {
+      return null;
+    }
+
+    // Buscar todas as transações do mês atual
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+
+    const transactionsRef = db
+      .collection(`users/${userId}/transactions`);
+    const query = transactionsRef
+      .where("date", ">=", monthStart)
+      .where("date", "<=", monthEnd);
+
+    const snapshot = await query.get();
+    
+    let totalIncome = 0;
+    let totalExpenses = 0;
+
+    snapshot.forEach((doc) => {
+      const transaction = doc.data();
+      // Excluir investimentos do cálculo de fluxo de caixa
+      if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
+          if (transaction.type === "income") {
+            totalIncome += transaction.amount;
+          } else {
+            totalExpenses += transaction.amount;
+          }
+      }
+    });
+
+    // Se despesas ultrapassam receitas
+    if (totalExpenses > totalIncome) {
+      try {
+        const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas.
+Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
+
+        // Adiciona a mensagem ao chat da Lúmina
+        await db.collection(`users/${userId}/chat`).add({
+          role: "alerta",
+          text: messageText,
+          authorName: "Lúmina (Alerta Automático)",
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
+        });
+
+        // Marca que o alerta foi enviado este mês para não repetir
+        await userDocRef.update({ mesAlertadoRenda: currentMonthKey });
+
+      } catch (error) {
+        console.error("Erro ao enviar alerta de balanço negativo:", error);
+      }
+    }
+    
+    return null;
+  });
+
