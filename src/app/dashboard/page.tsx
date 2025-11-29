@@ -462,34 +462,44 @@ export default function DashboardPage() {
      useEffect(() => {
         if (isLoadingTransactions || !user) return;
         
-        const currentMonthStr = format(new Date(), 'yyyy-MM');
         const userName = user.displayName?.split(' ')[0] || 'Usuário';
-
-        const createAlertMessage = (titulo: string, mensagemPrincipal: string, mensagemSecundaria: string) => {
-            // This now returns a simple string, to be rendered inside a standard bubble
-            return `${titulo}\n\n${mensagemPrincipal}\n\n${mensagemSecundaria}`;
-        }
 
         // Logic for negative balance alert
         const checkNegativeBalance = async () => {
             // Check based on the *previous* month's final balance
-            const lastMonthData = chartData.length > 1 ? chartData[chartData.length - 2] : null;
-            if (lastMonthData && lastMonthData.resultado < 0 && userStatus.ultimoMesChecado !== format(subMonths(new Date(), 1), 'MM/yy')) {
+            const lastMonth = subMonths(new Date(), 1);
+            const lastMonthKey = format(lastMonth, 'MM/yy');
+            const lastMonthData = chartData.find(d => d.date === lastMonthKey);
+            
+            if (lastMonthData && lastMonthData.resultado < 0 && userStatus.ultimoMesChecado !== lastMonthKey) {
                 
-                const messageText = `${userName}, terminei sua análise mensal e identifiquei que você fechou o mês no negativo.\nQuer que eu te mostre:\n• quais despesas mais pesaram?\n• quais entradas ficaram abaixo da média?\n• e o que você pode ajustar para virar esse cenário no próximo mês?`;
+                const mostExpensiveCategory = categorySpending.length > 0 ? categorySpending[0].name : 'seus gastos em geral';
+                const gastoCritico = categorySpending.length > 0 ? formatCurrency(categorySpending[0].value) : 'acima do esperado';
+                const impacto = ((summary.despesas / summary.recebidos) * 100) || 100;
+
+
+                const messageText = `🚨 Alerta de meta: você saiu do plano
+
+• Gasto crítico detectado: ${gastoCritico} em ${mostExpensiveCategory}
+• Impacto na meta: performance em ${impacto.toFixed(0)}%
+• Se continuar assim, você não atinge a meta
+
+Correção:
+1) Reduzir os gastos com ${mostExpensiveCategory}
+2) Evitar compras não essenciais nos próximos dias`;
                 
                 await addChatMessage(user.uid, {
                     role: 'lumina',
                     text: messageText,
                     authorName: "Lúmina"
                 });
-                await updateUserStatus(user.uid, { ultimoMesChecado: format(subMonths(new Date(), 1), 'MM/yy') });
+                await updateUserStatus(user.uid, { ultimoMesChecado: lastMonthKey });
             }
         };
 
         checkNegativeBalance();
 
-    }, [chartData, user, userStatus, isLoadingTransactions, costOfLiving]);
+    }, [chartData, user, userStatus, isLoadingTransactions, categorySpending, summary.despesas, summary.recebidos]);
     
     if (isLoadingTransactions || isLoadingBudgets || isLoadingCouple || userStatus.isDependent) {
         return <DashboardLoadingSkeleton />;

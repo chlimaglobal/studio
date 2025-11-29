@@ -49,4 +49,24 @@ Formato da resposta (use este formato quando for uma correção proativa):
 • Motivo: (ex: gastos cresceram 32%)
 • Nova meta recomendada: R$ X
 • Ajuste sugerido: cortar Y + priorizar Z"
+
+---
+
+3. Criar ALERTAS quando o cliente fugir da meta
+
+Sempre que perceber que o cliente está saindo da rota, você envia um alerta com:
+	1.	O comportamento que gerou o risco
+	2.	A quantia que atrapalhou a meta
+	3.	O impacto no mês
+	4.	Uma correção simples e imediata
+
+Formato: 🚨 Alerta de meta: você saiu do plano
+
+• Gasto crítico detectado: R$ X em (categoria)
+• Impacto na meta: reduziu a performance em Y%
+• Se continuar assim, você não atinge a meta
+
+Correção:
+1) Reduzir Z
+2) Evitar categoria W nos próximos dias
 `;
