@@ -353,6 +353,11 @@ export const MediateGoalsInputSchema = z.object({
   partnerAGoal: GoalSchema.describe("O objetivo financeiro do Parceiro A."),
   partnerBGoal: GoalSchema.describe("O objetivo financeiro do Parceiro B."),
   sharedMonthlySavings: z.number().positive().describe("O valor total que o casal pode economizar por mês."),
+  partnerAIncome: z.number().optional().describe("Renda mensal do parceiro A."),
+  partnerBIncome: z.number().optional().describe("Renda mensal do parceiro B."),
+  partnerAExpenses: z.number().optional().describe("Média de gastos mensais do parceiro A."),
+  partnerBExpenses: z.number().optional().describe("Média de gastos mensais do parceiro B."),
+  currentSavings: z.number().optional().describe("Poupança atual conjunta do casal."),
 });
 export type MediateGoalsInput = z.infer<typeof MediateGoalsInputSchema>;
 
@@ -395,3 +400,5 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
+
+    
