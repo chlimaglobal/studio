@@ -312,12 +312,12 @@ export default function Chat() {
                             )}
                             <div
                                 className={cn(
-                                "p-3 rounded-2xl max-w-[85%]",
+                                "p-3 rounded-2xl max-w-[85%] whitespace-pre-wrap break-words",
                                 isUser ? "user-bubble" : "lumina-bubble"
                                 )}
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
-                                {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
+                                {m.text && <p>{m.text}</p>}
                                 {!isUser && m.audioUrl && (
                                      <Button
                                         variant="ghost"
@@ -405,5 +405,7 @@ export default function Chat() {
     </div>
   );
 }
+
+    
 
     
