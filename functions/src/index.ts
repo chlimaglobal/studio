@@ -225,7 +225,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         }
     }
 
-    // --- PLACEHOLDER PARA NOVOS ALERTAS ---
+    // --- PLACEHOLDER PARA NOVOS ALERTAS E LEMBRETES ---
 
     // 🟧 ALERTA DE RISCO — gasto fora do padrão
     // Lógica a ser implementada:
@@ -245,7 +245,22 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     // 1. Buscar a meta de economia do usuário para o mês.
     // 2. Calcular o progresso atual versus o esperado para o dia do mês.
     // 3. Se estiver significativamente atrás, projetar o resultado final e, se for o caso, enviar o alerta.
+
+    // ⏰ LEMBRETE DE META DIÁRIA (Função Agendada - Ex: rodar todo dia às 9h)
+    // 1. Para cada usuário, buscar sua meta de economia mensal.
+    // 2. Calcular o gasto diário máximo permitido para atingir a meta.
+    // 3. Calcular o gasto real do dia.
+    // 4. Enviar notificação com o resumo.
+
+    // 📅 LEMBRETE DE PAGAMENTO (Função Agendada - Ex: rodar todo dia)
+    // 1. Buscar transações recorrentes e contas a pagar com vencimento próximo (D-1, D-3).
+    // 2. Analisar histórico para identificar padrões de pagamento.
+    // 3. Enviar lembrete via notificação.
+
+    // 💡 LEMBRETE DE INVESTIMENTO (Função Agendada ou Trigger de Receita)
+    // 1. Ao receber uma receita grande (ex: salário) ou em uma rotina mensal.
+    // 2. Calcular o balanço atual do mês.
+    // 3. Se houver um excedente significativo, sugerir o investimento.
     
     return null;
   });
-
