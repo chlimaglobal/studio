@@ -28,6 +28,7 @@ export async function POST(request: Request) {
           controller.enqueue(encoder.encode('\n\n💡 ' + result.suggestions.join(' · ')));
         }
       } catch (error) {
+        console.error("Error in simulated stream: ", error);
         controller.enqueue(encoder.encode('Desculpe, tive um pequeno tropeço. Pode repetir?'));
       } finally {
         controller.close();

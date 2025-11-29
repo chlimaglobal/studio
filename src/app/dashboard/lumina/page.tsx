@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -194,13 +195,26 @@ export default function Chat() {
                 : msg
             ));
         }
+        
+        // Remove placeholder and let the DB listener add the final message
+        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
+        
+        const finalMessageText = luminaMessageText.trim();
+        let suggestions: string[] = [];
+        const suggestionsMarker = '\n\n💡 ';
+        if (finalMessageText.includes(suggestionsMarker)) {
+            const parts = finalMessageText.split(suggestionsMarker);
+            luminaMessageText = parts[0];
+            suggestions = parts[1].split(' · ');
+        }
+
 
         const luminaMessageData = {
-          role: 'lumina',
-          text: luminaMessageText.trim(),
+          role: 'lumina' as const,
+          text: luminaMessageText,
           authorName: 'Lúmina',
           authorPhotoUrl: '/lumina-avatar.png',
-          suggestions: [], // Suggestions are part of the text now
+          suggestions: suggestions,
         };
 
         // Final update to DB after stream is complete
@@ -209,9 +223,6 @@ export default function Chat() {
         } else {
             await addChatMessage(user.uid, luminaMessageData);
         }
-        
-        // Remove placeholder and let the DB listener add the final message
-        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
 
     } catch (error) {
         setIsLuminaTyping(false);
