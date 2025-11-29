@@ -210,7 +210,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                 await db.collection(`users/${userId}/chat`).add({
                     role: "alerta",
                     text: messageText,
-                    authorName: "Lúmina (Alerta Automático)",
+                    authorName: "Lúmina", // Ajustado para ser mais natural
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
                 });
@@ -241,7 +241,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         if (newTransaction.amount > average * 3 && categorySnapshot.size > 5) {
             const messageText = `🚨 Detectei uma despesa fora do padrão em ${newTransaction.category}. Quer que eu investigue isso pra você?`;
              await db.collection(`users/${userId}/chat`).add({
-                role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)",
+                role: "alerta", text: messageText, authorName: "Lúmina",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 suggestions: ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"],
             });
@@ -262,7 +262,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         if (recentSnapshot.size > 3) { // Mais de 3 gastos na mesma categoria em 7 dias
             const messageText = `📌 Você fez ${recentSnapshot.size} despesas recentes em ${newTransaction.category}. Esse comportamento está acima da sua média.`;
              await db.collection(`users/${userId}/chat`).add({
-                role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)",
+                role: "alerta", text: messageText, authorName: "Lúmina",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 suggestions: ["Ver transações", "Definir orçamento", "Entendido"],
             });
@@ -297,12 +297,12 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                 if (spendingPercentage >= 100 && userData?.ultimoAlertaLimite !== `${currentMonthKey}-${newTransaction.category}-100`) {
                      await userDocRef.update({ [`ultimoAlertaLimite`]: `${currentMonthKey}-${newTransaction.category}-100` });
                      const messageText = `🟥 Meta de gastos para ${newTransaction.category} ultrapassada. Preciso ajustar o plano.`;
-                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
+                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
     
                 } else if (spendingPercentage >= 80 && userData?.ultimoAlertaLimite !== `${currentMonthKey}-${newTransaction.category}-80`) {
                      await userDocRef.update({ [`ultimoAlertaLimite`]: `${currentMonthKey}-${newTransaction.category}-80` });
                      const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${newTransaction.category}. Sugiro revisar suas próximas despesas.`;
-                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
+                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
                 }
             }
         }
