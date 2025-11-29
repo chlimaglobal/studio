@@ -2,6 +2,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {format, startOfMonth, endOfMonth} from "date-fns";
+import { DocumentData } from "firebase-admin/firestore";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -89,7 +90,7 @@ export const disconnectPartner = functions.https.onCall(
          return { success: true, message: "Vínculo inconsistente removido." };
       }
       
-      const coupleData = coupleDoc.data();
+      const coupleData = coupleDoc.data() as DocumentData;
       const members = coupleData?.members || [];
       const partnerId = members.find((id: string) => id !== userId);
 
