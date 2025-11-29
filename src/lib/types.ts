@@ -170,22 +170,23 @@ export const ExtractFromImageInputSchema = z.object({
 export type ExtractFromImageInput = z.infer<typeof ExtractFromImageInputSchema>;
 
 export const ExtractFromImageOutputSchema = z.object({
-  // Base transaction fields
   description: z.string(),
   amount: z.number(),
   type: z.enum(['income', 'expense']),
   category: z.enum(transactionCategories as [string, ...string[]]),
   date: z.string().optional().describe('Date in YYYY-MM-DD format. Infer if possible.'),
-  
-  // Installment fields
   paymentMethod: z.enum(['one-time', 'installments', 'pix']).optional(),
   installments: z.string().optional(),
-  
-  // Boleto (Bank Slip) specific fields
   dueDate: z.string().optional().describe('Due date for the boleto in YYYY-MM-DD format.'),
   beneficiary: z.string().optional().describe('The beneficiary of the boleto.'),
   bank: z.string().optional().describe('The bank that issued the boleto.'),
   digitableLine: z.string().optional().describe('The full digitable line of the boleto.'),
+  cnpj: z.string().optional().describe("The CNPJ of the establishment from a receipt."),
+  items: z.array(z.object({
+    name: z.string(),
+    quantity: z.number(),
+    price: z.number(),
+  })).optional().describe("List of items from a receipt."),
 });
 export type ExtractFromImageOutput = z.infer<typeof ExtractFromImageOutputSchema>;
 

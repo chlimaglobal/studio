@@ -35,7 +35,7 @@ Quando a imagem for um boleto bancário (mesmo amassado, torto, desfocado ou inc
 
 ✔ Detectar automaticamente e retornar nos campos correspondentes do JSON de saída:
 - **amount**: Valor do documento.
-- **dueDate**: Data de vencimento.
+- **dueDate**: Data de vencimento (formato YYYY-MM-DD).
 - **beneficiary**: Nome do beneficiário/cedente.
 - **bank**: Instituição bancária.
 - **digitableLine**: A linha digitável completa do boleto.
@@ -67,14 +67,21 @@ Se a imagem não for um boleto, tente identificar logos, ícones, cores e elemen
 
 ---
 
-### MÓDULO 3: EXTRAÇÃO GENÉRICA DE COMPROVANTES E RECIBOS
+### MÓDULO 3: EXTRAÇÃO AVANÇADA DE RECIBOS E NOTAS
 
-Se a imagem **NÃO FOR UM BOLETO** e um logo não for claramente identificado, siga estas regras para extrair dados de recibos, faturas, notas fiscais ou anotações:
+Se a imagem **NÃO FOR UM BOLETO** e um logo não for claramente identificado, siga estas regras para extrair dados de recibos, tickets, faturas, notas fiscais ou anotações (mesmo que a foto esteja rasgada, amassada, com sombra, parcial ou tremida). Você reconstrói o máximo possível.
 
-✔ **OCR Completo:** Analise a imagem para obter: descrição, valor total, tipo, categoria e parcelamento.
+✔ **OCR Completo:** Analise a imagem para obter:
+  - **description**: Nome do estabelecimento.
+  - **amount**: Valor TOTAL da compra.
+  - **date**: Data da transação (YYYY-MM-DD).
+  - **type**: 'expense' (despesa) é o padrão.
+  - **category**: A categoria mais apropriada. Use 'Outros' se não tiver certeza.
+  - **cnpj**: CNPJ do estabelecimento.
+  - **items**: Uma lista de todos os itens comprados, com 'name', 'quantity' e 'price'.
+
 ✔ **Seja Resiliente:** Se um dado estiver faltando, infira o valor mais lógico com base no formato usual de um comprovante.
   - Se o valor não for claro, mas houver uma descrição, extraia a descrição e defina o valor como 0.
-  - Se o tipo não for claro (receita/despesa), assuma 'expense' (despesa), que é o mais comum.
   - Se a categoria não for clara, use 'Outros'.
   - Se o parcelamento não for mencionado, use 'one-time'.
 ✔ **Cálculo de Parcelas:** Se a imagem mostrar "10x de R$27,17", o valor a ser extraído é o TOTAL (271.70), 'paymentMethod' é 'installments' e 'installments' é "10".
