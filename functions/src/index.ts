@@ -158,6 +158,7 @@ export const onTransactionCreated = functions.firestore
   .document("users/{userId}/transactions/{transactionId}")
   .onCreate(async (snap, context) => {
     const { userId } = context.params;
+    const newTransaction = snap.data();
 
     const userDocRef = db.doc(`users/${userId}`);
     const userDoc = await userDocRef.get();
@@ -168,64 +169,82 @@ export const onTransactionCreated = functions.firestore
       return null;
     }
 
+    // --- LÓGICA DE ALERTA 1: GASTOS > RECEITAS ---
     const now = new Date();
     const currentMonthKey = format(now, "yyyy-MM");
     const lastAlertedMonth = userData?.mesAlertadoRenda;
 
-    // Se já foi alertado este mês, não faz nada
-    if (lastAlertedMonth === currentMonthKey) {
-      return null;
-    }
+    // Se já foi alertado este mês, não continua esta verificação
+    if (lastAlertedMonth !== currentMonthKey) {
+        const monthStart = startOfMonth(now);
+        const monthEnd = endOfMonth(now);
 
-    // Buscar todas as transações do mês atual
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+        const transactionsRef = db.collection(`users/${userId}/transactions`);
+        const query = transactionsRef
+            .where("date", ">=", monthStart)
+            .where("date", "<=", monthEnd);
 
-    const transactionsRef = db
-      .collection(`users/${userId}/transactions`);
-    const query = transactionsRef
-      .where("date", ">=", monthStart)
-      .where("date", "<=", monthEnd);
+        const snapshot = await query.get();
+        
+        let totalIncome = 0;
+        let totalExpenses = 0;
 
-    const snapshot = await query.get();
-    
-    let totalIncome = 0;
-    let totalExpenses = 0;
-
-    snapshot.forEach((doc) => {
-      const transaction = doc.data();
-      // Excluir investimentos do cálculo de fluxo de caixa
-      if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
-          if (transaction.type === "income") {
-            totalIncome += transaction.amount;
-          } else {
-            totalExpenses += transaction.amount;
-          }
-      }
-    });
-
-    // Se despesas ultrapassam receitas
-    if (totalExpenses > totalIncome) {
-      try {
-        const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas.
-Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
-
-        // Adiciona a mensagem ao chat da Lúmina
-        await db.collection(`users/${userId}/chat`).add({
-          role: "alerta",
-          text: messageText,
-          authorName: "Lúmina (Alerta Automático)",
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
+        snapshot.forEach((doc) => {
+            const transaction = doc.data();
+            // Excluir investimentos do cálculo de fluxo de caixa
+            if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
+                if (transaction.type === "income") {
+                    totalIncome += transaction.amount;
+                } else {
+                    totalExpenses += transaction.amount;
+                }
+            }
         });
 
-        // Marca que o alerta foi enviado este mês para não repetir
-        await userDocRef.update({ mesAlertadoRenda: currentMonthKey });
+        // Se despesas ultrapassam receitas
+        if (totalExpenses > totalIncome) {
+            try {
+                const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas.
+Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
 
-      } catch (error) {
-        console.error("Erro ao enviar alerta de balanço negativo:", error);
-      }
+                // Adiciona a mensagem ao chat da Lúmina
+                await db.collection(`users/${userId}/chat`).add({
+                    role: "alerta",
+                    text: messageText,
+                    authorName: "Lúmina (Alerta Automático)",
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
+                });
+
+                // Marca que o alerta foi enviado este mês para não repetir
+                await userDocRef.update({ mesAlertadoRenda: currentMonthKey });
+
+            } catch (error) {
+                console.error("Erro ao enviar alerta de balanço negativo:", error);
+            }
+        }
     }
+
+    // --- PLACEHOLDER PARA NOVOS ALERTAS ---
+
+    // 🟧 ALERTA DE RISCO — gasto fora do padrão
+    // Lógica a ser implementada:
+    // 1. Buscar transações recentes na mesma categoria da newTransaction.
+    // 2. Calcular a média de gastos para essa categoria.
+    // 3. Se newTransaction.amount for X vezes maior que a média, enviar alerta.
+    // ex: if (newTransaction.amount > mediaDaCategoria * 3) { ...enviar alerta... }
+
+    // 🟨 ALERTA DE RECORRÊNCIA INCOMUM
+    // Lógica a ser implementada:
+    // 1. Buscar transações recentes (últimos 3-7 dias).
+    // 2. Contar quantas são da mesma categoria da newTransaction.
+    // 3. Se a contagem > 3, enviar alerta.
+
+    // 🟦 ALERTA DO PLANO MENSAL
+    // Lógica a ser implementada:
+    // 1. Buscar a meta de economia do usuário para o mês.
+    // 2. Calcular o progresso atual versus o esperado para o dia do mês.
+    // 3. Se estiver significativamente atrás, projetar o resultado final e, se for o caso, enviar o alerta.
     
     return null;
   });
