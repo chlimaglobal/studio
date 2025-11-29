@@ -112,6 +112,12 @@ export function AudioInputDialog({ open, onOpenChange, onTranscript, children }:
     };
 
     recognition.onerror = (event) => {
+        // The 'aborted' error is triggered when we programmatically stop the recognition,
+        // for example, when the dialog is closed. It's not a true error.
+        if (event.error === 'aborted') {
+            return;
+        }
+
         console.error('Speech recognition error', event.error);
         let errorMessage = `Erro: ${event.error}. Verifique a permissão do microfone.`;
         if (event.error === 'not-allowed') {
