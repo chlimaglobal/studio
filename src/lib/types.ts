@@ -169,7 +169,24 @@ export const ExtractFromImageInputSchema = z.object({
 });
 export type ExtractFromImageInput = z.infer<typeof ExtractFromImageInputSchema>;
 
-export const ExtractFromImageOutputSchema = ExtractedTransactionSchema;
+export const ExtractFromImageOutputSchema = z.object({
+  // Base transaction fields
+  description: z.string(),
+  amount: z.number(),
+  type: z.enum(['income', 'expense']),
+  category: z.enum(transactionCategories as [string, ...string[]]),
+  date: z.string().optional().describe('Date in YYYY-MM-DD format. Infer if possible.'),
+  
+  // Installment fields
+  paymentMethod: z.enum(['one-time', 'installments', 'pix']).optional(),
+  installments: z.string().optional(),
+  
+  // Boleto (Bank Slip) specific fields
+  dueDate: z.string().optional().describe('Due date for the boleto in YYYY-MM-DD format.'),
+  beneficiary: z.string().optional().describe('The beneficiary of the boleto.'),
+  bank: z.string().optional().describe('The bank that issued the boleto.'),
+  digitableLine: z.string().optional().describe('The full digitable line of the boleto.'),
+});
 export type ExtractFromImageOutput = z.infer<typeof ExtractFromImageOutputSchema>;
 
 
@@ -401,5 +418,3 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
-
-    
