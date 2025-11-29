@@ -36,7 +36,7 @@ export async function generateSuggestion(
   return luminaResponse;
 }
 
-export async function generateSuggestionStream(input: LuminaChatInput) {
+export async function generateSuggestionStream(input: LuminaChatInput): Promise<ReadableStream<any>> {
   // 1) Normalizações / Segurança
   const userQuery = (input.userQuery || "").trim();
   const audioText = (input.audioText || "").trim();
