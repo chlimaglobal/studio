@@ -33,7 +33,8 @@ import {
     Users,
     HeartHandshake,
     Home,
-    DollarSign
+    DollarSign,
+    PiggyBank
 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -93,10 +94,18 @@ const menuItems = [
     },
      { 
         icon: Target, 
-        title: 'Minhas Metas', 
+        title: 'Minhas Metas de Longo Prazo', 
         subtitle: 'Crie e acompanhe seus objetivos financeiros.',
         type: 'link',
         href: '/dashboard/retirement-projection',
+        premium: true,
+    },
+    { 
+        icon: PiggyBank, 
+        title: 'Meta de Economia Mensal', 
+        subtitle: 'Deixe a Lúmina calcular uma meta de economia para você.',
+        type: 'link',
+        href: '/dashboard/savings-goal',
         premium: true,
     },
      {
