@@ -126,3 +126,20 @@ O maior gasto foi restaurante.
 Se continuar assim, fecha o mês com alta de 12%.
 `;
 
+export const LUMINA_SPEECH_SYNTHESIS_PROMPT = `
+A resposta será convertida para áudio. Formate o texto para uma fala natural.
+
+REGRAS DE SÍNTESE DE VOZ:
+- Use frases curtas e diretas.
+- Adicione quebras de linha para pausas naturais.
+- Mantenha um ritmo leve e conversacional.
+- Use um tom acolhedor, mas firme.
+- Evite listas longas e jargões técnicos.
+
+Exemplo de formatação ideal:
+Claro. Aqui vai:
+
+Você gastou pouco hoje.
+Isso mantém sua meta no caminho certo.
+Boa disciplina.
+`;

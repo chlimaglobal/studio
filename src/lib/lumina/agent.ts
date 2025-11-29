@@ -17,13 +17,15 @@ export async function sendMessageToLumina({
   imageFile,
   chatHistory,
   allTransactions,
-  isCoupleMode
+  isCoupleMode,
+  isTTSActive
 }: {
   message: string,
   imageFile: File | null,
   chatHistory: any[],
   allTransactions: any[],
-  isCoupleMode: boolean
+  isCoupleMode: boolean,
+  isTTSActive: boolean
 }) {
   let imageBase64: string | null = null;
 
@@ -42,7 +44,8 @@ export async function sendMessageToLumina({
       timestamp: new Date().toISOString(),
     })),
     allTransactions,
-    isCoupleMode: !!isCoupleMode
+    isCoupleMode: !!isCoupleMode,
+    isTTSActive: isTTSActive
   };
 
   try {

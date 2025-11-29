@@ -10,7 +10,7 @@
 import { ai } from '@/ai/genkit';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
-import { LUMINA_BASE_PROMPT, LUMINA_VOICE_COMMAND_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
+import { LUMINA_BASE_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 
 export async function generateSuggestion(input: LuminaChatInput): Promise<LuminaChatOutput> {
   return luminaChatFlow(input);
@@ -36,6 +36,7 @@ const luminaChatFlow = ai.defineFlow(
 
     const userQuery = (input.userQuery || '').trim();
     const audioText = (input.audioText || '').trim();
+    const isTTSActive = input.isTTSActive || false;
 
     // Mapeia o histórico para o formato esperado pelo Genkit/Gemini
     const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
@@ -57,12 +58,14 @@ const luminaChatFlow = ai.defineFlow(
     }
 
     // ---------------------------
-    // 2) Prompt limpo — SEM histórico duplicado
+    // 2) Prompt dinâmico
     // ---------------------------
     const promptContext = [
       LUMINA_BASE_PROMPT,
       // Adiciona o prompt de comando de voz se a entrada for de áudio
       audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
+      // Adiciona o prompt de síntese de voz se o TTS estiver ativo
+      isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
       '',
       '### CONTEXTO SISTEMA (não repita literalmente ao usuário):',
       `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,

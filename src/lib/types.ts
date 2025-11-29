@@ -270,6 +270,7 @@ export const LuminaChatInputSchema = z.object({
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
   imageBase64: z.string().optional().nullable(),
   isCoupleMode: z.boolean().optional(),
+  isTTSActive: z.boolean().optional().describe('Whether the user has text-to-speech enabled.'),
 });
 export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
