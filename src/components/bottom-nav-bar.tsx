@@ -23,7 +23,7 @@ export default function BottomNavBar() {
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   return (
-    <div className="fixed bottom-0 left-0 z-40 w-full bg-secondary border-t border-border">
+    <div className="fixed bottom-0 left-0 z-40 w-full bg-background border-t border-border/60">
       <div className="grid h-20 max-w-lg grid-cols-5 mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
