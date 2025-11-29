@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -351,7 +350,7 @@ export default function Chat() {
                   handleTextSend();
                   }
               }}
-              className="rounded-xl border-[#6d562a] focus-visible:ring-primary/50 text-foreground"
+              className="rounded-xl text-foreground focus-visible:ring-primary/50"
             />
              <input
               type="file"
