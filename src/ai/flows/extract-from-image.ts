@@ -44,6 +44,7 @@ Quando a imagem for um boleto bancário (mesmo amassado, torto, desfocado ou inc
 - Dígitos quebrados ou ilegíveis.
 - Códigos incompletos.
 - Vencimento apagado (tente inferir se possível).
+- Se houver dúvidas sobre a clareza, você deve sinalizar na descrição: "Algumas partes do boleto ficaram pouco nítidas. Confirma o valor e o vencimento?".
 
 ✔ Definir os seguintes campos fixos para boletos:
 - **type**: "expense"
