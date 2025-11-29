@@ -55,3 +55,10 @@ Sua resposta deve ter:
 
 Evite generalidades. Use números reais sempre que possível.
 `;
+
+export const EXPLAINER_PROMPT = `
+Explique o raciocínio financeiro por trás da recomendação de forma simples, curta e clara.
+Evite termos técnicos.
+Evite explicações longas.
+Mostre apenas lógica e objetivo.
+`;
