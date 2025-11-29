@@ -141,12 +141,14 @@
 
 @layer components {
   .lumina-bubble {
-    @apply bg-[#1F1F24] border border-yellow-800/80;
+    background-color: #1F1F24;
+    border: 1px solid #8d6e30;
     box-shadow: 0 0 8px rgba(255, 215, 130, 0.2);
   }
 
   .user-bubble {
-    @apply bg-[#2A2A2F] text-white;
+    background-color: #2A2A2F;
+    @apply text-white;
   }
 
   .lumina-avatar-pulse {

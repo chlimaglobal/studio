@@ -213,7 +213,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className="h-8 w-8 lumina-avatar-pulse">
+                                <Avatar className={cn("h-8 w-8", !isUser && "lumina-avatar-pulse")}>
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -242,7 +242,7 @@ export default function Chat() {
                 })}
                  {isLuminaTyping && (
                     <div className="flex items-end gap-2">
-                         <Avatar className="h-8 w-8">
+                         <Avatar className="h-8 w-8 lumina-avatar-pulse">
                             <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
                             <AvatarFallback>L</AvatarFallback>
                         </Avatar>
