@@ -274,13 +274,13 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
     id?: string;
     timestamp: Date;
     audioUrl?: string;
+    suggestions?: string[];
 };
 
 export const LuminaChatInputSchema = z.object({
   chatHistory: z.array(z.object({
     role: z.enum(['user', 'lumina', 'model']),
-    text: z.string().optional(),
-    timestamp: z.any().optional(), // Can be Date or string
+    content: z.array(z.object({ text: z.string() })),
   })).optional(),
   userQuery: z.string().describe('The new message from the user.'),
   audioText: z.string().optional().describe('The transcribed text from an audio message.'),
@@ -289,7 +289,9 @@ export const LuminaChatInputSchema = z.object({
   isCoupleMode: z.boolean().optional(),
   isTTSActive: z.boolean().optional().describe('Whether the user has text-to-speech enabled.'),
 });
-export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
+export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema> & {
+    user: { uid: string, displayName: string, email: string | null, photoURL: string | null };
+};
 
 
 // Type for App User data
@@ -308,22 +310,19 @@ export type AppUser = {
 };
 
 // Couple Feature Types
-export const LuminaCoupleChatInputSchema = z.object({
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string(),
-    timestamp: z.string(),
-  })).describe('The recent history of the conversation.'),
-  userQuery: z.string().describe('The new message from the user.'),
-  allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
+export const LuminaCoupleChatInputSchema = LuminaChatInputSchema.extend({
   user: z.object({
-      displayName: z.string(),
-      uid: z.string(),
-  }).describe('The user object of the person sending the message.'),
+    uid: z.string(),
+    displayName: z.string(),
+    email: z.string().email().nullable(),
+    photoURL: z.string().url().nullable(),
+  }),
   partner: z.object({
-      displayName: z.string(),
-      uid: z.string(),
-  }).describe('The user object of the partner.'),
+    uid: z.string(),
+    displayName: z.string(),
+    email: z.string().email().nullable(),
+    photoURL: z.string().url().nullable(),
+  }),
 });
 export type LuminaCoupleChatInput = z.infer<typeof LuminaCoupleChatInputSchema>;
 
