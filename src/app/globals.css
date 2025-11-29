@@ -138,3 +138,33 @@
     background: hsl(var(--background));
   }
 }
+
+@layer components {
+  .lumina-bubble {
+    @apply bg-[#1F1F24] border border-yellow-800/80;
+    box-shadow: 0 0 8px rgba(255, 215, 130, 0.2);
+  }
+
+  .user-bubble {
+    @apply bg-[#2A2A2F] text-white;
+  }
+
+  .lumina-avatar-pulse {
+    animation: pulse 4s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    }
+  }
+}

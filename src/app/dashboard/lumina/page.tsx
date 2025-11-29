@@ -213,7 +213,7 @@ export default function Chat() {
                     return (
                         <div key={m.id || i} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                             {!isUser && (
-                                <Avatar className="h-8 w-8">
+                                <Avatar className="h-8 w-8 lumina-avatar-pulse">
                                     <AvatarImage src={m.authorPhotoUrl} />
                                     <AvatarFallback>{authorName.charAt(0)}</AvatarFallback>
                                 </Avatar>
@@ -221,7 +221,7 @@ export default function Chat() {
                             <div
                                 className={cn(
                                 "p-3 rounded-2xl max-w-[75%]",
-                                isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                                isUser ? "user-bubble" : "lumina-bubble"
                                 )}
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
