@@ -166,6 +166,7 @@ export type ExtractFromFileOutput = z.infer<typeof ExtractFromFileOutputSchema>;
 // Types for Image Extraction Flow
 export const ExtractFromImageInputSchema = z.object({
   imageDataUri: z.string().describe("A photo of a receipt, invoice, or note, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  allTransactions: z.array(z.any()).optional().describe('A list of all financial transactions for context.'),
 });
 export type ExtractFromImageInput = z.infer<typeof ExtractFromImageInputSchema>;
 
@@ -418,3 +419,5 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
+
+    

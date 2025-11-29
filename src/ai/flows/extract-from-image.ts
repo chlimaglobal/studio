@@ -29,6 +29,14 @@ Siga rigorosamente todas as regras abaixo.
 
 ---
 
+### MÓDULO 0: INTELIGÊNCIA DE CONTEXTO
+
+Antes de analisar a imagem, considere o histórico de transações do usuário para fazer deduções mais inteligentes, especialmente se a imagem for de baixa qualidade.
+- **Histórico Financeiro:** Verifique categorias, estabelecimentos e valores recorrentes.
+- **Exemplo:** Se o usuário sempre gasta com "Netflix" na mesma data e o recibo está pouco nítido, é provável que seja a assinatura da Netflix. Categoria: "Streamings".
+
+---
+
 ### MÓDULO 1: RECONHECIMENTO DE BOLETOS (BOLETO OCR INTELIGENTE)
 
 Quando a imagem for um boleto bancário (mesmo amassado, torto, desfocado ou incompleto), você deve:
@@ -92,17 +100,24 @@ Se a imagem **NÃO FOR UM BOLETO** e um logo não for claramente identificado, s
 
 1.  **Identifique o Tipo de Imagem:** Primeiro, determine se é um boleto, um comprovante com logo claro, ou outro tipo de recibo.
 2.  **Aplique o Módulo Correto:** Use as regras do MÓDULO 1 para boletos, MÓDULO 2 para logos, ou MÓDULO 3 para os demais.
-3.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão devido a dados ausentes.
+3.  **Use o Contexto:** Utilize o histórico de transações para refinar suas conclusões.
+4.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão devido a dados ausentes.
 
 **Categorias Disponíveis para os Módulos 2 e 3:**
 {{#each categories}}
 - {{this}}
 {{/each}}
 
+---
+**DADOS PARA ANÁLISE:**
+
+**Histórico de Transações do Usuário (para contexto):**
+{{{json allTransactions}}}
+
 **Imagem para Análise:**
 {{media url=imageDataUri}}
 
-Analise a imagem, siga as regras e retorne um JSON válido.`,
+Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`,
   templateOptions: {
     // @ts-ignore
     categories: transactionCategories,
@@ -137,3 +152,5 @@ const extractFromImageFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
