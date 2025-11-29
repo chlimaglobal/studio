@@ -157,7 +157,7 @@ export default function Chat() {
     setMessages(prev => [...prev, luminaPlaceholder]);
 
     try {
-        const response = await fetch('/api/lumina/chat', {
+        const response = await fetch('/api/lumina/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -183,12 +183,14 @@ export default function Chat() {
         
         setIsLuminaTyping(false);
 
+        // Read the stream
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
             luminaMessageText += decoder.decode(value, { stream: true });
             
+            // Update the placeholder message in real-time
             setMessages(prev => prev.map(msg => 
                 msg.id === luminaMessageId 
                 ? { ...msg, text: luminaMessageText } 
@@ -196,19 +198,16 @@ export default function Chat() {
             ));
         }
         
-        // Remove placeholder and let the DB listener add the final message
-        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
-        
         const finalMessageText = luminaMessageText.trim();
         let suggestions: string[] = [];
-        const suggestionsMarker = '\n\n💡 ';
+        const suggestionsMarker = '\n\n💡 Sugestões: ';
         if (finalMessageText.includes(suggestionsMarker)) {
             const parts = finalMessageText.split(suggestionsMarker);
             luminaMessageText = parts[0];
             suggestions = parts[1].split(' · ');
         }
-
-
+        
+        // Save the final, complete message to the database
         const luminaMessageData = {
           role: 'lumina' as const,
           text: luminaMessageText,
@@ -217,12 +216,14 @@ export default function Chat() {
           suggestions: suggestions,
         };
 
-        // Final update to DB after stream is complete
         if (viewMode === 'together' && coupleLink) {
             await addCoupleChatMessage(coupleLink.id, luminaMessageData);
         } else {
             await addChatMessage(user.uid, luminaMessageData);
         }
+        
+        // Remove placeholder now that DB will trigger an update with the final message
+        setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
 
     } catch (error) {
         setIsLuminaTyping(false);
@@ -234,13 +235,11 @@ export default function Chat() {
           authorName: "Lúmina",
           authorPhotoUrl: "/lumina-avatar.png"
         };
-        // Save error message to DB
         if (viewMode === 'together' && coupleLink) {
              await addCoupleChatMessage(coupleLink.id, errorData);
         } else {
              await addChatMessage(user.uid, errorData);
         }
-        // Remove placeholder
         setMessages(prev => prev.filter(msg => msg.id !== luminaMessageId));
     }
 
