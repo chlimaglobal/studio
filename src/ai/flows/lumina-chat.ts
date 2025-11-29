@@ -27,7 +27,7 @@ export async function generateSuggestion(input: LuminaChatInput): Promise<Lumina
     return luminaResponse;
 }
 
-export function generateSuggestionStream(input: LuminaChatInput): ReadableStream<string> {
+export async function generateSuggestionStream(input: LuminaChatInput): Promise<ReadableStream<string>> {
     const stream = new ReadableStream({
         async start(controller) {
             try {

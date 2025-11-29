@@ -352,7 +352,7 @@ export default function Chat() {
                   handleTextSend();
                   }
               }}
-              className="rounded-xl border-[#6d562a] focus-visible:ring-primary/50"
+              className="rounded-xl border-[#6d562a] focus-visible:ring-primary/50 text-foreground"
             />
              <input
               type="file"
