@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -150,7 +151,7 @@ export function AudioInputDialog({ open, onOpenChange, onTranscript, children }:
         <DialogHeader className="text-center">
           <DialogTitle>Comando de Voz</DialogTitle>
           <DialogDescription>
-            {isProcessing ? "Processando..." : (isRecording ? "Estou ouvindo..." : "Pressione o microfone e fale com a Lúmina.")}
+            {isProcessing ? "Processando..." : (isRecording ? "Estou ouvindo... Fale agora!" : "Pressione o microfone e diga o que deseja.")}
           </DialogDescription>
         </DialogHeader>
 

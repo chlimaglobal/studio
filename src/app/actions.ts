@@ -13,7 +13,7 @@ export async function extractTransactionInfoFromText(text: string) {
 
   try {
     const result: ExtractTransactionOutput = await extractTransactionFromText({ text });
-    if (result && result.amount && result.description && result.type) {
+    if (result && result.description && result.type) {
       const transactionData = {
         description: result.description,
         amount: result.amount,

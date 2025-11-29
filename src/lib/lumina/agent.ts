@@ -1,7 +1,7 @@
 'use client';
 
 import { sendMessageToLumina as callLuminaApi } from '@/ai/lumina/lumina';
-import type { ChatMessage, AppUser } from '../types';
+import type { ChatMessage, AppUser, CoupleLink } from '../types';
 
 // Helper function to convert a File to a Base64 string
 export function fileToBase64(file: File): Promise<string> {
@@ -23,7 +23,8 @@ export async function sendMessageToLumina({
   isCoupleMode,
   isTTSActive,
   user,
-  partner
+  partner,
+  coupleLink,
 }: {
   message: string,
   audioText?: string,
@@ -34,6 +35,7 @@ export async function sendMessageToLumina({
   isTTSActive: boolean,
   user: AppUser,
   partner: AppUser | null,
+  coupleLink: CoupleLink | null,
 }) {
   let imageBase64: string | null = null;
 
@@ -61,9 +63,11 @@ export async function sendMessageToLumina({
   };
 
   try {
-    // Await the API call directly. The Genkit flow is now responsible for updating Firestore.
-    // The client will get the update via the onSnapshot listener.
-    await apiFunction(body as any);
+    if (isCoupleMode) {
+        await callLuminaApi.couple(body as any, coupleLink);
+    } else {
+        await callLuminaApi.single(body as any);
+    }
 
   } catch (error) {
     console.error("Error sending message to Lumina:", error);

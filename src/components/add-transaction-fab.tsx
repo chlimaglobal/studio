@@ -4,20 +4,23 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Mic, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
-import { AudioTransactionDialog } from './audio-transaction-dialog';
+import { AudioInputDialog } from './audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 import { usePathname, useRouter } from 'next/navigation';
+import { extractTransactionInfoFromText } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 export function AddTransactionFab() {
   const [isAudioOpen, setIsAudioOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
 
   const playSound = () => {
     try {
-      const audio = new Audio('/fab-sound.mp3'); // Changed to use the custom FAB sound
+      const audio = new Audio('/fab-sound.mp3');
       audio.play().catch(e => console.error("Error playing sound:", e));
     } catch (e) {
       console.error("Failed to play audio:", e);
@@ -27,16 +30,30 @@ export function AddTransactionFab() {
   const handleTransactionExtracted = (data: Partial<z.infer<typeof TransactionFormSchema>>) => {
     setIsMenuOpen(false);
     
-    // Prepare query params, ensuring all values are strings
     const params: Record<string, string> = {};
     if (data.description) params.description = data.description;
     if (data.amount !== undefined) params.amount = String(data.amount);
     if (data.type) params.type = data.type;
     if (data.date) params.date = new Date(data.date).toISOString();
     if (data.category) params.category = data.category;
+    if (data.paymentMethod) params.paymentMethod = data.paymentMethod;
+    if (data.installments) params.installments = data.installments;
     
     const query = new URLSearchParams(params).toString();
     router.push(`/dashboard/add-transaction?${query}`);
+  };
+  
+  const handleAudioTranscript = async (transcript: string) => {
+    const result = await extractTransactionInfoFromText(transcript);
+    if (result && !result.error) {
+        handleTransactionExtracted(result);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Não foi possível extrair a transação.",
+            description: result.error || "Tente falar novamente com mais clareza, incluindo valor e descrição."
+        })
+    }
   };
 
   const handleManualAddClick = () => {
@@ -54,7 +71,6 @@ export function AddTransactionFab() {
     setIsMenuOpen(!isMenuOpen);
   };
   
-  // Do not show the FAB on certain pages
   const hiddenPaths = ['/dashboard/add-transaction', '/dashboard/lumina'];
   if (hiddenPaths.some(path => pathname.startsWith(path))) {
     return null;
@@ -89,10 +105,10 @@ export function AddTransactionFab() {
         </Button>
       </div>
 
-      <AudioTransactionDialog
+      <AudioInputDialog
         open={isAudioOpen}
         onOpenChange={setIsAudioOpen}
-        onTransactionExtracted={handleTransactionExtracted}
+        onTranscript={handleAudioTranscript}
       />
     </>
   );

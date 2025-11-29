@@ -14,7 +14,7 @@ import { onChatUpdate, addChatMessage, onCoupleChatUpdate } from "@/lib/storage"
 import type { ChatMessage } from "@/lib/types";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { sendMessageToLumina } from "@/lib/lumina/agent";
+import { sendMessageToLumina } from "@/ai/lumina/lumina";
 
 const TypingIndicator = () => (
     <div className="flex items-center space-x-2">
@@ -113,30 +113,37 @@ export default function Chat() {
     setInput("");
     setIsLuminaTyping(true);
 
-    const userMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
-      role: "user",
-      text: messageText,
-      authorId: user.uid,
-      authorName: user.displayName || 'Você',
-      authorPhotoUrl: user.photoURL || '',
-    };
-    
-    const luminaInput = {
-      message: messageText,
-      audioText: fromAudio ? messageText : undefined,
-      imageFile: null, // For now, image handling is separate
-      chatHistory: messages,
-      allTransactions: transactions,
-      isCoupleMode: viewMode === 'together',
-      isTTSActive: isTTSEnabled,
-      user,
-      partner
+    const commonInput = {
+        userQuery: messageText,
+        audioText: fromAudio ? messageText : undefined,
+        chatHistory: messages,
+        allTransactions: transactions,
+        isCoupleMode: viewMode === 'together',
+        isTTSActive: isTTSEnabled,
+        user: { 
+            uid: user.uid, 
+            displayName: user.displayName || 'Usuário',
+            email: user.email,
+            photoURL: user.photoURL
+        },
     };
 
-    await sendMessageToLumina(luminaInput);
+    if (viewMode === 'together' && partner) {
+        await sendMessageToLumina.couple({
+            ...commonInput,
+            partner: {
+                uid: partner.uid,
+                displayName: partner.displayName || 'Parceiro(a)',
+                email: partner.email,
+                photoURL: partner.photoURL
+            },
+        }, coupleLink);
+    } else {
+        await sendMessageToLumina.single(commonInput);
+    }
     // The onSnapshot listener will handle displaying the new messages.
 
-  }, [user, messages, transactions, viewMode, isTTSEnabled, partner]);
+  }, [user, messages, transactions, viewMode, isTTSEnabled, partner, coupleLink]);
 
   const handleTextSend = () => {
       handleSend(input, false);

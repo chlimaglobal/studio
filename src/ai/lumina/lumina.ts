@@ -2,10 +2,8 @@
 
 import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
 import { generateSuggestion } from '../flows/lumina-chat';
-import type { LuminaChatInput, LuminaCoupleChatInput } from '@/lib/types';
+import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
-import { useCoupleStore } from '@/hooks/use-couple-store';
-
 
 async function single(input: LuminaChatInput) {
     const { userQuery, allTransactions, chatHistory, imageBase64, isTTSActive, audioText, user } = input;
@@ -40,11 +38,10 @@ async function single(input: LuminaChatInput) {
     });
 }
 
-async function couple(input: LuminaCoupleChatInput) {
+async function couple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
      const { userQuery, allTransactions, chatHistory, user, partner } = input;
     if (!user?.uid || !partner?.uid) throw new Error("Usuário ou parceiro não autenticado.");
 
-    const coupleLink = useCoupleStore.getState().coupleLink;
     if (!coupleLink) throw new Error("Vínculo de casal não encontrado.");
 
     // 1. Adiciona a mensagem do usuário ao histórico compartilhado
@@ -53,7 +50,7 @@ async function couple(input: LuminaCoupleChatInput) {
         text: userQuery,
         authorId: user.uid,
         authorName: user.displayName || 'Usuário',
-        authorPhotoUrl: '', // Adicione a URL da foto se disponível
+        authorPhotoUrl: user.photoURL || '',
     });
 
     // 2. Chama a IA para gerar a resposta
@@ -74,7 +71,6 @@ async function couple(input: LuminaCoupleChatInput) {
         suggestions: luminaResponse.suggestions,
     });
 }
-
 
 export const sendMessageToLumina = {
     single,
