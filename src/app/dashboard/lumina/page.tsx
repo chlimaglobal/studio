@@ -24,6 +24,25 @@ const TypingIndicator = () => (
     </div>
 );
 
+const WelcomeMessage = () => {
+    const { user } = useAuth();
+    const userName = user?.displayName?.split(' ')[0] || 'usuário';
+
+    return (
+        <div className="flex h-full flex-col items-center justify-center text-center animate-in fade-in-0 duration-1000 p-4">
+             <Avatar className="h-20 w-20 border-2 border-primary/50 shadow-[0_0_15px_rgba(255,215,130,0.4)] mb-4">
+                <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
+                <AvatarFallback>L</AvatarFallback>
+            </Avatar>
+            <h2 className="text-2xl font-bold text-foreground">Olá, {userName}!</h2>
+            <p className="text-muted-foreground max-w-sm">
+                Pronta para organizar seu dinheiro, suas metas e sua rotina.
+            </p>
+        </div>
+    )
+}
+
+
 export default function Chat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -213,6 +232,8 @@ export default function Chat() {
             <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
+        ) : messages.length === 0 && !isLuminaTyping ? (
+            <WelcomeMessage />
         ) : (
             <div className="space-y-6">
                 {messages.map((m, i) => {
