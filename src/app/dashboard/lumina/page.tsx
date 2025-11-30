@@ -278,9 +278,9 @@ export default function Chat() {
     >
       {/* Avatar da Lúmina (só no lado esquerdo) */}
       {!isUser && (
-        <Avatar className="h-10 w-10 flex-shrink-0">
+        <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-600/20">
           <AvatarImage src="/lumina-avatar.png" />
-          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold">
+          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
             L
           </AvatarFallback>
         </Avatar>
@@ -316,9 +316,9 @@ export default function Chat() {
 {/* Typing indicator — também perfeito */}
 {isTyping && (
   <div className="flex w-full gap-3 px-4 py-2">
-    <Avatar className="h-10 w-10 flex-shrink-0">
+    <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-600/20">
       <AvatarImage src="/lumina-avatar.png" />
-      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold">
+      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
         L
       </AvatarFallback>
     </Avatar>
