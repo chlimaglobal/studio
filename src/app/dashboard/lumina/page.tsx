@@ -266,89 +266,76 @@ export default function Chat() {
             ) : (
             <div className="space-y-4 py-4">
                 {messages.map((m, i) => {
-                  const isUser = m.authorId === user?.uid;
-                  const isLumina = m.role === "lumina";
+  const isUser = m.authorId === user?.uid;
 
-                  return (
-                    <div
-                      key={m.id || i}
-                      className={cn(
-                        "flex w-full gap-3 px-4 py-2",
-                        isUser ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      {/* Avatar da Lúmina (só do lado esquerdo) */}
-                      {isLumina && (
-                        <div className="relative">
-                          <Avatar className="h-10 w-10 ring-4 ring-amber-400/20 shadow-lg animate-pulse-slow">
-                            <AvatarImage src="/lumina-avatar.png" />
-                            <AvatarFallback className="bg-gradient-to-br from-amber-400 to-orange-500 text-white">L</AvatarFallback>
-                          </Avatar>
-                          <div className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
-                        </div>
-                      )}
+  return (
+    <div
+      key={m.id || i}
+      className={cn(
+        "flex w-full gap-3 px-4 py-2",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
+      {/* Avatar da Lúmina (só no lado esquerdo) */}
+      {!isUser && (
+        <Avatar className="h-10 w-10 flex-shrink-0">
+          <AvatarImage src="/lumina-avatar.png" />
+          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold">
+            L
+          </AvatarFallback>
+        </Avatar>
+      )}
 
-                      {/* BOLHA QUE FICA PERFEITA EM TODOS OS TEMAS */}
-                      <div
-                        data-theme={theme}
-                        className={cn(
-                          "relative max-w-full rounded-3xl px-5 py-3.5 shadow-xl backdrop-blur-md border",
-                          // MODO CLARO
-                          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-200",
-                          // MODO ESCURO
-                          "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-white/10",
-                          // MODO DOURADO
-                          "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-600 data-[theme=gold]:via-orange-600 data-[theme=gold]:to-amber-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-400/30",
-                          // USUÁRIO
-                          isUser
-                            ? "data-[theme=light]:bg-blue-500 data-[theme=dark]:bg-blue-600 data-[theme=gold]:bg-amber-600"
-                            : ""
-                        )}
-                      >
-                        <p className="text-xs font-semibold opacity-80 mb-1.5">
-                          {isUser ? "Você" : "Lúmina"}
-                        </p>
-                        <div className="text-base leading-relaxed break-words hyphens-auto">
-                          {m.text}
-                        </div>
-                      </div>
+      {/* BOLHA 100% À PROVA DE ESTOURO — TODOS OS TEMAS */}
+      <div
+        data-theme={theme}
+        className={cn(
+          "max-w-full rounded-3xl px-5 py-3.5 shadow-lg border",
+          // Claro
+          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
+          // Escuro
+          "data-[theme=dark]:bg-gray-800 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
+          // Dourado
+          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/50",
+          // Usuário
+          isUser && "data-[theme=light]:bg-blue-500 data-[theme=dark]:bg-blue-600 data-[theme=gold]:bg-amber-600"
+        )}
+      >
+        <p className="text-xs font-medium opacity-70 mb-1">
+          {isUser ? "Você" : "Lúmina"}
+        </p>
+        {/* ESSA É A LINHA MÁGICA QUE MATA O ESTOURO */}
+        <div className="text-base leading-relaxed break-normal whitespace-pre-wrap">
+          {m.text}
+        </div>
+      </div>
+    </div>
+  );
+})}
 
-                      {/* Avatar do usuário (opcional, do lado direito) */}
-                      {isUser && (
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={user?.photoURL || ""} />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
-                            {user?.displayName?.[0] || "V"}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                    </div>
-                  );
-                })}
+{/* Typing indicator — também perfeito */}
+{isTyping && (
+  <div className="flex w-full gap-3 px-4 py-2">
+    <Avatar className="h-10 w-10 flex-shrink-0">
+      <AvatarImage src="/lumina-avatar.png" />
+      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold">
+        L
+      </AvatarFallback>
+    </Avatar>
 
-                {/* Typing indicator — também perfeito nos 3 temas */}
-                {isTyping && (
-                  <div className="flex w-full gap-3 px-4 py-2">
-                    <div className="relative">
-                      <Avatar className="h-10 w-10 ring-4 ring-amber-400/20 shadow-lg animate-pulse-slow">
-                        <AvatarImage src="/lumina-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-amber-400 to-orange-500 text-white">L</AvatarFallback>
-                      </Avatar>
-                      <div className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
-                    </div>
-                    <div
-                      data-theme={theme}
-                      className={cn(
-                        "rounded-3xl px-5 py-4 shadow-xl backdrop-blur-md border",
-                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-200",
-                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-white/10",
-                        "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-600 data-[theme=gold]:via-orange-600 data-[theme=gold]:to-amber-700 data-[theme=gold]:border-amber-400/30"
-                      )}
-                    >
-                      <TypingIndicator />
-                    </div>
-                  </div>
-                )}
+    <div
+      data-theme={theme}
+      className={cn(
+        "rounded-3xl px-5 py-3.5 shadow-lg border",
+        "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
+        "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
+        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
+      )}
+    >
+      <TypingIndicator />
+    </div>
+  </div>
+)}
                 <div ref={bottomRef} />
             </div>
             )}
