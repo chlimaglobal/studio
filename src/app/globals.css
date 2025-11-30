@@ -211,6 +211,26 @@
       box-shadow: 0 0 8px rgba(255,179,62,0.35);
   }
 
+  .icon-btn {
+      font-size: 18px;
+      color: #FFC54D;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+  }
+  
+  .send-btn {
+      background: #FFC54D;
+      color: #000;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 17px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
 }
 
 /* floating and slow spin */

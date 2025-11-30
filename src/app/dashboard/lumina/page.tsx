@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -266,11 +265,12 @@ export default function Chat() {
             <>
                 {messages.map((m, i) => {
                     const isLumina = m.role === 'lumina';
+                    const isThinking = isTyping && i === messages.length - 1;
 
                     if (isLumina) {
                         return (
                              <div key={m.id || i} className="chat-message">
-                                <div className={cn("lumina-sphere", isTyping && i === messages.length - 1 && 'thinking')}></div>
+                                <div className={`lumina-sphere ${isThinking ? "thinking" : ""}`}></div>
                                 <div className="bg-[#1E1E1E] text-white px-4 py-3 rounded-2xl max-w-[78%] shadow-md">
                                     <p className="text-[12px] font-semibold text-[#FFD45A99] mb-1">Lúmina</p>
                                     <p className="leading-relaxed text-[15px] whitespace-pre-wrap break-words">{m.text}</p>
@@ -313,14 +313,14 @@ export default function Chat() {
                 </Button>
             </div>
         )}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 px-4 py-3 border-t border-[#333] bg-[#0D0D0D]">
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={openCamera}>
-                <Camera className="h-5 w-5" />
-            </Button>
+            <button className="icon-btn" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip />
+            </button>
+            <button className="icon-btn" onClick={openCamera}>
+                <Camera />
+            </button>
             <Input
                 className="flex-1 bg-transparent border border-[#333] rounded-xl px-3 py-2 text-white placeholder-[#777] outline-none"
                 placeholder="Digite uma mensagem..."
@@ -328,12 +328,12 @@ export default function Chat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             />
-            <Button variant="ghost" size="icon" onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>
-                <Mic className="h-5 w-5" />
-            </Button>
-            <Button size="icon" onClick={handleSendMessage} className="bg-primary hover:bg-primary/90 p-2">
-                <Send className="h-5 w-5" />
-            </Button>
+            <button className="icon-btn" onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>
+                <Mic />
+            </button>
+            <button className="send-btn" onClick={handleSendMessage}>
+                <Send />
+            </button>
         </div>
       </footer>
     </div>
