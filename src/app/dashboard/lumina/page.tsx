@@ -58,7 +58,7 @@ export default function Chat() {
   const { transactions } = useTransactions();
   const { viewMode } = useViewMode();
   const { hasUnread, setHasUnread } = useLumina();
-  const { coupleLink, partner } = useCoupleStore();
+  const { coupleLink } = useCoupleStore();
   
   const view = viewMode;
 
@@ -76,7 +76,7 @@ export default function Chat() {
   }, [user, view, coupleLink]);
 
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, isLuminaTyping]);
-  useEffect(() => { setHasUnread(false); }, []);
+  useEffect(() => { setHasUnread(false); }, [setHasUnread]);
 
   const handlePlayAudio = useCallback((url: string, id: string) => {
     if (!audioRef.current) return;
@@ -140,8 +140,8 @@ export default function Chat() {
           imageBase64,
           isCoupleMode: view === 'together',
           isTTSActive: isTTSEnabled,
-          user: { uid: user.uid, displayName: user.displayName },
-          partner,
+          user: { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL },
+          partner: coupleLink?.members.find(m => m !== user.uid)
         }),
       });
 
@@ -161,7 +161,6 @@ export default function Chat() {
         const chunk = decoder.decode(value, { stream: true });
         fullText += chunk;
         
-        // Update placeholder message in state for immediate feedback
         setMessages(prev => 
             prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
         );
@@ -175,7 +174,6 @@ export default function Chat() {
             prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
         );
     } finally {
-        // Persist the final message to Firestore
         const updatePayload = { text: fullText.trim() };
         if (view === 'together' && coupleLink) {
             await updateCoupleChatMessage(coupleLink.id, luminaMessageId, updatePayload);
@@ -183,7 +181,7 @@ export default function Chat() {
             await updateChatMessage(user.uid, luminaMessageId, updatePayload);
         }
     }
-  }, [user, messages, transactions, view, isTTSEnabled, attachedFile, partner, coupleLink]);
+  }, [user, messages, transactions, view, isTTSEnabled, attachedFile, coupleLink]);
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -266,6 +264,50 @@ export default function Chat() {
       </ScrollArea>
 
       <div className="p-4 border-t bg-background">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend(input);
+            }}
+            className="relative"
+          >
+            {filePreview && (
+                 <div className="absolute bottom-16 left-0 p-2">
+                    <div className="relative group w-24 h-24 rounded-md overflow-hidden border-2 border-primary">
+                        <Image src={filePreview} alt="Preview" layout="fill" objectFit="cover" />
+                         <button 
+                            type="button"
+                            onClick={() => { setFile(null); setFilePreview(null); }}
+                            className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Digite sua mensagem ou comando..."
+              className="pr-24"
+              disabled={isLuminaTyping}
+            />
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                        setFile(f);
+                        setFilePreview(URL.createObjectURL(f));
+                    }
+                }} />
+                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaTyping}>
+                    <Paperclip className="h-5 w-5" />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaTyping}>
+                    <Mic className="h-5 w-5" />
+                </Button>
+            </div>
+          </form>
       </div>
 
       <AudioInputDialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen} onTranscript={t => handleSend(t, true)} />
