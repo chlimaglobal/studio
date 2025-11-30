@@ -159,16 +159,58 @@
 }
 
 @layer components {
-  .lumina-bubble {
-    background-color: #1F1F24;
-    border: 1px solid #8d6e30;
-    box-shadow: 0 0 8px rgba(255, 215, 130, 0.2);
+  /* Nova esfera 3D dourada */
+  .lumina-sphere {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff7d1, #f7c948 40%, #c89b16 80%);
+      box-shadow:
+          inset -4px -6px 12px rgba(0,0,0,0.25),
+          inset 3px 3px 8px rgba(255,255,255,0.35),
+          0 0 12px rgba(255, 205, 85, 0.7);
+      animation: float 3s ease-in-out infinite;
+      position: relative;
+      flex-shrink: 0;
   }
 
-  .user-bubble {
-    background-color: #2A2A2F;
-    @apply text-white;
+  @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+      100% { transform: translateY(0px); }
   }
+
+  /* Glow extra quando está pensando */
+  .lumina-sphere.thinking {
+      box-shadow:
+          inset -4px -6px 12px rgba(0,0,0,0.25),
+          inset 3px 3px 8px rgba(255,255,255,0.35),
+          0 0 18px rgba(0, 200, 255, 0.9);
+  }
+  
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .chat-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+  }
+
+  .chat-user-bubble {
+      background: #FFB33E;
+      color: #000;
+      padding: 10px 15px;
+      border-radius: 18px;
+      align-self: flex-end;
+      max-width: 78%;
+      box-shadow: 0 0 8px rgba(255,179,62,0.35);
+  }
+
 }
 
 /* floating and slow spin */
@@ -240,32 +282,3 @@
   100% { box-shadow: 0 0 10px rgba(59,130,246,0.08); transform: scale(1); }
 }
 .holo-breath { animation: holo-breath 3600ms ease-in-out infinite; }
-
-/* Nova esfera 3D dourada */
-.lumina-sphere {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #fff7d1, #f7c948 40%, #c89b16 80%);
-    box-shadow:
-        inset -4px -6px 12px rgba(0,0,0,0.25),
-        inset 3px 3px 8px rgba(255,255,255,0.35),
-        0 0 12px rgba(255, 205, 85, 0.7);
-    animation: float 3s ease-in-out infinite;
-    position: relative;
-    flex-shrink: 0;
-}
-
-@keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-3px); }
-    100% { transform: translateY(0px); }
-}
-
-/* Glow extra quando está pensando */
-.lumina-sphere.thinking {
-    box-shadow:
-        inset -4px -6px 12px rgba(0,0,0,0.25),
-        inset 3px 3px 8px rgba(255,255,255,0.35),
-        0 0 18px rgba(0, 200, 255, 0.9);
-}

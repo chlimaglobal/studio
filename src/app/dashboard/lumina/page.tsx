@@ -170,7 +170,6 @@ export default function Chat() {
       } else {
           await addChatMessage(user!.uid, finalMsg);
       }
-      setIsTyping(false);
 
     } catch (e) {
       console.error(e);
@@ -180,10 +179,8 @@ export default function Chat() {
       } else {
           await addChatMessage(user!.uid, errorMsg);
       }
-      setIsTyping(false);
     } finally {
-      // This is now handled at the end of the try block
-      // setIsTyping(false); 
+      setIsTyping(false); 
       setMessages(p => p.filter(m => m.id !== tempId));
     }
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
@@ -260,20 +257,20 @@ export default function Chat() {
       </header>
 
       <ScrollArea className="flex-1">
-        <div className="p-4">
+        <div className="chat-container">
             {isLoading ? (
             <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : messages.length === 0 && !isTyping ? (
             <WelcomeMessage />
             ) : (
-            <div className="space-y-6 py-4">
+            <>
                 {messages.map((m, i) => {
                     const mine = m.authorId === user?.uid;
                     const isLumina = m.role === 'lumina';
 
                     if (isLumina) {
                         return (
-                             <div key={m.id || i} className="flex items-start gap-3">
+                             <div key={m.id || i} className="chat-message">
                                 <div className={cn("lumina-sphere", isTyping && i === messages.length - 1 && 'thinking')}></div>
                                 <div className="bg-[#1E1E1E] text-white px-4 py-3 rounded-2xl max-w-[78%] shadow-md">
                                     <p className="text-[12px] font-semibold text-[#FFD45A99] mb-1">Lúmina</p>
@@ -284,9 +281,9 @@ export default function Chat() {
                     }
 
                     return ( // User message
-                        <div key={m.id || i} className="flex gap-3 items-end justify-end">
-                             <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-primary text-primary-foreground">
-                                <p className="text-xs opacity-70 mb-1">{m.authorName || "Você"}</p>
+                        <div key={m.id || i} className="chat-message justify-end">
+                             <div className="chat-user-bubble">
+                                <p className="text-xs font-semibold opacity-70 mb-1">{m.authorName || "Você"}</p>
                                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                                     {m.text}
                                 </p>
@@ -295,7 +292,7 @@ export default function Chat() {
                     );
                 })}
                 {isTyping && messages[messages.length-1]?.authorId === user?.uid && (
-                     <div className="flex gap-3 items-start">
+                     <div className="chat-message">
                         <div className="lumina-sphere thinking"></div>
                         <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-[#1E1E1E]">
                             <TypingIndicator />
@@ -303,7 +300,7 @@ export default function Chat() {
                     </div>
                 )}
                 <div ref={bottomRef} />
-            </div>
+            </>
             )}
         </div>
       </ScrollArea>
