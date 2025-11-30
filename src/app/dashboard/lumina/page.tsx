@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -140,11 +141,11 @@ export default function Chat() {
           isTTSActive: ttsOn,
         }),
       });
-      setIsTyping(false);
 
       if (!res.ok) {
         setMessages(p => p.filter(m => m.id !== tempId));
         await addChatMessage(user.uid, { role: "lumina", text: "Desculpe, tive um problema técnico no servidor.", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png"});
+        setIsTyping(false);
         return;
       }
 
@@ -160,6 +161,7 @@ export default function Chat() {
         fullText += decoder.decode(value, { stream: true });
         setMessages(p => p.map(m => m.id === tempId ? { ...m, text: fullText } : m));
       }
+      setIsTyping(false);
 
       const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       
@@ -171,7 +173,6 @@ export default function Chat() {
 
     } catch (e) {
       console.error(e);
-      setIsTyping(false);
       const errorMsg: Omit<ChatMessage, 'id'|'timestamp'> = { role: "lumina", text: 'Desculpe, tive um problema técnico. Vamos tentar novamente.', authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       if(viewMode === 'together' && coupleLink) {
           await addCoupleChatMessage(coupleLink.id, errorMsg);
@@ -275,7 +276,7 @@ export default function Chat() {
               return (
                 <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
                   {!mine && (
-                    <div className="flex-shrink-0">
+                    <div className="flex-shrink-0 w-10 h-10">
                        <div className={cn(
                            "lumina-sphere", 
                            isTyping && m.id?.startsWith('lumina-temp') && "lumina-thinking",
@@ -302,7 +303,7 @@ export default function Chat() {
 
             {isTyping && !messages.some(m => m.id?.startsWith('lumina-temp')) && (
               <div className="flex gap-3 items-end">
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 w-10 h-10">
                    <div className="lumina-sphere lumina-thinking">
                         <div className="lumina-glow"></div>
                         <div className="lumina-particles"></div>
@@ -354,3 +355,4 @@ export default function Chat() {
     </div>
   );
 }
+
