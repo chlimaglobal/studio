@@ -317,7 +317,13 @@ export default function Chat() {
                                 )}
                             >
                                 <p className="text-sm font-semibold mb-1">{authorName}</p>
-                                {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
+                                {m.text && (
+                                    <div className="w-full overflow-hidden">
+                                        <div className="inline-block min-w-0 max-w-full break-words whitespace-pre-wrap text-sm md:text-base leading-relaxed text-white/90">
+                                            {m.text}
+                                        </div>
+                                    </div>
+                                )}
                                 {!isUser && m.audioUrl && (
                                      <Button
                                         variant="ghost"
@@ -405,3 +411,5 @@ export default function Chat() {
     </div>
   );
 }
+
+    
