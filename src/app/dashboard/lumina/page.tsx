@@ -27,11 +27,8 @@ const WelcomeMessage = () => {
   const name = user?.displayName?.split(" ")[0] || "usuário";
   return (
     <div className="flex flex-col items-center justify-center h-full text-center p-6">
-      <div className="w-20 h-20 mb-4">
-        <div className={`lumina-sphere`}>
-            <div className="lumina-glow"></div>
-            <div className="lumina-particles"></div>
-        </div>
+      <div className="w-20 h-20 mb-4 flex items-center justify-center">
+        <div className="lumina-sphere scale-150"></div>
       </div>
       <h2 className="text-2xl font-bold">Olá, {name}!</h2>
       <p className="text-muted-foreground mt-2">Pronta para organizar suas finanças.</p>
@@ -244,15 +241,8 @@ export default function Chat() {
     <div className="flex flex-col h-full bg-background text-foreground">
       <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10">
-             <div className={cn(
-                "lumina-sphere",
-                isTyping && "lumina-thinking",
-                isResponding && "lumina-responding"
-              )}>
-                <div className="lumina-glow"></div>
-                <div className="lumina-particles"></div>
-            </div>
+          <div className="w-10 h-10 flex items-center justify-center">
+             <div className={cn("lumina-sphere", isTyping && "thinking")}></div>
           </div>
           <div>
             <h1 className="font-semibold">Lúmina</h1>
@@ -273,22 +263,14 @@ export default function Chat() {
             ) : messages.length === 0 && !isTyping ? (
             <WelcomeMessage />
             ) : (
-            <div className="space-y-4 py-10">
+            <div className="space-y-6 py-4">
                 {messages.map((m, i) => {
                 const mine = m.authorId === user?.uid;
                 const isLumina = m.role === 'lumina';
                 return (
                     <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
                     {!mine && (
-                        <div className="flex-shrink-0 w-10 h-10">
-                        <div className={cn(
-                            "lumina-sphere", 
-                            isTyping && m.text === '' && "lumina-thinking"
-                            )}>
-                                <div className="lumina-glow"></div>
-                                <div className="lumina-particles"></div>
-                            </div>
-                        </div>
+                        <div className={cn("lumina-sphere", isTyping && m.text === '' && "thinking")}></div>
                     )}
 
                     <div className={cn(
@@ -303,7 +285,14 @@ export default function Chat() {
                     </div>
                 );
                 })}
-                
+                {isTyping && messages[messages.length-1]?.authorId === user?.uid && (
+                     <div className="flex gap-3 items-end justify-start">
+                        <div className="lumina-sphere thinking"></div>
+                        <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-muted">
+                            <TypingIndicator />
+                        </div>
+                    </div>
+                )}
                 <div ref={bottomRef} />
             </div>
             )}

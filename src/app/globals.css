@@ -241,65 +241,31 @@
 }
 .holo-breath { animation: holo-breath 3600ms ease-in-out infinite; }
 
-/* Avatar: esfera dourada flutuante */
+/* Nova esfera 3D dourada */
 .lumina-sphere {
-    width: 42px;
-    height: 42px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #fff7c2, #ffdd55, #e2b400);
-    position: relative;
+    background: radial-gradient(circle at 30% 30%, #fff7d1, #f7c948 40%, #c89b16 80%);
+    box-shadow:
+        inset -4px -6px 12px rgba(0,0,0,0.25),
+        inset 3px 3px 8px rgba(255,255,255,0.35),
+        0 0 12px rgba(255, 205, 85, 0.7);
     animation: float 3s ease-in-out infinite;
-    overflow: visible;
-}
-
-/* Glow respirante interno */
-.lumina-glow {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(circle, rgba(255,220,150,0.6), rgba(255,200,50,0.1));
-    animation: breathing 4s infinite ease-in-out;
-}
-
-/* Partículas douradas ao redor */
-.lumina-particles {
-   display: none;
+    position: relative;
+    flex-shrink: 0;
 }
 
 @keyframes float {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-    100% { transform: translateY(0); }
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
+    100% { transform: translateY(0px); }
 }
 
-@keyframes breathing {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-}
-
-/* Modo "pensando" */
-.lumina-thinking {
-    background: radial-gradient(circle at 30% 30%, #a7dcff, #0099ff, #007acc);
-    animation: float 2s ease-in-out infinite, thinkingGlow 1.7s ease-in-out infinite;
-}
-
-/* Modo "respondendo" */
-.lumina-responding {
-    background: radial-gradient(circle at 30% 30%, #b0ffc3, #00ff48, #00cc3a);
-    animation: float 2s ease-in-out infinite, respondingGlow 1s ease-in-out;
-}
-
-@keyframes thinkingGlow {
-    0%, 100% {
-        box-shadow: 0 0 16px rgba(0,170,255,0.0);
-    }
-    50% {
-        box-shadow: 0 0 26px rgba(0,220,255,0.0);
-    }
-}
-
-@keyframes respondingGlow {
-    0% { transform: scale(1); box-shadow: 0 0 10px rgba(0,255,72,0.5); }
-    50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(0,255,72,1); }
-    100% { transform: scale(1); box-shadow: 0 0 10px rgba(0,255,72,0.5); }
+/* Glow extra quando está pensando */
+.lumina-sphere.thinking {
+    box-shadow:
+        inset -4px -6px 12px rgba(0,0,0,0.25),
+        inset 3px 3px 8px rgba(255,255,255,0.35),
+        0 0 18px rgba(0, 200, 255, 0.9);
 }
