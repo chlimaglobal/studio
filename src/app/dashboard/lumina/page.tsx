@@ -110,7 +110,6 @@ export default function Chat() {
     setIsTyping(true);
     playThink();
 
-    // Artificial delay to simulate "thinking"
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const tempId = "lumina-temp-" + Date.now();
@@ -305,7 +304,7 @@ export default function Chat() {
         </div>
       </ScrollArea>
 
-      <footer className="p-3 border-t bg-white dark:bg-background">
+      <footer className="p-3 border-t bg-[#0D0D0D] border-[#333]">
         {preview && (
             <div className="relative w-24 h-24 mb-2 p-2 border rounded-md">
                 <Image src={preview} alt="Pré-visualização" layout="fill" objectFit="cover" className="rounded-md" />
@@ -323,7 +322,7 @@ export default function Chat() {
                 <Camera className="h-5 w-5" />
             </Button>
             <Input
-                className="flex-1 p-2 border rounded-xl outline-none"
+                className="flex-1 bg-transparent border border-[#333] rounded-xl px-3 py-2 text-white placeholder-[#777] outline-none"
                 placeholder="Digite uma mensagem..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -332,7 +331,7 @@ export default function Chat() {
             <Button variant="ghost" size="icon" onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>
                 <Mic className="h-5 w-5" />
             </Button>
-            <Button size="icon" onClick={handleSendMessage} className="p-2">
+            <Button size="icon" onClick={handleSendMessage} className="bg-primary hover:bg-primary/90 p-2">
                 <Send className="h-5 w-5" />
             </Button>
         </div>
