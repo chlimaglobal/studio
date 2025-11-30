@@ -9,7 +9,8 @@ import type { ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTheme } from 'next-themes';
 
 const THINK_SOUND = '/sounds/lumina_think.mp3';
 const RESPONSE_SOUND = '/sounds/lumina_response.mp3';
@@ -58,6 +59,7 @@ export default function Chat() {
   const { viewMode } = useViewMode();
   const { setHasUnread } = useLumina();
   const { coupleLink } = useCoupleStore();
+  const { theme } = useTheme();
   
   useEffect(() => {
     thinkAudioRef.current = typeof window !== 'undefined' ? new Audio(THINK_SOUND) : null;
@@ -262,44 +264,93 @@ export default function Chat() {
             ) : messages.length === 0 && !isTyping ? (
             <WelcomeMessage />
             ) : (
-            <>
+            <div className="space-y-4 py-4">
                 {messages.map((m, i) => {
-                    const isLumina = m.role === 'lumina';
-                    const isThinking = isTyping && i === messages.length - 1;
+                  const isUser = m.authorId === user?.uid;
+                  const isLumina = m.role === "lumina";
 
-                    if (isLumina) {
-                        return (
-                             <div key={m.id || i} className="chat-message">
-                                <div className={`lumina-sphere ${isThinking ? "thinking" : ""}`}></div>
-                                <div className="bg-[#1E1E1E] text-white px-4 py-3 rounded-2xl max-w-[78%] shadow-md">
-                                    <p className="text-[12px] font-semibold text-[#FFD45A99] mb-1">Lúmina</p>
-                                    <p className="leading-relaxed text-[15px] whitespace-pre-wrap break-words">{m.text}</p>
-                                </div>
-                            </div>
-                        )
-                    }
+                  return (
+                    <div
+                      key={m.id || i}
+                      className={cn(
+                        "flex w-full gap-3 px-4 py-2",
+                        isUser ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      {/* Avatar da Lúmina (só do lado esquerdo) */}
+                      {isLumina && (
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 ring-4 ring-amber-400/20 shadow-lg animate-pulse-slow">
+                            <AvatarImage src="/lumina-avatar.png" />
+                            <AvatarFallback className="bg-gradient-to-br from-amber-400 to-orange-500 text-white">L</AvatarFallback>
+                          </Avatar>
+                          <div className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
+                        </div>
+                      )}
 
-                    return ( // User message
-                        <div key={m.id || i} className="chat-message justify-end">
-                             <div className="chat-user-bubble">
-                                <p className="text-xs font-semibold opacity-70 mb-1">{m.authorName || "Você"}</p>
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                                    {m.text}
-                                </p>
-                            </div>
-                        </div>
-                    );
-                })}
-                {isTyping && messages.length > 0 && messages[messages.length-1]?.role !== 'lumina' && (
-                     <div className="chat-message">
-                        <div className="lumina-sphere thinking"></div>
-                        <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-[#1E1E1E]">
-                            <TypingIndicator />
-                        </div>
+                      {/* BOLHA QUE FICA PERFEITA EM TODOS OS TEMAS */}
+                      <div
+                        data-theme={theme}
+                        className={cn(
+                          "relative max-w-full rounded-3xl px-5 py-3.5 shadow-xl backdrop-blur-md border",
+                          // MODO CLARO
+                          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-200",
+                          // MODO ESCURO
+                          "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-white/10",
+                          // MODO DOURADO
+                          "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-600 data-[theme=gold]:via-orange-600 data-[theme=gold]:to-amber-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-400/30",
+                          // USUÁRIO
+                          isUser
+                            ? "data-[theme=light]:bg-blue-500 data-[theme=dark]:bg-blue-600 data-[theme=gold]:bg-amber-600"
+                            : ""
+                        )}
+                      >
+                        <p className="text-xs font-semibold opacity-80 mb-1.5">
+                          {isUser ? "Você" : "Lúmina"}
+                        </p>
+                        <p className="text-base leading-relaxed break-words whitespace-pre-wrap">
+                          {m.text}
+                        </p>
+                      </div>
+
+                      {/* Avatar do usuário (opcional, do lado direito) */}
+                      {isUser && (
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={user?.photoURL || ""} />
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white">
+                            {user?.displayName?.[0] || "V"}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
                     </div>
+                  );
+                })}
+
+                {/* Typing indicator — também perfeito nos 3 temas */}
+                {isTyping && (
+                  <div className="flex w-full gap-3 px-4 py-2">
+                    <div className="relative">
+                      <Avatar className="h-10 w-10 ring-4 ring-amber-400/20 shadow-lg animate-pulse-slow">
+                        <AvatarImage src="/lumina-avatar.png" />
+                        <AvatarFallback className="bg-gradient-to-br from-amber-400 to-orange-500 text-white">L</AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 rounded-full bg-amber-400/30 animate-ping" />
+                    </div>
+                    <div
+                      data-theme={theme}
+                      className={cn(
+                        "rounded-3xl px-5 py-4 shadow-xl backdrop-blur-md border",
+                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-200",
+                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-white/10",
+                        "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-600 data-[theme=gold]:via-orange-600 data-[theme=gold]:to-amber-700 data-[theme=gold]:border-amber-400/30"
+                      )}
+                    >
+                      <TypingIndicator />
+                    </div>
+                  </div>
                 )}
                 <div ref={bottomRef} />
-            </>
+            </div>
             )}
         </div>
       </ScrollArea>
@@ -307,7 +358,9 @@ export default function Chat() {
       <footer className="p-3 border-t bg-[#0D0D0D] border-[#333]">
         {preview && (
             <div className="relative w-24 h-24 mb-2 p-2 border rounded-md">
-                <Image src={preview} alt="Pré-visualização" layout="fill" objectFit="cover" className="rounded-md" />
+                <Avatar className="w-full h-full rounded-md">
+                    <AvatarImage src={preview} alt="Pré-visualização" className="object-cover"/>
+                </Avatar>
                 <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/80" onClick={() => { setFile(null); setPreview(null); }}>
                     <X className="h-4 w-4" />
                 </Button>
