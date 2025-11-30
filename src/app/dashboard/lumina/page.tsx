@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import AvatarPremium from '@/components/lumina/AvatarPremium';
 import { Loader2, Volume2, VolumeX, Mic, Paperclip, X, Camera, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useTransactions, useLumina, useViewMode, useCoupleStore } from '@/components/client-providers';
 import { addChatMessage, addCoupleChatMessage, onChatUpdate, fileToBase64 } from '@/lib/storage';
 import type { ChatMessage } from '@/lib/types';
-import { AudioInputDialog } from '@/components/audio-transaction-dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+
+const THINK_SOUND = '/sounds/lumina_think.mp3';
+const RESPONSE_SOUND = '/sounds/lumina_response.mp3';
 
 const TypingIndicator = () => (
   <div className="flex items-center gap-1.5">
@@ -27,7 +28,10 @@ const WelcomeMessage = () => {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center p-6">
       <div className="w-20 h-20 mb-4">
-        <AvatarPremium floating={true} size={80} />
+        <div className={`lumina-sphere`}>
+            <div className="lumina-glow"></div>
+            <div className="lumina-particles"></div>
+        </div>
       </div>
       <h2 className="text-2xl font-bold">Olá, {name}!</h2>
       <p className="text-muted-foreground mt-2">Pronta para organizar suas finanças.</p>
@@ -41,18 +45,26 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [ttsOn, setTtsOn] = useState(false);
-  const [audioDialogOpen, setAudioDialogOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const thinkAudioRef = useRef<HTMLAudioElement | null>(null);
+  const responseAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const { user } = useAuth();
   const { transactions } = useTransactions();
   const { viewMode } = useViewMode();
   const { setHasUnread } = useLumina();
   const { coupleLink } = useCoupleStore();
+  
+  useEffect(() => {
+    thinkAudioRef.current = typeof window !== 'undefined' ? new Audio(THINK_SOUND) : null;
+    responseAudioRef.current = typeof window !== 'undefined' ? new Audio(RESPONSE_SOUND) : null;
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -71,8 +83,11 @@ export default function Chat() {
     localStorage.setItem('lastLuminaVisit', new Date().toISOString());
   }, [setHasUnread]);
 
-  const send = useCallback(async (text: string, fromVoice = false) => {
-    if ((!text.trim() && !file) || !user) return;
+  const playThink = () => { try { thinkAudioRef.current?.play().catch(()=>{}); } catch(e){} };
+  const playResponse = () => { try { responseAudioRef.current?.play().catch(()=>{}); } catch(e){} };
+
+  const send = useCallback(async (text: string, file?: File, audioBase64?: string) => {
+    if ((!text.trim() && !file && !audioBase64) || !user) return;
 
     setInput("");
     const currentFile = file;
@@ -81,7 +96,6 @@ export default function Chat() {
 
     const userMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "user", text: text.trim(), authorId: user.uid, authorName: user.displayName || "Você", authorPhotoUrl: user.photoURL || "" };
     
-    // Add message to Firestore
     if(viewMode === 'together' && coupleLink) {
         await addCoupleChatMessage(coupleLink.id, userMsg);
     } else {
@@ -89,6 +103,7 @@ export default function Chat() {
     }
 
     setIsTyping(true);
+    playThink();
 
     const tempId = "lumina-temp-" + Date.now();
     setMessages(p => [...p, { id: tempId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() }]);
@@ -100,7 +115,7 @@ export default function Chat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userQuery: text,
-          audioText: fromVoice ? text : undefined,
+          audioText: audioBase64, // Sending base64 audio
           chatHistory: messages,
           allTransactions: transactions,
           imageBase64: imgBase64,
@@ -110,7 +125,10 @@ export default function Chat() {
       });
 
       if (!res.ok) {
-        throw new Error("Server error");
+        setMessages(p => p.filter(m => m.id !== tempId));
+        await addChatMessage(user.uid, { role: "lumina", text: "Desculpe, tive um problema técnico no servidor.", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png"});
+        setIsTyping(false);
+        return;
       }
 
       if (!res.body) throw new Error("No response body");
@@ -128,15 +146,14 @@ export default function Chat() {
 
       const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() };
       
-      // Remove placeholder before adding final message to avoid flicker
       setMessages(p => p.filter(m => m.id !== tempId));
 
-      // Add final message to Firestore
       if(viewMode === 'together' && coupleLink) {
           await addCoupleChatMessage(coupleLink.id, finalMsg);
       } else {
-          await addChatMessage(user.uid, finalMsg);
+          await addChatMessage(user!.uid, finalMsg);
       }
+      playResponse();
 
     } catch (e) {
       console.error(e);
@@ -150,8 +167,8 @@ export default function Chat() {
     } finally {
       setIsTyping(false);
     }
-  }, [user, messages, transactions, viewMode, ttsOn, file, coupleLink]);
-  
+  }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -163,17 +180,56 @@ export default function Chat() {
         reader.readAsDataURL(selectedFile);
     }
   };
-
+  
   const handleSendMessage = () => {
-    send(input);
-  }
+    send(input, file);
+  };
+
+  const openCamera = () => {
+    // Placeholder for camera functionality
+    console.log("Opening camera...");
+  };
+
+  const onSendAudio = async (audioBlob: Blob) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = () => {
+      const base64Audio = reader.result as string;
+      send("Processando áudio...", undefined, base64Audio);
+    };
+  };
+
+  const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream);
+        mediaRecorderRef.current.start();
+        audioChunksRef.current = [];
+        mediaRecorderRef.current.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+      } catch (e) {
+          console.error("Error starting recording", e);
+      }
+  };
+
+  const stopRecording = () => {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { type: "audio/mpeg" });
+            onSendAudio(audioBlob);
+        };
+      }
+  };
 
   return (
     <div className="flex flex-col h-full bg-background text-foreground">
       <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10">
-             <AvatarPremium size={40} floating={true} />
+             <div className={`lumina-sphere`}>
+                <div className="lumina-glow"></div>
+                <div className="lumina-particles"></div>
+            </div>
           </div>
           <div>
             <h1 className="font-semibold">Lúmina</h1>
@@ -240,7 +296,7 @@ export default function Chat() {
         )}
       </ScrollArea>
 
-      <footer className="p-3 border-t bg-background">
+      <footer className="p-3 border-t bg-white dark:bg-background">
         {preview && (
             <div className="relative w-24 h-24 mb-2 p-2 border rounded-md">
                 <Image src={preview} alt="Pré-visualização" layout="fill" objectFit="cover" className="rounded-md" />
@@ -254,7 +310,7 @@ export default function Chat() {
             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
                 <Paperclip className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => { /* Placeholder for camera */ }}>
+            <Button variant="ghost" size="icon" onClick={openCamera}>
                 <Camera className="h-5 w-5" />
             </Button>
             <Input
@@ -264,7 +320,7 @@ export default function Chat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             />
-            <Button variant="ghost" size="icon" onClick={() => setAudioDialogOpen(true)}>
+            <Button variant="ghost" size="icon" onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>
                 <Mic className="h-5 w-5" />
             </Button>
             <Button size="icon" onClick={handleSendMessage} className="p-2">
@@ -272,8 +328,6 @@ export default function Chat() {
             </Button>
         </div>
       </footer>
-
-      <AudioInputDialog open={audioDialogOpen} onOpenChange={setAudioDialogOpen} onTranscript={t => send(t, true)} />
     </div>
   );
 }
