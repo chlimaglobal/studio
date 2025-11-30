@@ -4,7 +4,6 @@ import { ai } from '@/ai/genkit';
 import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import type { LuminaChatInput } from '@/lib/types';
 import { z } from 'zod';
-import { StreamingTextResponse } from 'ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -24,8 +23,36 @@ export async function POST(request: NextRequest) {
       stream: true,
     });
     
-    // Convert the stream to a StreamingTextResponse
-    return new StreamingTextResponse(stream.outputStream as ReadableStream);
+    // Create a new ReadableStream to pipe the output from Genkit
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        if (stream.outputStream) {
+          const reader = stream.outputStream.getReader();
+          const decoder = new TextDecoder();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              const chunk = decoder.decode(value, { stream: true });
+              controller.enqueue(new TextEncoder().encode(chunk));
+            }
+          } catch (error) {
+            controller.error(error);
+          } finally {
+            controller.close();
+          }
+        } else {
+          controller.close();
+        }
+      },
+    });
+
+    return new NextResponse(readableStream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+      },
+    });
+
 
   } catch (error) {
     console.error('[LUMINA_STREAM_ERROR]', error);
