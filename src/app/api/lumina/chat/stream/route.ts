@@ -1,11 +1,9 @@
-
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
-import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
+import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
-import { StreamingTextResponse, streamToResponse } from 'ai';
-import { render } from 'genkit/html';
+import { StreamingTextResponse } from 'ai';
 
 
 export const dynamic = 'force-dynamic';
@@ -35,18 +33,14 @@ export async function POST(request: NextRequest) {
     // O 'true' no final indica para a função retornar apenas o material do prompt, sem executar a IA ainda.
     const { prompt, history, attachments } = await generateSuggestion(input, true);
 
-    const stream = await render({
-        stream: true,
-        prompt: prompt,
-        model: 'googleai/gemini-1.5-flash',
-        history: history,
-        attachments: attachments,
-        output: {
-          schema: z.object({
-            text: z.string(),
-            suggestions: z.array(z.string()),
-          }),
-        },
+    const { stream } = await ai.run('luminaChatFlow', {
+      stream: true,
+      input: {
+        ...input,
+        prebuiltPrompt: prompt,
+        prebuiltHistory: history,
+        prebuiltAttachments: attachments
+      }
     });
 
     return new StreamingTextResponse(stream);
