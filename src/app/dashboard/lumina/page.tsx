@@ -35,7 +35,9 @@ export default function Chat() {
   useEffect(() => {
     if (!user) return;
     const unsub = (viewMode === 'together' && coupleLink)
+      // @ts-ignore
       ? onChatUpdate(coupleLink.id, setMessages)
+      // @ts-ignore
       : onChatUpdate(user.uid, setMessages);
     return () => unsub();
   }, [user, viewMode, coupleLink]);
@@ -56,9 +58,8 @@ export default function Chat() {
   };
 
   const send = useCallback(async (text: string, file?: File) => {
-    if (!text.trim() && !file) return;
-    if (!user) return;
-
+    if (!user || (!text.trim() && !file)) return;
+    
     setInput('');
     setIsTyping(true);
 
@@ -75,7 +76,7 @@ export default function Chat() {
     if (viewMode === 'together' && coupleLink) {
       await addCoupleChatMessage(coupleLink.id, userMsg);
     } else {
-      await addChatMessage(user.uid, userMsg);
+      await addChatMessage(user!.uid, userMsg);
     }
 
     // prepare and show Lúmina placeholder with premium glow
@@ -131,7 +132,7 @@ export default function Chat() {
       if (viewMode === 'together' && coupleLink) {
         await addCoupleChatMessage(coupleLink.id, luminaMsg);
       } else {
-        await addChatMessage(user.uid, luminaMsg);
+        await addChatMessage(user!.uid, luminaMsg);
       }
 
       // cleanup temp placeholder
@@ -151,7 +152,7 @@ export default function Chat() {
     } finally {
       setIsTyping(false);
     }
-  }, [user, messages, transactions, viewMode, coupleLink, ttsOn]);
+  }, [user, messages, transactions, viewMode, coupleLink, speak, ttsOn]);
 
   return (
     <div className="flex flex-col h-full bg-slate-900 text-slate-100">

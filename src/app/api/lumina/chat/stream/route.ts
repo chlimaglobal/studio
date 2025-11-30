@@ -1,10 +1,10 @@
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
-import { luminaChatFlow, generateSuggestion } from '@/ai/flows/lumina-chat';
+import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import type { LuminaChatInput } from '@/lib/types';
 import { z } from 'zod';
-import { LuminaChatInputSchema } from '@/lib/types';
+import { StreamingTextResponse } from 'ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -16,32 +16,16 @@ export async function POST(request: NextRequest) {
     // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
     const { prompt, history, attachments } = await generateSuggestion(input, true);
 
-    const { stream } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
-      prompt,
-      history,
-      attachments,
+    const stream = await ai.runFlow('luminaChatFlow', {
+      ...input,
+      prebuiltPrompt: prompt,
+      prebuiltHistory: history,
+      prebuiltAttachments: attachments,
       stream: true,
-      output: {
-        format: 'text',
-      },
     });
-
-    const body = stream.pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          controller.enqueue(chunk.text());
-        },
-      })
-    );
-
-    return new NextResponse(body, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    
+    // Convert the stream to a StreamingTextResponse
+    return new StreamingTextResponse(stream.outputStream as ReadableStream);
 
   } catch (error) {
     console.error('[LUMINA_STREAM_ERROR]', error);

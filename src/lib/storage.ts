@@ -1,4 +1,3 @@
-
 import { db, functions } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
@@ -10,6 +9,16 @@ import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from '.
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
 import { httpsCallable } from 'firebase/functions';
+
+// Helper function to convert a File to a Base64 string
+export function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+}
 
 // Helper function to clean data before sending to Firestore
 const cleanDataForFirestore = (data: Record<string, any>) => {
