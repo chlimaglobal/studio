@@ -139,6 +139,25 @@
   }
 }
 
+@layer utilities {
+  @keyframes spin-slow {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+  
+  @keyframes holo-fade {
+    0%, 100% { opacity: 0.8; transform: translateY(0) rotate(-2deg) scale(0.98); }
+    50% { opacity: 1; transform: translateY(-8px) rotate(-2.2deg) scale(1); }
+  }
+  .animate-holo-fade {
+    animation: holo-fade 6s ease-in-out infinite;
+  }
+}
+
 @layer components {
   .lumina-bubble {
     background-color: #1F1F24;
