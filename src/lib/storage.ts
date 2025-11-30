@@ -181,7 +181,11 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
 
     if (data.paymentMethod === 'installments' && installments > 1) {
         const batch = writeBatch(db);
-        const installmentAmount = data.amount / installments;
+        // Correctly parse the amount before division
+        const totalAmount = typeof data.amount === 'string' ? parseFloat(data.amount.replace(',', '.')) : data.amount;
+        // Round to 2 decimal places to prevent floating point issues
+        const installmentAmount = Math.round((totalAmount / installments) * 100) / 100;
+        
         const originalDocId = doc(collection(db, 'users', currentUserId, 'transactions')).id; // Generate a base ID for grouping
 
         for (let i = 0; i < installments; i++) {
@@ -692,3 +696,5 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
 
 // Re-exporting getDoc and updateDoc for use in page.tsx
 export { getDoc, doc, updateDoc };
+
+    
