@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -273,72 +272,49 @@ export default function Chat() {
 
                 return (
                   <div
-                    key={m.id || i}
-                    className={cn(
-                      "flex w-full items-end gap-3 px-4",
-                      isUser ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    {/* Avatar da Lúmina — lindo e sem pisca-pisca exagerado */}
+                    key={m.id || i}      className={cn("flex w-full items-end gap-3 px-4 py-2", isUser ? "justify-end" : "justify-start")}    >
                     {!isUser && (
-                      <div className="relative">
-                        <Avatar className="h-11 w-11 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
-                          <AvatarImage src="/lumina-avatar.png" />
-                          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                            L
-                          </AvatarFallback>
-                        </Avatar>
-                        {/* Brilho sutil e fixo — NADA de animate-ping nem pulse */}
-                        <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl scale-150 -z-10" />
-                      </div>
+                      <Avatar className="h-11 w-11 flex-shrink-0">
+                        <AvatarImage src="/lumina-avatar.png" />
+                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">L</AvatarFallback>
+                      </Avatar>
                     )}
 
-                    {/* BOLHA FINAL — NUNCA MAIS ESTOURA, NEM COM 100 LINHAS */}
-                    <div
-                      className={cn(
-                        "max-w-full rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
-                        // Modo Claro
-                        "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
-                        // Modo Escuro
-                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
-                        // Modo Dourado
-                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60",
-                        // Mensagem do usuário
-                        isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
-                      )}
-                    >
-                      <p className="text-xs font-medium opacity-70 mb-1.5">
-                        {isUser ? "Você" : "Lúmina"}
-                      </p>
-                      <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                        {m.text}
-                      </p>
+                    <div className="max-w-full">
+                      <div
+                        className={cn(
+                          "inline-block max-w-full rounded-3xl px-5 py-3.5 shadow-lg border",
+                          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
+                          "data-[theme=dark]:bg-gray-800 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
+                          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/50",
+                          isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
+                        )}
+                      >
+                        <p className="text-xs font-medium opacity-70 mb-1">{isUser ? "Você" : "Lúmina"}</p>
+                        <p className="text-base leading-relaxed whitespace-pre-wrap break-normal hyphens-auto">
+                          {m.text}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 );
               })}
 
-              {/* Typing indicator — perfeito e sem exageros */}
               {isTyping && (
-                <div className="flex w-full items-end gap-3 px-4">
-                  <div className="relative">
-                    <Avatar className="h-11 w-11 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
-                      <AvatarImage src="/lumina-avatar.png" />
-                      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                        L
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl scale-150 -z-10" />
-                  </div>
-                  <div
-                    className={cn(
-                      "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+                <div className="flex w-full items-end gap-3 px-4 py-2">
+                  <Avatar className="h-11 w-11 flex-shrink-0">
+                    <AvatarImage src="/lumina-avatar.png" />
+                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">L</AvatarFallback>
+                  </Avatar>
+                  <div className="max-w-full">
+                    <div className={cn(
+                      "inline-block rounded-3xl px-5 py-3.5 shadow-lg border",
                       "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
-                      "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-gray-700",
-                      "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/60"
-                    )}
-                  >
-                    <TypingIndicator />
+                      "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
+                      "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
+                    )}>
+                      <TypingIndicator />
+                    </div>
                   </div>
                 </div>
               )}
