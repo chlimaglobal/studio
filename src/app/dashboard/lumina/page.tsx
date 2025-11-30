@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -57,7 +58,7 @@ export default function Chat() {
   };
 
   const send = useCallback(async (text: string, file?: File) => {
-    if (!user || (!text.trim() && !file)) return;
+    if ((!text.trim() && !file) || !user) return;
     
     setInput('');
     setIsTyping(true);
@@ -164,7 +165,7 @@ export default function Chat() {
       <header className="flex items-center justify-between p-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12">
-            <AvatarPremium size={56} floating />
+            <AvatarPremium isThinking={isTyping} />
           </div>
           <div>
             <div className="font-semibold">Lúmina</div>
@@ -207,7 +208,7 @@ export default function Chat() {
               <div key={m.id || idx} className={cn('flex gap-3', mine ? 'justify-end' : 'justify-start')}>
                 {!mine && (
                   <div className="flex-shrink-0 self-end">
-                    <AvatarPremium size={48} floating={false} />
+                    <AvatarPremium isThinking={isTyping && m.id?.startsWith('temp-lumina')} />
                   </div>
                 )}
 
@@ -228,7 +229,7 @@ export default function Chat() {
           {isTyping && messages.every(m => !m.id?.startsWith('lumina-temp-')) && (
             <div className="flex gap-3">
               <div className="flex-shrink-0">
-                <AvatarPremium size={40} floating={false} />
+                <AvatarPremium isThinking={true} />
               </div>
               <div className="rounded-2xl px-4 py-3 bg-slate-700 text-slate-200">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" /><div className="text-sm">Lúmina está pensando...</div></div>
