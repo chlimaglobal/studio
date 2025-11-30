@@ -1,316 +1,252 @@
-"use client";
+'use client';
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import Image from "next/image";
-import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
-import { Loader2, Volume2, VolumeX, Play, Mic, Paperclip, X } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn, fileToBase64 } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { onChatUpdate, addChatMessage, addCoupleChatMessage, updateChatMessage, updateCoupleChatMessage } from '@/lib/storage';
-import type { ChatMessage } from "@/lib/types";
-import { AudioInputDialog } from "@/components/audio-transaction-dialog";
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import AvatarPremium from '@/components/lumina/AvatarPremium';
+import { Loader2, Volume2, VolumeX, Mic } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuth, useTransactions, useLumina, useViewMode, useCoupleStore } from '@/components/client-providers';
+import { addChatMessage, addCoupleChatMessage, onChatUpdate } from '@/lib/storage';
+import { fileToBase64 } from '@/lib/utils';
+import type { ChatMessage } from '@/lib/types';
 
-const TypingIndicator = () => (
-  <div className="flex items-center space-x-2">
-    <span className="h-2 w-2 bg-current/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-    <span className="h-2 w-2 bg-current/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-    <span className="h-2 w-2 bg-current/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-  </div>
-);
-
-const WelcomeMessage = () => {
-  const { user } = useAuth();
-  const userName = user?.displayName?.split(' ')[0] || 'usuário';
-
-  return (
-    <div className="flex h-full flex-col items-center justify-center text-center animate-in fade-in-0 duration-1000 p-4">
-      <Avatar className="h-20 w-20 border-2 border-primary/50 shadow-[0_0_15px_rgba(255,215,130,0.4)] mb-4">
-        <AvatarImage src="/lumina-avatar.png" alt="Lumina" />
-        <AvatarFallback>L</AvatarFallback>
-      </Avatar>
-      <h2 className="text-2xl font-bold text-foreground">Olá, {userName}!</h2>
-      <p className="text-muted-foreground max-w-sm">
-        Pronta para organizar seu dinheiro, suas metas e sua rotina.
-      </p>
-    </div>
-  )
-}
+// sounds (place in /public/sounds/)
+const THINK_SOUND = '/sounds/lumina_think.mp3';
+const RESPONSE_SOUND = '/sounds/lumina_response.mp3';
 
 export default function Chat() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLuminaTyping, setIsLuminaTyping] = useState(false);
-  const [isTTSEnabled, setIsTTSEnabled] = useState(false);
-  const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [isAudioDialogOpen, setIsAudioDialogOpen] = useState(false);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const { user } = useAuth();
   const { transactions } = useTransactions();
   const { viewMode } = useViewMode();
-  const { hasUnread, setHasUnread } = useLumina();
   const { coupleLink } = useCoupleStore();
-  
-  const view = viewMode;
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [ttsOn, setTtsOn] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  const thinkAudioRef = useRef<HTMLAudioElement | null>(null);
+  const responseAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    thinkAudioRef.current = typeof window !== 'undefined' ? new Audio(THINK_SOUND) : null;
+    responseAudioRef.current = typeof window !== 'undefined' ? new Audio(RESPONSE_SOUND) : null;
+  }, []);
 
   useEffect(() => {
     if (!user) return;
-    setIsLoading(true);
-    const handleMessages = (newMessages: ChatMessage[]) => {
-      setMessages(newMessages);
-      setIsLoading(false);
-    };
-    const unsub = view === 'together' && coupleLink
-      ? onChatUpdate(coupleLink.id, handleMessages)
-      : onChatUpdate(user.uid, handleMessages);
+    const unsub = (viewMode === 'together' && coupleLink)
+      ? onChatUpdate(coupleLink.id, setMessages)
+      : onChatUpdate(user.uid, setMessages);
     return () => unsub();
-  }, [user, view, coupleLink]);
+  }, [user, viewMode, coupleLink]);
 
-  useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, isLuminaTyping]);
-  useEffect(() => { setHasUnread(false); }, [setHasUnread]);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
-  const handlePlayAudio = useCallback((url: string, id: string) => {
-    if (!audioRef.current) return;
-    if (currentlyPlaying === id) {
-      audioRef.current.pause();
-      setCurrentlyPlaying(null);
-    } else {
-      audioRef.current.src = url;
-      audioRef.current.play();
-      setCurrentlyPlaying(id);
-    }
-  }, [currentlyPlaying]);
+  const playThink = () => { try { thinkAudioRef.current?.play().catch(()=>{}); } catch(e){} };
+  const playResponse = () => { try { responseAudioRef.current?.play().catch(()=>{}); } catch(e){} };
 
-  const handleSend = useCallback(async (text: string, fromAudio = false) => {
-    if ((!text.trim() && !attachedFile) || !user) return;
+  const speak = (text: string) => {
+    if (!ttsOn || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'pt-BR';
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  };
 
-    const queryText = text.trim();
-    setInput("");
-    setFilePreview(null);
-    const file = attachedFile;
-    setAttachedFile(null);
+  const send = useCallback(async (text: string, file?: File) => {
+    if (!text.trim() && !file) return;
+    if (!user) return;
 
-    const userMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
-      role: "user",
-      text: queryText,
+    setInput('');
+    setIsTyping(true);
+
+    // add user message locally + db
+    const userMsg: Omit<ChatMessage, 'id'> = {
+      role: 'user',
+      text: text.trim(),
       authorId: user.uid,
-      authorName: user.displayName || "Você",
-      authorPhotoUrl: user.photoURL || "",
+      authorName: user.displayName || 'Você',
+      authorPhotoUrl: user.photoURL || '',
+      timestamp: new Date(),
     };
 
-    const addedUserMessage = view === 'together' && coupleLink
-      ? await addCoupleChatMessage(coupleLink.id, userMsg)
-      : await addChatMessage(user.uid, userMsg);
+    if (viewMode === 'together' && coupleLink) {
+      await addCoupleChatMessage(coupleLink.id, userMsg);
+    } else {
+      await addChatMessage(user.uid, userMsg);
+    }
 
-    setIsLuminaTyping(true);
-    const imageBase64 = file ? await fileToBase64(file) : null;
+    // prepare and show Lúmina placeholder with premium glow
+    const tempId = 'lumina-temp-' + Date.now();
+    setMessages(prev => [...prev, {
+      id: tempId,
+      role: 'lumina',
+      text: '',
+      authorName: 'Lúmina',
+      authorPhotoUrl: '/lumina-avatar.png',
+      timestamp: new Date()
+    }]);
 
-    const luminaPlaceholder: Omit<ChatMessage, 'id'| 'timestamp'> = {
-        role: "lumina",
-        text: "", // Start with empty text
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-    };
+    playThink();
 
-    const addedLuminaMessage = view === 'together' && coupleLink
-      ? await addCoupleChatMessage(coupleLink.id, luminaPlaceholder)
-      : await addChatMessage(user.uid, luminaPlaceholder);
-
-    const luminaMessageId = addedLuminaMessage.id;
-    let fullText = "";
-
+    // stream request to backend (same as you had)
     try {
+      const imgBase64 = file ? await fileToBase64(file) : null;
       const res = await fetch('/api/lumina/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userQuery: queryText,
-          audioText: fromAudio ? queryText : undefined,
+          userQuery: text,
           chatHistory: messages,
           allTransactions: transactions,
-          imageBase64,
-          isCoupleMode: view === 'together',
-          isTTSActive: isTTSEnabled,
-          user: { uid: user.uid, displayName: user.displayName, email: user.email, photoURL: user.photoURL },
-          partner: coupleLink?.members.find(m => m !== user.uid)
+          imageBase64: imgBase64,
+          isCoupleMode: viewMode === 'together',
         }),
       });
 
-      if (!res.ok || !res.body) {
-        throw new Error(`Server error: ${res.statusText}`);
-      }
+      if (!res.body) throw new Error('No body');
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      
-      setIsLuminaTyping(false);
-
+      let acc = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-        
-        setMessages(prev => 
-            prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
-        );
+        acc += decoder.decode(value, { stream: true });
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, text: acc } : m));
       }
 
-    } catch(err) {
-        console.error("Stream failed:", err);
-        fullText = "Desculpe, tive um problema de comunicação. Poderia tentar novamente?";
-        setIsLuminaTyping(false);
-        setMessages(prev => 
-            prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
-        );
+      const finalText = acc.trim();
+      const luminaMsg: Omit<ChatMessage, 'id'> = {
+        role: 'lumina',
+        text: finalText,
+        authorName: 'Lúmina',
+        authorPhotoUrl: '/lumina-avatar.png',
+        timestamp: new Date()
+      };
+
+      // save final message
+      if (viewMode === 'together' && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, luminaMsg);
+      } else {
+        await addChatMessage(user.uid, luminaMsg);
+      }
+
+      // cleanup temp placeholder
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      playResponse();
+      speak(finalText);
+    } catch (e) {
+      // remove placeholder and show fallback message
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setMessages(prev => [...prev, {
+        role: 'lumina',
+        text: 'Tive um problema momentâneo, mas já recuperei. Como posso ajudar?',
+        authorName: 'Lúmina',
+        authorPhotoUrl: '/lumina-avatar.png',
+        timestamp: new Date()
+      }]);
     } finally {
-        const updatePayload = { text: fullText.trim() };
-        if (view === 'together' && coupleLink) {
-            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, updatePayload);
-        } else {
-            await updateChatMessage(user.uid, luminaMessageId, updatePayload);
-        }
+      setIsTyping(false);
     }
-  }, [user, messages, transactions, view, isTTSEnabled, attachedFile, coupleLink]);
+  }, [user, messages, transactions, viewMode, coupleLink, ttsOn]);
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <audio ref={audioRef} className="hidden" />
-      <header className="p-4 border-b flex justify-between items-center">
+    <div className="flex flex-col h-full bg-slate-900 text-slate-100">
+      <header className="flex items-center justify-between p-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-primary/50 shadow-[0_0_12px_rgba(255,215,130,0.4)]">
-            <AvatarImage src="/lumina-avatar.png" />
-            <AvatarFallback>L</AvatarFallback>
-          </Avatar>
+          <div className="w-12 h-12">
+            <AvatarPremium size={56} floating />
+          </div>
           <div>
-            <h1 className="text-base font-semibold">Lúmina – sua assistente financeira</h1>
-            <p className="text-xs text-muted-foreground">Planejamento. Análise. Ação.</p>
+            <div className="font-semibold">Lúmina</div>
+            <div className="text-xs text-slate-400">Assistente financeira</div>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsTTSEnabled(!isTTSEnabled)}>
-          {isTTSEnabled ? <Volume2 className="h-6 w-6 text-primary" /> : <VolumeX className="h-6 w-6" />}
-        </Button>
+
+        <div className="flex items-center gap-2">
+          <button
+            className={cn('p-2 rounded-md', ttsOn ? 'bg-slate-700' : 'bg-transparent')}
+            onClick={() => setTtsOn(!ttsOn)}
+            aria-label="Toggle TTS"
+          >
+            {ttsOn ? <Volume2 /> : <VolumeX />}
+          </button>
+          <button
+            className="p-2 rounded-md bg-gradient-to-r from-amber-500/20 to-rose-400/10"
+            onClick={() => {
+              // optional quick action
+            }}
+            aria-label="Assist"
+          >
+            <Mic />
+          </button>
+        </div>
       </header>
 
-      <ScrollArea className="flex-1 p-4 pb-0">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin" /></div>
-        ) : messages.length === 0 && !isLuminaTyping ? (
-          <WelcomeMessage />
-        ) : (
-          <div className="space-y-6 pb-6">
-            {messages.map((m, i) => {
-              const isUser = m.authorId === user?.uid;
-              const name = isUser ? "Você" : m.authorName || "Lúmina";
+      <main className="flex-1 overflow-auto px-4 py-3">
+        <div className="space-y-4 max-w-3xl mx-auto">
+          {messages.length === 0 && !isTyping && (
+            <div className="text-center p-8 rounded-lg bg-slate-800/40">
+              <div className="text-lg font-medium">Olá! Posso te ajudar com suas finanças.</div>
+            </div>
+          )}
 
-              return (
-                <div
-                  key={m.id || i}
-                  className={cn("flex items-end gap-3 w-full", isUser ? "justify-end" : "justify-start")}
-                >
-                  {!isUser && (
-                    <Avatar className="h-8 w-8 flex-shrink-0 border-2 border-primary/50 shadow-glow">
-                      <AvatarImage src={m.authorPhotoUrl || "/lumina-avatar.png"} />
-                      <AvatarFallback>L</AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div className={cn("p-3 rounded-2xl w-full max-w-full", isUser ? "bg-primary/90 text-primary-foreground" : "bg-muted/80 backdrop-blur-sm border border-white/5")}>
-                     <p className="text-xs font-medium opacity-80 mb-1">{name}</p>
-                     <div className="w-full overflow-hidden">
-                        <div className="inline-block min-w-0 max-w-full break-words whitespace-pre-wrap text-sm md:text-base leading-relaxed">
-                            {m.text}
-                        </div>
-                    </div>
-                    {!isUser && m.audioUrl && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="mt-3 h-8 w-8"
-                        onClick={() => handlePlayAudio(m.audioUrl!, m.id || `${i}`)}
-                      >
-                        <Play className={cn("h-4 w-4", currentlyPlaying === (m.id || `${i}`) && "text-primary")} />
-                      </Button>
-                    )}
+          {messages.map((m, idx) => {
+            const mine = m.authorId === user?.uid;
+            const isLumina = m.role === 'lumina';
+            return (
+              <div key={m.id || idx} className={cn('flex gap-3', mine ? 'justify-end' : 'justify-start')}>
+                {!mine && (
+                  <div className="flex-shrink-0 self-end">
+                    <AvatarPremium size={48} floating={false} />
                   </div>
-                </div>
-              );
-            })}
+                )}
 
-            {isLuminaTyping && (
-              <div className="flex items-end gap-3 w-full">
-                <Avatar className="h-8 w-8 flex-shrink-0 border-2 border-primary/50 shadow-glow">
-                  <AvatarImage src="/lumina-avatar.png" />
-                  <AvatarFallback>L</AvatarFallback>
-                </Avatar>
-                <div className="rounded-2xl px-4 py-3 bg-muted/80 backdrop-blur-sm border border-white/5">
-                  <TypingIndicator />
+                <div className={cn(
+                  'px-4 py-3 rounded-2xl message-bubble',
+                  mine ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-100',
+                  isLumina ? 'premium-glow holo-breath' : ''
+                )}>
+                  <div className="text-xs opacity-70 mb-1">{mine ? 'Você' : m.authorName || 'Lúmina'}</div>
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{m.text}</div>
+                  {/* typing neon */}
+                  {isLumina && isTyping && m.id?.startsWith('lumina-temp-') && <div className="mt-2 text-xs text-slate-300 typing-neon">Lúmina está digitando...</div>}
                 </div>
               </div>
-            )}
+            );
+          })}
 
-            <div ref={bottomRef} />
-          </div>
-        )}
-      </ScrollArea>
-
-      <div className="p-4 border-t bg-background">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSend(input);
-            }}
-            className="relative"
-          >
-            {filePreview && (
-                 <div className="absolute bottom-16 left-0 p-2">
-                    <div className="relative group w-24 h-24 rounded-md overflow-hidden border-2 border-primary">
-                        <Image src={filePreview} alt="Preview" layout="fill" objectFit="cover" />
-                         <button 
-                            type="button"
-                            onClick={() => { setFile(null); setFilePreview(null); }}
-                            className="absolute top-1 right-1 bg-black/50 p-1 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Digite sua mensagem ou comando..."
-              className="pr-24"
-              disabled={isLuminaTyping}
-            />
-            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
-                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) {
-                        setFile(f);
-                        setFilePreview(URL.createObjectURL(f));
-                    }
-                }} />
-                 <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isLuminaTyping}>
-                    <Paperclip className="h-5 w-5" />
-                </Button>
-                <Button type="button" variant="ghost" size="icon" onClick={() => setIsAudioDialogOpen(true)} disabled={isLuminaTyping}>
-                    <Mic className="h-5 w-5" />
-                </Button>
+          {isTyping && messages.every(m => !m.id?.startsWith('lumina-temp-')) && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0">
+                <AvatarPremium size={40} floating={false} />
+              </div>
+              <div className="rounded-2xl px-4 py-3 bg-slate-700 text-slate-200">
+                <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-sky-400 animate-bounce" /><div className="text-sm">Lúmina está pensando...</div></div>
+              </div>
             </div>
-          </form>
-      </div>
+          )}
 
-      <AudioInputDialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen} onTranscript={t => handleSend(t, true)} />
+          <div ref={bottomRef} />
+        </div>
+      </main>
+
+      <footer className="p-4 border-t border-slate-800">
+        {/* Input row - keep simple here */}
+        <div className="flex gap-2 items-center max-w-3xl mx-auto">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Escreva uma mensagem para Lúmina..."
+            className="flex-1 rounded-full px-4 py-2 bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            onKeyDown={(e) => { if (e.key === 'Enter') send(input); }}
+          />
+          <button className="px-4 py-2 rounded-full bg-sky-500 text-slate-900 font-semibold" onClick={() => send(input)}>Enviar</button>
+        </div>
+      </footer>
     </div>
   );
 }
