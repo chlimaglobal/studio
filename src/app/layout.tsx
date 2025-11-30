@@ -1,8 +1,8 @@
-
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '@/components/client-providers';
+import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -32,7 +32,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={`font-sans ${inter.variable} antialiased bg-background`}>
+      <body className={cn('font-sans antialiased bg-background', inter.variable)}>
         <ClientProviders>
           {children}
         </ClientProviders>

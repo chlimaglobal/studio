@@ -258,7 +258,7 @@ export default function Chat() {
       </header>
 
       <ScrollArea className="flex-1">
-        <div className="chat-container">
+        <div className="chat-container" data-theme={theme}>
             {isLoading ? (
             <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
             ) : messages.length === 0 && !isTyping ? (
@@ -308,9 +308,9 @@ export default function Chat() {
                         <p className="text-xs font-semibold opacity-80 mb-1.5">
                           {isUser ? "Você" : "Lúmina"}
                         </p>
-                        <p className="text-base leading-relaxed break-words whitespace-pre-wrap">
+                        <div className="text-base leading-relaxed break-words hyphens-auto">
                           {m.text}
-                        </p>
+                        </div>
                       </div>
 
                       {/* Avatar do usuário (opcional, do lado direito) */}
