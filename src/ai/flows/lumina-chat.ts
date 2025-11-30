@@ -13,6 +13,8 @@ import {
   generate,
   GenerationCommon,
 } from "genkit/generate";
+import { z } from "zod";
+
 
 export async function generateSuggestion(
   input: LuminaChatInput,
@@ -122,6 +124,7 @@ export const luminaChatFlow = ai.defineFlow(
       });
     } catch (err) {
       console.error("Erro ao chamar Gemini:", err);
+      // Retorna uma mensagem de erro controlada se a chamada da API falhar.
       return {
         text: "Tive um pequeno tropeço agora, mas já estou de volta! Pode repetir ou me dizer como posso te ajudar?",
         suggestions: [
@@ -134,6 +137,7 @@ export const luminaChatFlow = ai.defineFlow(
 
     const output = apiResponse?.output;
 
+    // Se a IA retornar uma resposta vazia ou malformada, retorna um fallback.
     if (!output?.text) {
       return {
         text: "Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?",
@@ -145,6 +149,7 @@ export const luminaChatFlow = ai.defineFlow(
       };
     }
 
+    // Retorna a resposta bem-sucedida.
     return {
       text: output.text,
       suggestions: output.suggestions || [],
