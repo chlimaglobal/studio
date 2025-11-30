@@ -248,8 +248,7 @@
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, #fff7c2, #ffdd55, #e2b400);
     position: relative;
-    animation: float 3s ease-in-out infinite, sphereGlow 6s ease-in-out infinite;
-    box-shadow: 0 0 18px rgba(255, 215, 0, 0.8);
+    animation: float 3s ease-in-out infinite;
     overflow: visible;
 }
 
@@ -262,14 +261,9 @@
     animation: breathing 4s infinite ease-in-out;
 }
 
-/* Partículas douradas ao redor */
+/* Partículas douradas ao redor - REMOVED */
 .lumina-particles {
-    position: absolute;
-    inset: -20px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,215,0,0.25), transparent 70%);
-    filter: blur(10px);
-    animation: particlesPulse 4s infinite ease-in-out;
+   display: none;
 }
 
 @keyframes float {
@@ -299,6 +293,10 @@
 }
 
 @keyframes thinkingGlow {
-    0%, 100% { box-shadow: 0 0 16px rgba(0,170,255,0.9); }
-    50% { box-shadow: 0 0 26px rgba(0,220,255,1); }
+    0%, 100% {
+        box-shadow: 0 0 16px rgba(0,170,255,0.0);
+    }
+    50% {
+        box-shadow: 0 0 26px rgba(0,220,255,0.0);
+    }
 }
