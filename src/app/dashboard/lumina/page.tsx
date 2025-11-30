@@ -44,6 +44,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [ttsOn, setTtsOn] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -84,7 +85,14 @@ export default function Chat() {
   }, [setHasUnread]);
 
   const playThink = () => { try { thinkAudioRef.current?.play().catch(()=>{}); } catch(e){} };
-  const playResponse = () => { try { responseAudioRef.current?.play().catch(()=>{}); } catch(e){} };
+  const playResponse = () => {
+      try {
+          setIsResponding(true);
+          responseAudioRef.current?.play().catch(() => {});
+          setTimeout(() => setIsResponding(false), 1000); // duração da animação
+      } catch (e) {}
+  };
+
 
   const send = useCallback(async (text: string, file?: File, audioBase64?: string) => {
     if ((!text.trim() && !file && !audioBase64) || !user) return;
@@ -132,16 +140,16 @@ export default function Chat() {
           isTTSActive: ttsOn,
         }),
       });
+      setIsTyping(false);
 
       if (!res.ok) {
         setMessages(p => p.filter(m => m.id !== tempId));
         await addChatMessage(user.uid, { role: "lumina", text: "Desculpe, tive um problema técnico no servidor.", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png"});
-        setIsTyping(false);
         return;
       }
 
       if (!res.body) throw new Error("No response body");
-
+      playResponse();
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
@@ -160,10 +168,10 @@ export default function Chat() {
       } else {
           await addChatMessage(user!.uid, finalMsg);
       }
-      playResponse();
 
     } catch (e) {
       console.error(e);
+      setIsTyping(false);
       const errorMsg: Omit<ChatMessage, 'id'|'timestamp'> = { role: "lumina", text: 'Desculpe, tive um problema técnico. Vamos tentar novamente.', authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       if(viewMode === 'together' && coupleLink) {
           await addCoupleChatMessage(coupleLink.id, errorMsg);
@@ -233,7 +241,11 @@ export default function Chat() {
       <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10">
-             <div className={`lumina-sphere`}>
+             <div className={cn(
+                "lumina-sphere",
+                isTyping && "lumina-thinking",
+                isResponding && "lumina-responding"
+              )}>
                 <div className="lumina-glow"></div>
                 <div className="lumina-particles"></div>
             </div>
@@ -250,7 +262,7 @@ export default function Chat() {
         </div>
       </header>
 
-      <ScrollArea className="flex-1 px-4 py-2.5">
+      <ScrollArea className="flex-1 p-4">
         {isLoading ? (
           <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
         ) : messages.length === 0 && !isTyping ? (
@@ -264,7 +276,11 @@ export default function Chat() {
                 <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
                   {!mine && (
                     <div className="flex-shrink-0">
-                       <div className={`lumina-sphere ${isTyping && m.id?.startsWith('lumina-temp') ? "lumina-thinking" : ""}`}>
+                       <div className={cn(
+                           "lumina-sphere", 
+                           isTyping && m.id?.startsWith('lumina-temp') && "lumina-thinking",
+                           isResponding && m.id?.startsWith('lumina-temp') && "lumina-responding"
+                        )}>
                             <div className="lumina-glow"></div>
                             <div className="lumina-particles"></div>
                         </div>
