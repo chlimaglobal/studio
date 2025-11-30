@@ -6,18 +6,10 @@ import { cn } from '@/lib/utils';
 
 type Props = {
   isThinking?: boolean;
-  onClick?: () => void;
 };
 
-export default function AvatarPremium({ isThinking = false, onClick }: Props) {
+export default function AvatarPremium({ isThinking = false }: Props) {
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        'lumina-avatar',
-        isThinking && 'lumina-thinking'
-      )}
-      aria-hidden
-    />
+    <div className={cn('lumina-avatar', isThinking && 'lumina-thinking')} aria-hidden />
   );
 }

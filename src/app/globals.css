@@ -283,7 +283,7 @@
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background-image: url('/lumina_face.png');
+    background-image: url('/lumina-avatar.png');
     background-size: cover;
     background-position: center;
     box-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
@@ -330,4 +330,41 @@
 @keyframes glow-thinking {
     0%,100% { box-shadow: 0 0 15px rgba(0,180,255,0.9); }
     50% { box-shadow: 0 0 26px rgba(0,220,255,1); }
+}
+
+/* Esfera 3D Dourada */
+.lumina-sphere {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  position: relative;
+  background: radial-gradient(circle at 30% 30%, #fff8e1, #ffd54f, #ffb300);
+  box-shadow: inset -10px -10px 20px rgba(0,0,0,0.3), 0 10px 20px rgba(0,0,0,0.2);
+  animation: float 4s ease-in-out infinite;
+}
+
+.lumina-glow {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0) 60%);
+  border-radius: 50%;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.lumina-particles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-image: radial-gradient(circle, white 1px, transparent 1px);
+  background-size: 5px 5px;
+  opacity: 0;
+  animation: particles 3s ease-in-out infinite;
+}
+
+.lumina-sphere.lumina-thinking .lumina-glow {
+  animation: glow-thinking 1s ease-in-out infinite alternate;
 }
