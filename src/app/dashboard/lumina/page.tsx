@@ -305,7 +305,7 @@ export default function Chat() {
           {isUser ? "Você" : "Lúmina"}
         </p>
         {/* ESSA É A LINHA MÁGICA QUE MATA O ESTOURO */}
-        <div className="text-base leading-relaxed break-normal whitespace-pre-wrap">
+        <div className="text-base leading-relaxed break-words whitespace-pre-wrap">
           {m.text}
         </div>
       </div>
