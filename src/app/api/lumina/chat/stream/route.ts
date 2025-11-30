@@ -2,10 +2,11 @@
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
-import type { LuminaChatInput } from '@/lib/types';
+import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
-import { streamFlow } from '@genkit-ai/next/server';
+import { StreamingTextResponse, streamToResponse } from 'ai';
+import { render } from 'genkit/html';
+
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -34,22 +35,22 @@ export async function POST(request: NextRequest) {
     // O 'true' no final indica para a função retornar apenas o material do prompt, sem executar a IA ainda.
     const { prompt, history, attachments } = await generateSuggestion(input, true);
 
-    // Use o helper streamFlow do Genkit para lidar com o streaming de forma robusta
-    return await streamFlow({
-        name: 'luminaChatFlow',
-        input: {
-            ...input,
-            prebuiltPrompt: prompt,
-            prebuiltHistory: history,
-            prebuiltAttachments: attachments,
+    const stream = await render({
+        stream: true,
+        prompt: prompt,
+        model: 'googleai/gemini-1.5-flash',
+        history: history,
+        attachments: attachments,
+        output: {
+          schema: z.object({
+            text: z.string(),
+            suggestions: z.array(z.string()),
+          }),
         },
-        // Opcional: adicione um manipulador de erro aqui se precisar de lógica extra no erro
-        onError: (err) => {
-            console.error("Error during luminaChatFlow streaming:", err);
-            // Você pode retornar uma mensagem de erro personalizada aqui se quiser
-            // return new Response("Ocorreu um erro no fluxo da Lúmina.", { status: 500 });
-        }
     });
+
+    return new StreamingTextResponse(stream);
+
 
   } catch (error) {
     console.error('[LUMINA_STREAM_API_ERROR]', error);
