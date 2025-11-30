@@ -204,3 +204,73 @@
     }
   }
 }
+
+/* floating and slow spin */
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow { animation: spin-slow 14s linear infinite; }
+
+/* holographic projection fade */
+@keyframes holo-fade {
+  0% { opacity: 0; transform: translateY(6px) scale(0.98) rotate(-1deg); }
+  50% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  100% { opacity: 0.95; transform: translateY(4px) scale(0.995) rotate(-0.5deg); }
+}
+.animate-holo-fade { animation: holo-fade 2200ms ease-in-out infinite; }
+
+/* particle pseudo-layer */
+.particle-layer::before,
+.particle-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+      radial-gradient(circle at 10% 20%, rgba(255,230,160,0.7) 0px, transparent 2px),
+      radial-gradient(circle at 80% 70%, rgba(255,210,130,0.5) 0px, transparent 2px),
+      radial-gradient(circle at 40% 40%, rgba(255,240,200,0.45) 0px, transparent 2px);
+  background-size: 120% 120%;
+  mix-blend-mode: screen;
+  opacity: 0.0;
+  pointer-events: none;
+  animation: particles-pop 3500ms ease-in-out infinite;
+}
+@keyframes particles-pop {
+  0% { opacity: 0; transform: translateY(2px) scale(0.98); }
+  40% { opacity: 1; transform: translateY(-6px) scale(1.02); }
+  100% { opacity: 0; transform: translateY(-14px) scale(1); }
+}
+
+/* neon typing indicator (applied to wrapper when typing) */
+@keyframes neon-pulse {
+  0% { box-shadow: 0 0 6px rgba(96,165,250,0.12); }
+  50% { box-shadow: 0 0 22px rgba(96,165,250,0.22); }
+  100% { box-shadow: 0 0 6px rgba(96,165,250,0.12); }
+}
+.typing-neon { animation: neon-pulse 1600ms ease-in-out infinite; }
+
+/* ensure message bubbles never overflow horizontally */
+.message-bubble {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  max-width: min(78ch, 78%); /* limit width to avoid overflow */
+}
+
+/* premium border glow */
+.premium-glow {
+  box-shadow:
+    0 4px 28px rgba(99,102,241,0.12),
+    0 0 18px rgba(99,102,241,0.08) inset,
+    0 0 42px rgba(245,158,11,0.06);
+  border: 1px solid rgba(99,102,241,0.12);
+}
+
+/* holographic night breath */
+@keyframes holo-breath {
+  0% { box-shadow: 0 0 10px rgba(59,130,246,0.08); transform: scale(1); }
+  50% { box-shadow: 0 0 28px rgba(59,130,246,0.14); transform: scale(1.02); }
+  100% { box-shadow: 0 0 10px rgba(59,130,246,0.08); transform: scale(1); }
+}
+.holo-breath { animation: holo-breath 3600ms ease-in-out infinite; }
