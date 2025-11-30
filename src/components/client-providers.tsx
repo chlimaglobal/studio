@@ -391,6 +391,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <ThemeProvider
           attribute="data-theme"
           defaultTheme="gold"
+          themes={['light', 'dark', 'gold']}
           enableSystem={false}
           disableTransitionOnChange
         >
