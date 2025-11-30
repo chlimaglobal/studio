@@ -106,7 +106,16 @@ export default function Chat() {
     playThink();
 
     const tempId = "lumina-temp-" + Date.now();
-    setMessages(p => [...p, { id: tempId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() }]);
+    const tempLuminaMessage: ChatMessage = { 
+        id: tempId, 
+        role: "lumina", 
+        text: "", 
+        authorName: "Lúmina", 
+        authorPhotoUrl: "/lumina-avatar.png", 
+        timestamp: new Date() 
+    };
+
+    setMessages(prev => [...prev, tempLuminaMessage]);
     
     try {
       const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
@@ -144,10 +153,8 @@ export default function Chat() {
         setMessages(p => p.map(m => m.id === tempId ? { ...m, text: fullText } : m));
       }
 
-      const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() };
+      const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       
-      setMessages(p => p.filter(m => m.id !== tempId));
-
       if(viewMode === 'together' && coupleLink) {
           await addCoupleChatMessage(coupleLink.id, finalMsg);
       } else {
@@ -157,7 +164,6 @@ export default function Chat() {
 
     } catch (e) {
       console.error(e);
-      setMessages(p => p.filter(m => m.id !== tempId));
       const errorMsg: Omit<ChatMessage, 'id'|'timestamp'> = { role: "lumina", text: 'Desculpe, tive um problema técnico. Vamos tentar novamente.', authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       if(viewMode === 'together' && coupleLink) {
           await addCoupleChatMessage(coupleLink.id, errorMsg);
@@ -166,6 +172,7 @@ export default function Chat() {
       }
     } finally {
       setIsTyping(false);
+      setMessages(p => p.filter(m => m.id !== tempId));
     }
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
 
@@ -243,7 +250,7 @@ export default function Chat() {
         </div>
       </header>
 
-      <ScrollArea className="flex-1 px-4">
+      <ScrollArea className="flex-1 px-4 py-2.5">
         {isLoading ? (
           <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
         ) : messages.length === 0 && !isTyping ? (
@@ -277,7 +284,7 @@ export default function Chat() {
               );
             })}
 
-            {isTyping && messages.every(m => !m.id?.startsWith('lumina-temp')) && (
+            {isTyping && !messages.some(m => m.id?.startsWith('lumina-temp')) && (
               <div className="flex gap-3 items-end">
                 <div className="flex-shrink-0">
                    <div className="lumina-sphere lumina-thinking">
