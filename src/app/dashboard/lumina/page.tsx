@@ -114,17 +114,10 @@ export default function Chat() {
     setIsTyping(true);
     playThink();
 
-    const tempId = "lumina-temp-" + Date.now();
-    const tempLuminaMessage: ChatMessage = { 
-        id: tempId, 
-        role: "lumina", 
-        text: "", 
-        authorName: "Lúmina", 
-        authorPhotoUrl: "/lumina-avatar.png", 
-        timestamp: new Date() 
-    };
+    // Artificial delay to simulate "thinking"
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    setMessages(prev => [...prev, tempLuminaMessage]);
+    const tempId = "lumina-temp-" + Date.now();
     
     try {
       const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
@@ -151,6 +144,18 @@ export default function Chat() {
 
       if (!res.body) throw new Error("No response body");
       playResponse();
+
+      const tempLuminaMessage: ChatMessage = { 
+          id: tempId, 
+          role: "lumina", 
+          text: "", 
+          authorName: "Lúmina", 
+          authorPhotoUrl: "/lumina-avatar.png", 
+          timestamp: new Date() 
+      };
+
+      setMessages(prev => [...prev, tempLuminaMessage]);
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
@@ -161,8 +166,7 @@ export default function Chat() {
         fullText += decoder.decode(value, { stream: true });
         setMessages(p => p.map(m => m.id === tempId ? { ...m, text: fullText } : m));
       }
-      setIsTyping(false);
-
+      
       const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
       
       if(viewMode === 'together' && coupleLink) {
@@ -269,7 +273,7 @@ export default function Chat() {
         ) : messages.length === 0 && !isTyping ? (
           <WelcomeMessage />
         ) : (
-          <div className="py-4 space-y-4">
+          <div className="py-10 space-y-4">
             {messages.map((m, i) => {
               const mine = m.authorId === user?.uid;
               const isLumina = m.role === 'lumina';
@@ -279,8 +283,7 @@ export default function Chat() {
                     <div className="flex-shrink-0 w-10 h-10">
                        <div className={cn(
                            "lumina-sphere", 
-                           isTyping && m.id?.startsWith('lumina-temp') && "lumina-thinking",
-                           isResponding && m.id?.startsWith('lumina-temp') && "lumina-responding"
+                           isTyping && m.text === '' && "lumina-thinking"
                         )}>
                             <div className="lumina-glow"></div>
                             <div className="lumina-particles"></div>
@@ -300,21 +303,7 @@ export default function Chat() {
                 </div>
               );
             })}
-
-            {isTyping && !messages.some(m => m.id?.startsWith('lumina-temp')) && (
-              <div className="flex gap-3 items-end">
-                <div className="flex-shrink-0 w-10 h-10">
-                   <div className="lumina-sphere lumina-thinking">
-                        <div className="lumina-glow"></div>
-                        <div className="lumina-particles"></div>
-                    </div>
-                </div>
-                <div className="rounded-2xl px-4 py-3 bg-muted">
-                  <TypingIndicator />
-                </div>
-              </div>
-            )}
-
+            
             <div ref={bottomRef} />
           </div>
         )}
@@ -355,4 +344,3 @@ export default function Chat() {
     </div>
   );
 }
-
