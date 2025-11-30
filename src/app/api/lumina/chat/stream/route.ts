@@ -1,60 +1,58 @@
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { luminaChatFlow } from '@/ai/flows/lumina-chat'; // sua função normal que já funciona
+import { ai } from '@/ai/genkit';
+import { luminaChatFlow, generateSuggestion } from '@/ai/flows/lumina-chat';
 import type { LuminaChatInput } from '@/lib/types';
+import { z } from 'zod';
+import { LuminaChatInputSchema } from '@/lib/types';
 
-export const dynamic = 'force-dynamic'; // força streaming sem cache
-export const maxDuration = 60; // 60s pro Gemini responder
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
     const input: LuminaChatInput = await request.json();
 
-    const encoder = new TextEncoder(); // pra codificar texto em chunks binários
+    // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
+    const { prompt, history, attachments } = await generateSuggestion(input, true);
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          // Chama sua função normal da Lúmina (que já é async e funciona)
-          const result = await luminaChatFlow(input);
-
-          // Simula streaming: divide em palavras e envia rápido (30ms = resposta viva)
-          const words = (result.text || 'Oi! Como posso te ajudar com finanças hoje?').split(' ');
-          for (const word of words) {
-            if (controller.signal.aborted) break; // para se o user cancelar
-            const chunk = encoder.encode(`${word} `);
-            controller.enqueue(chunk);
-            await new Promise(resolve => setTimeout(resolve, 30)); // velocidade da Lúmina
-          }
-
-          // Envia sugestões no final (rápido)
-          if (result.suggestions && result.suggestions.length > 0) {
-            const suggestionsChunk = encoder.encode(`\n\n💡 Sugestões: ${result.suggestions.join(' · ')}`);
-            controller.enqueue(suggestionsChunk);
-          }
-
-        } catch (error) {
-          console.error('Erro no streaming da Lúmina:', error);
-          controller.enqueue(encoder.encode('Desculpe, tive um tropeço técnico. Vamos tentar de novo?'));
-        } finally {
-          controller.close();
-        }
+    const { stream } = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
+      prompt,
+      history,
+      attachments,
+      stream: true,
+      output: {
+        format: 'text',
       },
-      cancel(reason) {
-        console.log('Streaming cancelado:', reason);
-      }
     });
 
-    return new NextResponse(stream, {
+    const body = stream.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          controller.enqueue(chunk.text());
+        },
+      })
+    );
+
+    return new NextResponse(body, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8', // ou 'text/event-stream' pra SSE
+        'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*', // se precisar de CORS
       },
     });
 
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao iniciar chat' }, { status: 500 });
+    console.error('[LUMINA_STREAM_ERROR]', error);
+    let errorMessage = 'An internal server error occurred';
+    if (error instanceof z.ZodError) {
+        errorMessage = `Invalid request body: ${error.message}`;
+        return new NextResponse(JSON.stringify({ error: errorMessage }), { status: 400 });
+    }
+    if (error instanceof Error) {
+        errorMessage = error.message;
+    }
+    return new NextResponse(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 }

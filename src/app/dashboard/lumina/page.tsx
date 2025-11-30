@@ -9,7 +9,7 @@ import { cn, fileToBase64 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { onChatUpdate, addChatMessage, addCoupleChatMessage } from '@/lib/storage';
+import { onChatUpdate, addChatMessage, addCoupleChatMessage, updateChatMessage, updateCoupleChatMessage } from '@/lib/storage';
 import type { ChatMessage } from "@/lib/types";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
 
@@ -93,44 +93,48 @@ export default function Chat() {
   const handleSend = useCallback(async (text: string, fromAudio = false) => {
     if ((!text.trim() && !attachedFile) || !user) return;
 
+    const queryText = text.trim();
     setInput("");
     setFilePreview(null);
     const file = attachedFile;
     setAttachedFile(null);
 
-    const userMsg: ChatMessage = {
+    const userMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
       role: "user",
-      text,
+      text: queryText,
       authorId: user.uid,
       authorName: user.displayName || "Você",
       authorPhotoUrl: user.photoURL || "",
-      timestamp: new Date(),
     };
-    view === 'together' && coupleLink
+
+    const addedUserMessage = view === 'together' && coupleLink
       ? await addCoupleChatMessage(coupleLink.id, userMsg)
       : await addChatMessage(user.uid, userMsg);
 
     setIsLuminaTyping(true);
     const imageBase64 = file ? await fileToBase64(file) : null;
 
-    // Placeholder único
-    const placeholderId = "lumina-current";
-    setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
-      id: placeholderId,
-      role: "lumina",
-      text: "",
-      authorName: "Lúmina",
-      authorPhotoUrl: "/lumina-avatar.png",
-      timestamp: new Date(),
-    }]);
+    const luminaPlaceholder: Omit<ChatMessage, 'id'| 'timestamp'> = {
+        role: "lumina",
+        text: "", // Start with empty text
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+    };
+
+    const addedLuminaMessage = view === 'together' && coupleLink
+      ? await addCoupleChatMessage(coupleLink.id, luminaPlaceholder)
+      : await addChatMessage(user.uid, luminaPlaceholder);
+
+    const luminaMessageId = addedLuminaMessage.id;
+    let fullText = "";
 
     try {
       const res = await fetch('/api/lumina/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userQuery: text,
-          audioText: fromAudio ? text : undefined,
+          userQuery: queryText,
+          audioText: fromAudio ? queryText : undefined,
           chatHistory: messages,
           allTransactions: transactions,
           imageBase64,
@@ -141,38 +145,43 @@ export default function Chat() {
         }),
       });
 
-      if (!res.ok || !res.body) throw new Error();
+      if (!res.ok || !res.body) {
+        throw new Error(`Server error: ${res.statusText}`);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let fullText = "";
-
+      
       setIsLuminaTyping(false);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-        setMessages(prev => prev.map(m => m.id === placeholderId ? { ...m, text: fullText } : m));
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        
+        // Update placeholder message in state for immediate feedback
+        setMessages(prev => 
+            prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
+        );
       }
 
-      // Salva mensagem final no Firestore (o listener vai atualizar)
-      const finalMsg: ChatMessage = {
-        role: "lumina",
-        text: fullText.trim(),
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-        timestamp: new Date(),
-      };
-      view === 'together' && coupleLink
-        ? await addCoupleChatMessage(coupleLink.id, finalMsg)
-        : await addChatMessage(user.uid, finalMsg);
-
-      setMessages(prev => prev.filter(m => m.id !== placeholderId));
-
-    } catch {
-      setIsLuminaTyping(false);
-      setMessages(prev => prev.filter(m => m.id !== placeholderId));
+    } catch(err) {
+        console.error("Stream failed:", err);
+        fullText = "Desculpe, tive um problema de comunicação. Poderia tentar novamente?";
+        setIsLuminaTyping(false);
+        setMessages(prev => 
+            prev.map(m => m.id === luminaMessageId ? { ...m, text: fullText } : m)
+        );
+    } finally {
+        // Persist the final message to Firestore
+        const updatePayload = { text: fullText.trim() };
+        if (view === 'together' && coupleLink) {
+            await updateCoupleChatMessage(coupleLink.id, luminaMessageId, updatePayload);
+        } else {
+            await updateChatMessage(user.uid, luminaMessageId, updatePayload);
+        }
     }
   }, [user, messages, transactions, view, isTTSEnabled, attachedFile, partner, coupleLink]);
 
@@ -239,7 +248,6 @@ export default function Chat() {
               );
             })}
 
-            {/* Typing indicator */}
             {isLuminaTyping && (
               <div className="flex items-end gap-3 w-full">
                 <Avatar className="h-8 w-8 flex-shrink-0 border-2 border-primary/50 shadow-glow">
@@ -257,10 +265,7 @@ export default function Chat() {
         )}
       </ScrollArea>
 
-      {/* Input area – sem mudança */}
       <div className="p-4 border-t bg-background">
-        {/* ... seu código de input permanece igual ... */}
-        {/* (mantive exatamente como estava) */}
       </div>
 
       <AudioInputDialog open={isAudioDialogOpen} onOpenChange={setIsAudioDialogOpen} onTranscript={t => handleSend(t, true)} />
