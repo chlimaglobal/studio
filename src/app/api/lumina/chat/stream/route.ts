@@ -1,3 +1,4 @@
+
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
@@ -37,6 +38,8 @@ export async function POST(request: NextRequest) {
               controller.enqueue(new TextEncoder().encode(chunk));
             }
           } catch (error) {
+            console.error("Error reading stream from Genkit:", error);
+            controller.enqueue(new TextEncoder().encode("Desculpe, tive um problema técnico. Vamos tentar novamente."));
             controller.error(error);
           } finally {
             controller.close();
@@ -53,17 +56,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-
   } catch (error) {
     console.error('[LUMINA_STREAM_ERROR]', error);
-    let errorMessage = 'An internal server error occurred';
     if (error instanceof z.ZodError) {
-        errorMessage = `Invalid request body: ${error.message}`;
-        return new NextResponse(JSON.stringify({ error: errorMessage }), { status: 400 });
+        return new Response("SERVER_ERROR", { status: 400 });
     }
-    if (error instanceof Error) {
-        errorMessage = error.message;
-    }
-    return new NextResponse(JSON.stringify({ error: errorMessage }), { status: 500 });
+    return new Response("SERVER_ERROR", { status: 500 });
   }
 }

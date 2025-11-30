@@ -5,8 +5,7 @@ import AvatarPremium from '@/components/lumina/AvatarPremium';
 import { Loader2, Volume2, VolumeX, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useTransactions, useLumina, useViewMode, useCoupleStore } from '@/components/client-providers';
-import { addChatMessage, addCoupleChatMessage, onChatUpdate } from '@/lib/storage';
-import { fileToBase64 } from '@/lib/utils';
+import { addChatMessage, addCoupleChatMessage, onChatUpdate, fileToBase64 } from '@/lib/storage';
 import type { ChatMessage } from '@/lib/types';
 
 // sounds (place in /public/sounds/)
@@ -107,6 +106,11 @@ export default function Chat() {
         }),
       });
 
+      if (!res.ok) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, text: "Desculpe, tive um problema técnico no servidor." } : m));
+        throw new Error('Server error');
+      }
+      
       if (!res.body) throw new Error('No body');
 
       const reader = res.body.getReader();
@@ -143,8 +147,9 @@ export default function Chat() {
       // remove placeholder and show fallback message
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setMessages(prev => [...prev, {
+        id: 'error-' + Date.now(),
         role: 'lumina',
-        text: 'Tive um problema momentâneo, mas já recuperei. Como posso ajudar?',
+        text: 'Desculpe, tive um problema técnico. Vamos tentar novamente.',
         authorName: 'Lúmina',
         authorPhotoUrl: '/lumina-avatar.png',
         timestamp: new Date()
