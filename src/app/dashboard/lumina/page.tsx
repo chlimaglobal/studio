@@ -170,6 +170,7 @@ export default function Chat() {
       } else {
           await addChatMessage(user!.uid, finalMsg);
       }
+      setIsTyping(false);
 
     } catch (e) {
       console.error(e);
@@ -179,8 +180,10 @@ export default function Chat() {
       } else {
           await addChatMessage(user!.uid, errorMsg);
       }
-    } finally {
       setIsTyping(false);
+    } finally {
+      // This is now handled at the end of the try block
+      // setIsTyping(false); 
       setMessages(p => p.filter(m => m.id !== tempId));
     }
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
@@ -242,7 +245,7 @@ export default function Chat() {
       <header className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 flex items-center justify-center">
-             <div className={cn("lumina-sphere", isTyping && "thinking")}></div>
+             <div className={cn("lumina-sphere", isTyping && "thinking", isResponding && "responding")}></div>
           </div>
           <div>
             <h1 className="font-semibold">Lúmina</h1>
@@ -265,30 +268,36 @@ export default function Chat() {
             ) : (
             <div className="space-y-6 py-4">
                 {messages.map((m, i) => {
-                const mine = m.authorId === user?.uid;
-                const isLumina = m.role === 'lumina';
-                return (
-                    <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
-                    {!mine && (
-                        <div className={cn("lumina-sphere", isTyping && m.text === '' && "thinking")}></div>
-                    )}
+                    const mine = m.authorId === user?.uid;
+                    const isLumina = m.role === 'lumina';
 
-                    <div className={cn(
-                        "rounded-2xl px-4 py-3 max-w-[80%]",
-                        mine ? "bg-primary text-primary-foreground" : "bg-muted"
-                    )}>
-                        <p className="text-xs opacity-70 mb-1">{mine ? "Você" : m.authorName || "Lúmina"}</p>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                        {m.text}
-                        </p>
-                    </div>
-                    </div>
-                );
+                    if (isLumina) {
+                        return (
+                             <div key={m.id || i} className="flex items-start gap-3">
+                                <div className={cn("lumina-sphere", isTyping && i === messages.length - 1 && 'thinking')}></div>
+                                <div className="bg-[#1E1E1E] text-white px-4 py-3 rounded-2xl max-w-[78%] shadow-md">
+                                    <p className="text-[12px] font-semibold text-[#FFD45A99] mb-1">Lúmina</p>
+                                    <p className="leading-relaxed text-[15px] whitespace-pre-wrap break-words">{m.text}</p>
+                                </div>
+                            </div>
+                        )
+                    }
+
+                    return ( // User message
+                        <div key={m.id || i} className="flex gap-3 items-end justify-end">
+                             <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-primary text-primary-foreground">
+                                <p className="text-xs opacity-70 mb-1">{m.authorName || "Você"}</p>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                                    {m.text}
+                                </p>
+                            </div>
+                        </div>
+                    );
                 })}
                 {isTyping && messages[messages.length-1]?.authorId === user?.uid && (
-                     <div className="flex gap-3 items-end justify-start">
+                     <div className="flex gap-3 items-start">
                         <div className="lumina-sphere thinking"></div>
-                        <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-muted">
+                        <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-[#1E1E1E]">
                             <TypingIndicator />
                         </div>
                     </div>
