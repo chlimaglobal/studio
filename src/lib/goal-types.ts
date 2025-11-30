@@ -6,7 +6,7 @@ export const iconNames = Object.keys(icons) as [string, ...string[]];
 
 const positiveNumberOrUndefined = (ctx: z.RefinementCtx, value: any) => {
     if (value === undefined || value === null || value === '') return undefined;
-    const parsed = parseFloat(String(value).replace('.', '').replace(',', '.'));
+    const parsed = parseFloat(String(value).replace(/\./g, '').replace(',', '.'));
     if (isNaN(parsed) || parsed < 0) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
