@@ -389,9 +389,9 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
+          attribute="data-theme"
+          defaultTheme="gold"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <AuthProvider>

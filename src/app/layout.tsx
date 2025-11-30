@@ -32,7 +32,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={`font-sans ${inter.variable} antialiased`}>
+      <body className={`font-sans ${inter.variable} antialiased bg-background`}>
         <ClientProviders>
           {children}
         </ClientProviders>
