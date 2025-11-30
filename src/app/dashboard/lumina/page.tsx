@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -264,7 +265,6 @@ export default function Chat() {
             ) : (
             <>
                 {messages.map((m, i) => {
-                    const mine = m.authorId === user?.uid;
                     const isLumina = m.role === 'lumina';
 
                     if (isLumina) {
@@ -290,7 +290,7 @@ export default function Chat() {
                         </div>
                     );
                 })}
-                {isTyping && messages[messages.length-1]?.authorId === user?.uid && (
+                {isTyping && messages.length > 0 && messages[messages.length-1]?.role !== 'lumina' && (
                      <div className="chat-message">
                         <div className="lumina-sphere thinking"></div>
                         <div className="rounded-2xl px-4 py-3 max-w-[80%] bg-[#1E1E1E]">
