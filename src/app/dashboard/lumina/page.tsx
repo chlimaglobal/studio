@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -267,46 +266,48 @@ export default function Chat() {
         </div>
       </header>
 
-      <ScrollArea className="flex-1 p-4">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
-        ) : messages.length === 0 && !isTyping ? (
-          <WelcomeMessage />
-        ) : (
-          <div className="py-10 space-y-4">
-            {messages.map((m, i) => {
-              const mine = m.authorId === user?.uid;
-              const isLumina = m.role === 'lumina';
-              return (
-                <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
-                  {!mine && (
-                    <div className="flex-shrink-0 w-10 h-10">
-                       <div className={cn(
-                           "lumina-sphere", 
-                           isTyping && m.text === '' && "lumina-thinking"
-                        )}>
-                            <div className="lumina-glow"></div>
-                            <div className="lumina-particles"></div>
+      <ScrollArea className="flex-1">
+        <div className="p-4">
+            {isLoading ? (
+            <div className="flex justify-center items-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            ) : messages.length === 0 && !isTyping ? (
+            <WelcomeMessage />
+            ) : (
+            <div className="space-y-4 py-10">
+                {messages.map((m, i) => {
+                const mine = m.authorId === user?.uid;
+                const isLumina = m.role === 'lumina';
+                return (
+                    <div key={m.id || i} className={cn("flex gap-3 items-end", mine ? "justify-end" : "justify-start")}>
+                    {!mine && (
+                        <div className="flex-shrink-0 w-10 h-10">
+                        <div className={cn(
+                            "lumina-sphere", 
+                            isTyping && m.text === '' && "lumina-thinking"
+                            )}>
+                                <div className="lumina-glow"></div>
+                                <div className="lumina-particles"></div>
+                            </div>
                         </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className={cn(
-                    "rounded-2xl px-4 py-3 max-w-[80%]",
-                    mine ? "bg-primary text-primary-foreground" : "bg-muted"
-                  )}>
-                    <p className="text-xs opacity-70 mb-1">{mine ? "Você" : m.authorName || "Lúmina"}</p>
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                      {m.text}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-            
-            <div ref={bottomRef} />
-          </div>
-        )}
+                    <div className={cn(
+                        "rounded-2xl px-4 py-3 max-w-[80%]",
+                        mine ? "bg-primary text-primary-foreground" : "bg-muted"
+                    )}>
+                        <p className="text-xs opacity-70 mb-1">{mine ? "Você" : m.authorName || "Lúmina"}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        {m.text}
+                        </p>
+                    </div>
+                    </div>
+                );
+                })}
+                
+                <div ref={bottomRef} />
+            </div>
+            )}
+        </div>
       </ScrollArea>
 
       <footer className="p-3 border-t bg-white dark:bg-background">
