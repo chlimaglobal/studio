@@ -69,7 +69,7 @@ export default function Chat() {
   useEffect(() => {
     if (!user) return;
     const unsub = viewMode === "together" && coupleLink
-      ? onChatUpdate(coupleLink.id, (msgs) => { setMessages(msgs); setIsLoading(false); })
+      ? onCoupleChatUpdate(coupleLink.id, (msgs) => { setMessages(msgs); setIsLoading(false); })
       : onChatUpdate(user.uid, (msgs) => { setMessages(msgs); setIsLoading(false); });
     return unsub;
   }, [user, viewMode, coupleLink]);
@@ -115,81 +115,81 @@ export default function Chat() {
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
-  const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
-  
-  const res = await fetch("/api/lumina/chat/stream", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userQuery: text,
-      audioText: audioBase64,
-      chatHistory: messages,
-      allTransactions: transactions,
-      imageBase64: imgBase64,
-      isCoupleMode: viewMode === "together",
-      isTTSActive: ttsOn,
-    }),
-  });
+      const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
+      
+      const res = await fetch("/api/lumina/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userQuery: text,
+          audioText: audioBase64,
+          chatHistory: messages,
+          allTransactions: transactions,
+          imageBase64: imgBase64,
+          isCoupleMode: viewMode === "together",
+          isTTSActive: ttsOn,
+        }),
+      });
 
-  if (!res.ok || !res.body) {
-    throw new Error("Resposta inválida do servidor");
-  }
+      if (!res.ok || !res.body) {
+        throw new Error("Resposta inválida do servidor");
+      }
 
-  playResponse();
+      playResponse();
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let fullText = "";
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
 
-  // Força o placeholder único
-  const placeholderId = "lumina-current";
-  setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
-    id: placeholderId,
-    role: "lumina",
-    text: "",
-    authorName: "Lúmina",
-    authorPhotoUrl: "/lumina-avatar.png",
-    timestamp: new Date(),
-  }]);
+      // Força o placeholder único
+      const placeholderId = "lumina-current";
+      setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
+        id: placeholderId,
+        role: "lumina",
+        text: "",
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+        timestamp: new Date(),
+      }]);
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    fullText += decoder.decode(value, { stream: true });
-    setMessages(prev => prev.map(m => 
-      m.id === placeholderId ? { ...m, text: fullText } : m
-    ));
-  }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        setMessages(prev => prev.map(m => 
+          m.id === placeholderId ? { ...m, text: fullText } : m
+        ));
+      }
 
-  // Só salva no Firestore quando terminar tudo
-  const finalMsg = {
-    role: "lumina" as const,
-    text: fullText.trim(),
-    authorName: "Lúmina",
-    authorPhotoUrl: "/lumina-avatar.png",
-  };
+      // Só salva no Firestore quando terminar tudo
+      const finalMsg = {
+        role: "lumina" as const,
+        text: fullText.trim(),
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+      };
 
-  if (viewMode === "together" && coupleLink) {
-    await addCoupleChatMessage(coupleLink.id, finalMsg);
-  } else {
-    await addChatMessage(user!.uid, finalMsg);
-  }
+      if (viewMode === "together" && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, finalMsg);
+      } else {
+        await addChatMessage(user!.uid, finalMsg);
+      }
 
-  // Remove placeholder (o listener do Firestore vai trazer a mensagem real)
-  setMessages(prev => prev.filter(m => m.id !== placeholderId));
+      // Remove placeholder (o listener do Firestore vai trazer a mensagem real)
+      setMessages(prev => prev.filter(m => m.id !== placeholderId));
 
-} catch (error) {
-  console.error("Erro no streaming:", error);
-  // Mensagem de erro só se realmente não tiver nada
-  const errorMsg = { role: "lumina" as const, text: "Desculpe, não consegui responder agora. Tenta de novo?", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
-  if (viewMode === "together" && coupleLink) {
-    await addCoupleChatMessage(coupleLink.id, errorMsg);
-  } else {
-    await addChatMessage(user!.uid, errorMsg);
-  }
-} finally {
-  setIsTyping(false);
-}
+    } catch (error) {
+      console.error("Erro no streaming:", error);
+      // Mensagem de erro só se realmente não tiver nada
+      const errorMsg = { role: "lumina" as const, text: "Desculpe, não consegui responder agora. Tenta de novo?", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
+      if (viewMode === "together" && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, errorMsg);
+      } else {
+        await addChatMessage(user!.uid, errorMsg);
+      }
+    } finally {
+      setIsTyping(false);
+    }
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,7 +313,7 @@ export default function Chat() {
             {isUser ? "Você" : "Lúmina"}
           </p>
           {/* A LINHA MÁGICA QUE RESOLVE TUDO */}
-          <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+          <p className="text-base leading-relaxed whitespace-pre-wrap break-normal overflow-wrap-anywhere">
             {m.text}
           </p>
         </div>
@@ -337,7 +337,7 @@ export default function Chat() {
           "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
           "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
           "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-gray-700",
-          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60"
+          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/60"
         )}
       >
         <TypingIndicator />
@@ -345,7 +345,6 @@ export default function Chat() {
     </div>
   </div>
 )}
-
 
               <div ref={bottomRef} />
             </div>
