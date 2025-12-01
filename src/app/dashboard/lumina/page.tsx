@@ -275,7 +275,7 @@ export default function Chat() {
             <div className="space-y-4">
               {messages.map((m, i) => {
                 const isUser = m.authorId === user?.uid;
-              
+
                 return (
                   <div
                     key={m.id || i}
@@ -293,7 +293,7 @@ export default function Chat() {
                         </AvatarFallback>
                       </Avatar>
                     )}
-              
+
                     {/* BOLHA FINAL — IMPOSSÍVEL ESTOURAR */}
                     <div className="max-w-[85%]">
                       <div
