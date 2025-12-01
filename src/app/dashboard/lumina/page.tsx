@@ -114,16 +114,15 @@ export default function Chat() {
 
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const tempId = "lumina-temp-" + Date.now();
-    
     try {
       const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
+      
       const res = await fetch("/api/lumina/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userQuery: text,
-          audioText: audioBase64, // Sending base64 audio
+          audioText: audioBase64,
           chatHistory: messages,
           allTransactions: transactions,
           imageBase64: imgBase64,
@@ -131,58 +130,65 @@ export default function Chat() {
           isTTSActive: ttsOn,
         }),
       });
-
-      if (!res.ok) {
-        setMessages(p => p.filter(m => m.id !== tempId));
-        await addChatMessage(user.uid, { role: "lumina", text: "Desculpe, tive um problema técnico no servidor.", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png"});
-        setIsTyping(false);
-        return;
+    
+      if (!res.ok || !res.body) {
+        throw new Error("Resposta inválida do servidor");
       }
-
-      if (!res.body) throw new Error("No response body");
+    
       playResponse();
-
-      const tempLuminaMessage: ChatMessage = { 
-          id: tempId, 
-          role: "lumina", 
-          text: "", 
-          authorName: "Lúmina", 
-          authorPhotoUrl: "/lumina-avatar.png", 
-          timestamp: new Date() 
-      };
-
-      setMessages(prev => [...prev, tempLuminaMessage]);
-
+    
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
-
+    
+      // Força o placeholder único
+      const placeholderId = "lumina-current";
+      setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
+        id: placeholderId,
+        role: "lumina",
+        text: "",
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+        timestamp: new Date(),
+      }]);
+    
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
-        setMessages(p => p.map(m => m.id === tempId ? { ...m, text: fullText } : m));
+        setMessages(prev => prev.map(m => 
+          m.id === placeholderId ? { ...m, text: fullText } : m
+        ));
       }
-      
-      const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = { role: "lumina", text: fullText.trim(), authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
-      
-      if(viewMode === 'together' && coupleLink) {
-          await addCoupleChatMessage(coupleLink.id, finalMsg);
+    
+      // Só salva no Firestore quando terminar tudo
+      const finalMsg = {
+        role: "lumina" as const,
+        text: fullText.trim(),
+        authorName: "Lúmina",
+        authorPhotoUrl: "/lumina-avatar.png",
+      };
+    
+      if (viewMode === "together" && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, finalMsg);
       } else {
-          await addChatMessage(user!.uid, finalMsg);
+        await addChatMessage(user!.uid, finalMsg);
       }
-
-    } catch (e) {
-      console.error(e);
-      const errorMsg: Omit<ChatMessage, 'id'|'timestamp'> = { role: "lumina", text: 'Desculpe, tive um problema técnico. Vamos tentar novamente.', authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
-      if(viewMode === 'together' && coupleLink) {
-          await addCoupleChatMessage(coupleLink.id, errorMsg);
+    
+      // Remove placeholder (o listener do Firestore vai trazer a mensagem real)
+      setMessages(prev => prev.filter(m => m.id !== placeholderId));
+    
+    } catch (error) {
+      console.error("Erro no streaming:", error);
+      // Mensagem de erro só se realmente não tiver nada
+      const errorMsg = { role: "lumina" as const, text: "Desculpe, não consegui responder agora. Tenta de novo?", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
+      if (viewMode === "together" && coupleLink) {
+        await addCoupleChatMessage(coupleLink.id, errorMsg);
       } else {
-          await addChatMessage(user!.uid, errorMsg);
+        await addChatMessage(user!.uid, errorMsg);
       }
     } finally {
-      setIsTyping(false); 
-      setMessages(p => p.filter(m => m.id !== tempId));
+      setIsTyping(false);
     }
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
 
@@ -279,56 +285,61 @@ export default function Chat() {
                     )}
                   >
                     {!isUser && (
-                      <Avatar className="h-11 w-11 flex-shrink-0">
-                        <AvatarImage src="/lumina-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                          L
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="h-11 w-11 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
+                          <AvatarImage src="/lumina-avatar.png" />
+                          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+                            L
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl scale-150 -z-10" />
+                      </div>
                     )}
 
-                    <div className="max-w-full">
-                      <div
-                        className={cn(
-                          "inline-block max-w-full rounded-3xl px-5 py-3.5 shadow-lg border",
-                          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
-                          "data-[theme=dark]:bg-gray-800 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
-                          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/50",
-                          isUser &&
-                            "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
-                        )}
-                      >
-                        <p className="text-xs font-medium opacity-70 mb-1">
-                          {isUser ? "Você" : "Lúmina"}
-                        </p>
-                        <p className="text-base leading-relaxed whitespace-pre-wrap break-words hyphens-auto">
-                          {m.text}
-                        </p>
-                      </div>
+                    <div
+                      className={cn(
+                        "max-w-full rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+                        // Modo Claro
+                        "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
+                        // Modo Escuro
+                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
+                        // Modo Dourado
+                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60",
+                        // Mensagem do usuário
+                        isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
+                      )}
+                    >
+                      <p className="text-xs font-medium opacity-70 mb-1.5">
+                        {isUser ? "Você" : "Lúmina"}
+                      </p>
+                      <p className="text-base leading-relaxed whitespace-pre-wrap break-normal">
+                        {m.text}
+                      </p>
                     </div>
                   </div>
                 );
               })}
 
               {isTyping && (
-                <div className="flex w-full items-end gap-3 px-4 py-2">
-                  <Avatar className="h-11 w-11 flex-shrink-0">
-                    <AvatarImage src="/lumina-avatar.png" />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                      L
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="max-w-full">
-                    <div
-                      className={cn(
-                        "inline-block rounded-3xl px-5 py-3.5 shadow-lg border",
-                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
-                        "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
-                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
-                      )}
-                    >
-                      <TypingIndicator />
-                    </div>
+                <div className="flex w-full items-end gap-3 px-4">
+                  <div className="relative">
+                    <Avatar className="h-11 w-11 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
+                      <AvatarImage src="/lumina-avatar.png" />
+                      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+                        L
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl scale-150 -z-10" />
+                  </div>
+                  <div
+                    className={cn(
+                      "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+                      "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
+                      "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-gray-700",
+                      "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/60"
+                    )}
+                  >
+                    <TypingIndicator />
                   </div>
                 </div>
               )}
