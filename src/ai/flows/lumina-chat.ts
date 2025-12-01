@@ -203,8 +203,8 @@ export const luminaChatFlow = ai.defineFlow(
 
     if (!output?.text) {
       return {
-        text: "Entendi! Quer que eu analise algo ou registre alguma coisa para você?",
-        suggestions: ["Despesas", "Receitas", "Comparar mês atual"],
+        text: "Certo! Estou aqui. O que você quer fazer agora?",
+        suggestions: []
       };
     }
 
