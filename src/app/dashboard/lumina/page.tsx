@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Loader2, Volume2, VolumeX, Mic, Paperclip, X, Camera, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth, useTransactions, useLumina, useViewMode, useCoupleStore } from '@/components/client-providers';
-import { addChatMessage, addCoupleChatMessage, onChatUpdate, fileToBase64 } from '@/lib/storage';
+import { addChatMessage, addCoupleChatMessage, fileToBase64 } from '@/lib/storage';
 import type { ChatMessage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -115,81 +115,81 @@ export default function Chat() {
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     try {
-      const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
-      
-      const res = await fetch("/api/lumina/chat/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userQuery: text,
-          audioText: audioBase64,
-          chatHistory: messages,
-          allTransactions: transactions,
-          imageBase64: imgBase64,
-          isCoupleMode: viewMode === "together",
-          isTTSActive: ttsOn,
-        }),
-      });
-    
-      if (!res.ok || !res.body) {
-        throw new Error("Resposta inválida do servidor");
-      }
-    
-      playResponse();
-    
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-    
-      // Força o placeholder único
-      const placeholderId = "lumina-current";
-      setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
-        id: placeholderId,
-        role: "lumina",
-        text: "",
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-        timestamp: new Date(),
-      }]);
-    
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-        setMessages(prev => prev.map(m => 
-          m.id === placeholderId ? { ...m, text: fullText } : m
-        ));
-      }
-    
-      // Só salva no Firestore quando terminar tudo
-      const finalMsg = {
-        role: "lumina" as const,
-        text: fullText.trim(),
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-      };
-    
-      if (viewMode === "together" && coupleLink) {
-        await addCoupleChatMessage(coupleLink.id, finalMsg);
-      } else {
-        await addChatMessage(user!.uid, finalMsg);
-      }
-    
-      // Remove placeholder (o listener do Firestore vai trazer a mensagem real)
-      setMessages(prev => prev.filter(m => m.id !== placeholderId));
-    
-    } catch (error) {
-      console.error("Erro no streaming:", error);
-      // Mensagem de erro só se realmente não tiver nada
-      const errorMsg = { role: "lumina" as const, text: "Desculpe, não consegui responder agora. Tenta de novo?", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
-      if (viewMode === "together" && coupleLink) {
-        await addCoupleChatMessage(coupleLink.id, errorMsg);
-      } else {
-        await addChatMessage(user!.uid, errorMsg);
-      }
-    } finally {
-      setIsTyping(false);
-    }
+  const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
+  
+  const res = await fetch("/api/lumina/chat/stream", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userQuery: text,
+      audioText: audioBase64,
+      chatHistory: messages,
+      allTransactions: transactions,
+      imageBase64: imgBase64,
+      isCoupleMode: viewMode === "together",
+      isTTSActive: ttsOn,
+    }),
+  });
+
+  if (!res.ok || !res.body) {
+    throw new Error("Resposta inválida do servidor");
+  }
+
+  playResponse();
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+
+  // Força o placeholder único
+  const placeholderId = "lumina-current";
+  setMessages(prev => [...prev.filter(m => m.id !== placeholderId), {
+    id: placeholderId,
+    role: "lumina",
+    text: "",
+    authorName: "Lúmina",
+    authorPhotoUrl: "/lumina-avatar.png",
+    timestamp: new Date(),
+  }]);
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    fullText += decoder.decode(value, { stream: true });
+    setMessages(prev => prev.map(m => 
+      m.id === placeholderId ? { ...m, text: fullText } : m
+    ));
+  }
+
+  // Só salva no Firestore quando terminar tudo
+  const finalMsg = {
+    role: "lumina" as const,
+    text: fullText.trim(),
+    authorName: "Lúmina",
+    authorPhotoUrl: "/lumina-avatar.png",
+  };
+
+  if (viewMode === "together" && coupleLink) {
+    await addCoupleChatMessage(coupleLink.id, finalMsg);
+  } else {
+    await addChatMessage(user!.uid, finalMsg);
+  }
+
+  // Remove placeholder (o listener do Firestore vai trazer a mensagem real)
+  setMessages(prev => prev.filter(m => m.id !== placeholderId));
+
+} catch (error) {
+  console.error("Erro no streaming:", error);
+  // Mensagem de erro só se realmente não tiver nada
+  const errorMsg = { role: "lumina" as const, text: "Desculpe, não consegui responder agora. Tenta de novo?", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png" };
+  if (viewMode === "together" && coupleLink) {
+    await addCoupleChatMessage(coupleLink.id, errorMsg);
+  } else {
+    await addChatMessage(user!.uid, errorMsg);
+  }
+} finally {
+  setIsTyping(false);
+}
   }, [user, messages, transactions, viewMode, ttsOn, coupleLink]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,63 +274,78 @@ export default function Chat() {
           ) : (
             <div className="space-y-4">
               {messages.map((m, i) => {
-                const isUser = m.authorId === user?.uid;
+  const isUser = m.authorId === user?.uid;
 
-                return (
-                  <div
-                    key={m.id || i}
-                    className={cn(
-                      "flex w-full items-end gap-3 px-4",
-                      isUser ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    {!isUser && (
-                      <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-600/20">
-                        <AvatarImage src="/lumina-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                          L
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+  return (
+    <div
+      key={m.id || i}
+      className={cn(
+        "flex w-full items-end gap-4 px-4 py-2",
+        isUser ? "justify-end" : "justify-start"
+      )}
+    >
+      {/* Avatar da Lúmina — lindo e sem animação chata */}
+      {!isUser && (
+        <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
+          <AvatarImage src="/lumina-avatar.png" />
+          <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+            L
+          </AvatarFallback>
+        </Avatar>
+      )}
 
-                    <div className="max-w-full">
-                        <div
-                        className={cn(
-                            "inline-block max-w-full rounded-3xl px-5 py-3.5 shadow-lg border",
-                            "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
-                            "data-[theme=dark]:bg-gray-800 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
-                            "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/50",
-                            isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
-                        )}
-                        >
-                        <p className="text-xs font-medium opacity-70 mb-1">{isUser ? "Você" : "Lúmina"}</p>
-                        <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                            {m.text}
-                        </p>
-                        </div>
-                    </div>
-                  </div>
-                );
-              })}
+      {/* BOLHA FINAL — IMPOSSÍVEL ESTOURAR */}
+      <div className="max-w-[85%]">
+        <div
+          className={cn(
+            "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+            // Claro
+            "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
+            // Escuro
+            "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
+            // Dourado
+            "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60",
+            // Usuário
+            isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
+          )}
+        >
+          <p className="text-xs font-medium opacity-70 mb-1.5">
+            {isUser ? "Você" : "Lúmina"}
+          </p>
+          {/* A LINHA MÁGICA QUE RESOLVE TUDO */}
+          <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+            {m.text}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+})}
 
-              {isTyping && (
-                <div className="flex w-full items-end gap-3 px-4 py-2">
-                    <Avatar className="h-10 w-10 flex-shrink-0 border-2 border-amber-500/30 bg-gradient-to-br from-amber-500/20 to-orange-600/20">
-                    <AvatarImage src="/lumina-avatar.png" />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">L</AvatarFallback>
-                    </Avatar>
-                    <div className="max-w-full">
-                    <div className={cn(
-                        "inline-block rounded-3xl px-5 py-3.5 shadow-lg border",
-                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
-                        "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
-                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
-                    )}>
-                        <TypingIndicator />
-                    </div>
-                    </div>
-                </div>
-              )}
+{/* Typing indicator — perfeito */}
+{isTyping && (
+  <div className="flex w-full items-end gap-4 px-4 py-2">
+    <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
+      <AvatarImage src="/lumina-avatar.png" />
+      <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+        L
+      </AvatarFallback>
+    </Avatar>
+    <div className="max-w-[85%]">
+      <div
+        className={cn(
+          "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+          "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
+          "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-gray-700",
+          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60"
+        )}
+      >
+        <TypingIndicator />
+      </div>
+    </div>
+  </div>
+)}
+
 
               <div ref={bottomRef} />
             </div>
@@ -375,5 +390,3 @@ export default function Chat() {
     </div>
   );
 }
-
-    
