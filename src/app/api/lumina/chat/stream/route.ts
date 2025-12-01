@@ -1,9 +1,12 @@
+
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
-import { generateSuggestion } from '@/ai/flows/lumina-chat';
+import { LuminaChatInput, LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
+import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
 import { StreamingTextResponse } from 'ai';
+import { GenerationCommon } from 'genkit/generate';
 
 
 export const dynamic = 'force-dynamic';
@@ -31,9 +34,9 @@ export async function POST(request: NextRequest) {
 
     // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
     // O 'true' no final indica para a função retornar apenas o material do prompt, sem executar a IA ainda.
-    const { prompt, history, attachments } = await generateSuggestion(input, true);
+    const { prompt, history, attachments } = await generateSuggestion(input as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
 
-    const { stream } = await ai.run('luminaChatFlow', {
+    const { stream, response } = await ai.run('luminaChatFlow', {
       stream: true,
       input: {
         ...input,
@@ -42,8 +45,17 @@ export async function POST(request: NextRequest) {
         prebuiltAttachments: attachments
       }
     });
+    
+    // Use the Vercel AI SDK to stream the response
+    const aiStream = stream.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          controller.enqueue(chunk.output?.text || '');
+        },
+      })
+    );
 
-    return new StreamingTextResponse(stream);
+    return new StreamingTextResponse(aiStream);
 
 
   } catch (error) {
