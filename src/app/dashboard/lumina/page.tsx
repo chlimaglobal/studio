@@ -10,6 +10,15 @@ import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate 
 import type { ChatMessage } from "@/lib/types";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+
+const TypingIndicator = () => (
+    <div className="flex items-center gap-2">
+      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:0ms]"></span>
+      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:150ms]"></span>
+      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:300ms]"></span>
+    </div>
+);
 
 export default function ChatPage() {
   const [input, setInput] = useState("");
@@ -73,10 +82,9 @@ export default function ChatPage() {
     // show typing placeholder
     setIsTyping(true);
     const tempId = `temp-${Date.now()}`;
-    setMessages(prev => [...prev, { id: tempId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "", timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: tempId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() }]);
 
     try {
-      // stream endpoint (assume exists)
       const res = await fetch("/api/lumina/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -92,8 +100,10 @@ export default function ChatPage() {
         }),
       });
 
-      if (!res.body) throw new Error("No stream body");
-
+      if (!res.ok || !res.body) {
+        throw new Error("Resposta inválida do servidor");
+      }
+      
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
@@ -113,31 +123,25 @@ export default function ChatPage() {
         authorPhotoUrl: "/lumina-avatar.png",
       };
 
-      // persist final response
-      if (viewMode === "together" && coupleLink) {
-        await addCoupleChatMessage(coupleLink.id, finalMsg);
-      } else {
-        await addChatMessage(user.uid, finalMsg);
-      }
-
-      // remove placeholder (it will be reloaded by subscription but keep UI clean)
+      // Firestore will eventually update the state via listener, this just cleans up the temp message
       setMessages(prev => prev.filter(m => m.id !== tempId));
 
-    } catch (err) {
-      console.error("Erro no stream:", err);
-      // remove placeholder and show fallback
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      const fallback: Omit<ChatMessage, 'id' | 'timestamp'> = {
+    } catch (error) {
+      console.error("Erro no stream:", error);
+      // Fallback message, never show an error to the user
+      const errorMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
         role: "lumina",
-        text: "Desculpe, tivemos um problema ao responder. Tente novamente em alguns segundos.",
+        text: "Parece que estou com um pouco de dificuldade para me conectar. Que tal tentarmos um resumo do seu mês?",
         authorName: "Lúmina",
         authorPhotoUrl: "/lumina-avatar.png",
+        suggestions: ["Resumo do mês", "Maiores gastos", "Quanto eu economizei?"],
       };
       if (viewMode === "together" && coupleLink) {
-        await addCoupleChatMessage(coupleLink.id, fallback);
+        await addCoupleChatMessage(coupleLink.id, errorMsg);
       } else {
-        await addChatMessage(user.uid, fallback);
+        await addChatMessage(user!.uid, errorMsg);
       }
+       setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
       setIsTyping(false);
     }
@@ -190,39 +194,39 @@ export default function ChatPage() {
                 const isUser = m.authorId === user?.uid;
             
                 return (
-                  <div
-                    key={m.id || i}
-                    className={cn(
-                      "flex w-full min-w-0",
-                      isUser ? "justify-end" : "justify-start"
-                    )}
-                  >
                     <div
-                      className={cn(
-                        "rounded-3xl px-5 py-3.5 shadow-lg max-w-[85%] min-w-0",
-                        // Tema claro
-                        "data-[theme=light]:bg-white data-[theme=light]:text-gray-900",
-                        // Tema escuro
-                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white",
-                        // Tema dourado — para Lúmina
-                        !isUser &&
-                          "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90 text-white",
-                        // Bolha do usuário
-                        isUser &&
-                          "bg-amber-600 text-white"
-                      )}
+                        key={m.id || i}
+                        className={cn(
+                        "flex w-full min-w-0",
+                        isUser ? "justify-end" : "justify-start"
+                        )}
                     >
-                      {/* Nome */}
-                      <p className="text-xs font-medium opacity-70 mb-2">
-                        {isUser ? "Você" : "Lúmina"}
-                      </p>
+                        <div
+                        className={cn(
+                            "rounded-3xl px-5 py-3.5 shadow-lg max-w-[85%] min-w-0",
+                            // Tema claro
+                            "data-[theme=light]:bg-white data-[theme=light]:text-gray-900",
+                            // Tema escuro
+                            "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white",
+                            // Tema dourado — para Lúmina
+                            !isUser &&
+                            "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90 text-white",
+                            // Bolha do usuário
+                            isUser &&
+                            "bg-amber-600 text-white"
+                        )}
+                        >
+                        {/* Nome */}
+                        <p className="text-xs font-medium opacity-70 mb-2">
+                            {isUser ? "Você" : "Lúmina"}
+                        </p>
             
-                      {/* Texto — NUNCA estoura */}
-                      <p className="text-base leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words">
-                        {m.text}
-                      </p>
+                        {/* Texto — NUNCA estoura */}
+                        <p className="text-base leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words">
+                            {m.text}
+                        </p>
+                        </div>
                     </div>
-                  </div>
                 );
               })}
             

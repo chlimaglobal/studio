@@ -1,8 +1,12 @@
-
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
 import { LuminaChatInput, LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
+import {
+  LUMINA_BASE_PROMPT,
+  LUMINA_VOICE_COMMAND_PROMPT,
+  LUMINA_SPEECH_SYNTHESIS_PROMPT,
+} from "@/ai/lumina/prompt/luminaBasePrompt";
 import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
 import { StreamingTextResponse } from 'ai';
@@ -31,10 +35,10 @@ export async function POST(request: NextRequest) {
 
     // Validate the input
     const input = LuminaChatRequestSchema.parse(rawInput);
-
+    
     // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
-    // O 'true' no final indica para a função retornar apenas o material do prompt, sem executar a IA ainda.
     const { prompt, history, attachments } = await generateSuggestion(input as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
+
 
     const { stream, response } = await ai.run('luminaChatFlow', {
       stream: true,
