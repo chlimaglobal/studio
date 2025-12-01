@@ -96,30 +96,30 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (LARANJA REAL) ======================= */}
+        {/* ======================= BALANÇO (AZUL) ======================= */}
         <Line
           type="monotone"
           dataKey="resultado"
           name="Balanço"
-          stroke="#FFA500" // LARANJA real e fixo
+          stroke="hsl(var(--chart-4))"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
           connectNulls={true}
         />
 
-        {/* ======================= CUSTO DE VIDA (AZUL — LINHA RETA) ======================= */}
+        {/* ======================= CUSTO DE VIDA (LINHA DE REFERÊNCIA) ======================= */}
         <ReferenceLine
           y={costOfLiving}
           label={{
             value: 'Custo de Vida',
             position: 'center',
-            fill: '#007BFF', // azul real fixo
+            fill: 'hsl(var(--muted-foreground))',
             fontSize: 10
           }}
-          stroke="#007BFF" // azul real fixo
+          stroke="hsl(var(--muted-foreground))"
           strokeDasharray="4 4"
-          strokeWidth={2}
+          strokeWidth={1.5}
           ifOverflow="extendDomain"
         />
       </LineChart>
