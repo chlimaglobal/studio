@@ -112,8 +112,6 @@ export default function Chat() {
     setIsTyping(true);
     playThink();
 
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
     try {
       const imgBase64 = currentFile ? await fileToBase64(currentFile) : null;
       
@@ -284,7 +282,7 @@ export default function Chat() {
                       isUser ? "justify-end" : "justify-start"
                     )}
                   >
-                    {/* Avatar da Lúmina — lindo e sem animação chata */}
+                    {/* Avatar da Lúmina */}
                     {!isUser && (
                       <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
                         <AvatarImage src="/lumina-avatar.png" />
@@ -294,25 +292,31 @@ export default function Chat() {
                       </Avatar>
                     )}
 
-                    {/* BOLHA FINAL — IMPOSSÍVEL ESTOURAR */}
-                    <div className="max-w-[85%]">
+                    {/* BOLHA */}
+                    <div className="max-w-[85%] min-w-0">
                       <div
                         className={cn(
                           "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
+
                           // Claro
                           "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
+
                           // Escuro
                           "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
+
                           // Dourado
                           "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60",
+
                           // Usuário
-                          isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
+                          isUser &&
+                            "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
                         )}
                       >
                         <p className="text-xs font-medium opacity-70 mb-1.5">
                           {isUser ? "Você" : "Lúmina"}
                         </p>
-                        {/* A LINHA MÁGICA QUE RESOLVE TUDO */}
+
+                        {/* Texto 100% SEM ESTOURAR */}
                         <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                           {m.text}
                         </p>
@@ -321,8 +325,8 @@ export default function Chat() {
                   </div>
                 );
               })}
-              
-              {/* Typing indicator — perfeito */}
+
+              {/* Typing indicator */}
               {isTyping && (
                 <div className="flex w-full items-end gap-4 px-4 py-2">
                   <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
@@ -331,7 +335,8 @@ export default function Chat() {
                       L
                     </AvatarFallback>
                   </Avatar>
-                  <div className="max-w-[85%]">
+
+                  <div className="max-w-[85%] min-w-0">
                     <div
                       className={cn(
                         "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
