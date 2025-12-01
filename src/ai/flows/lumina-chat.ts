@@ -3,156 +3,214 @@
 import { ai } from "@/ai/genkit";
 import type { LuminaChatInput, LuminaChatOutput } from "@/lib/types";
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
+
 import {
   LUMINA_BASE_PROMPT,
   LUMINA_VOICE_COMMAND_PROMPT,
   LUMINA_SPEECH_SYNTHESIS_PROMPT,
 } from "@/ai/lumina/prompt/luminaBasePrompt";
-import {
-  GenerateRequest,
-  generate,
-  GenerationCommon,
-} from "genkit/generate";
+
 import { z } from "zod";
+import { getUserMemory, saveUserMemory } from "@/ai/lumina/memory/memoryStore";
 
 
+// =========================================================
+// 1) CARREGA MEMÓRIA DO USUÁRIO
+// =========================================================
+async function buildMemoryContext(userId: string) {
+  const mem = await getUserMemory(userId);
+
+  return `
+### MEMÓRIA DO USUÁRIO (use, mas não exponha explicitamente):
+
+- Preferências do usuário:
+${mem?.preferences ? JSON.stringify(mem.preferences, null, 2) : "{}"}
+
+- Informações declaradas anteriormente:
+${mem?.facts ? JSON.stringify(mem.facts, null, 2) : "{}"}
+
+- Hábitos financeiros:
+${mem?.financialHabits ? JSON.stringify(mem.financialHabits, null, 2) : "{}"}
+
+- Correções que o usuário pediu:
+${mem?.dontSay ? JSON.stringify(mem.dontSay, null, 2) : "[]"}
+
+(Use isso para responder melhor, mas NUNCA expose ao usuário.)
+`;
+}
+
+
+// =========================================================
+// 2) ATUALIZA MEMÓRIA AUTOMATICAMENTE
+// =========================================================
+async function updateMemoryFromMessage(userId: string, text: string) {
+  const toSave: any = {};
+
+  // Preferências gerais
+  if (/prefiro/i.test(text) || /gosto de/i.test(text)) {
+    toSave.preferences = { lastPreference: text };
+  }
+
+  // Correção de comportamento
+  if (/não fale/i.test(text) || /não gosto que você/i.test(text)) {
+    toSave.dontSay = [text];
+  }
+
+  // Hábitos financeiros
+  if (/\bgasto\b/i.test(text) || /\bdespesa\b/i.test(text)) {
+    toSave.financialHabits = { lastMention: text };
+  }
+
+  // Fatos gerais
+  if (text.length > 10) {
+    toSave.facts = { lastFact: text };
+  }
+
+  await saveUserMemory(userId, toSave);
+}
+
+
+
+// =========================================================
+// 3) FUNÇÃO PRINCIPAL generateSuggestion
+// =========================================================
 export async function generateSuggestion(
   input: LuminaChatInput,
   returnPromptOnly = false
-): Promise<LuminaChatOutput | { prompt: string, history: any[], attachments: any[] }> {
-  // 1) Normalizações / Segurança
+): Promise<LuminaChatOutput | { prompt: string; history: any[]; attachments: any[] }> {
+
+  const userId = input.user?.uid || "default";
   const userQuery = (input.userQuery || "").trim();
   const audioText = (input.audioText || "").trim();
   const isTTSActive = input.isTTSActive || false;
 
-  // Mapeia o histórico para o formato esperado pelo Genkit/Gemini
+  // Mapeia histórico
   const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
-    role: msg.role === "lumina" || msg.role === 'model' ? ("model" as const) : ("user" as const),
-    content: [
-      {
-        text: (msg.text || "").toString(),
-      },
-    ],
+    role: msg.role === "lumina" || msg.role === "model" ? "model" as const : "user" as const,
+    content: [{ text: (msg.text || '').toString() }],
   }));
 
+  // Transações recentes
   const transactionsForContext = (input.allTransactions || []).slice(0, 30);
-  let transactionsJSON = "[]";
-  try {
-    transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
-  } catch (e) {
-    transactionsJSON = "[]";
-  }
+  const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
 
-  // 2) Prompt dinâmico
+  // Memória carregada
+  const memoryContext = await buildMemoryContext(userId);
+
+  // Prompt final
   const promptContext = [
     LUMINA_BASE_PROMPT,
     audioText ? LUMINA_VOICE_COMMAND_PROMPT : "",
     isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : "",
     "",
-    "### CONTEXTO SISTEMA (não repita literalmente ao usuário):",
+    memoryContext,
+    "",
+    "### CONTEXTO DO APP:",
     `- Modo Casal: ${input.isCoupleMode ? "Ativado" : "Desativado"}`,
-    `- Transações recentes (últimas ${transactionsForContext.length}):`,
+    `- Últimas transações:`,
     transactionsJSON,
-    audioText ? `- Áudio transcrito: ${audioText}` : "- Áudio transcrito: N/A",
+    audioText ? `- Áudio transcrito: ${audioText}` : "",
     "",
     "### NOVA MENSAGEM DO USUÁRIO:",
-    userQuery || "(mensagem vazia)",
+    userQuery || "(vazio)",
     "",
-    "Responda como Lúmina: seja humana, proativa, útil, nunca mostre erros técnicos e sempre termine com uma pergunta para engajar o usuário.",
+    "Responda como Lúmina: humana, emocional, amigável, inteligente, sem mostrar erros técnicos. Sempre termine com uma pergunta."
   ].join("\n");
 
-  // 3) Attachments (imagem em base64)
-  let attachments: GenerationCommon["attachments"] = undefined;
+  // Attachments
+  let attachments: any[] = [];
   if (input.imageBase64) {
-    const value = input.imageBase64 as string;
-    const isDataUrl = /^data:.*;base64,/.test(value.trim());
-    const mediaUrl = isDataUrl
-      ? value.trim()
-      : `data:image/png;base64,${value.trim()}`;
+    const url = /^data:.*;base64/.test(input.imageBase64)
+      ? input.imageBase64
+      : `data:image/png;base64,${input.imageBase64}`;
 
     attachments = [
-      {
-        media: {
-          url: mediaUrl,
-          contentType: "image/png",
-        },
-      },
+      { media: { url, contentType: "image/png" } }
     ];
   }
 
-  // Se a flag for verdadeira, retorna apenas o material do prompt
   if (returnPromptOnly) {
     return {
       prompt: promptContext,
       history: mappedChatHistory,
-      attachments: attachments || [],
+      attachments,
     };
   }
-  
-  // Continua para a chamada da API se a flag for falsa
-  return await luminaChatFlow({ ...input, prebuiltPrompt: promptContext, prebuiltHistory: mappedChatHistory, prebuiltAttachments: attachments });
+
+  return luminaChatFlow({
+    ...input,
+    prebuiltPrompt: promptContext,
+    prebuiltHistory: mappedChatHistory,
+    prebuiltAttachments: attachments,
+  });
 }
 
+
+
+// =========================================================
+// 4) FLOW FINAL – CHAMADA DO GEMINI
+// =========================================================
 export const luminaChatFlow = ai.defineFlow(
   {
     name: "luminaChatFlow",
     inputSchema: LuminaChatInputSchema.extend({
-        prebuiltPrompt: z.string().optional(),
-        prebuiltHistory: z.any().optional(),
-        prebuiltAttachments: z.any().optional(),
+      prebuiltPrompt: z.string().optional(),
+      prebuiltHistory: z.any().optional(),
+      prebuiltAttachments: z.any().optional(),
     }),
     outputSchema: LuminaChatOutputSchema,
-    retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 1500,
-        multiplier: 2,
-      },
-    },
   },
   async (input) => {
-    let apiResponse: any;
+    const userId = input.user?.uid || 'default';
+
+    // Memoriza automaticamente cada mensagem
+    if (input.userQuery) {
+      await updateMemoryFromMessage(userId, input.userQuery);
+    }
+
+    let apiResponse;
+
     try {
+      const messages = [
+        ...(input.prebuiltHistory || []),
+        {
+          role: "user" as const,
+          content: [
+            { text: input.prebuiltPrompt || "" },
+            ...(input.prebuiltAttachments || []).map((att: any) => ({
+              media: att.media,
+            })),
+          ],
+        },
+      ];
+
       apiResponse = await ai.generate({
         model: "googleai/gemini-1.5-flash",
-        prompt: input.prebuiltPrompt!,
-        history: input.prebuiltHistory!,
-        attachments: input.prebuiltAttachments!,
-        output: {
-          schema: LuminaChatOutputSchema,
-        },
+        // @ts-ignore
+        messages: messages,
+        output: { schema: LuminaChatOutputSchema },
       });
+
     } catch (err) {
-      console.error("Erro ao chamar Gemini:", err);
-      // Retorna uma mensagem de erro controlada se a chamada da API falhar.
+      console.error("Erro Gemini:", err);
       return {
-        text: "Tive um pequeno tropeço agora, mas já estou de volta! Pode repetir ou me dizer como posso te ajudar?",
-        suggestions: [
-          "Resumo do mês",
-          "Registrar despesa da foto",
-          "Comparar renda × gastos",
-        ],
+        text: "Hmm… dei uma escorregada agora, mas já voltei! O que você queria fazer mesmo?",
+        suggestions: ["Resumo financeiro", "Registrar despesa", "Ver desempenho do mês"],
       };
     }
 
     const output = apiResponse?.output;
 
-    // Se a IA retornar uma resposta vazia ou malformada, retorna um fallback.
     if (!output?.text) {
       return {
-        text: "Entendi sua mensagem! Quer que eu registre ou analise algo específico agora?",
-        suggestions: [
-          "Ver despesas do mês",
-          "Sugestões para economizar",
-          "Registrar despesa detectada",
-        ],
+        text: "Entendi! Quer que eu analise algo ou registre alguma coisa para você?",
+        suggestions: ["Despesas", "Receitas", "Comparar mês atual"],
       };
     }
 
-    // Retorna a resposta bem-sucedida.
     return {
       text: output.text,
       suggestions: output.suggestions || [],
-    } as LuminaChatOutput;
+    };
   }
 );
