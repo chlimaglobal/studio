@@ -262,7 +262,7 @@ export default function Chat() {
       </header>
 
       <ScrollArea className="flex-1">
-        <div className="chat-container min-h-full py-4" data-theme={theme}>
+        <div className="flex flex-col w-full h-full overflow-y-auto min-w-0 px-4 py-3 gap-3">
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <Loader2 className="w-8 h-8 animate-spin" />
@@ -270,7 +270,7 @@ export default function Chat() {
           ) : messages.length === 0 && !isTyping ? (
             <WelcomeMessage />
           ) : (
-            <div className="space-y-4">
+            <>
               {messages.map((m, i) => {
                 const isUser = m.authorId === user?.uid;
 
@@ -278,82 +278,59 @@ export default function Chat() {
                   <div
                     key={m.id || i}
                     className={cn(
-                      "flex w-full items-end gap-4 px-4 py-2",
+                      "flex w-full min-w-0",
                       isUser ? "justify-end" : "justify-start"
                     )}
                   >
-                    {/* Avatar da Lúmina */}
-                    {!isUser && (
-                      <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
-                        <AvatarImage src="/lumina-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                          L
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+                    <div
+                      className={cn(
+                        "rounded-3xl px-5 py-3.5 shadow-lg max-w-[85%] min-w-0",
+                        // Tema claro
+                        "data-[theme=light]:bg-white data-[theme=light]:text-gray-900",
+                        // Tema escuro
+                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white",
+                        // Tema dourado — para Lúmina
+                        !isUser &&
+                          "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90 text-white",
+                        // Bolha do usuário
+                        isUser &&
+                          "bg-amber-600 text-white"
+                      )}
+                    >
+                      {/* Nome */}
+                      <p className="text-xs font-medium opacity-70 mb-2">
+                        {isUser ? "Você" : "Lúmina"}
+                      </p>
 
-                    {/* BOLHA */}
-                    <div className="max-w-[85%] min-w-0">
-                      <div
-                        className={cn(
-                          "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
-
-                          // Claro
-                          "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
-
-                          // Escuro
-                          "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
-
-                          // Dourado
-                          "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/60",
-
-                          // Usuário
-                          isUser &&
-                            "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
-                        )}
-                      >
-                        <p className="text-xs font-medium opacity-70 mb-1.5">
-                          {isUser ? "Você" : "Lúmina"}
-                        </p>
-
-                        {/* Texto 100% SEM ESTOURAR */}
-                        <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
-                          {m.text}
-                        </p>
-                      </div>
+                      {/* Texto — NUNCA estoura */}
+                      <p className="text-base leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words">
+                        {m.text}
+                      </p>
                     </div>
                   </div>
                 );
               })}
 
-              {/* Typing indicator */}
+              {/* INDICADOR DE DIGITAÇÃO */}
               {isTyping && (
-                <div className="flex w-full items-end gap-4 px-4 py-2">
-                  <Avatar className="h-11 w-11 flex-shrink-0 border-2 border-amber-500/40 bg-gradient-to-br from-amber-600/30 to-orange-700/30 shadow-xl">
-                    <AvatarImage src="/lumina-avatar.png" />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
-                      L
-                    </AvatarFallback>
-                  </Avatar>
-
-                  <div className="max-w-[85%] min-w-0">
-                    <div
-                      className={cn(
-                        "rounded-3xl px-5 py-3.5 shadow-2xl border backdrop-blur-sm",
-                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
-                        "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:border-gray-700",
-                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:via-amber-600 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/60"
-                      )}
-                    >
-                      <TypingIndicator />
+                <div className="flex w-full min-w-0 justify-start">
+                  <div
+                    className={cn(
+                      "rounded-3xl px-5 py-3.5 shadow-lg max-w-[70%] min-w-0",
+                      "data-[theme=dark]:bg-gray-800/95 data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:0ms]"></span>
+                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:150ms]"></span>
+                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:300ms]"></span>
                     </div>
                   </div>
                 </div>
               )}
-
-              <div ref={bottomRef} />
-            </div>
+            </>
           )}
+          <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
