@@ -25,7 +25,12 @@ const LuminaChatRequestSchema = z.object({
   audioText: z.string().optional(),
   isCoupleMode: z.boolean().optional(),
   isTTSActive: z.boolean().optional(),
-  user: z.any().optional(),
+  user: z.object({
+      uid: z.string(),
+      displayName: z.string().nullable(),
+      email: z.string().nullable(),
+      photoURL: z.string().nullable(),
+  }).optional(),
 });
 
 
@@ -36,8 +41,14 @@ export async function POST(request: NextRequest) {
     // Validate the input
     const input = LuminaChatRequestSchema.parse(rawInput);
     
+    // The input for `generateSuggestion` needs a `userId` property.
+    const suggestionInput = {
+      ...input,
+      userId: input.user?.uid, // Extract userId from user object
+    };
+
     // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
-    const { prompt, history, attachments } = await generateSuggestion(input as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
+    const { prompt, history, attachments } = await generateSuggestion(suggestionInput as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
 
 
     const { stream, response } = await ai.run('luminaChatFlow', {
@@ -46,7 +57,8 @@ export async function POST(request: NextRequest) {
         ...input,
         prebuiltPrompt: prompt,
         prebuiltHistory: history,
-        prebuiltAttachments: attachments
+        prebuiltAttachments: attachments,
+        userId: input.user?.uid, // Pass userId to the flow
       }
     });
     
