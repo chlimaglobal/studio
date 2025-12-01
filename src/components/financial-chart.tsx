@@ -72,24 +72,24 @@ export default function FinancialChart({
           wrapperStyle={{ paddingTop: 10 }}
         />
 
-        {/* ======================= RECEITAS (VERMELHO) ======================= */}
+        {/* ======================= RECEITAS (VERDE) ======================= */}
         <Line
           type="monotone"
           dataKey="aReceber"
           name="Receitas"
-          stroke="hsl(var(--chart-2))"
+          stroke="hsl(var(--chart-1))"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
           connectNulls={true}
         />
 
-        {/* ======================= DESPESAS (VERDE) ======================= */}
+        {/* ======================= DESPESAS (VERMELHO) ======================= */}
         <Line
           type="monotone"
           dataKey="aPagar"
           name="Despesas"
-          stroke="hsl(var(--chart-1))"
+          stroke="hsl(var(--chart-2))"
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
