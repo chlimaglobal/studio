@@ -272,11 +272,18 @@ export default function Chat() {
 
                 return (
                   <div
-                    key={m.id || i} className={cn("flex w-full items-end gap-3 px-4 py-2", isUser ? "justify-end" : "justify-start")} >
+                    key={m.id || i}
+                    className={cn(
+                      "flex w-full items-end gap-3 px-4 py-2",
+                      isUser ? "justify-end" : "justify-start"
+                    )}
+                  >
                     {!isUser && (
                       <Avatar className="h-11 w-11 flex-shrink-0">
                         <AvatarImage src="/lumina-avatar.png" />
-                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">L</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+                          L
+                        </AvatarFallback>
                       </Avatar>
                     )}
 
@@ -287,11 +294,14 @@ export default function Chat() {
                           "data-[theme=light]:bg-white data-[theme=light]:text-gray-900 data-[theme=light]:border-gray-300",
                           "data-[theme=dark]:bg-gray-800 data-[theme=dark]:text-white data-[theme=dark]:border-gray-700",
                           "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:text-white data-[theme=gold]:border-amber-500/50",
-                          isUser && "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
+                          isUser &&
+                            "data-[theme=light]:bg-blue-600 data-[theme=dark]:bg-blue-700 data-[theme=gold]:bg-amber-600"
                         )}
                       >
-                        <p className="text-xs font-medium opacity-70 mb-1">{isUser ? "Você" : "Lúmina"}</p>
-                        <p className="text-base leading-relaxed whitespace-pre-wrap break-normal hyphens-auto">
+                        <p className="text-xs font-medium opacity-70 mb-1">
+                          {isUser ? "Você" : "Lúmina"}
+                        </p>
+                        <p className="text-base leading-relaxed whitespace-pre-wrap break-words hyphens-auto">
                           {m.text}
                         </p>
                       </div>
@@ -299,20 +309,24 @@ export default function Chat() {
                   </div>
                 );
               })}
-              
+
               {isTyping && (
                 <div className="flex w-full items-end gap-3 px-4 py-2">
                   <Avatar className="h-11 w-11 flex-shrink-0">
                     <AvatarImage src="/lumina-avatar.png" />
-                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">L</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-lg">
+                      L
+                    </AvatarFallback>
                   </Avatar>
                   <div className="max-w-full">
-                    <div className={cn(
-                      "inline-block rounded-3xl px-5 py-3.5 shadow-lg border",
-                      "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
-                      "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
-                      "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
-                    )}>
+                    <div
+                      className={cn(
+                        "inline-block rounded-3xl px-5 py-3.5 shadow-lg border",
+                        "data-[theme=light]:bg-white data-[theme=light]:border-gray-300",
+                        "data-[theme=dark]:bg-gray-800 data-[theme=dark]:border-gray-700",
+                        "data-[theme=gold]:bg-gradient-to-r data-[theme=gold]:from-amber-700 data-[theme=gold]:to-orange-700 data-[theme=gold]:border-amber-500/50"
+                      )}
+                    >
                       <TypingIndicator />
                     </div>
                   </div>
