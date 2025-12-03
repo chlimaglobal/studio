@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -26,15 +25,49 @@ interface FinancialChartProps {
   costOfLiving: number;
 }
 
+/* ============================================================
+   FUNÇÃO DE CORREÇÃO DE DADOS DO GRÁFICO
+   ============================================================ */
+function fixChartData(rawData: any[]) {
+  if (!rawData || rawData.length === 0) return [];
+
+  return rawData
+    .map((item) => {
+      return {
+        ...item,
+        aReceber: Number(item.aReceber) || 0,
+        aPagar: Number(item.aPagar) || 0,
+        resultado:
+          Number(item.aReceber || 0) - Number(item.aPagar || 0)
+      };
+    })
+    .sort((a, b) => {
+      // Ordena pelo mês corretamente
+      const [ma, ya] = a.date.split('/'); // ex: "07/25"
+      const [mb, yb] = b.date.split('/');
+
+      return (
+        new Date(`20${ya}-${ma}-01`).getTime() -
+        new Date(`20${yb}-${mb}-01`).getTime()
+      );
+    });
+}
+
+/* ============================================================ */
+
 export default function FinancialChart({
   data,
   isPrivacyMode,
   costOfLiving
 }: FinancialChartProps) {
+
+  // 🔥 AQUI A CORREÇÃO É APLICADA
+  const fixedData = fixChartData(data);
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
-        data={data}
+        data={fixedData}
         margin={{ top: 5, right: 15, left: 15, bottom: 30 }}
       >
         <CartesianGrid
@@ -72,7 +105,7 @@ export default function FinancialChart({
           wrapperStyle={{ paddingTop: 10 }}
         />
 
-        {/* ======================= RECEITAS (VERDE) ======================= */}
+        {/* RECEITAS */}
         <Line
           type="monotone"
           dataKey="aReceber"
@@ -84,7 +117,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= DESPESAS (VERMELHO) ======================= */}
+        {/* DESPESAS */}
         <Line
           type="monotone"
           dataKey="aPagar"
@@ -96,7 +129,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (AZUL/PADRÃO) ======================= */}
+        {/* BALANÇO */}
         <Line
           type="monotone"
           dataKey="resultado"
@@ -108,7 +141,6 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= CUSTO DE VIDA (LINHA DE REFERÊNCIA) ======================= */}
         <ReferenceLine
           y={costOfLiving}
           label={{
@@ -126,4 +158,3 @@ export default function FinancialChart({
     </ResponsiveContainer>
   );
 }
-
