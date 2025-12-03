@@ -41,8 +41,7 @@ const PremiumBlocker = () => (
 
 const generateInvestmentChartData = (transactions: Transaction[]) => {
     const dataMap = new Map<string, { aReceber: number; aPagar: number; resultado: number }>();
-    const sixMonthsAgo = subMonths(new Date(), 5);
-    sixMonthsAgo.setDate(1);
+    const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
 
     for (let i = 5; i >= 0; i--) {
         const date = subMonths(new Date(), i);
@@ -50,28 +49,23 @@ const generateInvestmentChartData = (transactions: Transaction[]) => {
         dataMap.set(monthKey, { aReceber: 0, aPagar: 0, resultado: 0 });
     }
 
-    let cumulativePatrimony = 0;
-    const sortedMonths = Array.from(dataMap.keys()).sort((a, b) => new Date(`01/${a}`).getTime() - new Date(`01/${b}`).getTime());
-
-    // Calculate initial patrimony before the 6-month window
-    const investmentTransactionsBeforeWindow = transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return tDate < startOfMonth(sixMonthsAgo) && allInvestmentCategories.has(t.category);
+    const sortedMonths = Array.from(dataMap.keys()).sort((a, b) => {
+        const [m1, y1] = a.split('/');
+        const [m2, y2] = b.split('/');
+        return new Date(parseInt(`20${y1}`), parseInt(m1) - 1).getTime() - new Date(parseInt(`20${y2}`), parseInt(m2) - 1).getTime();
     });
 
-    const initialNetInvested = investmentTransactionsBeforeWindow
-        .filter(t => investmentApplicationCategories.has(t.category))
-        .reduce((acc, t) => acc + t.amount, 0)
-        -
-        investmentTransactionsBeforeWindow
-        .filter(t => investmentWithdrawalCategories.has(t.category))
-        .reduce((acc, t) => acc + t.amount, 0);
+    const investmentTransactionsBeforeWindow = transactions.filter(t => {
+        const tDate = new Date(t.date);
+        return tDate < sixMonthsAgo && allInvestmentCategories.has(t.category);
+    });
 
-    const initialReturns = investmentTransactionsBeforeWindow
-        .filter(t => investmentReturnCategories.has(t.category))
-        .reduce((acc, t) => acc + t.amount, 0);
-
-    cumulativePatrimony = initialNetInvested + initialReturns;
+    let cumulativePatrimony = investmentTransactionsBeforeWindow.reduce((acc, t) => {
+        if (investmentApplicationCategories.has(t.category)) return acc + t.amount;
+        if (investmentReturnCategories.has(t.category)) return acc + t.amount;
+        if (investmentWithdrawalCategories.has(t.category)) return acc - t.amount;
+        return acc;
+    }, 0);
 
 
     sortedMonths.forEach(monthKey => {
@@ -84,33 +78,31 @@ const generateInvestmentChartData = (transactions: Transaction[]) => {
             return tDate >= startDate && tDate <= endDate && allInvestmentCategories.has(t.category);
         });
 
-        const netMonthInvestment = monthTransactions
+        const monthContributions = monthTransactions
             .filter(t => investmentApplicationCategories.has(t.category))
-            .reduce((acc: any, t: any) => acc + t.amount, 0)
-            -
-            monthTransactions
+            .reduce((acc: any, t: any) => acc + t.amount, 0);
+
+        const monthWithdrawals = monthTransactions
             .filter(t => investmentWithdrawalCategories.has(t.category))
             .reduce((acc: any, t: any) => acc + t.amount, 0);
 
         const monthReturns = monthTransactions
             .filter(t => investmentReturnCategories.has(t.category))
             .reduce((acc: any, t: any) => acc + t.amount, 0);
-
-        cumulativePatrimony += netMonthInvestment + monthReturns;
+        
+        cumulativePatrimony += monthContributions + monthReturns - monthWithdrawals;
         
         dataMap.set(monthKey, {
             aReceber: monthReturns,
-            aPagar: netMonthInvestment < 0 ? Math.abs(netMonthInvestment) : 0,
+            aPagar: monthContributions,
             resultado: cumulativePatrimony,
         });
     });
 
-    const finalData = sortedMonths.map(monthKey => {
+    return sortedMonths.map(monthKey => {
         const data = dataMap.get(monthKey)!;
         return { date: monthKey, ...data };
     });
-
-    return finalData;
 };
 
 
@@ -234,11 +226,11 @@ export default function InvestmentsPage() {
                         <CardHeader>
                             <CardTitle>Evolução do Patrimônio</CardTitle>
                             <CardDescription>
-                                Crescimento dos seus investimentos ao longo do tempo.
+                                No gráfico: "Receitas" são seus rendimentos mensais, "Despesas" são seus aportes mensais, e "Balanço" é o seu patrimônio total acumulado.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="h-[300px]">
-                                <FinancialChart data={chartData} isPrivacyMode={false} />
+                                <FinancialChart data={chartData} isPrivacyMode={false} costOfLiving={0}/>
                         </CardContent>
                     </Card>
 

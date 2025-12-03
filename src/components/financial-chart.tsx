@@ -96,7 +96,7 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        {/* ======================= BALANÇO (AZUL) ======================= */}
+        {/* ======================= BALANÇO (AZUL/PADRÃO) ======================= */}
         <Line
           type="monotone"
           dataKey="resultado"
