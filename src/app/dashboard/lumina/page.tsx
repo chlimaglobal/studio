@@ -28,24 +28,21 @@ export default function ChatPage() {
   const { transactions } = useTransactions();
   const { viewMode } = useViewMode();
   const { setHasUnread } = useLumina();
-  const coupleLink = useCoupleStore(s => s.coupleLink);
+  const { coupleLink } = useCoupleStore.getState();
+  const [isAudioOpen, setIsAudioOpen] = useState(false);
 
-  // Vercel AI SDK chat hook
-  const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  // Vercel AI SDK chat hook - a chave para a correção.
+  // NÃO passamos mais um 'body' fixo aqui.
+  const { 
+    messages, 
+    setMessages, 
+    input, 
+    handleInputChange, 
+    isLoading, 
+    error,
+    append // A função 'append' é a chave para a solução.
+  } = useChat({
     api: '/api/lumina/chat/stream',
-    body: {
-      messages: messages,
-      userQuery: input,
-      allTransactions: transactions,
-      isCoupleMode: viewMode === "together",
-      isTTSActive: false, // Pode ser dinâmico se necessário
-      user: {
-        uid: user?.uid,
-        displayName: user?.displayName,
-        email: user?.email,
-        photoURL: user?.photoURL
-      }
-    },
     onFinish: (message) => {
         // Persiste a mensagem final da Lumina no Firestore
         if (!message.content.trim()) return; // Não salve respostas vazias
@@ -66,9 +63,13 @@ export default function ChatPage() {
   
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Sincroniza o histórico do Firestore com o estado do `useChat`
+  // Sincroniza o histórico do Firestore com o estado do `useChat` na carga inicial
   useEffect(() => {
     if (!user) return;
+    
+    // Evita recarregar o histórico se já houver mensagens (para não apagar as que estão em streaming)
+    if (messages.length > 0) return;
+
     const unsub = viewMode === "together" && coupleLink
       ? onCoupleChatUpdate(coupleLink.id, (dbMsgs) => {
           const formatted = dbMsgs.map(m => ({
@@ -86,8 +87,9 @@ export default function ChatPage() {
           }));
           setMessages(formatted as any);
         });
+
     return unsub;
-  }, [user, viewMode, coupleLink, setMessages]);
+  }, [user, viewMode, coupleLink, setMessages, messages.length]);
 
 
   useEffect(() => {
@@ -99,27 +101,59 @@ export default function ChatPage() {
     localStorage.setItem('lastLuminaVisit', new Date().toISOString());
   }, [setHasUnread]);
 
-  const customHandleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  // Esta é a nova função de envio que controla todo o fluxo
+  const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return; // Evita envio de mensagens vazias
-    
-    // Chama o handleSubmit do useChat, que agora terá o `input` no body
-    handleSubmit(e);
+    if (!input.trim() || !user) return;
 
-    // Persiste a mensagem do usuário no Firestore imediatamente
-    const userMsg = {
+    // 1. Adiciona a mensagem do usuário à UI imediatamente usando `append`
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user' as const,
+      content: input,
+    };
+    append(userMessage);
+
+    // 2. Persiste a mensagem do usuário no Firestore (como antes)
+    const userMsgForDb = {
       role: 'user' as const,
       text: input,
-      authorId: user?.uid || '',
-      authorName: user?.displayName || 'Você',
-      authorPhotoUrl: user?.photoURL || '',
+      authorId: user.uid,
+      authorName: user.displayName || 'Você',
+      authorPhotoUrl: user.photoURL || '',
     };
-     if (viewMode === "together" && coupleLink) {
-      addCoupleChatMessage(coupleLink.id, userMsg);
-    } else if (user) {
-      addChatMessage(user.uid, userMsg);
+    if (viewMode === "together" && coupleLink) {
+      addCoupleChatMessage(coupleLink.id, userMsgForDb);
+    } else {
+      addChatMessage(user.uid, userMsgForDb);
     }
-  }
+
+    // 3. Dispara a chamada para a API manualmente com o body completo
+    // O hook `useChat` irá automaticamente lidar com a resposta de streaming
+    await fetch('/api/lumina/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userQuery: input,
+        messages: [...messages, userMessage], // Envia histórico completo + nova mensagem
+        allTransactions: transactions,
+        isCoupleMode: viewMode === "together",
+        isTTSActive: false, // Pode ser dinâmico se necessário
+        user: {
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+        },
+      }),
+    });
+  };
+
+  const handleAudioTranscript = (transcript: string) => {
+    // Para implementar a funcionalidade de áudio, você faria algo semelhante a `sendMessage`
+    // mas usando o 'transcript' em vez do 'input' do campo de texto.
+    console.log("Transcrição recebida:", transcript);
+  };
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -175,9 +209,9 @@ export default function ChatPage() {
               {isLoading && (
                  <div className="flex w-full min-w-0 justify-start">
                     <div className="rounded-3xl px-5 py-3.5 shadow-lg max-w-[85%] min-w-0 bg-card border rounded-bl-none">
-                        <p className="text-xs font-medium opacity-70 mb-2">
+                        <div className="text-xs font-medium opacity-70 mb-2">
                            <TypingIndicator />
-                        </p>
+                        </div>
                     </div>
                  </div>
               )}
@@ -187,8 +221,8 @@ export default function ChatPage() {
         </div>
       </ScrollArea>
 
-      {/* Input area */}
-      <form onSubmit={customHandleSubmit} className="p-4 border-t flex items-center gap-3">
+      {/* Input area - Agora usa a função `sendMessage` */}
+      <form onSubmit={sendMessage} className="p-4 border-t flex items-center gap-3">
         {/* Placeholder for future file input */}
         <Button
           type="button"
@@ -208,8 +242,14 @@ export default function ChatPage() {
           disabled={isLoading}
         />
         
-        {/* Placeholder for future audio input */}
-        <AudioInputDialog open={false} onOpenChange={()=>{}} onTranscript={()=>{}} />
+        <AudioInputDialog 
+            open={isAudioOpen} 
+            onOpenChange={setIsAudioOpen} 
+            onTranscript={handleAudioTranscript}>
+            <Button type="button" variant="ghost" size="icon" aria-label="Enviar áudio">
+                <Mic className="w-5 h-5" />
+            </Button>
+        </AudioInputDialog>
 
         <Button type="submit" disabled={isLoading || !input.trim()}>
           {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
