@@ -262,14 +262,14 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
   const monthlyData: Map<string, { aReceber: number; aPagar: number }> = new Map();
   const today = new Date();
   
-  // Initialize the last 6 months
+  // Initialize the last 6 months to ensure they always appear in the chart
   for (let i = 5; i >= 0; i--) {
     const date = subMonths(today, i);
     const monthKey = format(date, 'MM/yy', { locale: ptBR });
     monthlyData.set(monthKey, { aReceber: 0, aPagar: 0 });
   }
 
-  // Aggregate transactions into the map
+  // Aggregate transaction data for each month
   operationalTransactions.forEach(t => {
     try {
       const transactionDate = new Date(t.date);
@@ -288,7 +288,7 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
     }
   });
 
-  // Convert map to array and calculate the balance
+  // Convert map to array and calculate the balance for each month
   const chartData = Array.from(monthlyData.entries()).map(([monthKey, data]) => ({
     date: monthKey,
     aReceber: data.aReceber,

@@ -64,18 +64,18 @@ export default function FinancialChart({
           width={70}
           tickFormatter={(value) => formatCurrency(value)}
           domain={['auto', 'auto']}
+          allowDataOverflow={true}
         />
 
         <Tooltip content={<CustomTooltip isPrivacyMode={isPrivacyMode} />} />
 
         <Legend
-          verticalAlign="bottom"
-          height={36}
+          verticalAlign="top"
+          align="right"
           iconType="circle"
-          wrapperStyle={{ paddingTop: 10 }}
+          wrapperStyle={{ top: -10, right: 10 }}
         />
-
-        {/* Linha de referência no eixo Y = 0 */}
+        
         <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
 
         {/* RECEITAS */}
