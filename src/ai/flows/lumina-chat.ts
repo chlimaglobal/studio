@@ -1,202 +1,143 @@
-// src/ai/flows/lumina-chat.ts
 'use server';
 
-/**
- * @fileOverview Lúmina — fluxo de chat para interações individuais.
- */
-
-import { ai } from '@/ai/genkit';
-import { z } from 'zod';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import {
+  LUMINA_BASE_PROMPT,
+  LUMINA_VOICE_COMMAND_PROMPT,
+  LUMINA_SPEECH_SYNTHESIS_PROMPT,
+} from '@/ai/lumina/prompt/luminaBasePrompt';
+import { getUserMemory, saveUserMemory } from '@/ai/lumina/memory/memoryStore';
+import { z } from 'zod';
+import { ai } from '@/ai/genkit';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
-import { LUMINA_BASE_PROMPT, LUMINA_VOICE_COMMAND_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
-import { getUserMemory, saveUserMemory } from '../lumina/memory/memoryStore';
-import { GenerationCommon } from 'genkit/generate';
 
-const memoryExtractionPrompt = `
-  Você é um assistente que extrai fatos e preferências da conversa.
-  Analise o texto e retorne um objeto JSON com:
-  - preferences: { key: value }
-  - facts: { key: value }
-  - dontSay: ["frase 1", "frase 2"]
+// =========================================================
+// FUNÇÕES AUXILIARES (AGORA CENTRALIZADAS AQUI)
+// =========================================================
 
-  Texto: "{QUERY}"
+async function buildMemoryContext(userId: string) {
+  const mem = await getUserMemory(userId);
+  return `
+### MEMÓRIA DO USUÁRIO (use, mas não exponha explicitamente):
+- Preferências do usuário: ${mem?.preferences ? JSON.stringify(mem.preferences, null, 2) : '{}'}
+- Informações declaradas anteriormente: ${mem?.facts ? JSON.stringify(mem.facts, null, 2) : '{}'}
+- Hábitos financeiros: ${mem?.financialHabits ? JSON.stringify(mem.financialHabits, null, 2) : '{}'}
+- Correções que o usuário pediu: ${mem?.dontSay ? JSON.stringify(mem.dontSay, null, 2) : '[]'}
+(Use isso para responder melhor, mas NUNCA exponha ao usuário.)
 `;
-
-async function updateMemoryFromMessage(userId: string, message: string) {
-  // Simples verificação para não rodar em mensagens triviais
-  if (message.length < 15) return;
-
-  try {
-    const { output } = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
-        prompt: memoryExtractionPrompt.replace('{QUERY}', message),
-        output: {
-            format: 'json',
-            schema: z.object({
-                preferences: z.record(z.any()).optional(),
-                facts: z.record(z.any()).optional(),
-                dontSay: z.array(z.string()).optional(),
-            })
-        },
-        config: { temperature: 0.1 }
-    });
-    
-    if (output) {
-      await saveUserMemory(userId, output);
-    }
-  } catch (error) {
-    console.warn("LUMINA_MEMORY: Failed to update memory.", error);
-  }
 }
 
-// === Função externa chamada pela aplicação ===
-export async function generateSuggestion(input: LuminaChatInput, returnPrompt?: boolean): Promise<LuminaChatOutput | { prompt: string, history: any[], attachments: GenerationCommon["attachments"] }> {
+async function updateMemoryFromMessage(userId: string, text: string) {
+  const toSave: any = {};
+  if (/prefiro/i.test(text) || /gosto de/i.test(text)) toSave.preferences = { lastPreference: text };
+  if (/não fale/i.test(text) || /não gosto que você/i.test(text)) toSave.dontSay = [text];
+  if (/\bgasto\b/i.test(text) || /\bdespesa\b/i.test(text)) toSave.financialHabits = { lastMention: text };
+  if (text.length > 10) toSave.facts = { lastFact: text };
+  if (Object.keys(toSave).length > 0) await saveUserMemory(userId, toSave);
+}
+
+async function generateSuggestion(input: LuminaChatInput) {
+  const userId = input.user?.uid || 'default';
+  const userQuery = (input.userQuery || '').trim();
+  const audioText = (input.audioText || '').trim();
+  const isTTSActive = input.isTTSActive || false;
   
-  const baseHistory = (input.chatHistory || [])
-    .filter(msg => msg.text) // Garante que não há mensagens de texto vazias
-    .map((msg) => ({
-      role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
-      content: [
-        { text: msg.text || '' },
-      ],
-    }));
-  
+  const mappedChatHistory = (input.messages || []).map((msg: any) => ({
+    role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
+    parts: [{ text: msg.content || '' }],
+  }));
+
   const transactionsForContext = (input.allTransactions || []).slice(0, 30);
-  const memory = await getUserMemory(input.user.uid);
+  const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
+  const memoryContext = await buildMemoryContext(userId);
 
-  let promptContext = [
+  const promptContext = [
     LUMINA_BASE_PROMPT,
-  ];
-  
-  // Adiciona contexto de voz se aplicável
-  if (input.audioText) {
-      promptContext.push(LUMINA_VOICE_COMMAND_PROMPT);
-  }
+    audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
+    isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
+    '',
+    memoryContext,
+    '',
+    '### CONTEXTO DO APP:',
+    `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
+    `- Últimas transações:`,
+    transactionsJSON,
+    audioText ? `- Áudio transcrito: ${audioText}` : '',
+    '',
+    '### NOVA MENSAGEM DO USUÁRIO:',
+    userQuery || '(vazio)',
+    '',
+    'Responda como Lúmina: humana, emocional, amigável, inteligente, sem mostrar erros técnicos. Sempre termine com uma pergunta.',
+  ].join('\n');
 
-  promptContext.push(
-    '### INSTRUÇÕES ADICIONAIS:',
-    '- MODO INDIVIDUAL ATIVADO',
-    `- Usuário: ${input.user.displayName}`,
-    `### Transações Recentes (para contexto): ${JSON.stringify(transactionsForContext, null, 2)}`,
-    memory?.facts ? `### Fatos sobre o usuário (use isso): ${JSON.stringify(memory.facts)}` : '',
-    memory?.preferences ? `### Preferências do usuário (respeite isso): ${JSON.stringify(memory.preferences)}` : '',
-    memory?.dontSay ? `### O que NÃO dizer (evite a todo custo): ${JSON.stringify(memory.dontSay)}` : '',
-    '---',
-  );
-
-  const finalSystemPrompt = promptContext.filter(Boolean).join('\n');
-  
-  let attachments: GenerationCommon["attachments"] | undefined = undefined;
+  let attachments: any[] = [];
   if (input.imageBase64) {
-      attachments = [{ media: { url: input.imageBase64, contentType: 'image/png' } }];
+    const url = /^data:.*;base64/.test(input.imageBase64) ? input.imageBase64 : `data:image/png;base64,${input.imageBase64}`;
+    attachments = [{ media: { url, contentType: 'image/png' } }];
   }
 
-  if (returnPrompt) {
-      return {
-          prompt: finalSystemPrompt,
-          history: baseHistory,
-          attachments: attachments,
-      };
-  }
-
-  // Se não for para retornar o prompt, executa o flow
-  return luminaChatFlow({ ...input, prebuiltPrompt: finalSystemPrompt, prebuiltHistory: baseHistory, prebuiltAttachments: attachments });
+  return { prompt: promptContext, history: mappedChatHistory, attachments };
 }
+
+// =========================================================
+// FLUXO GENKIT PRINCIPAL (CORRIGIDO)
+// =========================================================
+
+const LuminaFlowInputSchema = LuminaChatInputSchema.extend({
+  messages: z.array(z.any()).optional(),
+});
 
 export const luminaChatFlow = ai.defineFlow(
   {
-    name: "luminaChatFlow",
-    inputSchema: LuminaChatInputSchema.extend({
-      prebuiltPrompt: z.string().optional(),
-      prebuiltHistory: z.any().optional(),
-      prebuiltAttachments: z.any().optional(),
-    }),
+    name: 'luminaChatFlow',
+    inputSchema: LuminaFlowInputSchema,
     outputSchema: LuminaChatOutputSchema,
   },
   async (input) => {
     const userId = input.user?.uid || 'default';
 
-    // Atualiza memória
     if (input.userQuery) {
       await updateMemoryFromMessage(userId, input.userQuery);
     }
 
     try {
-      // MÉTODO CORRETO: mandar tudo como "contents" (histórico completo)
-      const contents: any[] = [];
+      const { prompt: systemInstruction, history } = await generateSuggestion(input as LuminaChatInput);
 
-      // 1. Adiciona o prompt base como mensagem do system (primeira)
-      if (input.prebuiltPrompt) {
-        contents.push({
-          role: "user",
-          parts: [{ text: input.prebuiltPrompt }],
-        });
-        contents.push({
-          role: "model",
-          parts: [{ text: "Entendido! Vou seguir exatamente essas instruções." }],
-        });
-      }
-
-      // 2. Adiciona o histórico real do chat
-      if (input.prebuiltHistory && input.prebuiltHistory.length > 0) {
-        contents.push(...input.prebuiltHistory);
-      }
-
-      // 3. Adiciona a última mensagem do usuário (a atual)
-      if (input.userQuery) {
-        contents.push({
-          role: "user",
-          parts: [{ text: input.userQuery }],
-        });
-      }
-
-      // 4. Se tiver imagem, adiciona como inline data
-      const mediaParts: any[] = [];
-      if (input.prebuiltAttachments && input.prebuiltAttachments.length > 0) {
-        input.prebuiltAttachments.forEach((att: any) => {
-          if (att.media?.url) {
-            mediaParts.push({
+      // Combina o histórico com a mensagem atual do usuário
+      const contents: any[] = [
+          ...history.map(h => ({ role: h.role, parts: h.parts }))
+      ];
+      
+      const userMessageParts = [{ text: input.userQuery || '' }];
+      if (input.imageBase64) {
+          userMessageParts.push({
               inlineData: {
-                mimeType: att.media.contentType || "image/png",
-                data: att.media.url.replace(/^data:image\/[a-z]+;base64,/, ""),
-              },
-            });
-          }
-        });
+                  mimeType: 'image/png',
+                  data: input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
+              }
+          });
       }
-
-      // Se tiver imagem, adiciona na última mensagem do usuário
-      if (mediaParts.length > 0 && contents.length > 0) {
-        const lastUserMsg = contents[contents.length - 1];
-        if (lastUserMsg.role === "user") {
-          lastUserMsg.parts.push(...mediaParts);
-        }
-      }
-
+       contents.push({ role: 'user', parts: userMessageParts });
+      
       const result = await ai.generate({
-        model: "googleai/gemini-1.5-flash",
-        contents, // <--- AQUI ESTÁ A MÁGICA
+        model: 'googleai/gemini-1.5-flash',
+        prompt: systemInstruction, // Usamos o prompt aqui
+        history: contents, // E o histórico completo (incluindo a última) aqui
         config: {
           temperature: 0.7,
           maxOutputTokens: 800,
         },
       });
 
-      const text = result.text || "Tudo bem! Como posso te ajudar hoje?";
+      const text = result.text || 'Tudo bem! Como posso te ajudar hoje?';
 
-      return {
-        text,
-        suggestions: [], // você pode extrair depois se quiser
-      };
-
+      return { text, suggestions: [] };
     } catch (err: any) {
-      console.error("ERRO GEMINI:", err.message);
-
-      // Fallback melhorado
+      console.error('ERRO GEMINI:', err.message);
       return {
-        text: "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido dos seus gastos ou te dar uma dica de economia enquanto isso arruma?",
-        suggestions: ["Resumo do mês", "Maiores gastos", "Quanto economizei?"],
+        text: 'Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido dos seus gastos ou te dar uma dica de economia enquanto isso arruma?',
+        suggestions: ['Resumo do mês', 'Maiores gastos', 'Quanto economizei?'],
       };
     }
   }
