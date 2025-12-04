@@ -168,8 +168,6 @@ export const luminaChatFlow = ai.defineFlow(
       await updateMemoryFromMessage(userId, input.userQuery);
     }
 
-    let apiResponse;
-
     try {
       const messages = [
         ...(input.prebuiltHistory || []),
@@ -184,33 +182,32 @@ export const luminaChatFlow = ai.defineFlow(
         },
       ];
 
-      apiResponse = await ai.generate({
+      const { output } = await ai.generate({
         model: "googleai/gemini-1.5-flash",
         // @ts-ignore
         messages: messages,
         output: { schema: LuminaChatOutputSchema },
       });
+      
+      if (!output?.text) {
+        return {
+          text: "Certo! Estou aqui. O que você quer fazer agora?",
+          suggestions: []
+        };
+      }
+  
+      return {
+        text: output.text,
+        suggestions: output.suggestions || [],
+      };
 
     } catch (err) {
-      console.error("Erro Gemini:", err);
+      console.error("Gemini API Error in luminaChatFlow:", err);
+      // Fallback response in case of API failure, as requested.
       return {
-        text: "Hmm… dei uma escorregada agora, mas já voltei! O que você queria fazer mesmo?",
-        suggestions: ["Resumo financeiro", "Registrar despesa", "Ver desempenho do mês"],
+        text: "Ops, parece que estou com uma pequena instabilidade na conexão. Que tal revisarmos seus gastos com aluguel enquanto isso?",
+        suggestions: ["Maiores gastos do mês", "Resumo do mês", "Quanto economizei?"],
       };
     }
-
-    const output = apiResponse?.output;
-
-    if (!output?.text) {
-      return {
-        text: "Certo! Estou aqui. O que você quer fazer agora?",
-        suggestions: []
-      };
-    }
-
-    return {
-      text: output.text,
-      suggestions: output.suggestions || [],
-    };
   }
 );
