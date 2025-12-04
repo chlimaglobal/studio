@@ -86,8 +86,8 @@ export async function generateSuggestion(
 
   // Mapeia histórico
   const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
-    role: msg.role === "lumina" || msg.role === "model" ? "model" as const : "user" as const,
-    content: [{ text: (msg.text || '').toString() }],
+    role: msg.role === "lumina" || msg.role === 'assistant' || msg.role === 'model' ? "model" as const : "user" as const,
+    content: [{ text: (msg.content || msg.text || '').toString() }],
   }));
 
   // Transações recentes
@@ -169,23 +169,11 @@ export const luminaChatFlow = ai.defineFlow(
     }
 
     try {
-      const messages = [
-        ...(input.prebuiltHistory || []),
-        {
-          role: "user" as const,
-          content: [
-            { text: input.prebuiltPrompt || "" },
-            ...(input.prebuiltAttachments || []).map((att: any) => ({
-              media: att.media,
-            })),
-          ],
-        },
-      ];
-
       const { output } = await ai.generate({
         model: "googleai/gemini-1.5-flash",
-        // @ts-ignore
-        messages: messages,
+        prompt: input.prebuiltPrompt || '',
+        history: input.prebuiltHistory || [],
+        attachments: input.prebuiltAttachments,
         output: { schema: LuminaChatOutputSchema },
       });
       
