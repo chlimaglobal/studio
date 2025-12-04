@@ -257,42 +257,44 @@ interface ChartDataPoint {
 }
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
-  const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-  const data: ChartDataPoint[] = [];
-  const today = new Date();
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+    const data: ChartDataPoint[] = [];
+    const today = new Date();
 
-  for (let i = 5; i >= 0; i--) {
-    const targetMonthDate = subMonths(today, i);
-    const monthStart = startOfMonth(targetMonthDate);
-    const monthEnd = endOfMonth(targetMonthDate);
+    for (let i = 5; i >= 0; i--) {
+        const targetMonthDate = subMonths(today, i);
+        const monthStart = startOfMonth(targetMonthDate);
+        const monthEnd = endOfMonth(targetMonthDate);
 
-    const monthTransactions = operationalTransactions.filter(t => {
-      try {
-        const transactionDate = new Date(t.date);
-        return transactionDate >= monthStart && transactionDate <= monthEnd;
-      } catch (e) {
-        console.warn("Skipping transaction with invalid date:", t);
-        return false;
-      }
-    });
+        // Filter transactions for the specific month
+        const monthTransactions = operationalTransactions.filter(t => {
+            try {
+                const transactionDate = new Date(t.date);
+                return transactionDate >= monthStart && transactionDate <= monthEnd;
+            } catch (e) {
+                return false;
+            }
+        });
 
-    const aReceber = monthTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+        // Calculate totals for the month, ensuring they are valid numbers
+        const aReceber = monthTransactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-    const aPagar = monthTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    data.push({
-      date: format(monthStart, 'MM/yy', { locale: ptBR }),
-      aReceber,
-      aPagar,
-      resultado: aReceber - aPagar,
-    });
-  }
+        const aPagar = monthTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        
+        // Push the isolated monthly data
+        data.push({
+            date: format(monthStart, 'MM/yy', { locale: ptBR }),
+            aReceber: aReceber,
+            aPagar: aPagar,
+            resultado: aReceber - aPagar,
+        });
+    }
   
-  return data;
+    return data;
 };
 
 
