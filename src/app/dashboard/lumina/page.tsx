@@ -10,7 +10,7 @@ import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate 
 import type { ChatMessage } from "@/lib/types";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const TypingIndicator = () => (
     <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export default function ChatPage() {
             onClick={() => setTtsOn(v => !v)}
             aria-label="Toggle TTS"
           >
-            {ttsOn ? <Mic className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {ttsOn ? <Mic className="w-5 h-5 text-primary" /> : <Mic className="w-5 h-5" />}
           </button>
         </div>
       </header>
@@ -204,16 +204,7 @@ export default function ChatPage() {
                         <div
                         className={cn(
                             "rounded-3xl px-5 py-3.5 shadow-lg max-w-[85%] min-w-0",
-                            // Tema claro
-                            "data-[theme=light]:bg-white data-[theme=light]:text-gray-900",
-                            // Tema escuro
-                            "data-[theme=dark]:bg-gray-800/95 data-[theme=dark]:text-white",
-                            // Tema dourado — para Lúmina
-                            !isUser &&
-                            "data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90 text-white",
-                            // Bolha do usuário
-                            isUser &&
-                            "bg-amber-600 text-white"
+                            isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border rounded-bl-none"
                         )}
                         >
                         {/* Nome */}
@@ -222,7 +213,7 @@ export default function ChatPage() {
                         </p>
             
                         {/* Texto — NUNCA estoura */}
-                        <p className="text-base leading-relaxed whitespace-pre-wrap overflow-wrap-anywhere break-words">
+                        <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                             {m.text}
                         </p>
                         </div>
@@ -233,17 +224,8 @@ export default function ChatPage() {
               {/* INDICADOR DE DIGITAÇÃO */}
               {isTyping && (
                 <div className="flex w-full min-w-0 justify-start">
-                  <div
-                    className={cn(
-                      "rounded-3xl px-5 py-3.5 shadow-lg max-w-[70%] min-w-0",
-                      "data-[theme=dark]:bg-gray-800/95 data-[theme=gold]:bg-gradient-to-br data-[theme=gold]:from-amber-700/90 data-[theme=gold]:to-orange-700/90"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:0ms]"></span>
-                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:150ms]"></span>
-                      <span className="w-2 h-2 bg-white/70 rounded-full animate-bounce [animation-delay:300ms]"></span>
-                    </div>
+                  <div className="rounded-3xl px-5 py-3.5 shadow-lg max-w-[70%] min-w-0 bg-card border rounded-bl-none">
+                     <TypingIndicator />
                   </div>
                 </div>
               )}
@@ -264,21 +246,23 @@ export default function ChatPage() {
           onChange={onPickFile}
         />
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => fileRef.current?.click()}
-          className="p-2 rounded-md hover:bg-muted/40"
           aria-label="Anexar imagem"
         >
           <Camera className="w-5 h-5" />
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setPreview(null) || setFile(null)}
-          className="p-2 rounded-md hover:bg-muted/40"
           aria-label="Limpar anexo"
         >
           <Paperclip className="w-5 h-5" />
-        </button>
+        </Button>
 
         <Input
           placeholder="Digite uma mensagem..."
@@ -295,9 +279,8 @@ export default function ChatPage() {
 
         <AudioInputDialog open={false} onOpenChange={() => {}} onTranscript={() => {}} />
 
-        <Button onClick={() => send(input)} className="flex items-center gap-2">
+        <Button onClick={() => send(input)} disabled={isTyping || (!input.trim() && !file)}>
           <Send className="w-4 h-4" />
-          Enviar
         </Button>
       </div>
     </div>
