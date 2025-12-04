@@ -1,12 +1,8 @@
+
 // src/app/api/lumina/chat/stream/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
 import { LuminaChatInput, LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
-import {
-  LUMINA_BASE_PROMPT,
-  LUMINA_VOICE_COMMAND_PROMPT,
-  LUMINA_SPEECH_SYNTHESIS_PROMPT,
-} from "@/ai/lumina/prompt/luminaBasePrompt";
 import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
 import { StreamData, StreamingTextResponse } from 'ai';
@@ -16,10 +12,11 @@ import { GenerationCommon } from 'genkit/generate';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// Zod schema for input validation
+// Schema atualizado: Adicione messages e userQuery como o useChat envia
 const LuminaChatRequestSchema = z.object({
-  userQuery: z.string(),
-  chatHistory: z.array(z.any()).optional(),
+  messages: z.array(z.object({ role: z.enum(['user', 'assistant', 'system', 'function']), content: z.string() })).optional(),
+  userQuery: z.string().optional(), // O Vercel AI SDK não envia isso, mas mantemos por segurança
+  chatHistory: z.array(z.any()).optional(),  // Legacy
   allTransactions: z.array(z.any()).optional(),
   imageBase64: z.string().optional().nullable(),
   audioText: z.string().optional(),
@@ -37,20 +34,21 @@ const LuminaChatRequestSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const rawInput = await request.json();
-
-    // Validate the input
     const input = LuminaChatRequestSchema.parse(rawInput);
     
-    // The input for `generateSuggestion` needs a `userId` property.
+    // Fix: A query do usuário vem como a última mensagem no array `messages`
+    const userQueryFromMessages = input.messages?.findLast(m => m.role === 'user')?.content || '';
+    
     const suggestionInput = {
       ...input,
-      userId: input.user?.uid, // Extract userId from user object
+      userQuery: userQueryFromMessages, // Usar a query real
+      userId: input.user?.uid,
     };
 
-    // Re-utilize a lógica do seu luminaChatFlow para construir o prompt e o histórico
+    // Gere o prompt completo usando a lógica centralizada
     const { prompt, history, attachments } = await generateSuggestion(suggestionInput as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
 
-
+    // Inicie o fluxo de Genkit com o prompt correto
     const { stream, response } = ai.run('luminaChatFlow', {
       stream: true,
       input: {
@@ -58,15 +56,18 @@ export async function POST(request: NextRequest) {
         prebuiltPrompt: prompt,
         prebuiltHistory: history,
         prebuiltAttachments: attachments,
-        userId: input.user?.uid, // Pass userId to the flow
+        userId: input.user?.uid,
       }
     });
     
-    // Use the Vercel AI SDK to stream the response
+    // Use o Vercel AI SDK para transmitir a resposta
     const aiStream = stream.pipeThrough(
       new TransformStream({
         transform(chunk, controller) {
-          controller.enqueue(chunk.output?.text || '');
+          // Garanta que apenas texto válido seja enfileirado
+          if (chunk.output?.text && chunk.output.text.trim()) {
+            controller.enqueue(chunk.output.text);
+          }
         },
       })
     );
@@ -75,9 +76,12 @@ export async function POST(request: NextRequest) {
 
     // Adicione a lógica para quando o streaming for concluído
     response.then(finalResponse => {
-        // Você pode adicionar dados finais aqui se precisar
         data.append({ finalSuggestions: finalResponse.output?.suggestions || [] });
         data.close();
+    }).catch(err => {
+      console.error('[LUMINA_STREAM_ERROR] Error during final response processing:', err);
+      data.append({ error: 'Erro ao finalizar a geração da resposta.' });
+      data.close();
     });
 
 
@@ -87,9 +91,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[LUMINA_STREAM_API_ERROR]', error);
     if (error instanceof z.ZodError) {
-        return new Response(JSON.stringify({ error: "Invalid input data", details: error.errors }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: "Dados de entrada inválidos", details: error.errors }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
     // Para outros erros, retorne um erro 500 genérico.
-    return new Response(JSON.stringify({ error: "An internal server error occurred." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: "Ocorreu um erro interno no servidor." }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

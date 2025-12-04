@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -32,10 +33,11 @@ export default function ChatPage() {
   // Vercel AI SDK chat hook
   const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/lumina/chat/stream',
+    // O body agora é uma função que retorna o objeto dinamicamente
     body: {
       allTransactions: transactions,
       isCoupleMode: viewMode === "together",
-      isTTSActive: false, // You can make this dynamic if needed
+      isTTSActive: false, // Pode ser dinâmico se necessário
       user: {
         uid: user?.uid,
         displayName: user?.displayName,
@@ -44,7 +46,8 @@ export default function ChatPage() {
       }
     },
     onFinish: (message) => {
-        // Persist Lumina's final message
+        // Persiste a mensagem final da Lumina no Firestore
+        if (!message.content.trim()) return; // Não salve respostas vazias
         const luminaMsg = {
             role: 'lumina' as const,
             text: message.content,
@@ -62,7 +65,7 @@ export default function ChatPage() {
   
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Subscribe to chat history from Firestore
+  // Sincroniza o histórico do Firestore com o estado do `useChat`
   useEffect(() => {
     if (!user) return;
     const unsub = viewMode === "together" && coupleLink
@@ -96,8 +99,10 @@ export default function ChatPage() {
   }, [setHasUnread]);
 
   const customHandleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    handleSubmit(e);
-    // Persist user's message immediately
+    e.preventDefault();
+    if (!input.trim()) return; // Evita envio de mensagens vazias
+
+    // Persiste a mensagem do usuário no Firestore imediatamente
     const userMsg = {
       role: 'user' as const,
       text: input,
@@ -110,6 +115,9 @@ export default function ChatPage() {
     } else if (user) {
       addChatMessage(user.uid, userMsg);
     }
+    
+    // Chama o handleSubmit do useChat, que agora terá o `input` no body
+    handleSubmit(e);
   }
 
   return (
@@ -154,7 +162,7 @@ export default function ChatPage() {
                             {isUser ? "Você" : "Lúmina"}
                         </p>
             
-                        {/* Texto — NUNCA estoura */}
+                        {/* Texto — quebra a linha corretamente */}
                         <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                             {m.content}
                         </p>
