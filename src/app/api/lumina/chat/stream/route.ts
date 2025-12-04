@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
 import { LuminaChatInput, LuminaChatInputSchema, LuminaChatOutputSchema } from "@/lib/types";
-import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
+import { generateSuggestion } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { GenerationCommon } from 'genkit/generate';
@@ -15,7 +15,7 @@ export const maxDuration = 60;
 // Schema atualizado: Adicione messages e userQuery como o useChat envia
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ role: z.enum(['user', 'assistant', 'system', 'function']), content: z.string() })).optional(),
-  userQuery: z.string().optional(), // O Vercel AI SDK não envia isso, mas mantemos por segurança
+  userQuery: z.string().optional(),
   chatHistory: z.array(z.any()).optional(),  // Legacy
   allTransactions: z.array(z.any()).optional(),
   imageBase64: z.string().optional().nullable(),
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const input = LuminaChatRequestSchema.parse(rawInput);
     
     // Fix: A query do usuário vem como a última mensagem no array `messages`
-    const userQueryFromMessages = input.messages?.findLast(m => m.role === 'user')?.content || '';
+    const userQueryFromMessages = input.userQuery || input.messages?.findLast(m => m.role === 'user')?.content || '';
     
     const suggestionInput = {
       ...input,

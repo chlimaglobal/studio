@@ -33,8 +33,9 @@ export default function ChatPage() {
   // Vercel AI SDK chat hook
   const { messages, setMessages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/lumina/chat/stream',
-    // O body agora é uma função que retorna o objeto dinamicamente
     body: {
+      messages: messages,
+      userQuery: input,
       allTransactions: transactions,
       isCoupleMode: viewMode === "together",
       isTTSActive: false, // Pode ser dinâmico se necessário
@@ -101,6 +102,9 @@ export default function ChatPage() {
   const customHandleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim()) return; // Evita envio de mensagens vazias
+    
+    // Chama o handleSubmit do useChat, que agora terá o `input` no body
+    handleSubmit(e);
 
     // Persiste a mensagem do usuário no Firestore imediatamente
     const userMsg = {
@@ -115,9 +119,6 @@ export default function ChatPage() {
     } else if (user) {
       addChatMessage(user.uid, userMsg);
     }
-    
-    // Chama o handleSubmit do useChat, que agora terá o `input` no body
-    handleSubmit(e);
   }
 
   return (
