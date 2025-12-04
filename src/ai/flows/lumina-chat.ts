@@ -163,38 +163,86 @@ export const luminaChatFlow = ai.defineFlow(
   async (input) => {
     const userId = input.user?.uid || 'default';
 
-    // Memoriza automaticamente cada mensagem
+    // Atualiza memória
     if (input.userQuery) {
       await updateMemoryFromMessage(userId, input.userQuery);
     }
 
     try {
-      const { output } = await ai.generate({
-        model: "googleai/gemini-1.5-flash",
-        prompt: input.prebuiltPrompt || '',
-        history: input.prebuiltHistory || [],
-        attachments: input.prebuiltAttachments,
-        output: { schema: LuminaChatOutputSchema },
-      });
-      
-      if (!output?.text) {
-        return {
-          text: "Certo! Estou aqui. O que você quer fazer agora?",
-          suggestions: []
-        };
+      // MÉTODO CORRETO: mandar tudo como "contents" (histórico completo)
+      const contents: any[] = [];
+
+      // 1. Adiciona o prompt base como mensagem do system (primeira)
+      if (input.prebuiltPrompt) {
+        contents.push({
+          role: "user",
+          parts: [{ text: input.prebuiltPrompt }],
+        });
+        contents.push({
+          role: "model",
+          parts: [{ text: "Entendido! Vou seguir exatamente essas instruções." }],
+        });
       }
-  
+
+      // 2. Adiciona o histórico real do chat
+      if (input.prebuiltHistory && input.prebuiltHistory.length > 0) {
+        contents.push(...input.prebuiltHistory);
+      }
+
+      // 3. Adiciona a última mensagem do usuário (a atual)
+      if (input.userQuery) {
+        contents.push({
+          role: "user",
+          parts: [{ text: input.userQuery }],
+        });
+      }
+
+      // 4. Se tiver imagem, adiciona como inline data
+      const mediaParts: any[] = [];
+      if (input.prebuiltAttachments && input.prebuiltAttachments.length > 0) {
+        input.prebuiltAttachments.forEach((att: any) => {
+          if (att.media?.url) {
+            mediaParts.push({
+              inlineData: {
+                mimeType: att.media.contentType || "image/png",
+                data: att.media.url.replace(/^data:image\/[a-z]+;base64,/, ""),
+              },
+            });
+          }
+        });
+      }
+
+      // Se tiver imagem, adiciona na última mensagem do usuário
+      if (mediaParts.length > 0 && contents.length > 0) {
+        const lastUserMsg = contents[contents.length - 1];
+        if (lastUserMsg.role === "user") {
+          lastUserMsg.parts.push(...mediaParts);
+        }
+      }
+
+      const result = await ai.generate({
+        model: "googleai/gemini-1.5-flash",
+        contents, // <--- AQUI ESTÁ A MÁGICA
+        config: {
+          temperature: 0.7,
+          maxOutputTokens: 800,
+        },
+      });
+
+      const text = result.text || "Tudo bem! Como posso te ajudar hoje?";
+
       return {
-        text: output.text,
-        suggestions: output.suggestions || [],
+        text,
+        suggestions: [], // você pode extrair depois se quiser
       };
 
-    } catch (err) {
-      console.error("Gemini API Error in luminaChatFlow:", err);
-      // Fallback response in case of API failure, as requested.
+    } catch (err: any) {
+      console.error("ERRO GEMINI:", err.message);
+
+      // Fallback melhorado
       return {
-        text: "Ops, parece que estou com uma pequena instabilidade na conexão. Que tal revisarmos seus gastos com aluguel enquanto isso?",
-        suggestions: ["Maiores gastos do mês", "Resumo do mês", "Quanto economizei?"],
+        text: "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido dos seus gastos ou te dar uma dica de economia enquanto isso arruma?",
+        suggestions: ["Resumo do mês", "Maiores gastos", "Quanto economizei?"],
       };
     }
   }
