@@ -9,7 +9,7 @@ import {
 } from "@/ai/lumina/prompt/luminaBasePrompt";
 import { generateSuggestion, luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { z } from 'zod';
-import { StreamingTextResponse } from 'ai';
+import { StreamData, StreamingTextResponse } from 'ai';
 import { GenerationCommon } from 'genkit/generate';
 
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     const { prompt, history, attachments } = await generateSuggestion(suggestionInput as LuminaChatInput, true) as { prompt: string, history: any[], attachments: GenerationCommon["attachments"] };
 
 
-    const { stream, response } = await ai.run('luminaChatFlow', {
+    const { stream, response } = ai.run('luminaChatFlow', {
       stream: true,
       input: {
         ...input,
@@ -70,8 +70,18 @@ export async function POST(request: NextRequest) {
         },
       })
     );
+    
+    const data = new StreamData();
 
-    return new StreamingTextResponse(aiStream);
+    // Adicione a lógica para quando o streaming for concluído
+    response.then(finalResponse => {
+        // Você pode adicionar dados finais aqui se precisar
+        data.append({ finalSuggestions: finalResponse.output?.suggestions || [] });
+        data.close();
+    });
+
+
+    return new StreamingTextResponse(aiStream, {}, data);
 
 
   } catch (error) {
