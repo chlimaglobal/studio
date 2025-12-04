@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home, AlertTriangle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/types';
@@ -255,13 +255,12 @@ interface ChartDataPoint {
     resultado: number;
 }
 
-const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
+const generateChartData = (transactions: Transaction[], currentMonth: Date): ChartDataPoint[] => {
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-    const today = new Date();
     
     // Create a 6-month interval: 3 months past, current month, 2 months future
-    const startDate = startOfMonth(subMonths(today, 3));
-    const endDate = endOfMonth(addMonths(today, 2));
+    const startDate = startOfMonth(subMonths(currentMonth, 3));
+    const endDate = endOfMonth(addMonths(currentMonth, 2));
     const monthInterval = eachMonthOfInterval({ start: startDate, end: endDate });
 
     const data = monthInterval.map(monthStart => {
@@ -269,7 +268,7 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
         const monthKey = format(monthStart, 'MM/yy', { locale: ptBR });
 
         // Only calculate for past and current months
-        if (monthStart > today) {
+        if (isFuture(monthStart) && monthStart.getMonth() !== new Date().getMonth()) {
             return {
                 date: monthKey,
                 aReceber: 0,
@@ -407,7 +406,7 @@ export default function DashboardPage() {
 
 
     const { summary, categorySpending, budgetItems, costOfLiving, chartData } = useMemo(() => {
-        const chartData = generateChartData(transactions);
+        const chartData = generateChartData(transactions, currentMonth);
         const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
         
         const monthTransactions = operationalTransactions.filter(t => {

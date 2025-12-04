@@ -25,7 +25,6 @@ interface FinancialChartProps {
   costOfLiving: number;
 }
 
-
 export default function FinancialChart({
   data,
   isPrivacyMode,
