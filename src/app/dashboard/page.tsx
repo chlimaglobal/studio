@@ -258,45 +258,41 @@ interface ChartDataPoint {
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
   const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-  
-  const monthlyData: Map<string, { aReceber: number; aPagar: number }> = new Map();
+  const data: ChartDataPoint[] = [];
   const today = new Date();
-  
-  // Initialize the last 6 months to ensure they always appear in the chart
+
   for (let i = 5; i >= 0; i--) {
-    const date = subMonths(today, i);
-    const monthKey = format(date, 'MM/yy', { locale: ptBR });
-    monthlyData.set(monthKey, { aReceber: 0, aPagar: 0 });
-  }
+    const targetMonthDate = subMonths(today, i);
+    const monthStart = startOfMonth(targetMonthDate);
+    const monthEnd = endOfMonth(targetMonthDate);
 
-  // Aggregate transaction data for each month
-  operationalTransactions.forEach(t => {
-    try {
-      const transactionDate = new Date(t.date);
-      const monthKey = format(transactionDate, 'MM/yy', { locale: ptBR });
-
-      if (monthlyData.has(monthKey)) {
-        const currentData = monthlyData.get(monthKey)!;
-        if (t.type === 'income') {
-          currentData.aReceber += t.amount;
-        } else if (t.type === 'expense') {
-          currentData.aPagar += t.amount;
-        }
+    const monthTransactions = operationalTransactions.filter(t => {
+      try {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= monthStart && transactionDate <= monthEnd;
+      } catch (e) {
+        console.warn("Skipping transaction with invalid date:", t);
+        return false;
       }
-    } catch (e) {
-      console.warn("Skipping transaction with invalid date:", t);
-    }
-  });
+    });
 
-  // Convert map to array and calculate the balance for each month
-  const chartData = Array.from(monthlyData.entries()).map(([monthKey, data]) => ({
-    date: monthKey,
-    aReceber: data.aReceber,
-    aPagar: data.aPagar,
-    resultado: data.aReceber - data.aPagar,
-  }));
+    const aReceber = monthTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const aPagar = monthTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    data.push({
+      date: format(monthStart, 'MM/yy', { locale: ptBR }),
+      aReceber,
+      aPagar,
+      resultado: aReceber - aPagar,
+    });
+  }
   
-  return chartData;
+  return data;
 };
 
 
