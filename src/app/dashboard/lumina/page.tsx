@@ -36,12 +36,25 @@ export default function ChatPage() {
     setMessages, 
     input, 
     handleInputChange, 
+    handleSubmit,
     isLoading, 
     error,
     append,
     reload,
   } = useChat({
     api: '/api/lumina/chat/stream',
+    keepLastMessageOnError: true,
+    body: {
+      allTransactions: transactions,
+      isCoupleMode: viewMode === "together",
+      isTTSActive: false,
+      user: {
+        uid: user?.uid,
+        displayName: user?.displayName,
+        email: user?.email,
+        photoURL: user?.photoURL,
+      },
+    },
     onFinish: (message) => {
         if (!message.content.trim()) return;
         const luminaMsg = {
@@ -64,6 +77,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     
+    // Load initial messages from Firestore only once
     if (messages.length > 0) return;
 
     const unsub = viewMode === "together" && coupleLink
@@ -97,18 +111,11 @@ export default function ChatPage() {
     localStorage.setItem('lastLuminaVisit', new Date().toISOString());
   }, [setHasUnread]);
 
-  const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
-    // 1. Adiciona mensagem do usuário no frontend (useChat entende isso)
-    append({
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-    });
-
-    // 2. Persiste no Firestore (igual você já faz)
+    // Persist user message to Firestore immediately
     const userMsgForDb = {
       role: 'user' as const,
       text: input,
@@ -121,39 +128,11 @@ export default function ChatPage() {
     } else {
       addChatMessage(user.uid, userMsgForDb);
     }
-
-    // 3. CHAMA O useChat COM OS DADOS EXTRAS — ESSA É A MÁGICA
-    append({
-      role: 'assistant',
-      content: '', // vai ser preenchido pelo stream
-      data: {
-        allTransactions: transactions,
-        isCoupleMode: viewMode === "together",
-        isTTSActive: false,
-        user: {
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-        },
-      },
-    }, {
-      // Aqui você força o useChat a chamar sua API com o body que você quer
-      body: {
-        userQuery: input,
-        messages: [...messages, { role: 'user', content: input }],
-        allTransactions: transactions,
-        isCoupleMode: viewMode === "together",
-        isTTSActive: false,
-        user: {
-          uid: user.uid,
-          displayName: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-        },
-      },
-    });
+    
+    // Let useChat handle the API call
+    handleSubmit(e);
   };
+
 
   const handleAudioTranscript = (transcript: string) => {
     console.log("Transcrição recebida:", transcript);
@@ -223,7 +202,7 @@ export default function ChatPage() {
         </div>
       </ScrollArea>
 
-      <form onSubmit={sendMessage} className="p-4 border-t flex items-center gap-3">
+      <form onSubmit={handleFormSubmit} className="p-4 border-t flex items-center gap-3">
         <Button
           type="button"
           variant="ghost"

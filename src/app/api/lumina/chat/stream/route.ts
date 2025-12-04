@@ -15,8 +15,6 @@ export const maxDuration = 60;
 // Schema atualizado: Adicione messages e userQuery como o useChat envia
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ role: z.enum(['user', 'assistant', 'system', 'function']), content: z.string() })).optional(),
-  userQuery: z.string().optional(),
-  chatHistory: z.array(z.any()).optional(),  // Legacy
   allTransactions: z.array(z.any()).optional(),
   imageBase64: z.string().optional().nullable(),
   audioText: z.string().optional(),
@@ -37,12 +35,13 @@ export async function POST(request: NextRequest) {
     const input = LuminaChatRequestSchema.parse(rawInput);
     
     // Fix: A query do usuário vem como a última mensagem no array `messages`
-    const userQueryFromMessages = input.userQuery || input.messages?.findLast(m => m.role === 'user')?.content || '';
+    const userQueryFromMessages = input.messages?.findLast(m => m.role === 'user')?.content || '';
     
     const suggestionInput = {
       ...input,
       userQuery: userQueryFromMessages, // Usar a query real
       userId: input.user?.uid,
+      chatHistory: input.messages, // Passar o histórico para a função
     };
 
     // Gere o prompt completo usando a lógica centralizada
@@ -57,6 +56,7 @@ export async function POST(request: NextRequest) {
         prebuiltHistory: history,
         prebuiltAttachments: attachments,
         userId: input.user?.uid,
+        userQuery: userQueryFromMessages
       }
     });
     
