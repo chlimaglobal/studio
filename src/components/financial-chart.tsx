@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -25,35 +26,6 @@ interface FinancialChartProps {
   costOfLiving: number;
 }
 
-/* ============================================================
-   FUNÇÃO DE CORREÇÃO DE DADOS DO GRÁFICO
-   ============================================================ */
-function fixChartData(rawData: any[]) {
-  if (!rawData || rawData.length === 0) return [];
-
-  return rawData
-    .map((item) => {
-      return {
-        ...item,
-        aReceber: Number(item.aReceber) || 0,
-        aPagar: Number(item.aPagar) || 0,
-        resultado:
-          Number(item.aReceber || 0) - Number(item.aPagar || 0)
-      };
-    })
-    .sort((a, b) => {
-      // Ordena pelo mês corretamente
-      const [ma, ya] = a.date.split('/'); // ex: "07/25"
-      const [mb, yb] = b.date.split('/');
-
-      return (
-        new Date(`20${ya}-${ma}-01`).getTime() -
-        new Date(`20${yb}-${mb}-01`).getTime()
-      );
-    });
-}
-
-/* ============================================================ */
 
 export default function FinancialChart({
   data,
@@ -61,13 +33,10 @@ export default function FinancialChart({
   costOfLiving
 }: FinancialChartProps) {
 
-  // 🔥 AQUI A CORREÇÃO É APLICADA
-  const fixedData = fixChartData(data);
-
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart
-        data={fixedData}
+        data={data}
         margin={{ top: 5, right: 15, left: 15, bottom: 30 }}
       >
         <CartesianGrid
@@ -94,6 +63,7 @@ export default function FinancialChart({
           fontSize={12}
           width={70}
           tickFormatter={(value) => formatCurrency(value)}
+          domain={['auto', 'auto']}
         />
 
         <Tooltip content={<CustomTooltip isPrivacyMode={isPrivacyMode} />} />
@@ -105,12 +75,15 @@ export default function FinancialChart({
           wrapperStyle={{ paddingTop: 10 }}
         />
 
+        {/* Linha de referência no eixo Y = 0 */}
+        <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+
         {/* RECEITAS */}
         <Line
           type="monotone"
           dataKey="aReceber"
           name="Receitas"
-          stroke="hsl(var(--chart-1))"
+          stroke="hsl(var(--chart-1))" // Verde
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -122,7 +95,7 @@ export default function FinancialChart({
           type="monotone"
           dataKey="aPagar"
           name="Despesas"
-          stroke="hsl(var(--chart-2))"
+          stroke="hsl(var(--chart-2))" // Vermelho
           strokeWidth={2.5}
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
@@ -134,8 +107,9 @@ export default function FinancialChart({
           type="monotone"
           dataKey="resultado"
           name="Balanço"
-          stroke="hsl(var(--chart-4))"
+          stroke="hsl(var(--chart-4))" // Azul
           strokeWidth={2.5}
+          strokeDasharray="5 5"
           dot={{ r: 5 }}
           activeDot={{ r: 7 }}
           connectNulls={true}
