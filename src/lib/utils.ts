@@ -45,10 +45,16 @@ export function base64UrlToBuffer(base64Url: string): ArrayBuffer {
  */
 export function calculateMovingAverageCostOfLiving(transactions: Transaction[]): number {
     const costOfLivingCategories = new Set<TransactionCategory>([
-        "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
-        "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
-        "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
-        "Faculdade", "Escola"
+        // Essenciais de Moradia
+        "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa",
+        // Essenciais de Alimentação
+        "Supermercado",
+        // Essenciais de Utilidades
+        "Internet", "Telefone/Celular",
+        // Essenciais de Saúde
+        "Plano de Saúde", "Plano Odontológico", "Farmácia", 
+        // Essenciais de Transporte
+        "IPVA", "Manutenção", "Combustível", "Licenciamento",
     ]);
 
     const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));

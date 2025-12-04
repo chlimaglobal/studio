@@ -7,8 +7,8 @@ export const categoryData = {
   "Moradia": ["Luz", "Eletrodomésticos", "Condomínio", "Aluguel/Prestação", "Reformas", "Água", "Casa"],
   "Transporte": ["IPVA", "Manutenção", "Táxi/Uber", "Licenciamento", "Combustível", "Multa"],
   "Saúde": ["Plano de Saúde", "Plano Odontológico", "Consultas", "Dentista", "Exames", "Farmácia"],
-  "Lazer/Hobbies": ["Teatro", "Parques", "Bares", "Cinema", "Shows e Eventos", "Esportes", "Entretenimento"],
-  "Dívidas/Empréstimos": ["Cartão de Crédito", "Empréstimo", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos"],
+  "Lazer/Hobbies": ["Teatro", "Parques", "Bares", "Cinema", "Shows e Eventos", "Esportes", "Entretenimento", "Fitness"],
+  "Dívidas/Empréstimos": ["Cartão de Crédito", "Empréstimo", "Cheque Especial", "Consórcio", "Empréstimo Consignado", "Encargos", "Financiamento"],
   "Educação": ["Cursos", "Faculdade", "Materiais e Livros", "Escola"],
   "Impostos/Taxas": ["Imposto de Renda", "Tarifa Bancária", "Anuidade Cartão", "Tributos"],
   "Investimentos e Reservas": ["Reserva de Emergência", "Ações", "Fundos Imobiliários", "Renda Fixa", "Proventos", "Aplicação", "Rendimentos", "Retirada", "Juros"],
@@ -18,8 +18,8 @@ export const categoryData = {
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
   "Viagens": ["Hotel", "Passagem", "Passeio"],
   "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maquiagem"],
-  "Finanças": ["Financiamento", "Renegociação", "Seguros"],
-  "Outros": ["Presentes", "Compras", "Fitness", "Outros"],
+  "Finanças": ["Renegociação", "Seguros"],
+  "Outros": ["Presentes", "Compras", "Outros"],
 } as const;
 
 export const cardBrands = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'diners', 'other'] as const;
