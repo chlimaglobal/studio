@@ -31,8 +31,6 @@ export default function ChatPage() {
   const { coupleLink } = useCoupleStore.getState();
   const [isAudioOpen, setIsAudioOpen] = useState(false);
 
-  // Vercel AI SDK chat hook - a chave para a correção.
-  // NÃO passamos mais um 'body' fixo aqui.
   const { 
     messages, 
     setMessages, 
@@ -40,12 +38,12 @@ export default function ChatPage() {
     handleInputChange, 
     isLoading, 
     error,
-    append // A função 'append' é a chave para a solução.
+    append,
+    reload,
   } = useChat({
     api: '/api/lumina/chat/stream',
     onFinish: (message) => {
-        // Persiste a mensagem final da Lumina no Firestore
-        if (!message.content.trim()) return; // Não salve respostas vazias
+        if (!message.content.trim()) return;
         const luminaMsg = {
             role: 'lumina' as const,
             text: message.content,
@@ -63,11 +61,9 @@ export default function ChatPage() {
   
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // Sincroniza o histórico do Firestore com o estado do `useChat` na carga inicial
   useEffect(() => {
     if (!user) return;
     
-    // Evita recarregar o histórico se já houver mensagens (para não apagar as que estão em streaming)
     if (messages.length > 0) return;
 
     const unsub = viewMode === "together" && coupleLink
@@ -101,20 +97,18 @@ export default function ChatPage() {
     localStorage.setItem('lastLuminaVisit', new Date().toISOString());
   }, [setHasUnread]);
 
-  // Esta é a nova função de envio que controla todo o fluxo
   const sendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
-    // 1. Adiciona a mensagem do usuário à UI imediatamente usando `append`
-    const userMessage = {
+    // 1. Adiciona mensagem do usuário no frontend (useChat entende isso)
+    append({
       id: Date.now().toString(),
-      role: 'user' as const,
+      role: 'user',
       content: input,
-    };
-    append(userMessage);
+    });
 
-    // 2. Persiste a mensagem do usuário no Firestore (como antes)
+    // 2. Persiste no Firestore (igual você já faz)
     const userMsgForDb = {
       role: 'user' as const,
       text: input,
@@ -128,30 +122,40 @@ export default function ChatPage() {
       addChatMessage(user.uid, userMsgForDb);
     }
 
-    // 3. Dispara a chamada para a API manualmente com o body completo
-    // O hook `useChat` irá automaticamente lidar com a resposta de streaming
-    await fetch('/api/lumina/chat/stream', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userQuery: input,
-        messages: [...messages, userMessage], // Envia histórico completo + nova mensagem
+    // 3. CHAMA O useChat COM OS DADOS EXTRAS — ESSA É A MÁGICA
+    append({
+      role: 'assistant',
+      content: '', // vai ser preenchido pelo stream
+      data: {
         allTransactions: transactions,
         isCoupleMode: viewMode === "together",
-        isTTSActive: false, // Pode ser dinâmico se necessário
+        isTTSActive: false,
         user: {
           uid: user.uid,
           displayName: user.displayName,
           email: user.email,
           photoURL: user.photoURL,
         },
-      }),
+      },
+    }, {
+      // Aqui você força o useChat a chamar sua API com o body que você quer
+      body: {
+        userQuery: input,
+        messages: [...messages, { role: 'user', content: input }],
+        allTransactions: transactions,
+        isCoupleMode: viewMode === "together",
+        isTTSActive: false,
+        user: {
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+        },
+      },
     });
   };
 
   const handleAudioTranscript = (transcript: string) => {
-    // Para implementar a funcionalidade de áudio, você faria algo semelhante a `sendMessage`
-    // mas usando o 'transcript' em vez do 'input' do campo de texto.
     console.log("Transcrição recebida:", transcript);
   };
 
@@ -192,12 +196,10 @@ export default function ChatPage() {
                             isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-card border rounded-bl-none"
                         )}
                         >
-                        {/* Nome */}
                         <p className="text-xs font-medium opacity-70 mb-2">
                             {isUser ? "Você" : "Lúmina"}
                         </p>
             
-                        {/* Texto — quebra a linha corretamente */}
                         <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
                             {m.content}
                         </p>
@@ -221,9 +223,7 @@ export default function ChatPage() {
         </div>
       </ScrollArea>
 
-      {/* Input area - Agora usa a função `sendMessage` */}
       <form onSubmit={sendMessage} className="p-4 border-t flex items-center gap-3">
-        {/* Placeholder for future file input */}
         <Button
           type="button"
           variant="ghost"
