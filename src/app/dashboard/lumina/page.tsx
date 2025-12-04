@@ -24,7 +24,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isResponding, setIsResponding] = useState(false); // Used to disable input
   const [ttsOn, setTtsOn] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -40,16 +40,16 @@ export default function ChatPage() {
   // subscribe to chat
   useEffect(() => {
     if (!user) return;
+    setIsLoading(true);
     const unsub = viewMode === "together" && coupleLink
       ? onCoupleChatUpdate(coupleLink.id, (msgs) => { setMessages(msgs); setIsLoading(false); })
       : onChatUpdate(user.uid, (msgs) => { setMessages(msgs); setIsLoading(false); });
-    setIsLoading(false);
     return unsub;
   }, [user, viewMode, coupleLink]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages]);
 
   useEffect(() => {
     setHasUnread(false);
@@ -59,6 +59,8 @@ export default function ChatPage() {
   const send = useCallback(async (text: string, fromVoice = false) => {
     if ((!text.trim() && !file) || !user) return;
 
+    setIsResponding(true);
+    const query = text.trim();
     setInput("");
     setPreview(null);
     const imgBase64 = file ? await fileToBase64(file) : null;
@@ -66,31 +68,29 @@ export default function ChatPage() {
 
     const userMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
       role: "user",
-      text,
+      text: query,
       authorId: user.uid,
       authorName: user.displayName || "Você",
       authorPhotoUrl: user.photoURL || "",
     };
 
-    // persist user message
+    // Optimistically add user message to state
+    setMessages(prev => [...prev, { ...userMsg, id: `user-${Date.now()}`, timestamp: new Date() }]);
+
+    // Persist user message in the background
     if (viewMode === "together" && coupleLink) {
       await addCoupleChatMessage(coupleLink.id, userMsg);
     } else {
       await addChatMessage(user.uid, userMsg);
     }
 
-    // show typing placeholder
-    setIsTyping(true);
-    const tempId = `temp-${Date.now()}`;
-    setMessages(prev => [...prev, { id: tempId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() }]);
-
     try {
       const res = await fetch("/api/lumina/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userQuery: text,
-          audioText: fromVoice ? text : undefined,
+          userQuery: query,
+          audioText: fromVoice ? query : undefined,
           chatHistory: messages,
           allTransactions: transactions,
           imageBase64: imgBase64,
@@ -101,34 +101,34 @@ export default function ChatPage() {
       });
 
       if (!res.ok || !res.body) {
-        throw new Error("Resposta inválida do servidor");
+        throw new Error(res.statusText || "Resposta inválida do servidor");
       }
       
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let accumulated = "";
+      let accumulatedResponse = "";
+
+      // Add a placeholder for Lumina's response
+      const luminaPlaceholderId = `lumina-${Date.now()}`;
+      setMessages(prev => [...prev, { id: luminaPlaceholderId, role: "lumina", text: "", authorName: "Lúmina", authorPhotoUrl: "/lumina-avatar.png", timestamp: new Date() }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        accumulated += decoder.decode(value, { stream: true });
-        // update placeholder bubble
-        setMessages(prev => prev.map(m => (m.id === tempId ? { ...m, text: accumulated } : m)));
+        accumulatedResponse += decoder.decode(value, { stream: true });
+        
+        // Update the placeholder in-place
+        setMessages(prev => prev.map(m => 
+            m.id === luminaPlaceholderId 
+            ? { ...m, text: accumulatedResponse } 
+            : m
+        ));
       }
-
-      const finalMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
-        role: "lumina",
-        text: accumulated.trim(),
-        authorName: "Lúmina",
-        authorPhotoUrl: "/lumina-avatar.png",
-      };
-
-      // Firestore will eventually update the state via listener, this just cleans up the temp message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
+      
+      // Final message is already in place. Nothing more to do.
 
     } catch (error) {
       console.error("Erro no stream:", error);
-      // Fallback message, never show an error to the user
       const errorMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
         role: "lumina",
         text: "Parece que estou com um pouco de dificuldade para me conectar. Que tal tentarmos um resumo do seu mês?",
@@ -141,9 +141,8 @@ export default function ChatPage() {
       } else {
         await addChatMessage(user!.uid, errorMsg);
       }
-       setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
-      setIsTyping(false);
+      setIsResponding(false);
     }
   }, [user, messages, transactions, viewMode, ttsOn, file, coupleLink]);
 
@@ -181,7 +180,7 @@ export default function ChatPage() {
          <div className="flex flex-col w-full h-full overflow-y-auto min-w-0 px-4 py-3 gap-3">
           {isLoading ? (
             <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
-          ) : messages.length === 0 && !isTyping ? (
+          ) : messages.length === 0 && !isResponding ? (
             <div className="flex items-center justify-center h-full p-6 text-center">
               <div>
                 <h2 className="text-2xl font-bold mb-2">Olá</h2>
@@ -209,7 +208,7 @@ export default function ChatPage() {
                         >
                         {/* Nome */}
                         <p className="text-xs font-medium opacity-70 mb-2">
-                            {isUser ? "Você" : "Lúmina"}
+                            {isUser ? "Você" : (m.text ? "Lúmina" : <TypingIndicator />)}
                         </p>
             
                         {/* Texto — NUNCA estoura */}
@@ -220,15 +219,6 @@ export default function ChatPage() {
                     </div>
                 );
               })}
-            
-              {/* INDICADOR DE DIGITAÇÃO */}
-              {isTyping && (
-                <div className="flex w-full min-w-0 justify-start">
-                  <div className="rounded-3xl px-5 py-3.5 shadow-lg max-w-[70%] min-w-0 bg-card border rounded-bl-none">
-                     <TypingIndicator />
-                  </div>
-                </div>
-              )}
             
               <div ref={bottomRef} />
              </>
@@ -275,14 +265,17 @@ export default function ChatPage() {
             }
           }}
           className="flex-1 min-w-0"
+          disabled={isResponding}
         />
 
         <AudioInputDialog open={false} onOpenChange={() => {}} onTranscript={() => {}} />
 
-        <Button onClick={() => send(input)} disabled={isTyping || (!input.trim() && !file)}>
-          <Send className="w-4 h-4" />
+        <Button onClick={() => send(input)} disabled={isResponding || (!input.trim() && !file)}>
+          {isResponding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
     </div>
   );
 }
+
+    
