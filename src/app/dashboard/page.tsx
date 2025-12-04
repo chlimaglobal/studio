@@ -1,11 +1,10 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home, AlertTriangle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
-import { subMonths, format, addMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/types';
@@ -258,15 +257,27 @@ interface ChartDataPoint {
 
 const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-    const data: ChartDataPoint[] = [];
     const today = new Date();
+    
+    // Create a 6-month interval: 3 months past, current month, 2 months future
+    const startDate = startOfMonth(subMonths(today, 3));
+    const endDate = endOfMonth(addMonths(today, 2));
+    const monthInterval = eachMonthOfInterval({ start: startDate, end: endDate });
 
-    for (let i = 5; i >= 0; i--) {
-        const targetMonthDate = subMonths(today, i);
-        const monthStart = startOfMonth(targetMonthDate);
-        const monthEnd = endOfMonth(targetMonthDate);
+    const data = monthInterval.map(monthStart => {
+        const monthEnd = endOfMonth(monthStart);
+        const monthKey = format(monthStart, 'MM/yy', { locale: ptBR });
 
-        // Filter transactions for the specific month
+        // Only calculate for past and current months
+        if (monthStart > today) {
+            return {
+                date: monthKey,
+                aReceber: 0,
+                aPagar: 0,
+                resultado: 0,
+            };
+        }
+
         const monthTransactions = operationalTransactions.filter(t => {
             try {
                 const transactionDate = new Date(t.date);
@@ -276,7 +287,6 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
             }
         });
 
-        // Calculate totals for the month, ensuring they are valid numbers
         const aReceber = monthTransactions
             .filter(t => t.type === 'income')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -285,14 +295,13 @@ const generateChartData = (transactions: Transaction[]): ChartDataPoint[] => {
             .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         
-        // Push the isolated monthly data
-        data.push({
-            date: format(monthStart, 'MM/yy', { locale: ptBR }),
-            aReceber: aReceber,
-            aPagar: aPagar,
-            resultado: aReceber - aPagar,
-        });
-    }
+        return {
+            date: monthKey,
+            aReceber: Number(aReceber.toFixed(2)) || 0,
+            aPagar: Number(aPagar.toFixed(2)) || 0,
+            resultado: Number((aReceber - aPagar).toFixed(2)) || 0,
+        };
+    });
   
     return data;
 };
