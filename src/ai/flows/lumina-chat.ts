@@ -1,19 +1,22 @@
+
 'use server';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import {
+  LuminaChatInputSchema,
+  LuminaChatOutputSchema,
+} from '@/lib/types';
 import {
   LUMINA_BASE_PROMPT,
   LUMINA_VOICE_COMMAND_PROMPT,
   LUMINA_SPEECH_SYNTHESIS_PROMPT,
 } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { getUserMemory, saveUserMemory } from '@/ai/lumina/memory/memoryStore';
-import { z } from 'zod';
-import { ai } from '@/ai/genkit';
-import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 
 // =========================================================
-// FUNÇÕES AUXILIARES (AGORA CENTRALIZADAS AQUI)
+// HELPER FUNCTIONS (NOW CENTRALIZED HERE)
 // =========================================================
 
 async function buildMemoryContext(userId: string) {
@@ -37,51 +40,67 @@ async function updateMemoryFromMessage(userId: string, text: string) {
   if (Object.keys(toSave).length > 0) await saveUserMemory(userId, toSave);
 }
 
-async function generateSuggestion(input: LuminaChatInput) {
-  const userId = input.user?.uid || 'default';
-  const userQuery = (input.userQuery || '').trim();
-  const audioText = (input.audioText || '').trim();
-  const isTTSActive = input.isTTSActive || false;
-  
-  const mappedChatHistory = (input.messages || []).map((msg: any) => ({
-    role: msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user',
-    parts: [{ text: msg.content || '' }],
-  }));
+// This function now returns a complete `contents` array for the Gemini API
+async function generateChatContents(input: LuminaChatInput): Promise<any[]> {
+    const userId = input.user?.uid || 'default';
+    const userQuery = (input.userQuery || '').trim();
+    const audioText = (input.audioText || '').trim();
+    const isTTSActive = input.isTTSActive || false;
 
-  const transactionsForContext = (input.allTransactions || []).slice(0, 30);
-  const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
-  const memoryContext = await buildMemoryContext(userId);
+    const transactionsForContext = (input.allTransactions || []).slice(0, 30);
+    const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
+    const memoryContext = await buildMemoryContext(userId);
 
-  const promptContext = [
-    LUMINA_BASE_PROMPT,
-    audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
-    isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
-    '',
-    memoryContext,
-    '',
-    '### CONTEXTO DO APP:',
-    `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
-    `- Últimas transações:`,
-    transactionsJSON,
-    audioText ? `- Áudio transcrito: ${audioText}` : '',
-    '',
-    '### NOVA MENSAGEM DO USUÁRIO:',
-    userQuery || '(vazio)',
-    '',
-    'Responda como Lúmina: humana, emocional, amigável, inteligente, sem mostrar erros técnicos. Sempre termine com uma pergunta.',
-  ].join('\n');
+    const systemPrompt = [
+        LUMINA_BASE_PROMPT,
+        audioText ? LUMINA_VOICE_COMMAND_PROMPT : '',
+        isTTSActive ? LUMINA_SPEECH_SYNTHESIS_PROMPT : '',
+        '',
+        memoryContext,
+        '',
+        '### CONTEXTO DO APP:',
+        `- Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}`,
+        `- Últimas transações:`,
+        transactionsJSON,
+    ].join('\n');
 
-  let attachments: any[] = [];
-  if (input.imageBase64) {
-    const url = /^data:.*;base64/.test(input.imageBase64) ? input.imageBase64 : `data:image/png;base64,${input.imageBase64}`;
-    attachments = [{ media: { url, contentType: 'image/png' } }];
-  }
+    const contents: any[] = [];
+    
+    // System instruction is the first user message, followed by a model ack.
+    contents.push({ role: 'user', parts: [{ text: systemPrompt }] });
+    contents.push({ role: 'model', parts: [{ text: 'Entendido. Estou pronta para ajudar seguindo essas diretrizes.' }] });
 
-  return { prompt: promptContext, history: mappedChatHistory, attachments };
+    // Add message history
+    if (input.messages && input.messages.length > 0) {
+        input.messages.forEach((msg: any) => {
+             // Ensure the last message isn't duplicated
+            if (msg.id !== input.messages[input.messages.length - 1].id) {
+                contents.push({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content || '' }],
+                });
+            }
+        });
+    }
+
+    // Add current user query and image (if any)
+    const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
+    if (input.imageBase64) {
+        lastUserMessageParts.push({
+            inlineData: {
+                mimeType: 'image/png',
+                data: input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
+            },
+        });
+    }
+    contents.push({ role: 'user', parts: lastUserMessageParts });
+
+    return contents;
 }
 
+
 // =========================================================
-// FLUXO GENKIT PRINCIPAL (CORRIGIDO)
+// MAIN GENKIT FLOW
 // =========================================================
 
 const LuminaFlowInputSchema = LuminaChatInputSchema.extend({
@@ -102,28 +121,11 @@ export const luminaChatFlow = ai.defineFlow(
     }
 
     try {
-      const { prompt: systemInstruction, history } = await generateSuggestion(input as LuminaChatInput);
+      const contents = await generateChatContents(input as LuminaChatInput);
 
-      // Combina o histórico com a mensagem atual do usuário
-      const contents: any[] = [
-          ...history.map(h => ({ role: h.role, parts: h.parts }))
-      ];
-      
-      const userMessageParts = [{ text: input.userQuery || '' }];
-      if (input.imageBase64) {
-          userMessageParts.push({
-              inlineData: {
-                  mimeType: 'image/png',
-                  data: input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
-              }
-          });
-      }
-       contents.push({ role: 'user', parts: userMessageParts });
-      
       const result = await ai.generate({
         model: 'googleai/gemini-1.5-flash',
-        prompt: systemInstruction, // Usamos o prompt aqui
-        history: contents, // E o histórico completo (incluindo a última) aqui
+        contents,
         config: {
           temperature: 0.7,
           maxOutputTokens: 800,
@@ -132,7 +134,10 @@ export const luminaChatFlow = ai.defineFlow(
 
       const text = result.text || 'Tudo bem! Como posso te ajudar hoje?';
 
-      return { text, suggestions: [] };
+      return {
+        text,
+        suggestions: [],
+      };
     } catch (err: any) {
       console.error('ERRO GEMINI:', err.message);
       return {

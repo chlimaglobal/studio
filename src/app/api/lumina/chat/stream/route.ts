@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -39,8 +40,7 @@ export async function POST(request: NextRequest) {
     const rawInput = await request.json();
     const input = LuminaChatRequestSchema.parse(rawInput);
     
-    // O `useChat` envia o histórico completo em `messages` e a nova mensagem também está lá.
-    // O `userQuery` que estamos construindo é para garantir que nosso fluxo Genkit o receba.
+    // The `useChat` hook sends the new user message as the last item in the `messages` array.
     const userQuery = input.messages?.[input.messages.length - 1]?.content || '';
 
     const { stream, response } = await luminaChatFlow(
