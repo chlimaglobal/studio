@@ -48,7 +48,7 @@ export function calculateMovingAverageCostOfLiving(transactions: Transaction[]):
         "Luz", "Condomínio", "Aluguel/Prestação", "Água", "Casa", "Supermercado",
         "Internet", "Telefone/Celular", "Plano de Saúde", "Plano Odontológico", 
         "Farmácia", "IPVA", "Manutenção", "Combustível", "Licenciamento", 
-        "Faculdade", "Escola", "Financiamento", "Empréstimo", "Seguros"
+        "Faculdade", "Escola"
     ]);
 
     const threeMonthsAgo = startOfMonth(subMonths(new Date(), 2));

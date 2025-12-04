@@ -18,8 +18,8 @@ export const categoryData = {
   "Vestuário": ["Calçados", "Acessórios", "Roupas"],
   "Viagens": ["Hotel", "Passagem", "Passeio"],
   "Cuidado Pessoal": ["Higiene Pessoal", "Manicure", "Cabeleireiro/Barbeiro", "Maquiagem"],
-  "Finanças": ["Financiamento", "Renegociação", "Seguros", "Fitness"],
-  "Outros": ["Presentes", "Compras", "Outros"],
+  "Finanças": ["Financiamento", "Renegociação", "Seguros"],
+  "Outros": ["Presentes", "Compras", "Fitness", "Outros"],
 } as const;
 
 export const cardBrands = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'diners', 'other'] as const;
