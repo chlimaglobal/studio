@@ -1,4 +1,3 @@
-
 import { ai } from '@/ai/genkit';
 import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { NextRequest } from 'next/server';
