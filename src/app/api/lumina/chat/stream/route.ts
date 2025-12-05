@@ -4,8 +4,6 @@ import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 
-export const dynamic = 'force-dynamic';
-
 const LuminaChatRequestSchema = z.object({
   messages: z
     .array(
