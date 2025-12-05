@@ -2,6 +2,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {format, startOfMonth, endOfMonth} from "date-fns";
+import { DocumentData } from "firebase-admin/firestore";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -89,7 +90,7 @@ export const disconnectPartner = functions.https.onCall(
          return { success: true, message: "Vínculo inconsistente removido." };
       }
       
-      const coupleData = coupleDoc.data();
+      const coupleData = coupleDoc.data() as DocumentData;
       const members = coupleData?.members || [];
       const partnerId = members.find((id: string) => id !== userId);
 
@@ -139,13 +140,8 @@ export const checkDashboardStatus = functions.https.onCall(
       );
     }
     
-    // Este é um placeholder. A lógica real de análise e alerta seria implementada aqui.
-    // Por exemplo, buscar transações, passar para a IA, e se necessário,
-    // usar o Firebase Cloud Messaging para enviar uma notificação.
-    
     console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
     
-    // Retorna um sucesso simples por enquanto.
     return { success: true, message: "Verificação concluída." };
   }
 );
@@ -164,17 +160,15 @@ export const onTransactionCreated = functions.firestore
     const userDoc = await userDocRef.get();
     const userData = userDoc.data();
 
-    // Do not run for dependents
     if (userData?.isDependent) {
       return null;
     }
 
-    // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
-    // Esta é a implementação real do alerta de balanço negativo.
     const now = new Date();
     const currentMonthKey = format(now, "yyyy-MM");
     const lastAlertedMonth = userData?.mesAlertadoRenda;
 
+    // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
     if (newTransaction.type === 'expense' && lastAlertedMonth !== currentMonthKey) {
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
@@ -191,7 +185,6 @@ export const onTransactionCreated = functions.firestore
 
         snapshot.forEach((doc) => {
             const transaction = doc.data();
-            // Consider only non-investment transactions for this calculation
             if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
                 if (transaction.type === "income") {
                     totalIncome += transaction.amount;
@@ -209,7 +202,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                 await db.collection(`users/${userId}/chat`).add({
                     role: "alerta",
                     text: messageText,
-                    authorName: "Lúmina (Alerta Automático)",
+                    authorName: "Lúmina",
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
                 });
@@ -222,11 +215,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         }
     }
 
-    // --- LÓGICA COMPLETA PARA OS DEMAIS ALERTAS E LEMBRETES ---
-
-    // 🟧 ALERTA DE RISCO — gasto fora do padrão
-    // Lógica: Se newTransaction.amount for X vezes maior que a média da categoria, enviar alerta.
-    // Esta é uma implementação real e não um placeholder.
+    // --- 🟧 ALERTA DE RISCO — gasto fora do padrão ---
     if (newTransaction.type === 'expense' && newTransaction.amount > 500) { // Limite de exemplo
         const categoryTransactionsQuery = db.collection(`users/${userId}/transactions`)
             .where('category', '==', newTransaction.category)
@@ -237,19 +226,17 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         categorySnapshot.forEach(doc => total += doc.data().amount);
         const average = total / (categorySnapshot.size || 1);
 
-        if (newTransaction.amount > average * 3 && categorySnapshot.size > 5) {
+        if (categorySnapshot.size > 5 && newTransaction.amount > average * 3) {
             const messageText = `🚨 Detectei uma despesa fora do padrão em ${newTransaction.category}. Quer que eu investigue isso pra você?`;
              await db.collection(`users/${userId}/chat`).add({
-                role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)",
+                role: "alerta", text: messageText, authorName: "Lúmina",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 suggestions: ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"],
             });
         }
     }
 
-    // 🟨 ALERTA DE RECORRÊNCIA INCOMUM
-    // Lógica: Se houver mais de 3 transações na mesma categoria nos últimos 7 dias.
-    // Esta é uma implementação real.
+    // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
     if (newTransaction.type === 'expense') {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const recentRecurrenceQuery = db.collection(`users/${userId}/transactions`)
@@ -258,72 +245,57 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
             .where('date', '>=', sevenDaysAgo);
         
         const recentSnapshot = await recentRecurrenceQuery.get();
-        if (recentSnapshot.size > 3) { // Mais de 3 gastos na mesma categoria em 7 dias
+        if (recentSnapshot.size > 3) {
             const messageText = `📌 Você fez ${recentSnapshot.size} despesas recentes em ${newTransaction.category}. Esse comportamento está acima da sua média.`;
              await db.collection(`users/${userId}/chat`).add({
-                role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)",
+                role: "alerta", text: messageText, authorName: "Lúmina",
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
                 suggestions: ["Ver transações", "Definir orçamento", "Entendido"],
             });
         }
     }
     
-    // ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%)
-    // Lógica: Verifica o orçamento da categoria e o gasto total no mês.
-    // Esta é uma implementação real.
+    // --- ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%) ---
     const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
     const budgetsDoc = await budgetsDocRef.get();
     if (budgetsDoc.exists && newTransaction.category) {
         const budgetsData = budgetsDoc.data();
-        const categoryBudget = budgetsData?.[newTransaction.category];
-        
-        if (categoryBudget > 0) {
-            const monthStart = startOfMonth(now);
-            const monthEnd = endOfMonth(now);
-            const categorySpendingQuery = db.collection(`users/${userId}/transactions`)
-                .where('category', '==', newTransaction.category)
-                .where('type', '==', 'expense')
-                .where('date', '>=', monthStart)
-                .where('date', '<=', monthEnd);
+        if (budgetsData) {
+            const categoryBudget = budgetsData[newTransaction.category];
+            
+            if (categoryBudget > 0) {
+                const monthStart = startOfMonth(now);
+                const monthEnd = endOfMonth(now);
+                const categorySpendingQuery = db.collection(`users/${userId}/transactions`)
+                    .where('category', '==', newTransaction.category)
+                    .where('type', '==', 'expense')
+                    .where('date', '>=', monthStart)
+                    .where('date', '<=', monthEnd);
+                    
+                const categorySpendingSnapshot = await categorySpendingQuery.get();
+                let totalCategorySpending = 0;
+                categorySpendingSnapshot.forEach(doc => totalCategorySpending += doc.data().amount);
                 
-            const categorySpendingSnapshot = await categorySpendingQuery.get();
-            let totalCategorySpending = 0;
-            categorySpendingSnapshot.forEach(doc => totalCategorySpending += doc.data().amount);
-            
-            const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
-            
-            if (spendingPercentage >= 100 && userData?.ultimoAlertaLimite !== `${currentMonthKey}-${newTransaction.category}-100`) {
-                 await userDocRef.update({ [`ultimoAlertaLimite`]: `${currentMonthKey}-${newTransaction.category}-100` });
-                 const messageText = `🟥 Meta de gastos para ${newTransaction.category} ultrapassada. Preciso ajustar o plano.`;
-                 await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
+                const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
+                
+                const alertKey80 = `alert_80_${currentMonthKey}_${newTransaction.category}`;
+                const alertKey100 = `alert_100_${currentMonthKey}_${newTransaction.category}`;
 
-            } else if (spendingPercentage >= 80 && userData?.ultimoAlertaLimite !== `${currentMonthKey}-${newTransaction.category}-80`) {
-                 await userDocRef.update({ [`ultimoAlertaLimite`]: `${currentMonthKey}-${newTransaction.category}-80` });
-                 const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${newTransaction.category}. Sugiro revisar suas próximas despesas.`;
-                 await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina (Alerta Automático)", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
+                if (spendingPercentage >= 100 && !userData?.[alertKey100]) {
+                     await userDocRef.update({ [alertKey100]: true });
+                     const messageText = `🟥 Meta de gastos para ${newTransaction.category} ultrapassada. Preciso ajustar o plano.`;
+                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
+                } else if (spendingPercentage >= 80 && !userData?.[alertKey80]) {
+                     await userDocRef.update({ [alertKey80]: true });
+                     const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${newTransaction.category}. Sugiro revisar suas próximas despesas.`;
+                     await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
+                }
             }
         }
     }
     
-    // Os lembretes (meta diária, pagamento, investimento) e projeções mais complexas
-    // (saldo negativo, ponto de ruptura) são mais adequados para funções agendadas (cron jobs)
-    // que rodam diariamente, em vez de em cada criação de transação.
-    // A estrutura para eles permanece como um guia para essa implementação futura.
-    
-    // 🟦 ALERTA DO PLANO MENSAL (Ideal para função agendada)
-    
-    // ⏰ LEMBRETE DE META DIÁRIA (Ideal para função agendada)
-
-    // 📅 LEMBRETE DE PAGAMENTO (Ideal para função agendada)
-
-    // 💡 LEMBRETE DE INVESTIMENTO (Ideal para função agendada ou trigger de receita grande)
-
-    // 📉 ALERTA DE PROJEÇÃO NEGATIVA (Ideal para função agendada)
-
-    // 📈 ANÁLISE FINANCEIRA PROATIVA (Ideal para função agendada)
+    // As demais funções agendadas (cron jobs) permanecem como placeholders
+    // para implementação futura, pois exigem uma configuração diferente.
     
     return null;
   });
-    
-
-    

@@ -1,4 +1,3 @@
-
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
@@ -129,7 +128,7 @@ export const luminaChatFlow = ai.defineFlow(
       const contents = await generateChatContents(input as LuminaChatInput);
 
       const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: 'gemini-1.5-flash',
         contents,
         config: {
           temperature: 0.7,

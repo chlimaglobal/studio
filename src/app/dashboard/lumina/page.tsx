@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Loader2, Mic, Paperclip, Camera, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -78,7 +78,9 @@ export default function ChatPage() {
     if (!user) return;
     
     // Load initial messages from Firestore only once
-    if (messages.length > 0) return;
+    const isInitialLoad = messages.length === 0;
+
+    if (!isInitialLoad) return;
 
     const unsub = viewMode === "together" && coupleLink
       ? onCoupleChatUpdate(coupleLink.id, (dbMsgs) => {
