@@ -2,7 +2,6 @@
 'use server';
 
 import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
-import { generateSuggestion } from '../flows/lumina-chat';
 import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
 import { extractFromImage } from '../flows/extract-from-image';
@@ -48,50 +47,6 @@ export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, co
 
     // 3. Adiciona a resposta da Lúmina ao histórico compartilhado
     await addCoupleChatMessage(coupleLink.id, {
-        role: 'lumina',
-        text: luminaResponse.text,
-        authorName: 'Lúmina',
-        authorPhotoUrl: '/lumina-avatar.png',
-        suggestions: luminaResponse.suggestions,
-    });
-}
-
-// THIS FUNCTION IS NO LONGER USED, THE LOGIC IS NOW IN THE API ROUTE
-export async function sendMessageToLuminaSingle(input: LuminaChatInput) {
-    const { userQuery, allTransactions, chatHistory, user, imageBase64 } = input;
-    if (!user?.uid) throw new Error("Usuário não autenticado.");
-    
-    let finalQuery = userQuery;
-
-    if (imageBase64) {
-        try {
-            const extractedData = await extractFromImage({ imageDataUri: imageBase64, allTransactions });
-            finalQuery = `Analise os dados deste comprovante: ${extractedData.description}, valor ${extractedData.amount}. O que deseja fazer com isso?`;
-        } catch (e) {
-            finalQuery = userQuery || "Não consegui analisar a imagem que você enviou. Pode me dizer o que precisa?";
-        }
-    }
-    
-    // 1. Adiciona a mensagem do usuário ao histórico
-    await addChatMessage(user.uid, {
-        role: 'user',
-        text: finalQuery,
-        authorId: user.uid,
-        authorName: user.displayName || 'Você',
-        authorPhotoUrl: user.photoURL || '',
-    });
-
-    // 2. Chama a IA para gerar a resposta
-    const luminaResponse = await generateSuggestion({
-        userQuery: finalQuery,
-        allTransactions,
-        chatHistory,
-        imageBase64,
-        isCoupleMode: false,
-    });
-
-    // 3. Adiciona a resposta da Lúmina ao histórico
-    await addChatMessage(user.uid, {
         role: 'lumina',
         text: luminaResponse.text,
         authorName: 'Lúmina',
