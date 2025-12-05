@@ -216,7 +216,8 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     }
 
     // --- 🟧 ALERTA DE RISCO — gasto fora do padrão ---
-    if (newTransaction.type === 'expense' && newTransaction.amount > 500) { // Limite de exemplo
+    const outOfPatternAlertKey = `alert_outOfPattern_${currentMonthKey}_${newTransaction.category}`;
+    if (newTransaction.type === 'expense' && newTransaction.amount > 500 && !userData?.[outOfPatternAlertKey]) { // Limite de exemplo
         const categoryTransactionsQuery = db.collection(`users/${userId}/transactions`)
             .where('category', '==', newTransaction.category)
             .where('type', '==', 'expense');
@@ -227,6 +228,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         const average = total / (categorySnapshot.size || 1);
 
         if (categorySnapshot.size > 5 && newTransaction.amount > average * 3) {
+            await userDocRef.update({ [outOfPatternAlertKey]: true });
             const messageText = `🚨 Detectei uma despesa fora do padrão em ${newTransaction.category}. Quer que eu investigue isso pra você?`;
              await db.collection(`users/${userId}/chat`).add({
                 role: "alerta", text: messageText, authorName: "Lúmina",
@@ -237,7 +239,8 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     }
 
     // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
-    if (newTransaction.type === 'expense') {
+    const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${newTransaction.category}`;
+    if (newTransaction.type === 'expense' && !userData?.[unusualRecurrenceAlertKey]) {
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const recentRecurrenceQuery = db.collection(`users/${userId}/transactions`)
             .where('category', '==', newTransaction.category)
@@ -246,6 +249,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
         
         const recentSnapshot = await recentRecurrenceQuery.get();
         if (recentSnapshot.size > 3) {
+            await userDocRef.update({ [unusualRecurrenceAlertKey]: true });
             const messageText = `📌 Você fez ${recentSnapshot.size} despesas recentes em ${newTransaction.category}. Esse comportamento está acima da sua média.`;
              await db.collection(`users/${userId}/chat`).add({
                 role: "alerta", text: messageText, authorName: "Lúmina",
@@ -299,3 +303,7 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
     
     return null;
   });
+
+    
+
+    
