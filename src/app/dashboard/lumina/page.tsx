@@ -45,8 +45,6 @@ export default function ChatPage() {
     handleSubmit,
     isLoading, 
     error,
-    append,
-    reload,
   } = useChat({
     api: '/api/lumina/chat/stream',
     keepLastMessageOnError: true,
@@ -80,8 +78,12 @@ export default function ChatPage() {
         setImagePreview(null);
         setImageBase64(null);
     },
-    onError: () => {
-        // Don't clear image on error so user can retry
+    onError: (e) => {
+        toast({
+            variant: "destructive",
+            title: "Erro ao falar com a Lúmina",
+            description: e.message || "Não foi possível obter uma resposta. Verifique sua conexão e tente novamente.",
+        })
     }
   });
   

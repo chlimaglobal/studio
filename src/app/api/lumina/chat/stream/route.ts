@@ -1,9 +1,10 @@
 
-import { ai } from '@/ai/genkit';
-import { luminaChatFlow } from '@/ai/flows/lumina-chat';
-import { NextRequest, NextResponse } from 'next/server';
-import { StreamData, StreamingTextResponse } from 'ai';
+import { NextRequest } from 'next/server';
+import { StreamingTextResponse } from 'ai';
 import { z } from 'zod';
+import { generateChatContents } from '@/ai/flows/lumina-chat';
+import { updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,33 +41,24 @@ export async function POST(request: NextRequest) {
     
     const input = LuminaChatRequestSchema.parse(inputToParse);
 
-    // Since we are streaming, we can't use ai.run() directly with the flow.
-    // Instead, we will replicate the logic inside the flow that prepares the prompt
-    // and then call the Gemini model directly with streaming.
-    // This is a temporary workaround until Genkit streaming is better integrated with Vercel AI SDK.
-
-    // 1. Build the prompt context using the same logic as the flow
-    const { generateChatContents } = await import('@/ai/flows/lumina-chat');
-    const { updateMemoryFromMessage } = await import('@/ai/lumina/memory/memoryStore');
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-    // Ensure user UID exists for memory update
+    // 1. Update user memory in the background (fire and forget)
     if (input.user?.uid && lastUserMessage?.content) {
-      await updateMemoryFromMessage(input.user.uid, lastUserMessage.content);
+      updateMemoryFromMessage(input.user.uid, lastUserMessage.content).catch(console.error);
     }
     
+    // 2. Build the full prompt history
     const contents = await generateChatContents(input as any);
 
+    // 3. Call Gemini directly for streaming
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
     const model = genAI.getGenerativeModel({
         model: 'gemini-1.5-flash',
         generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
     });
 
-    const result = await model.generateContentStream(contents);
+    const result = await model.generateContentStream({ contents });
 
-    // Convert the response into a friendly text-stream
+    // 4. Convert the response into a Vercel AI SDK-compatible stream
     const stream = new ReadableStream({
       async start(controller) {
         for await (const chunk of result.stream) {
@@ -86,7 +78,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
     }
-    return new Response(JSON.stringify({ error: "Erro interno do servidor. Verifique os logs." }), { status: 500 });
+    // For any other error, return a generic server error
+    return new Response(JSON.stringify({ error: "Desculpe, a Lúmina está temporariamente indisponível. Por favor, tente novamente em alguns instantes." }), { status: 500 });
   }
 }
-
