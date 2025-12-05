@@ -1,6 +1,4 @@
 
-import { config } from 'dotenv';
-config();
 
 import '@/ai/flows/categorize-transaction.ts';
 import '@/ai/flows/extract-transaction-from-text.ts';
@@ -15,4 +13,3 @@ import '@/ai/flows/recovery-protocol-flow.ts';
 import '@/ai/flows/calculate-savings-goal.ts';
 import '@/ai/lumina/prompt/luminaRecoveryPrompt.ts';
 import '@/ai/flows/text-to-speech.ts';
-
