@@ -1,6 +1,4 @@
 
-'use server';
-
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
@@ -16,7 +14,7 @@ import {
 import { getUserMemory, saveUserMemory } from '@/ai/lumina/memory/memoryStore';
 
 // =========================================================
-// HELPER FUNCTIONS (NOW CENTRALIZED HERE)
+// HELPER FUNCTIONS
 // =========================================================
 
 async function buildMemoryContext(userId: string) {
@@ -70,20 +68,21 @@ async function generateChatContents(input: LuminaChatInput): Promise<any[]> {
     contents.push({ role: 'user', parts: [{ text: systemPrompt }] });
     contents.push({ role: 'model', parts: [{ text: 'Entendido. Estou pronta para ajudar seguindo essas diretrizes.' }] });
 
-    // Add message history
+    // Add message history from the client
     if (input.messages && input.messages.length > 0) {
         input.messages.forEach((msg: any) => {
-             // Ensure the last message isn't duplicated
-            if (msg.id !== input.messages[input.messages.length - 1].id) {
-                contents.push({
-                    role: msg.role === 'assistant' ? 'model' : 'user',
-                    parts: [{ text: msg.content || '' }],
-                });
+            // Ensure the message format is correct for the Gemini API
+            const role = msg.role === 'assistant' ? 'model' : 'user';
+            const content = msg.content || '';
+            // Skip adding empty user messages that might come from the initial prompt setup
+            if (role === 'user' && !content.trim()) {
+                return;
             }
+            contents.push({ role, parts: [{ text: content }] });
         });
     }
 
-    // Add current user query and image (if any)
+    // Add current user query and image (if any) as the very last message
     const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
     if (input.imageBase64) {
         lastUserMessageParts.push({
@@ -93,7 +92,13 @@ async function generateChatContents(input: LuminaChatInput): Promise<any[]> {
             },
         });
     }
-    contents.push({ role: 'user', parts: lastUserMessageParts });
+    
+    // Check if the last message is already the user query to avoid duplication
+    const lastContentMessage = contents[contents.length - 1];
+    if (lastContentMessage?.role !== 'user' || lastContentMessage?.parts[0]?.text !== userQuery) {
+        contents.push({ role: 'user', parts: lastUserMessageParts });
+    }
+
 
     return contents;
 }

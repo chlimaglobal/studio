@@ -1,6 +1,3 @@
-
-'use server';
-
 import { ai } from '@/ai/genkit';
 import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { NextRequest } from 'next/server';
@@ -40,7 +37,6 @@ export async function POST(request: NextRequest) {
     const rawInput = await request.json();
     const input = LuminaChatRequestSchema.parse(rawInput);
     
-    // The `useChat` hook sends the new user message as the last item in the `messages` array.
     const userQuery = input.messages?.[input.messages.length - 1]?.content || '';
 
     const { stream, response } = await luminaChatFlow(
