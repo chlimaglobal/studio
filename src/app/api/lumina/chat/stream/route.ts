@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     const rawInput = await request.json();
     const input = LuminaChatRequestSchema.parse(rawInput);
     
+    // The user query for the flow is the last message content.
     const userQuery = input.messages?.[input.messages.length - 1]?.content || '';
 
     const { stream, response } = await luminaChatFlow(
