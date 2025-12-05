@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
 
 interface UserMemory {
   preferences?: Record<string, any>;
@@ -51,4 +51,45 @@ export async function saveUserMemory(userId: string, memoryData: Partial<UserMem
   } catch (error) {
     console.error("Error saving user memory:", error);
   }
+}
+
+
+/**
+ * Analyzes a user's message and updates their memory profile.
+ * @param userId The ID of the user.
+ * @param text The user's message content.
+ */
+export async function updateMemoryFromMessage(userId: string, text: string): Promise<void> {
+    const toSave: Partial<UserMemory> = {};
+    const lowerText = text.toLowerCase();
+
+    // Preference detection
+    if (lowerText.includes('prefiro') || lowerText.includes('gosto mais de') || lowerText.includes('sempre uso')) {
+        toSave.preferences = { lastPreference: text };
+    }
+
+    // "Don't say" detection
+    if (lowerText.includes('não fale') || lowerText.includes('não gosto que você diga') || lowerText.includes('pare de dizer')) {
+        toSave.dontSay = [text]; // For now, we overwrite. A better approach would be to push to an array.
+    }
+
+    // Financial habits detection
+    if (/\b(gasto|despesa|compro|pago)\b/.test(lowerText) && text.length > 20) {
+        toSave.financialHabits = { lastMentionedHabit: text };
+    }
+
+    // General facts
+    if (text.length > 15 && !Object.keys(toSave).length) {
+         toSave.facts = { lastFact: text };
+    }
+    
+    if (Object.keys(toSave).length > 0) {
+        const memoryDocRef = doc(db, MEMORY_COLLECTION, userId);
+        try {
+            // Use updateDoc for targeted field updates without overwriting the whole document
+             await setDoc(memoryDocRef, { ...toSave, updatedAt: Timestamp.now() }, { merge: true });
+        } catch (e) {
+            console.error("Error updating user memory from message:", e);
+        }
+    }
 }

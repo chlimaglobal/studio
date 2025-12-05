@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, Mic, Paperclip, Camera, Send } from "lucide-react";
+import { Loader2, Mic, Paperclip, Camera, Send, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +13,8 @@ import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useChat } from 'ai/react';
+import Image from 'next/image';
+import { useToast } from "@/hooks/use-toast";
 
 
 const TypingIndicator = () => (
@@ -30,6 +32,10 @@ export default function ChatPage() {
   const { setHasUnread } = useLumina();
   const { coupleLink } = useCoupleStore.getState();
   const [isAudioOpen, setIsAudioOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const { 
     messages, 
@@ -54,6 +60,7 @@ export default function ChatPage() {
         email: user?.email,
         photoURL: user?.photoURL,
       },
+      imageBase64: imageBase64,
     },
     onFinish: (message) => {
         if (!message.content.trim()) return;
@@ -69,6 +76,12 @@ export default function ChatPage() {
         } else if (user) {
             addChatMessage(user.uid, luminaMsg);
         }
+        // Clear image after successful submission
+        setImagePreview(null);
+        setImageBase64(null);
+    },
+    onError: () => {
+        // Don't clear image on error so user can retry
     }
   });
   
@@ -77,9 +90,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     
-    // Load initial messages from Firestore only once
     const isInitialLoad = messages.length === 0;
-
     if (!isInitialLoad) return;
 
     const unsub = viewMode === "together" && coupleLink
@@ -115,10 +126,9 @@ export default function ChatPage() {
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || !user) return;
+    if ((!input.trim() && !imageBase64) || !user) return;
 
-    // Persist user message to Firestore immediately
-    const userMsgForDb = {
+    const userMsgForDb: Omit<ChatMessage, 'id'|'timestamp'> = {
       role: 'user' as const,
       text: input,
       authorId: user.uid,
@@ -131,14 +141,44 @@ export default function ChatPage() {
       addChatMessage(user.uid, userMsgForDb);
     }
     
-    // Let useChat handle the API call
-    handleSubmit(e);
+    handleSubmit(e, {
+        options: {
+            body: {
+                imageBase64: imageBase64,
+            }
+        }
+    });
   };
-
 
   const handleAudioTranscript = (transcript: string) => {
     console.log("Transcrição recebida:", transcript);
   };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          variant: "destructive",
+          title: "Arquivo muito grande",
+          description: "Por favor, selecione uma imagem com menos de 2MB.",
+        });
+        return;
+      }
+      const base64 = await fileToBase64(file);
+      setImagePreview(URL.createObjectURL(file));
+      setImageBase64(base64);
+    }
+  };
+
+  const clearImage = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    if(fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -203,39 +243,60 @@ export default function ChatPage() {
           )}
         </div>
       </ScrollArea>
-
-      <form onSubmit={handleFormSubmit} className="p-4 border-t flex items-center gap-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Anexar imagem"
-          disabled
-        >
-          <Camera className="w-5 h-5" />
-        </Button>
-
-        <Input
-          placeholder="Digite uma mensagem..."
-          value={input}
-          onChange={handleInputChange}
-          className="flex-1 min-w-0"
-          disabled={isLoading}
-        />
-        
-        <AudioInputDialog 
-            open={isAudioOpen} 
-            onOpenChange={setIsAudioOpen} 
-            onTranscript={handleAudioTranscript}>
-            <Button type="button" variant="ghost" size="icon" aria-label="Enviar áudio">
-                <Mic className="w-5 h-5" />
+      
+      <div className="border-t">
+        {imagePreview && (
+            <div className="p-4 bg-muted/50 relative">
+                <p className="text-xs text-muted-foreground mb-2">Imagem anexada:</p>
+                <div className="relative w-20 h-20">
+                    <Image src={imagePreview} alt="Pré-visualização" layout="fill" objectFit="cover" className="rounded-md" />
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                        onClick={clearImage}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        )}
+        <form onSubmit={handleFormSubmit} className="p-4 flex items-center gap-3">
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+            <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Anexar arquivo"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            >
+            <Paperclip className="w-5 h-5" />
             </Button>
-        </AudioInputDialog>
 
-        <Button type="submit" disabled={isLoading || !input.trim()}>
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        </Button>
-      </form>
+            <Input
+            placeholder="Digite uma mensagem..."
+            value={input}
+            onChange={handleInputChange}
+            className="flex-1 min-w-0"
+            disabled={isLoading}
+            />
+            
+            <AudioInputDialog 
+                open={isAudioOpen} 
+                onOpenChange={setIsAudioOpen} 
+                onTranscript={handleAudioTranscript}>
+                <Button type="button" variant="ghost" size="icon" aria-label="Enviar áudio">
+                    <Mic className="w-5 h-5" />
+                </Button>
+            </AudioInputDialog>
+
+            <Button type="submit" disabled={isLoading || (!input.trim() && !imageBase64)}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+        </form>
+      </div>
     </div>
   );
 }
