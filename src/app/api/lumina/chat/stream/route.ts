@@ -1,12 +1,10 @@
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { generateChatContents } from '@/ai/flows/lumina-chat';
 import { updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-export const dynamic = 'force-dynamic';
 
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ 
@@ -76,9 +74,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
     if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
+      return NextResponse.json({ error: "Input inválido", details: error.errors }, { status: 400 });
     }
     // For any other error, return a generic server error
-    return new Response(JSON.stringify({ error: "Desculpe, a Lúmina está temporariamente indisponível. Por favor, tente novamente em alguns instantes." }), { status: 500 });
+    return NextResponse.json({ error: "Desculpe, a Lúmina está temporariamente indisponível. Por favor, tente novamente em alguns instantes." }, { status: 500 });
   }
 }
