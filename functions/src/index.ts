@@ -263,12 +263,12 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     .where('type', '==', 'expense');
 
                 const categorySnapshot = await categoryTransactionsQuery.get();
-                if (categorySnapshot.size > 5) {
+                if (categorySnapshot.size > 5) { // Only analyze if there's enough history
                     let total = 0;
                     categorySnapshot.forEach(doc => total += doc.data().amount);
                     const average = total / categorySnapshot.size;
 
-                    if (transaction.amount > average * 3) {
+                    if (transaction.amount > average * 3) { // Alert if 3x the average
                         await userDoc.ref.update({ [outOfPatternAlertKey]: true });
                         const messageText = `🚨 Detectei uma despesa fora do padrão em ${transaction.category}. Quer que eu investigue isso pra você?`;
                         await db.collection(`users/${userId}/chat`).add({
@@ -298,7 +298,7 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
         });
 
         for (const category in categoryCounts) {
-            if (categoryCounts[category] > 3) {
+            if (categoryCounts[category] > 3) { // More than 3 times in a week
                  const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
                  if (!userData?.[unusualRecurrenceAlertKey]) {
                     await userDoc.ref.update({ [unusualRecurrenceAlertKey]: true });
@@ -368,6 +368,3 @@ const endOfDay = (date: Date) => {
   newDate.setHours(23, 59, 59, 999);
   return newDate;
 };
-
-
-    
