@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -241,7 +240,7 @@ export default function ReportsPage() {
   const { transactions, isLoading } = useTransactions();
   const router = useRouter();
 
-  const categorySpendingData = useMemo((): CategorySpending[] => {
+  const { categorySpendingData, totalExpenses } = useMemo(() => {
     const spendingMap = new Map<TransactionCategory, number>();
 
     transactions
@@ -250,15 +249,15 @@ export default function ReportsPage() {
         spendingMap.set(t.category, (spendingMap.get(t.category) || 0) + t.amount);
       });
 
-    return Array.from(spendingMap.entries())
+    const categoryData = Array.from(spendingMap.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
+
+    const total = categoryData.reduce((acc, curr) => acc + curr.value, 0);
+
+    return { categorySpendingData: categoryData, totalExpenses: total };
   }, [transactions]);
   
-  const totalExpenses = useMemo(() => {
-    return categorySpendingData.reduce((acc, curr) => acc + curr.value, 0);
-  }, [categorySpendingData]);
-
 
   if (isLoading) {
     return (
