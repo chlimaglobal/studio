@@ -242,13 +242,12 @@ export default function ReportsPage() {
   const router = useRouter();
 
   const { categorySpendingData, pieChartData, totalExpenses } = useMemo(() => {
-    
     function parseBRLToNumber(value: any) {
         if (typeof value === "number") return value;
         if (!value) return 0;
         let s = String(value).trim();
         s = s.replace(/^R\$\s?/, "");
-        if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
+        if (/^\\d+(\\.\\d+)?$/.test(s)) return Number(s);
         s = s.replace(/\./g, "").replace(/,/g, ".");
         const n = Number(s);
         return isNaN(n) ? 0 : n;
@@ -259,9 +258,9 @@ export default function ReportsPage() {
         return String(cat).trim().toLowerCase();
     }
 
-    const safeTransactions = (transactions || []).filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
+    const expenseTransactions = (transactions || []).filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
 
-    const categoryTotals = safeTransactions.reduce((acc, tx) => {
+    const categoryTotals = expenseTransactions.reduce((acc, tx) => {
         const numAmount = parseBRLToNumber(tx.amount);
         const categoryKey = normalizeCategory(tx.category);
         if (!acc[categoryKey]) acc[categoryKey] = 0;
@@ -269,12 +268,10 @@ export default function ReportsPage() {
         return acc;
     }, {} as Record<string, number>);
 
-    let aggregatedData = Object.entries(categoryTotals).map(([name, value]) => ({
+    const aggregatedData = Object.entries(categoryTotals).map(([name, value]) => ({
         name,
         value,
-    }));
-
-    aggregatedData.sort((a, b) => b.value - a.value);
+    })).sort((a, b) => b.value - a.value);
 
     const total = aggregatedData.reduce((s, c) => s + c.value, 0);
 
@@ -295,7 +292,7 @@ export default function ReportsPage() {
     
     return { 
         categorySpendingData: aggregatedData, 
-        pieChartData: finalPieData, 
+        pieChartData: finalPieData,
         totalExpenses: total
     };
   }, [transactions]);
@@ -384,3 +381,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
