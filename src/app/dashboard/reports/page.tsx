@@ -253,9 +253,25 @@ export default function ReportsPage() {
         return isNaN(n) ? 0 : n;
     }
 
-    function normalizeCategory(cat: any) {
-        if (!cat) return "sem categoria";
-        return String(cat).trim().toLowerCase();
+    function normalizeCategory(cat: any): string {
+      const safeCat = cat || 'Outros';
+      const knownCategories: TransactionCategory[] = [
+        "Alimentação", "Assinaturas/Serviços", "Moradia", "Transporte", "Saúde", 
+        "Lazer/Hobbies", "Dívidas/Empréstimos", "Educação", "Impostos/Taxas", 
+        "Investimentos e Reservas", "Bebê", "Pets", "Salário", "Vestuário", 
+        "Viagens", "Cuidado Pessoal", "Finanças", "Outros", "Farmácia", "Roupas"
+      ];
+      
+      const lowerCat = String(safeCat).trim().toLowerCase();
+      
+      // Direct match or find a category that includes the lowercased one
+      for (const known of knownCategories) {
+        if (known.toLowerCase() === lowerCat) {
+          return known;
+        }
+      }
+      
+      return safeCat.charAt(0).toUpperCase() + safeCat.slice(1);
     }
 
     const expenseTransactions = (transactions || []).filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
@@ -269,7 +285,7 @@ export default function ReportsPage() {
     }, {} as Record<string, number>);
 
     const aggregatedData = Object.entries(categoryTotals).map(([name, value]) => ({
-        name,
+        name: name as TransactionCategory,
         value,
     })).sort((a, b) => b.value - a.value);
 
@@ -284,7 +300,7 @@ export default function ReportsPage() {
         finalPieData = [
             ...topItems,
             {
-                name: "outros",
+                name: "Outros",
                 value: othersSum,
             }
         ];
@@ -381,5 +397,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
