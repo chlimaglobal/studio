@@ -247,21 +247,21 @@ export default function ReportsPage() {
     transactions
       .filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category))
       .forEach(t => {
-        spendingMap.set(t.category, (spendingMap.get(t.category) || 0) + t.amount);
+        const category = t.category || 'Outros';
+        spendingMap.set(category, (spendingMap.get(category) || 0) + t.amount);
       });
 
-    const categoryData = Array.from(spendingMap.entries())
+    const aggregatedData = Array.from(spendingMap.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    const total = categoryData.reduce((acc, curr) => acc + curr.value, 0);
-
-    const pieData = categoryData.map(item => ({
-        name: item.name,
-        value: item.value // Pass the absolute value
-    }));
-
-    return { categorySpendingData: categoryData, pieChartData: pieData, totalExpenses: total };
+    const total = aggregatedData.reduce((acc, curr) => acc + curr.value, 0);
+    
+    return { 
+        categorySpendingData: aggregatedData, 
+        pieChartData: aggregatedData, 
+        totalExpenses: total 
+    };
   }, [transactions]);
   
 
