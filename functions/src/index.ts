@@ -147,60 +147,56 @@ export const checkDashboardStatus = functions.https.onCall(
 );
 
 /**
- * Triggered when a new transaction is created.
- * Checks ONLY for the most critical financial health rule: expenses exceeding income.
- * Other checks are moved to a scheduled function to save costs.
+ * Gatilho leve acionado em cada nova transação.
+ * Executa apenas a verificação mais crítica: despesas totais > receitas totais.
  */
 export const onTransactionCreated = functions.firestore
   .document("users/{userId}/transactions/{transactionId}")
   .onCreate(async (snap, context) => {
     const { userId } = context.params;
-    const newTransaction = snap.data();
-
     const userDocRef = db.doc(`users/${userId}`);
-    const userDoc = await userDocRef.get();
-    const userData = userDoc.data();
 
-    if (userData?.isDependent) {
-      return null;
-    }
+    try {
+        const userDoc = await userDocRef.get();
+        const userData = userDoc.data();
 
-    const now = new Date();
-    const currentMonthKey = format(now, "yyyy-MM");
-    const lastAlertedMonth = userData?.mesAlertadoRenda;
+        // Ignorar usuários dependentes
+        if (userData?.isDependent) {
+            return null;
+        }
 
-    // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
-    // This is the only check that runs on every transaction for immediate feedback.
-    if (newTransaction.type === 'expense' && lastAlertedMonth !== currentMonthKey) {
-        const monthStart = startOfMonth(now);
-        const monthEnd = endOfMonth(now);
+        const now = new Date();
+        const currentMonthKey = format(now, "yyyy-MM");
+        const lastAlertedMonth = userData?.mesAlertadoRenda;
 
-        const transactionsRef = db.collection(`users/${userId}/transactions`);
-        const query = transactionsRef
-            .where("date", ">=", monthStart)
-            .where("date", "<=", monthEnd);
+        // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
+        // Otimizado para rodar apenas uma vez por mês e com o mínimo de leituras.
+        if (lastAlertedMonth !== currentMonthKey) {
+            const monthStart = startOfMonth(now);
+            const monthEnd = endOfMonth(now);
 
-        const snapshot = await query.get();
-        
-        let totalIncome = 0;
-        let totalExpenses = 0;
+            const transactionsRef = db.collection(`users/${userId}/transactions`);
+            const query = transactionsRef.where("date", ">=", monthStart).where("date", "<=", monthEnd);
+            const snapshot = await query.get();
+            
+            let totalIncome = 0;
+            let totalExpenses = 0;
+            const investmentCategories = ["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"];
 
-        snapshot.forEach((doc) => {
-            const transaction = doc.data();
-            if (transaction.category && !["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"].includes(transaction.category)) {
-                if (transaction.type === "income") {
-                    totalIncome += transaction.amount;
-                } else {
-                    totalExpenses += transaction.amount;
+            snapshot.forEach((doc) => {
+                const transaction = doc.data();
+                if (transaction.category && !investmentCategories.includes(transaction.category)) {
+                    const amount = Number(transaction.amount) || 0;
+                    if (transaction.type === "income") {
+                        totalIncome += amount;
+                    } else {
+                        totalExpenses += amount;
+                    }
                 }
-            }
-        });
+            });
 
-        if (totalExpenses > totalIncome) {
-            try {
-                const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas.
-Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
-
+            if (totalExpenses > totalIncome) {
+                const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas. Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                 await db.collection(`users/${userId}/chat`).add({
                     role: "alerta",
                     text: messageText,
@@ -208,13 +204,11 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     suggestions: ["Sim, mostre o plano", "Onde estou gastando mais?", "Ignorar por enquanto"],
                 });
-
                 await userDocRef.update({ mesAlertadoRenda: currentMonthKey });
-
-            } catch (error) {
-                console.error("Erro ao enviar alerta de balanço negativo:", error);
             }
         }
+    } catch (error) {
+        console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
     
     return null;
@@ -222,55 +216,68 @@ Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
 
 
 /**
- * Scheduled function to run daily checks for all users.
- * This is the cost-effective way to run complex analyses.
+ * Função agendada para rodar diariamente.
+ * Realiza análises complexas de forma otimizada para todos os usuários.
  */
-export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours').onRun(async () => {
     const usersSnapshot = await db.collection('users').get();
 
     for (const userDoc of usersSnapshot.docs) {
         const userId = userDoc.id;
         const userData = userDoc.data();
 
+        // Ignorar contas dependentes
         if (userData.isDependent) {
-            continue; // Skip checks for dependent accounts
+            continue;
         }
 
-        console.log(`Running daily checkup for user ${userId}`);
-        const now = new Date();
-        const currentMonthKey = format(now, "yyyy-MM");
+        console.log(`Executando verificação diária para o usuário ${userId}`);
+        
+        try {
+            const now = new Date();
+            const currentMonthKey = format(now, "yyyy-MM");
+            const updates: { [key: string]: any } = {}; // Objeto para acumular atualizações de flags
 
-        // --- CHECAGENS DIÁRIAS ---
+            // Otimização: Buscar transações dos últimos 60 dias uma única vez por usuário
+            const sixtyDaysAgo = subDays(now, 60);
+            const transactionsSnapshot = await db.collection(`users/${userId}/transactions`)
+                .where('date', '>=', sixtyDaysAgo)
+                .get();
+            const transactions = transactionsSnapshot.docs.map(doc => doc.data());
 
-        // --- 🟧 ALERTA DE RISCO — gasto fora do padrão ---
-        // Checks the last day's transactions for unusual spikes.
-        const yesterday = startOfDay(subDays(now, 1));
-        const today = endOfDay(subDays(now, 1));
+            // --- 🟧 ALERTA DE RISCO — GASTO FORA DO PADRÃO ---
+            const yesterdayStart = startOfDay(subDays(now, 1));
+            const yesterdayEnd = endOfDay(subDays(now, 1));
+            const recentExpenses = transactions.filter(t => 
+                t.type === 'expense' &&
+                t.date.toDate() >= yesterdayStart &&
+                t.date.toDate() <= yesterdayEnd
+            );
 
-        const recentTransactions = await db.collection(`users/${userId}/transactions`)
-            .where('type', '==', 'expense')
-            .where('date', '>=', yesterday)
-            .where('date', '<=', today)
-            .get();
+            // Calcular médias para as categorias relevantes de uma só vez
+            const categoryAverages: { [key: string]: { total: number, count: number } } = {};
+            transactions.filter(t => t.type === 'expense' && t.category).forEach(t => {
+                const category = t.category;
+                const amount = Number(t.amount) || 0;
+                if (!categoryAverages[category]) categoryAverages[category] = { total: 0, count: 0 };
+                categoryAverages[category].total += amount;
+                categoryAverages[category].count += 1;
+            });
+            
+            for (const transaction of recentExpenses) {
+                const category = transaction.category;
+                const amount = Number(transaction.amount) || 0;
+                if (!category || amount <= 500) continue; // Adicionada checagem para evitar erros
 
-        for (const transactionDoc of recentTransactions.docs) {
-            const transaction = transactionDoc.data();
-            const outOfPatternAlertKey = `alert_outOfPattern_${currentMonthKey}_${transaction.category}`;
+                const outOfPatternAlertKey = `alert_outOfPattern_${currentMonthKey}_${category}`;
+                if (userData?.[outOfPatternAlertKey]) continue;
 
-            if (transaction.amount > 500 && !userData?.[outOfPatternAlertKey]) {
-                const categoryTransactionsQuery = db.collection(`users/${userId}/transactions`)
-                    .where('category', '==', transaction.category)
-                    .where('type', '==', 'expense');
-
-                const categorySnapshot = await categoryTransactionsQuery.get();
-                if (categorySnapshot.size > 5) { // Only analyze if there's enough history
-                    let total = 0;
-                    categorySnapshot.forEach(doc => total += doc.data().amount);
-                    const average = total / categorySnapshot.size;
-
-                    if (transaction.amount > average * 3) { // Alert if 3x the average
-                        await userDoc.ref.update({ [outOfPatternAlertKey]: true });
-                        const messageText = `🚨 Detectei uma despesa fora do padrão em ${transaction.category}. Quer que eu investigue isso pra você?`;
+                const stats = categoryAverages[category];
+                if (stats && stats.count > 5) {
+                    const average = stats.total / stats.count;
+                    if (amount > average * 3) {
+                        updates[outOfPatternAlertKey] = true;
+                        const messageText = `🚨 Detectei uma despesa fora do padrão em ${category}. Quer que eu investigue isso pra você?`;
                         await db.collection(`users/${userId}/chat`).add({
                             role: "alerta", text: messageText, authorName: "Lúmina",
                             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -279,92 +286,91 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     }
                 }
             }
-        }
-        
-        // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
-        // Verifica as categorias com mais de 3 transações na última semana
-        const oneWeekAgo = subDays(now, 7);
-        const weeklyExpensesQuery = db.collection(`users/${userId}/transactions`)
-            .where('type', '==', 'expense')
-            .where('date', '>=', oneWeekAgo);
-        
-        const weeklyExpensesSnapshot = await weeklyExpensesQuery.get();
-        const categoryCounts: { [key: string]: number } = {};
-        weeklyExpensesSnapshot.forEach(doc => {
-            const category = doc.data().category;
-            if (category) {
-                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-            }
-        });
+            
+            // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
+            const oneWeekAgo = subDays(now, 7);
+            const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date.toDate() >= oneWeekAgo);
+            const categoryCounts: { [key: string]: number } = {};
+            weeklyExpenses.forEach(t => {
+                if (t.category) categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
+            });
 
-        for (const category in categoryCounts) {
-            if (categoryCounts[category] > 3) { // More than 3 times in a week
-                 const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
-                 if (!userData?.[unusualRecurrenceAlertKey]) {
-                    await userDoc.ref.update({ [unusualRecurrenceAlertKey]: true });
+            for (const category in categoryCounts) {
+                if (categoryCounts[category] > 3) {
+                    const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
+                    if (userData?.[unusualRecurrenceAlertKey]) continue;
+                    
+                    updates[unusualRecurrenceAlertKey] = true;
                     const messageText = `📌 Você fez ${categoryCounts[category]} despesas recentes em ${category}. Esse comportamento está acima da sua média.`;
                     await db.collection(`users/${userId}/chat`).add({
                         role: "alerta", text: messageText, authorName: "Lúmina",
                         timestamp: admin.firestore.FieldValue.serverTimestamp(),
                         suggestions: ["Ver transações", "Definir orçamento", "Entendido"],
                     });
-                 }
+                }
             }
-        }
 
-        // --- ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%) ---
-        const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
-        const budgetsDoc = await budgetsDocRef.get();
-        if (budgetsDoc.exists) {
-            const budgetsData = budgetsDoc.data()!;
-            const monthStart = startOfMonth(now);
-            const monthEnd = endOfMonth(now);
+            // --- ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%) ---
+            const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
+            const budgetsDoc = await budgetsDocRef.get();
+            if (budgetsDoc.exists) {
+                const budgetsData = budgetsDoc.data()!;
+                const monthStart = startOfMonth(now);
+                const monthlyExpensesByCategory: { [key: string]: number } = {};
 
-            for (const category in budgetsData) {
-                const categoryBudget = budgetsData[category];
-                if (categoryBudget > 0) {
-                    const categorySpendingQuery = db.collection(`users/${userId}/transactions`)
-                        .where('category', '==', category)
-                        .where('type', '==', 'expense')
-                        .where('date', '>=', monthStart)
-                        .where('date', '<=', monthEnd);
+                transactions.filter(t => t.type === 'expense' && t.date.toDate() >= monthStart).forEach(t => {
+                    if (t.category) {
+                        const amount = Number(t.amount) || 0;
+                        monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + amount;
+                    }
+                });
+
+                for (const category in budgetsData) {
+                    const categoryBudget = Number(budgetsData[category]) || 0;
+                    if (categoryBudget > 0) {
+                        const totalCategorySpending = monthlyExpensesByCategory[category] || 0;
+                        const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
                         
-                    const categorySpendingSnapshot = await categorySpendingQuery.get();
-                    let totalCategorySpending = 0;
-                    categorySpendingSnapshot.forEach(doc => totalCategorySpending += doc.data().amount);
-                    
-                    const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
-                    
-                    const alertKey100 = `alert_100_${currentMonthKey}_${category}`;
-                    if (spendingPercentage >= 100 && !userData?.[alertKey100]) {
-                        await userDoc.ref.update({ [alertKey100]: true });
-                        const messageText = `🟥 Meta de gastos para ${category} ultrapassada. Preciso ajustar o plano.`;
-                        await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
-                    } else {
-                        const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
-                        if (spendingPercentage >= 80 && !userData?.[alertKey80]) {
-                            await userDoc.ref.update({ [alertKey80]: true });
-                            const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${category}. Sugiro revisar suas próximas despesas.`;
-                            await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
+                        const alertKey100 = `alert_100_${currentMonthKey}_${category}`;
+                        if (spendingPercentage >= 100 && !userData?.[alertKey100]) {
+                            updates[alertKey100] = true;
+                            const messageText = `🟥 Meta de gastos para ${category} ultrapassada. Preciso ajustar o plano.`;
+                            await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
+                        } else {
+                            const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
+                            if (spendingPercentage >= 80 && !userData?.[alertKey80]) {
+                                updates[alertKey80] = true;
+                                const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${category}. Sugiro revisar suas próximas despesas.`;
+                                await db.collection(`users/${userId}/chat`).add({ role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
+                            }
                         }
                     }
                 }
             }
+
+            // Otimização: Fazer um único update no documento do usuário com todas as flags acumuladas
+            if (Object.keys(updates).length > 0) {
+                await userDoc.ref.update(updates);
+            }
+        } catch (error) {
+             console.error(`Erro na verificação diária para o usuário ${userId}:`, error);
         }
     }
-    console.log('Daily financial checkup completed for all users.');
+    console.log('Verificação financeira diária concluída para todos os usuários.');
     return null;
 });
 
-// Helper functions for date manipulation
-const startOfDay = (date: Date) => {
+// Funções auxiliares de data para garantir consistência
+const startOfDay = (date: Date): Date => {
   const newDate = new Date(date);
   newDate.setHours(0, 0, 0, 0);
   return newDate;
 };
 
-const endOfDay = (date: Date) => {
+const endOfDay = (date: Date): Date => {
   const newDate = new Date(date);
   newDate.setHours(23, 59, 59, 999);
   return newDate;
 };
+
+    
