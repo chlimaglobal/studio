@@ -258,7 +258,7 @@ export default function ReportsPage() {
 
     const pieData = categoryData.map(item => ({
         name: item.name,
-        value: total > 0 ? parseFloat(((item.value / total) * 100).toFixed(2)) : 0
+        value: item.value // Pass the absolute value
     }));
 
     return { categorySpendingData: categoryData, pieChartData: pieData, totalExpenses: total };
@@ -348,3 +348,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    

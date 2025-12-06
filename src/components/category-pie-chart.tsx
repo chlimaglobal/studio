@@ -24,7 +24,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div className="rounded-lg border bg-background p-2 shadow-sm text-sm">
         <p className="font-medium">{data.name}</p>
-        <p className="text-muted-foreground">{`${value}%`}</p>
+        <p className="text-muted-foreground">{formatCurrency(value)}</p>
       </div>
     );
   }
@@ -63,3 +63,5 @@ const CategoryPieChart = ({ data }: CategoryPieChartProps) => {
 };
 
 export default CategoryPieChart;
+
+    
