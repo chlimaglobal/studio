@@ -242,25 +242,61 @@ export default function ReportsPage() {
   const router = useRouter();
 
   const { categorySpendingData, pieChartData, totalExpenses } = useMemo(() => {
-    const spendingMap = new Map<TransactionCategory, number>();
+    
+    function parseBRLToNumber(value: any) {
+        if (typeof value === "number") return value;
+        if (!value) return 0;
+        let s = String(value).trim();
+        s = s.replace(/^R\$\s?/, "");
+        if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
+        s = s.replace(/\./g, "").replace(/,/g, ".");
+        const n = Number(s);
+        return isNaN(n) ? 0 : n;
+    }
 
-    transactions
-      .filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category))
-      .forEach(t => {
-        const category = t.category || 'Outros';
-        spendingMap.set(category, (spendingMap.get(category) || 0) + t.amount);
-      });
+    function normalizeCategory(cat: any) {
+        if (!cat) return "sem categoria";
+        return String(cat).trim().toLowerCase();
+    }
 
-    const aggregatedData = Array.from(spendingMap.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    const safeTransactions = (transactions || []).filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
 
-    const total = aggregatedData.reduce((acc, curr) => acc + curr.value, 0);
+    const categoryTotals = safeTransactions.reduce((acc, tx) => {
+        const numAmount = parseBRLToNumber(tx.amount);
+        const categoryKey = normalizeCategory(tx.category);
+        if (!acc[categoryKey]) acc[categoryKey] = 0;
+        acc[categoryKey] += numAmount;
+        return acc;
+    }, {} as Record<string, number>);
+
+    let aggregatedData = Object.entries(categoryTotals).map(([name, value]) => ({
+        name,
+        value,
+    }));
+
+    aggregatedData.sort((a, b) => b.value - a.value);
+
+    const total = aggregatedData.reduce((s, c) => s + c.value, 0);
+
+    let finalPieData = aggregatedData;
+    const TOP = 6;
+    if (aggregatedData.length > TOP) {
+        const topItems = aggregatedData.slice(0, TOP);
+        const others = aggregatedData.slice(TOP);
+        const othersSum = others.reduce((s, it) => s + it.value, 0);
+        finalPieData = [
+            ...topItems,
+            {
+                name: "outros",
+                value: othersSum,
+            }
+        ];
+    }
     
     return { 
         categorySpendingData: aggregatedData, 
-        pieChartData: aggregatedData, 
-        totalExpenses: total 
+        pieChartData: finalPieData, 
+        totalExpenses: total
     };
   }, [transactions]);
   
@@ -325,7 +361,7 @@ export default function ReportsPage() {
                                 <li key={item.name} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-muted/50">
                                     <div className="flex items-center gap-2">
                                         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: `hsl(var(--chart-${(index % 5) + 1}))` }}></span>
-                                        <span>{item.name}</span>
+                                        <span className="capitalize">{item.name}</span>
                                     </div>
                                     <div className="text-right">
                                         <p className="font-medium">{formatCurrency(item.value)}</p>
@@ -348,5 +384,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
