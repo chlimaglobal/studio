@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -240,7 +241,7 @@ export default function ReportsPage() {
   const { transactions, isLoading } = useTransactions();
   const router = useRouter();
 
-  const { categorySpendingData, totalExpenses } = useMemo(() => {
+  const { categorySpendingData, pieChartData, totalExpenses } = useMemo(() => {
     const spendingMap = new Map<TransactionCategory, number>();
 
     transactions
@@ -255,7 +256,12 @@ export default function ReportsPage() {
 
     const total = categoryData.reduce((acc, curr) => acc + curr.value, 0);
 
-    return { categorySpendingData: categoryData, totalExpenses: total };
+    const pieData = categoryData.map(item => ({
+        name: item.name,
+        value: total > 0 ? parseFloat(((item.value / total) * 100).toFixed(2)) : 0
+    }));
+
+    return { categorySpendingData: categoryData, pieChartData: pieData, totalExpenses: total };
   }, [transactions]);
   
 
@@ -307,7 +313,7 @@ export default function ReportsPage() {
           {categorySpendingData.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               <div className="h-[350px]">
-                <CategoryPieChart data={categorySpendingData} />
+                <CategoryPieChart data={pieChartData} />
               </div>
               <div className="flex flex-col">
                 <p className="text-sm font-medium text-muted-foreground mb-2">Detalhes das Despesas</p>
