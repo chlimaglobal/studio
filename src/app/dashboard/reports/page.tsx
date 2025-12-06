@@ -242,45 +242,48 @@ export default function ReportsPage() {
   const router = useRouter();
 
   const { categorySpendingData, pieChartData, totalExpenses } = useMemo(() => {
+    
     function parseBRLToNumber(value: any) {
         if (typeof value === "number") return value;
         if (!value) return 0;
         let s = String(value).trim();
         s = s.replace(/^R\$\s?/, "");
-        if (/^\\d+(\\.\\d+)?$/.test(s)) return Number(s);
+        if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
         s = s.replace(/\./g, "").replace(/,/g, ".");
         const n = Number(s);
         return isNaN(n) ? 0 : n;
     }
 
     function normalizeCategory(cat: any): string {
-      const safeCat = cat || 'Outros';
-      const knownCategories: TransactionCategory[] = [
-        "Alimentação", "Assinaturas/Serviços", "Moradia", "Transporte", "Saúde", 
-        "Lazer/Hobbies", "Dívidas/Empréstimos", "Educação", "Impostos/Taxas", 
-        "Investimentos e Reservas", "Bebê", "Pets", "Salário", "Vestuário", 
-        "Viagens", "Cuidado Pessoal", "Finanças", "Outros", "Farmácia", "Roupas"
-      ];
+      const categoryMap: Record<string, TransactionCategory> = {
+          'roupas': 'Vestuário',
+          'farmacia': 'Farmácia',
+          'farmácia': 'Farmácia',
+          // Adicionar outros mapeamentos se necessário
+      };
       
-      const lowerCat = String(safeCat).trim().toLowerCase();
+      const safeCat = String(cat || 'Outros').trim().toLowerCase();
       
-      // Direct match or find a category that includes the lowercased one
-      for (const known of knownCategories) {
-        if (known.toLowerCase() === lowerCat) {
-          return known;
-        }
+      if (categoryMap[safeCat]) {
+          return categoryMap[safeCat];
       }
       
-      return safeCat.charAt(0).toUpperCase() + safeCat.slice(1);
+      // Capitalize first letter for consistency
+      return safeCat.charAt(0).toUpperCase() + safeCat.slice(1) as TransactionCategory;
     }
 
-    const expenseTransactions = (transactions || []).filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
+    const expenseTransactions = (transactions || [])
+        .filter(t => t.type === 'expense' && !t.hideFromReports && !allInvestmentCategories.has(t.category));
 
     const categoryTotals = expenseTransactions.reduce((acc, tx) => {
         const numAmount = parseBRLToNumber(tx.amount);
         const categoryKey = normalizeCategory(tx.category);
-        if (!acc[categoryKey]) acc[categoryKey] = 0;
+        
+        if (!acc[categoryKey]) {
+            acc[categoryKey] = 0;
+        }
         acc[categoryKey] += numAmount;
+        
         return acc;
     }, {} as Record<string, number>);
 
@@ -397,3 +400,6 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+
+    
