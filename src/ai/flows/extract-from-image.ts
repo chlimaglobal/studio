@@ -1,13 +1,11 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { transactionCategories, ExtractFromImageInputSchema, ExtractFromImageOutputSchema, type ExtractFromImageInput, type ExtractFromImageOutput } from '@/lib/types';
-import { generate } from 'genkit/ai';
 
-export const extractFromImage = defineFlow(
+export const extractFromImage = ai.defineFlow(
   {
     name: 'extractFromImageFlow',
     inputSchema: ExtractFromImageInputSchema,
@@ -107,8 +105,8 @@ ${JSON.stringify(input.allTransactions || [])}
 (A imagem está na próxima parte da mensagem)
 
 Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`;
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: [
             { text: prompt },
             { media: { url: input.imageDataUri } }
@@ -122,7 +120,7 @@ Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`;
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output || !output.description) {
       return {
         description: 'Não foi possível ler a imagem',

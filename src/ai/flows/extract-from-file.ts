@@ -1,8 +1,7 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { 
   transactionCategories,
@@ -11,9 +10,8 @@ import {
   type ExtractFromFileInput,
   type ExtractFromFileOutput
 } from '@/lib/types';
-import { generate } from 'genkit/ai';
 
-export const extractFromFile = defineFlow(
+export const extractFromFile = ai.defineFlow(
   {
     name: 'extractFromFileFlow',
     inputSchema: ExtractFromFileInputSchema,
@@ -45,8 +43,8 @@ export const extractFromFile = defineFlow(
 
   Analise o conteúdo e retorne a lista de transações no formato JSON especificado.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: [
             { text: prompt },
             { media: { url: input.fileContent } }
@@ -60,7 +58,7 @@ export const extractFromFile = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar o arquivo.');
     }

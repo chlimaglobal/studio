@@ -9,10 +9,8 @@ import {
   LUMINA_SPEECH_SYNTHESIS_PROMPT,
 } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { getUserMemory, updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
-import { generate, stream } from 'genkit/ai';
 
 async function buildMemoryContext(userId: string) {
   const mem = await getUserMemory(userId);
@@ -27,16 +25,13 @@ async function buildMemoryContext(userId: string) {
 }
 
 
-export const luminaChatFlow = defineFlow(
+export const luminaChatFlow = ai.defineFlow(
   {
     name: 'luminaChatFlow',
     inputSchema: LuminaChatInputSchema,
     outputSchema: LuminaChatOutputSchema,
-    stream: z.object({
-        text: z.string(),
-    }),
   },
-  async function* (input) {
+  async function (input) {
     const userId = input.user?.uid || 'default';
     const userQuery = (input.userQuery || '').trim();
     const audioText = (input.audioText || '').trim();
@@ -80,27 +75,18 @@ export const luminaChatFlow = defineFlow(
     }
 
     try {
-        const resultStream = await stream({
-            model: googleAI('gemini-1.5-flash'),
-            prompt: {
-                system: systemPrompt,
-                history: history,
-                messages: [{ role: 'user', content: lastUserMessageParts }]
-            },
+        const result = await ai.generate({
+            model: 'googleai/gemini-1.5-flash',
+            system: systemPrompt,
+            prompt: input.userQuery,
+            history: history,
             config: {
                 temperature: 0.7,
             },
         });
         
-        let fullText = '';
-        for await (const chunk of resultStream) {
-            const textChunk = chunk.text();
-            if (textChunk) {
-                fullText += textChunk;
-                yield { text: textChunk };
-            }
-        }
-
+        const fullText = result.text;
+        
         return {
           text: fullText || "Tudo bem! Como posso te ajudar hoje?",
           suggestions: [],
@@ -109,7 +95,6 @@ export const luminaChatFlow = defineFlow(
     } catch (err: any) {
         console.error("ERRO GEMINI:", err.message);
         const fallbackText = "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido dos seus gastos ou te dar uma dica de economia enquanto isso arruma?";
-        yield { text: fallbackText };
         return {
             text: fallbackText,
             suggestions: ["Resumo do mês", "Maiores gastos", "Quanto economizei?"],

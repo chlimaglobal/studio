@@ -1,16 +1,19 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import {ai} from '@/ai/genkit';
 import { z } from 'zod';
 import type { LuminaCoupleChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
-import { generate } from 'genkit/ai';
 
-export const generateCoupleSuggestion = defineFlow(
+export async function generateCoupleSuggestion (input: LuminaCoupleChatInput): Promise<LuminaChatOutput> {
+    return luminaCoupleChatFlow(input);
+}
+
+
+const luminaCoupleChatFlow = ai.defineFlow(
   {
     name: 'luminaCoupleChatFlow',
     inputSchema: LuminaCoupleChatInputSchema,
@@ -25,7 +28,7 @@ export const generateCoupleSuggestion = defineFlow(
 
     const transactionsForContext = (input.allTransactions || []).slice(0, 50);
 
-    const promptContext = [
+    const systemPrompt = [
         LUMINA_BASE_PROMPT,
         LUMINA_COUPLE_PROMPT,
         '',
@@ -35,7 +38,10 @@ export const generateCoupleSuggestion = defineFlow(
         `- Parceiro(a): ${input.partner.displayName} (ID: ${input.partner.uid})`,
         `- Transações do casal (últimas ${transactionsForContext.length}):`,
         JSON.stringify(transactionsForContext, null, 2),
-        input.audioText ? `- Áudio transcrito: ${input.audioText}` : '- Áudio transcrito: N/A',
+    ].join('\n');
+    
+    const prompt = [
+        input.audioText ? `Áudio transcrito: ${input.audioText}` : '- Áudio transcrito: N/A',
         '',
         '### NOVA MENSAGEM DO USUÁRIO:',
         input.userQuery || '(mensagem vazia)',
@@ -43,15 +49,16 @@ export const generateCoupleSuggestion = defineFlow(
         'Responda como Lúmina, dirigindo-se ao casal de forma inclusiva, humana e proativa. Sempre termine com uma pergunta para engajar a conversa.',
     ].join('\n');
     
-    let promptParts: any[] = [{ text: promptContext }];
+    let userMessageParts: any[] = [{ text: prompt }];
     if (input.imageBase64) {
-        promptParts.push({ media: { url: `data:image/png;base64,${input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')}` } });
+        userMessageParts.push({ media: { url: `data:image/png;base64,${input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')}` } });
     }
 
     try {
-        const result = await generate({
-            model: googleAI('gemini-1.5-flash'),
-            prompt: promptParts,
+        const result = await ai.generate({
+            model: 'googleai/gemini-1.5-flash',
+            system: systemPrompt,
+            prompt: userMessageParts,
             history: mappedChatHistory,
             output: {
                 format: 'json',
@@ -62,7 +69,7 @@ export const generateCoupleSuggestion = defineFlow(
             }
         });
 
-      const output = result.output();
+      const output = result.output;
       if (!output || !output.text) {
         throw new Error("A Lúmina não retornou uma resposta válida para o casal.");
       }

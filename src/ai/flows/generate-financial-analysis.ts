@@ -1,12 +1,10 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
+import { ai } from '@/ai/genkit';
 import { Transaction } from '@/lib/types';
 import { z } from 'zod';
 import { LUMINA_DIAGNOSTIC_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
-import { googleAI } from '@genkit-ai/googleai';
-import { generate } from 'genkit/ai';
 
 const GenerateFinancialAnalysisInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas).'),
@@ -30,7 +28,7 @@ const GenerateFinancialAnalysisOutputSchema = z.object({
 });
 export type GenerateFinancialAnalysisOutput = z.infer<typeof GenerateFinancialAnalysisOutputSchema>;
 
-export const generateFinancialAnalysis = defineFlow(
+export const generateFinancialAnalysis = ai.defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
     inputSchema: GenerateFinancialAnalysisInputSchema,
@@ -58,8 +56,8 @@ export const generateFinancialAnalysis = defineFlow(
 
       Analise os dados e retorne o resultado no formato JSON solicitado, preenchendo todas as partes do schema de saída.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         output: {
             format: 'json',
@@ -67,7 +65,7 @@ export const generateFinancialAnalysis = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
     }

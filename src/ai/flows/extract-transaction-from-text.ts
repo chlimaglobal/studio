@@ -1,18 +1,16 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
+import { ai } from '@/ai/genkit';
 import {
   ExtractTransactionInputSchema,
   ExtractTransactionOutputSchema,
   type ExtractTransactionInput,
   type ExtractTransactionOutput,
 } from '@/lib/types';
-import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
-import { generate } from 'genkit/ai';
 
-export const extractTransactionFromText = defineFlow(
+export const extractTransactionFromText = ai.defineFlow(
   {
     name: 'extractTransactionFromTextFlow',
     inputSchema: ExtractTransactionInputSchema,
@@ -38,8 +36,8 @@ export const extractTransactionFromText = defineFlow(
   ${input.text}
   `;
 
-    const llmResponse = await generate({
-      model: googleAI('gemini-1.5-flash'),
+    const llmResponse = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
       prompt: prompt,
       output: {
         format: 'json',
@@ -47,7 +45,7 @@ export const extractTransactionFromText = defineFlow(
       }
     });
     
-    let output = llmResponse.output();
+    let output = llmResponse.output;
 
     if (!output || !output.description || !output.type) {
       // Fallback in case the model returns absolutely nothing

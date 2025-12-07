@@ -1,12 +1,10 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Transaction } from '@/lib/types';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from '@/ai/lumina/prompt/luminaGoalsPrompt';
-import { generate } from 'genkit/ai';
 
 export const SavingsGoalInputSchema = z.object({
   transactions: z.array(z.any()).describe('Lista de transações dos últimos 30-90 dias.'),
@@ -22,7 +20,7 @@ export const SavingsGoalOutputSchema = z.object({
 });
 export type SavingsGoalOutput = z.infer<typeof SavingsGoalOutputSchema>;
 
-export const calculateSavingsGoal = defineFlow(
+export const calculateSavingsGoal = ai.defineFlow(
   {
     name: 'calculateSavingsGoalFlow',
     inputSchema: SavingsGoalInputSchema,
@@ -41,8 +39,8 @@ export const calculateSavingsGoal = defineFlow(
 
       Analise os dados, siga as regras definidas e retorne o resultado no formato JSON solicitado, preenchendo todos os campos do schema de saída.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         config: {
           retries: 3,
@@ -53,7 +51,7 @@ export const calculateSavingsGoal = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu calcular a meta de economia.');
     }

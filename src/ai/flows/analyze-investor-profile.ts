@@ -1,8 +1,7 @@
 
 'use server';
 
-import { defineFlow, defineTool } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import {ai} from '@/ai/genkit';
 import {
     InvestorProfileInputSchema,
     InvestorProfileOutputSchema,
@@ -11,9 +10,9 @@ import {
 } from '@/lib/types';
 import { getFinancialMarketData, type FinancialData } from '@/services/market-data';
 import { z } from 'zod';
-import { generate } from 'genkit/ai';
 
-const getFinancialMarketDataTool = defineTool(
+
+const getFinancialMarketDataTool = ai.defineTool(
     {
         name: 'getFinancialMarketData',
         description: 'Obtém dados e taxas atuais do mercado financeiro brasileiro, como SELIC e IPCA.',
@@ -27,7 +26,12 @@ const getFinancialMarketDataTool = defineTool(
     }
 );
 
-export const analyzeInvestorProfile = defineFlow(
+export async function analyzeInvestorProfile (input: InvestorProfileInput): Promise<InvestorProfileOutput> {
+    return analyzeInvestorProfileFlow(input);
+}
+
+
+const analyzeInvestorProfileFlow = ai.defineFlow(
   {
     name: 'analyzeInvestorProfileFlow',
     inputSchema: InvestorProfileInputSchema,
@@ -66,8 +70,8 @@ export const analyzeInvestorProfile = defineFlow(
 
       Analise os dados e retorne o resultado no formato JSON solicitado.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         tools: [getFinancialMarketDataTool],
         config: {
@@ -79,7 +83,7 @@ export const analyzeInvestorProfile = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
     }

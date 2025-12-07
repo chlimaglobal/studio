@@ -1,17 +1,15 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { 
     MediateGoalsInputSchema, 
     MediateGoalsOutputSchema, 
     type MediateGoalsInput, 
     type MediateGoalsOutput 
 } from '@/lib/types';
-import { generate } from 'genkit/ai';
 
-export const mediateGoals = defineFlow(
+export const mediateGoals = ai.defineFlow(
   {
     name: 'mediateGoalsFlow',
     inputSchema: MediateGoalsInputSchema,
@@ -49,8 +47,8 @@ export const mediateGoals = defineFlow(
 
   Analise os dados e retorne o resultado no formato JSON solicitado.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         config: {
           retries: 3,
@@ -61,7 +59,7 @@ export const mediateGoals = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
     }

@@ -1,11 +1,9 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
-import { generate } from 'genkit/ai';
 
 async function toWav(
   pcmData: Buffer,
@@ -34,15 +32,15 @@ async function toWav(
   });
 }
 
-export const textToSpeech = defineFlow(
+export const textToSpeech = ai.defineFlow(
   {
     name: 'textToSpeechFlow',
     inputSchema: z.string(),
     outputSchema: z.object({ audioUrl: z.string() }),
   },
   async (text) => {
-    const result = await generate({
-      model: googleAI('gemini-1.5-flash'), // TTS model might be different in this version
+    const result = await ai.generate({
+      model: 'googleai/gemini-1.5-flash', // TTS model might be different in this version
       prompt: text,
       config: {
         // @ts-ignore - This is a placeholder for potential TTS-specific config
@@ -50,7 +48,7 @@ export const textToSpeech = defineFlow(
       },
     });
 
-    const media = result.output();
+    const media = result.output;
     
     if (!media || typeof media !== 'string') {
       throw new Error('No audio content returned from TTS model.');

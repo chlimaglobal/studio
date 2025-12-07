@@ -3,8 +3,8 @@ import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { runFlow } from 'genkit';
-import { streamFlow } from 'genkit/stream';
+import { runFlow, streamFlow } from 'genkit/flow';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
 
-    const { stream, result } = await streamFlow(luminaChatFlow, input);
+    const { stream, result } = streamFlow(luminaChatFlow, input);
 
     const data = new StreamData();
 
@@ -20,8 +20,9 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const chunk of stream) {
-            if (chunk.output) {
-              controller.enqueue(JSON.stringify(chunk.output));
+            const output = chunk.output();
+            if (output) {
+              controller.enqueue(JSON.stringify(output));
             }
           }
         } catch (e) {

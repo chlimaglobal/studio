@@ -1,12 +1,12 @@
 
 'use server';
 
-import { runFlow } from 'genkit';
 import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
 import { luminaChatFlow } from '../flows/lumina-chat';
 import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink, ChatMessage } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
 import { extractFromImage } from '../flows/extract-from-image';
+import { runFlow } from 'genkit/flow';
 
 export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, coupleLink: CoupleLink | null) {
      const { userQuery, allTransactions, chatHistory, user, partner, imageBase64 } = input;

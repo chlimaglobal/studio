@@ -1,11 +1,9 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { LUMINA_RECOVERY_PROMPT } from '@/ai/lumina/prompt/luminaRecoveryPrompt';
-import { generate } from 'genkit/ai';
 
 const RecoveryProtocolInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas) do período a ser analisado.'),
@@ -33,7 +31,7 @@ export type RecoveryProtocolOutput = z.infer<typeof RecoveryProtocolOutputSchema
 export type FlashRecoveryOutput = z.infer<typeof FlashRecoveryOutputSchema>;
 
 // FULL PROTOCOL FLOW
-const runFullRecoveryProtocolFlow = defineFlow(
+const runFullRecoveryProtocolFlow = ai.defineFlow(
   {
     name: 'runFullRecoveryProtocolFlow',
     inputSchema: RecoveryProtocolInputSchema,
@@ -47,8 +45,8 @@ const runFullRecoveryProtocolFlow = defineFlow(
 
       Execute a análise e retorne o resultado no formato JSON solicitado. Sem emoção. Apenas estratégia.`;
 
-    const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+    const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         output: {
             format: 'json',
@@ -56,7 +54,7 @@ const runFullRecoveryProtocolFlow = defineFlow(
         }
     });
 
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('O Protocolo de Recuperação não pôde ser executado.');
     }
@@ -65,7 +63,7 @@ const runFullRecoveryProtocolFlow = defineFlow(
 );
 
 // FLASH PROTOCOL FLOW
-const runFlashRecoveryProtocolFlow = defineFlow(
+const runFlashRecoveryProtocolFlow = ai.defineFlow(
   {
     name: 'runFlashRecoveryProtocolFlow',
     inputSchema: RecoveryProtocolInputSchema,
@@ -85,8 +83,8 @@ const runFlashRecoveryProtocolFlow = defineFlow(
 
     Execute a análise e retorne o resultado no formato JSON solicitado.`;
 
-     const result = await generate({
-        model: googleAI('gemini-1.5-flash'),
+     const result = await ai.generate({
+        model: 'googleai/gemini-1.5-flash',
         prompt: prompt,
         output: {
             format: 'json',
@@ -94,7 +92,7 @@ const runFlashRecoveryProtocolFlow = defineFlow(
         }
     });
     
-    const output = result.output();
+    const output = result.output;
     if (!output) {
       throw new Error('O Protocolo Flash não pôde ser executado.');
     }

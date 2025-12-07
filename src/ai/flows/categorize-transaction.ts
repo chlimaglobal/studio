@@ -1,7 +1,7 @@
 
 'use server';
 
-import { defineFlow } from 'genkit';
+import { ai } from '@/ai/genkit';
 import {
   transactionCategories,
   CategorizeTransactionInputSchema,
@@ -9,11 +9,9 @@ import {
   type CategorizeTransactionInput,
   type CategorizeTransactionOutput,
 } from '@/lib/types';
-import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
-import { generate } from 'genkit/ai';
 
-export const categorizeTransaction = defineFlow(
+export const categorizeTransaction = ai.defineFlow(
   {
     name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
@@ -43,8 +41,8 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
 **Descrição da Transação:** ${input.description}
 `;
 
-    const llmResponse = await generate({
-      model: googleAI('gemini-1.5-flash'),
+    const llmResponse = await ai.generate({
+      model: 'googleai/gemini-1.5-flash',
       prompt: prompt,
       output: {
         format: 'json',
@@ -52,7 +50,7 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
       },
     });
 
-    const output = llmResponse.output();
+    const output = llmResponse.output;
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a categorização.');
     }
