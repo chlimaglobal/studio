@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
-import { getCategorySuggestion } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { z } from 'zod';
@@ -35,6 +33,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { onCardsUpdate } from '@/lib/storage';
 import { Card as CardType } from '@/lib/card-types';
+import { runFlow } from 'genkit';
+import { categorizeTransaction } from '@/ai/flows/categorize-transaction';
 
 const institutions = [
     "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "PagBank", "Will Bank", "Outro"
@@ -131,16 +131,16 @@ function AddTransactionForm() {
         if (!description) return;
         setIsSuggesting(true);
         try {
-            const { category } = await getCategorySuggestion(description);
-            if (category) {
-                form.setValue('category', category, { shouldValidate: true });
+            const result = await runFlow(categorizeTransaction, { description });
+            if (result.category && transactionCategories.includes(result.category)) {
+                form.setValue('category', result.category, { shouldValidate: true });
                 toast({
                     title: 'Sugestão da Lúmina',
-                    description: `Categorizamos isso como "${category}".`,
+                    description: `Categorizamos isso como "${result.category}".`,
                 });
             }
         } catch (e) {
-            // Fail silently on exception, error is logged in the action
+            console.error("Lumina suggestion failed:", e);
         } finally {
             setIsSuggesting(false);
         }

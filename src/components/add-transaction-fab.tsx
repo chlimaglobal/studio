@@ -8,8 +8,9 @@ import { AudioInputDialog } from './audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 import { usePathname, useRouter } from 'next/navigation';
-import { extractTransactionInfoFromText } from '@/app/dashboard/actions';
 import { useToast } from '@/hooks/use-toast';
+import { runFlow } from 'genkit';
+import { extractTransactionFromText } from '@/ai/flows/extract-transaction-from-text';
 
 export function AddTransactionFab() {
   const [isAudioOpen, setIsAudioOpen] = useState(false);
@@ -44,14 +45,23 @@ export function AddTransactionFab() {
   };
   
   const handleAudioTranscript = async (transcript: string) => {
-    const result = await extractTransactionInfoFromText(transcript);
-    if (result && !result.error) {
-        handleTransactionExtracted(result);
-    } else {
+    try {
+        const result = await runFlow(extractTransactionFromText, { text: transcript });
+        if (result && result.amount !== undefined && result.description && result.type) {
+            handleTransactionExtracted(result);
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Não foi possível extrair a transação.",
+                description: "Tente falar novamente com mais clareza, incluindo valor e descrição."
+            })
+        }
+    } catch (e: any) {
+        console.error("Lumina extraction failed:", e);
         toast({
             variant: "destructive",
-            title: "Não foi possível extrair a transação.",
-            description: result.error || "Tente falar novamente com mais clareza, incluindo valor e descrição."
+            title: "A Lúmina não conseguiu processar sua solicitação agora.",
+            description: "Por favor, tente novamente."
         })
     }
   };
