@@ -259,11 +259,13 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                 // Otimização: Define a referência do documento do usuário aqui para uso posterior.
                 const userDocRef = db.collection("users").doc(userId);
 
-                if (userData.isDependent) {
-                    return; // Ignorar contas dependentes
-                }
-                
+                // Otimização: Isola o processamento de cada usuário com try/catch.
+                // Um erro em um usuário não irá parar o processamento dos outros.
                 try {
+                    if (userData.isDependent) {
+                        return; // Ignorar contas dependentes
+                    }
+                    
                     const now = new Date();
                     const currentMonthKey = format(now, "yyyy-MM");
                     
