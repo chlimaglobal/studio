@@ -243,33 +243,35 @@ export default function ReportsPage() {
 
   const { categorySpendingData, pieChartData, totalExpenses } = useMemo(() => {
     
-    function parseBRLToNumber(value: any) {
+    function parseBRLToNumber(value: any): number {
         if (typeof value === "number") return value;
         if (!value) return 0;
-        let s = String(value).trim();
-        s = s.replace(/^R\$\s?/, "");
-        if (/^\d+(\.\d+)?$/.test(s)) return Number(s);
-        s = s.replace(/\./g, "").replace(/,/g, ".");
-        const n = Number(s);
-        return isNaN(n) ? 0 : n;
+        
+        const s = String(value).trim();
+        // Check if it's already a plain number string
+        if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s);
+        
+        // Handle BRL format
+        const cleanedString = s.replace(/^R\$\s?/, "").replace(/\./g, "").replace(/,/g, ".");
+        const num = parseFloat(cleanedString);
+        return isNaN(num) ? 0 : num;
     }
 
-    function normalizeCategory(cat: any): string {
-      const categoryMap: Record<string, TransactionCategory> = {
-          'roupas': 'Vestuário',
-          'farmacia': 'Farmácia',
-          'farmácia': 'Farmácia',
-          // Adicionar outros mapeamentos se necessário
-      };
-      
-      const safeCat = String(cat || 'Outros').trim().toLowerCase();
-      
-      if (categoryMap[safeCat]) {
-          return categoryMap[safeCat];
-      }
-      
-      // Capitalize first letter for consistency
-      return safeCat.charAt(0).toUpperCase() + safeCat.slice(1) as TransactionCategory;
+    function normalizeCategory(cat: any): TransactionCategory {
+        const categoryMap: Record<string, TransactionCategory> = {
+            'roupas': 'Vestuário',
+            'vestuario': 'Vestuário',
+            'farmacia': 'Farmácia',
+            'farmácia': 'Farmácia',
+        };
+        const safeCat = String(cat || 'Outros').trim().toLowerCase();
+        
+        if (categoryMap[safeCat]) {
+            return categoryMap[safeCat];
+        }
+        
+        // Capitalize first letter for consistency if not found in map
+        return (safeCat.charAt(0).toUpperCase() + safeCat.slice(1)) as TransactionCategory;
     }
 
     const expenseTransactions = (transactions || [])
@@ -277,36 +279,37 @@ export default function ReportsPage() {
 
     const categoryTotals = expenseTransactions.reduce((acc, tx) => {
         const numAmount = parseBRLToNumber(tx.amount);
+        if (numAmount <= 0) return acc; // Ignore zero or negative amounts for expense report
+        
         const categoryKey = normalizeCategory(tx.category);
         
-        if (!acc[categoryKey]) {
-            acc[categoryKey] = 0;
-        }
-        acc[categoryKey] += numAmount;
+        acc[categoryKey] = (acc[categoryKey] || 0) + numAmount;
         
         return acc;
     }, {} as Record<string, number>);
 
-    const aggregatedData = Object.entries(categoryTotals).map(([name, value]) => ({
-        name: name as TransactionCategory,
-        value,
-    })).sort((a, b) => b.value - a.value);
+    const aggregatedData = Object.entries(categoryTotals)
+        .map(([name, value]) => ({
+            name: name as TransactionCategory,
+            value,
+        }))
+        .sort((a, b) => b.value - a.value);
 
     const total = aggregatedData.reduce((s, c) => s + c.value, 0);
 
-    let finalPieData = aggregatedData;
-    const TOP = 6;
-    if (aggregatedData.length > TOP) {
-        const topItems = aggregatedData.slice(0, TOP);
-        const others = aggregatedData.slice(TOP);
-        const othersSum = others.reduce((s, it) => s + it.value, 0);
-        finalPieData = [
-            ...topItems,
-            {
-                name: "Outros",
-                value: othersSum,
-            }
-        ];
+    let finalPieData: { name: string; value: number }[] = [];
+    if (aggregatedData.length > 0) {
+        const TOP_N_CATEGORIES = 6;
+        if (aggregatedData.length > TOP_N_CATEGORIES) {
+            const topItems = aggregatedData.slice(0, TOP_N_CATEGORIES);
+            const otherItemsValue = aggregatedData.slice(TOP_N_CATEGORIES).reduce((sum, item) => sum + item.value, 0);
+            finalPieData = [
+                ...topItems,
+                { name: "Outros", value: otherItemsValue },
+            ];
+        } else {
+            finalPieData = aggregatedData;
+        }
     }
     
     return { 
@@ -400,6 +403,5 @@ export default function ReportsPage() {
     </div>
   );
 }
-
 
     
