@@ -9,11 +9,11 @@
  * - GenerateFinancialAnalysisOutput - The return type for the function.
  */
 
-import { ai } from '@/ai/genkit';
+import { defineFlow, definePrompt } from 'genkit/flow';
 import { Transaction } from '@/lib/types';
-import { z } from 'genkit';
-import { endOfISOWeek } from 'date-fns';
+import { z } from 'zod';
 import { LUMINA_DIAGNOSTIC_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const GenerateFinancialAnalysisInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas).'),
@@ -38,45 +38,35 @@ const GenerateFinancialAnalysisOutputSchema = z.object({
 });
 export type GenerateFinancialAnalysisOutput = z.infer<typeof GenerateFinancialAnalysisOutputSchema>;
 
-export async function generateFinancialAnalysis(input: { transactions: Transaction[] }): Promise<GenerateFinancialAnalysisOutput> {
-  const simplifiedTransactions = input.transactions.map(t => ({
-      type: t.type,
-      amount: t.amount,
-      category: t.category,
-      description: t.description,
-      date: t.date, // Include date for trend analysis
-  }));
-
-  // @ts-ignore
-  return generateFinancialAnalysisFlow({ transactions: simplifiedTransactions });
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateFinancialAnalysisPrompt',
-  input: { schema: GenerateFinancialAnalysisInputSchema },
-  output: { schema: GenerateFinancialAnalysisOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: LUMINA_DIAGNOSTIC_PROMPT + `
+const generateFinancialAnalysisPrompt = definePrompt(
+  {
+    name: 'generateFinancialAnalysisPrompt',
+    inputSchema: GenerateFinancialAnalysisInputSchema,
+    outputSchema: GenerateFinancialAnalysisOutputSchema,
+    model: googleAI.model('gemini-1.5-flash'),
+    prompt: LUMINA_DIAGNOSTIC_PROMPT + `
   
   ---
   **Dados das Transações do Usuário para Análise:**
   {{{json transactions}}}
 
   Analise os dados e retorne o resultado no formato JSON solicitado, preenchendo todas as partes do schema de saída.`,
-});
+  },
+  async (input) => {
+     const llmResponse = await googleAI.model('gemini-1.5-flash').generate({
+      prompt: input.prompt,
+      output: { schema: GenerateFinancialAnalysisOutputSchema },
+    });
+    return llmResponse.output() as z.infer<typeof GenerateFinancialAnalysisOutputSchema>;
+  }
+);
 
-const generateFinancialAnalysisFlow = ai.defineFlow(
+
+export const generateFinancialAnalysisFlow = defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
     inputSchema: GenerateFinancialAnalysisInputSchema,
     outputSchema: GenerateFinancialAnalysisOutputSchema,
-    retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
   },
   async (input) => {
     if (!input.transactions || input.transactions.length === 0) {
@@ -91,11 +81,25 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
             trendAnalysis: undefined,
         }
     }
+    const result = await generateFinancialAnalysisPrompt.generate({ input: input });
+    const output = result.output();
 
-    const { output } = await prompt(input);
     if (!output) {
       throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
     }
     return output;
   }
 );
+
+export async function generateFinancialAnalysis(input: { transactions: Transaction[] }): Promise<GenerateFinancialAnalysisOutput> {
+  const simplifiedTransactions = input.transactions.map(t => ({
+      type: t.type,
+      amount: t.amount,
+      category: t.category,
+      description: t.description,
+      date: t.date, // Include date for trend analysis
+  }));
+
+  // @ts-ignore
+  return generateFinancialAnalysisFlow({ transactions: simplifiedTransactions });
+}

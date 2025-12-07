@@ -9,25 +9,23 @@
  * - ExtractTransactionOutput - O tipo de retorno para a função extractTransactionFromText.
  */
 
-import { ai } from '@/ai/genkit';
+import { defineFlow, definePrompt } from 'genkit/flow';
 import {
   ExtractTransactionInputSchema,
   ExtractTransactionOutputSchema,
   type ExtractTransactionInput,
   type ExtractTransactionOutput,
 } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'zod';
 
-
-export async function extractTransactionFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-  return extractTransactionFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'extractTransactionPrompt',
-  input: { schema: ExtractTransactionInputSchema },
-  output: { schema: ExtractTransactionOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
+const extractTransactionPrompt = definePrompt(
+  {
+    name: 'extractTransactionPrompt',
+    inputSchema: ExtractTransactionInputSchema,
+    outputSchema: ExtractTransactionOutputSchema,
+    model: googleAI.model('gemini-1.5-flash'),
+    prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
   1.  **Extraia os Dados:** Analise o texto para obter: descrição, valor, tipo e parcelamento.
@@ -45,28 +43,32 @@ const prompt = ai.definePrompt({
   **Texto do usuário para análise:**
   {{{text}}}
   `,
-});
+  },
+  async (input) => {
+    const llmResponse = await googleAI.model('gemini-1.5-flash').generate({
+      prompt: input.prompt,
+      output: { schema: ExtractTransactionOutputSchema },
+    });
+    return llmResponse.output() as z.infer<typeof ExtractTransactionOutputSchema>;
+  }
+);
 
-const extractTransactionFlow = ai.defineFlow(
+
+export const extractTransactionFlow = defineFlow(
   {
     name: 'extractTransactionFlow',
     inputSchema: ExtractTransactionInputSchema,
     outputSchema: ExtractTransactionOutputSchema,
-     retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
   },
   async (input) => {
-    const { output } = await prompt(input);
-    // Relaxed validation: only description and type are strictly required to proceed.
-    // Amount can be zero if not detected, and category is optional.
+    const result = await extractTransactionPrompt.generate({
+      input: input,
+    });
+    let output = result.output();
+
     if (!output || !output.description || !output.type) {
-       // Fallback in case the model returns absolutely nothing
-      return {
+      // Fallback in case the model returns absolutely nothing
+      output = {
         description: input.text,
         amount: 0,
         type: 'expense',
@@ -77,3 +79,7 @@ const extractTransactionFlow = ai.defineFlow(
     return output;
   }
 );
+
+export async function extractTransactionFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
+  return extractTransactionFlow(input);
+}

@@ -8,7 +8,8 @@ import {
   LUMINA_SPEECH_SYNTHESIS_PROMPT,
 } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { getUserMemory, updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
-
+import { generate } from 'genkit/ai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 async function buildMemoryContext(userId: string) {
   const mem = await getUserMemory(userId);
@@ -46,29 +47,13 @@ export async function generateChatContents(input: LuminaChatInput): Promise<any[
     transactionsJSON,
   ].join('\n');
 
-  const contents: any[] = [];
-  
-  // Start with the system instruction (as a user message, then model confirmation)
-  // This is a common pattern to inject system-level instructions in Gemini
-  contents.push({ role: 'user', parts: [{ text: systemPrompt }] });
-  contents.push({ role: 'model', parts: [{ text: 'Entendido. Estou pronta para ajudar seguindo essas diretrizes.' }] });
-
-
-  // Add the rest of the chat history
-  if (input.messages && input.messages.length > 0) {
-    input.messages.forEach((msg: any) => {
-      // Don't re-add the last user message, we'll add it separately
-      if (msg === input.messages[input.messages.length - 1] && msg.role === 'user') {
-        return;
-      }
-      const role = msg.role === 'assistant' ? 'model' : 'user';
-      const content = msg.content || '';
-      if (role === 'user' && !content.trim()) return;
-      contents.push({ role, parts: [{ text: content }] });
+  const history: any[] = (input.messages || [])
+    .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+    .map((msg: any) => {
+        const role = msg.role === 'assistant' ? 'model' : 'user';
+        return { role, parts: [{ text: msg.content || '' }] };
     });
-  }
 
-  // Add the last user message along with any potential image data
   const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
   if (input.imageBase64) {
     lastUserMessageParts.push({
@@ -79,10 +64,20 @@ export async function generateChatContents(input: LuminaChatInput): Promise<any[
     });
   }
   
-  // Make sure we add the last user message
-  contents.push({ role: 'user', parts: lastUserMessageParts });
-
-  return contents;
+  const model = googleAI.model('gemini-1.5-flash');
+  const result = await generate({
+    model,
+    prompt: lastUserMessageParts[0].text,
+    history: history,
+    config: {
+      temperature: 0.7,
+    },
+    // @ts-ignore
+    system: systemPrompt,
+    attachments: lastUserMessageParts.length > 1 ? [{ inlineData: lastUserMessageParts[1].inlineData }] : [],
+  });
+  
+  return result.candidates;
 }
 
 

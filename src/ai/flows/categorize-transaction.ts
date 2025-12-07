@@ -9,7 +9,7 @@
  * - CategorizeTransactionOutput - The return type for the categorizeTransaction function.
  */
 
-import {ai} from '@/ai/genkit';
+import { defineFlow, definePrompt } from 'genkit/flow';
 import {
   transactionCategories,
   CategorizeTransactionInputSchema,
@@ -17,17 +17,16 @@ import {
   type CategorizeTransactionInput,
   type CategorizeTransactionOutput,
 } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
+import { z } from 'zod';
 
-export async function categorizeTransaction(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-  return categorizeTransactionFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'categorizeTransactionPrompt',
-  input: {schema: CategorizeTransactionInputSchema},
-  output: {schema: CategorizeTransactionOutputSchema},
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
+const categorizeTransactionPrompt = definePrompt(
+  {
+    name: 'categorizeTransactionPrompt',
+    inputSchema: CategorizeTransactionInputSchema,
+    outputSchema: CategorizeTransactionOutputSchema,
+    model: googleAI.model('gemini-1.5-flash'),
+    prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
 - "Pão na padaria" -> "Padaria"
@@ -51,30 +50,44 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
 
 **Descrição da Transação:** {{{description}}}
 `,
-  templateOptions: {
-    // @ts-ignore
-    categories: transactionCategories,
+    template: {
+      variables: {},
+      // @ts-ignore
+      context: {
+        categories: transactionCategories,
+      }
+    }
   },
-});
+  async (input) => {
+    const llmResponse = await googleAI.model('gemini-1.5-flash').generate({
+      prompt: input.prompt,
+      output: { schema: CategorizeTransactionOutputSchema },
+    });
+    return llmResponse.output() as z.infer<typeof CategorizeTransactionOutputSchema>;
+  }
+);
 
-const categorizeTransactionFlow = ai.defineFlow(
+
+export const categorizeTransactionFlow = defineFlow(
   {
     name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
     outputSchema: CategorizeTransactionOutputSchema,
-    retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input) => {
+    const result = await categorizeTransactionPrompt.generate({
+      input: input,
+    });
+
+    const output = result.output();
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a categorização.');
     }
     return output;
   }
 );
+
+
+export async function categorizeTransaction(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
+  return categorizeTransactionFlow(input);
+}
