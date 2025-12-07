@@ -8,7 +8,7 @@ import { AudioInputDialog } from './audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 import { usePathname, useRouter } from 'next/navigation';
-import { extractTransactionInfoFromText } from '@/app/actions';
+import { extractTransactionInfoFromText } from '@/app/dashboard/actions';
 import { useToast } from '@/hooks/use-toast';
 
 export function AddTransactionFab() {
