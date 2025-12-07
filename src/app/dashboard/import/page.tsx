@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { runFlow } from 'genkit/flow';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -66,7 +67,7 @@ export default function ImportPage() {
         const content = e.target?.result as string;
         startProcessingTransition(async () => {
           try {
-            const result = await extractFromFile({ fileContent: content, fileName: file.name });
+            const result = await runFlow(extractFromFile, { fileContent: content, fileName: file.name });
             if (result.transactions) {
               setExtractedData(result.transactions);
               toast({

@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { runFlow } from 'genkit/flow';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
@@ -89,7 +90,7 @@ export default function AnalysisPage() {
     }
     
     if (allTransactions.length > 0) {
-        const result = await generateFinancialAnalysis({ transactions: allTransactions });
+        const result = await runFlow(generateFinancialAnalysis, { transactions: allTransactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', transactionsHash);

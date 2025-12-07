@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { mediateGoals, type MediateGoalsInput, type MediateGoalsOutput } from '@/ai/flows/mediate-goals';
+import { runFlow } from 'genkit/flow';
 
 const ResultDisplay = ({ result, onReset }: { result: MediateGoalsOutput, onReset: () => void }) => {
     return (
@@ -140,7 +142,7 @@ export default function MediateGoalsPage() {
     };
 
     try {
-        const result = await mediateGoals(input);
+        const result = await runFlow(mediateGoals, input);
         setAnalysisResult(result);
     } catch (error) {
         console.error("Mediation failed:", error);

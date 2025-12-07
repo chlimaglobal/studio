@@ -80,7 +80,10 @@ export async function sendMessageToLumina(input: LuminaChatInput) {
     await addChatMessage(user.uid, userMsgForDb);
 
     // 2. Call the AI to generate the response
-    const luminaResponse = await runFlow(luminaChatFlow, input);
+    const luminaResponse = await runFlow(luminaChatFlow, {
+      ...input,
+      userQuery: finalQuery
+    });
 
     // 3. Add Lumina's response to the user's chat history
     await addChatMessage(user.uid, {

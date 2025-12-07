@@ -1,7 +1,7 @@
 
 'use server';
 
-import { runFlow } from "genkit";
+import { runFlow } from "genkit/flow";
 import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
 import { TransactionCategory, transactionCategories, ExtractTransactionOutput } from "@/lib/types";
