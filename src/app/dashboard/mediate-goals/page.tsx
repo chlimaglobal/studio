@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
-import { mediateGoals, type MediateGoalsInput, type MediateGoalsOutput } from '@/ai/flows/mediate-goals';
+import { mediateGoals } from '@/ai/flows/mediate-goals';
+import type { MediateGoalsInput, MediateGoalsOutput } from '@/lib/types';
 import { runFlow } from 'genkit';
 
 const ResultDisplay = ({ result, onReset }: { result: MediateGoalsOutput, onReset: () => void }) => {

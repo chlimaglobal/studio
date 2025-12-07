@@ -9,8 +9,8 @@ import type { TransactionFormSchema } from '@/lib/types';
 import { z } from 'zod';
 import { usePathname, useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { runFlow } from 'genkit';
-import { extractTransactionFromText } from '@/ai/flows/extract-transaction-from-text';
+import { extractTransactionInfoFromText } from '@/app/dashboard/actions';
+
 
 export function AddTransactionFab() {
   const [isAudioOpen, setIsAudioOpen] = useState(false);
@@ -46,7 +46,7 @@ export function AddTransactionFab() {
   
   const handleAudioTranscript = async (transcript: string) => {
     try {
-        const result = await runFlow(extractTransactionFromText, { text: transcript });
+        const result = await extractTransactionInfoFromText(transcript);
         if (result && result.amount !== undefined && result.description && result.type) {
             handleTransactionExtracted(result);
         } else {

@@ -7,7 +7,6 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, Loader2, Save, Star } from 'lucide-react';
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
-import { extractFromFile } from '@/ai/flows/extract-from-file';
 import type { ExtractedTransaction } from '@/lib/types';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,6 +14,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { runFlow } from 'genkit';
+import { extractFromFile } from '@/ai/flows/extract-from-file';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">

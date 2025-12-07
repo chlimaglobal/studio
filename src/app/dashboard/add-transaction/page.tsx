@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap } from 'lucide-react';
-import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames } from '@/lib/types';
+import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames, transactionCategories } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -33,8 +33,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { onCardsUpdate } from '@/lib/storage';
 import { Card as CardType } from '@/lib/card-types';
-import { runFlow } from 'genkit';
-import { categorizeTransaction } from '@/ai/flows/categorize-transaction';
+import { getCategorySuggestion } from '../actions';
 
 const institutions = [
     "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "PagBank", "Will Bank", "Outro"
@@ -131,12 +130,12 @@ function AddTransactionForm() {
         if (!description) return;
         setIsSuggesting(true);
         try {
-            const result = await runFlow(categorizeTransaction, { description });
-            if (result.category && transactionCategories.includes(result.category)) {
-                form.setValue('category', result.category, { shouldValidate: true });
+            const category = await getCategorySuggestion(description);
+            if (category && transactionCategories.includes(category)) {
+                form.setValue('category', category, { shouldValidate: true });
                 toast({
                     title: 'Sugestão da Lúmina',
-                    description: `Categorizamos isso como "${result.category}".`,
+                    description: `Categorizamos isso como "${category}".`,
                 });
             }
         } catch (e) {
