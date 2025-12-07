@@ -158,8 +158,8 @@ export const onTransactionCreated = functions.firestore
     const userDocRef = db.doc(`users/${userId}`);
 
     try {
-      // Otimização: A lógica de verificação e atualização de flag agora é atômica.
-      // Isso previne 'race conditions' e garante que o alerta seja enviado apenas uma vez.
+      // Otimização: A lógica de verificação e atualização de flag agora é atômica com uma transação.
+      // Isso previne 'race conditions' e garante que o alerta seja enviado apenas uma vez por mês.
       await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userDocRef);
         const userData = userDoc.data();
@@ -173,13 +173,15 @@ export const onTransactionCreated = functions.firestore
         const lastAlertedMonth = userData?.mesAlertadoRenda;
 
         // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
-        // Roda apenas uma vez por mês e com o mínimo de leituras.
+        // Roda apenas se o alerta para este mês ainda não foi enviado.
         if (lastAlertedMonth !== currentMonthKey) {
           const monthStart = startOfMonth(now);
           const monthEnd = endOfMonth(now);
 
           const transactionsRef = db.collection(`users/${userId}/transactions`);
           const query = transactionsRef.where("date", ">=", monthStart).where("date", "<=", monthEnd);
+          
+          // O snapshot é lido dentro da transação para garantir consistência.
           const snapshot = await query.get();
 
           let totalIncome = 0;
@@ -256,11 +258,10 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                 const userId = userDoc.id;
                 const userData = userDoc.data();
                 
-                // Otimização: Define a referência do documento do usuário aqui para uso posterior.
+                // Correção: Definir a referência do documento aqui para uso consistente.
                 const userDocRef = db.collection("users").doc(userId);
 
-                // Otimização: Isola o processamento de cada usuário com try/catch.
-                // Um erro em um usuário não irá parar o processamento dos outros.
+                // Otimização: Isola o processamento de cada usuário com try/catch para que um erro não pare os outros.
                 try {
                     if (userData.isDependent) {
                         return; // Ignorar contas dependentes
@@ -287,16 +288,12 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         .where('date', '>=', sixtyDaysAgo)
                         .get();
                     
-                    // Otimização: Mapeia e valida os dados em memória para reuso em todas as análises.
+                    // Otimização e Segurança: Mapeia e valida os dados em memória para reuso em todas as análises.
                     const transactions = transactionsSnapshot.docs.map(doc => {
                         const data = doc.data();
-                        // Segurança: Garante que a data é válida antes de usar.
                         const txDate = data.date?.toDate ? data.date.toDate() : new Date(0);
-                        // Segurança: Garante que o valor é um número finito.
                         const amount = Number(data.amount);
-                        // Segurança: Garante que o tipo é válido.
                         const type = (data.type === 'income' || data.type === 'expense') ? data.type : null;
-                        // Segurança: Garante que a categoria é uma string válida.
                         const category = (typeof data.category === 'string' && data.category.trim() !== '') ? data.category.trim() : 'Sem Categoria';
 
                         return { 
@@ -332,18 +329,17 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         const category = transaction.category;
                         if (transaction.amount <= 500) continue; // Ignora gastos pequenos
 
-                        // Otimização: Flags diárias para evitar spam.
+                        // Otimização: Flags diárias e mensais para evitar spam.
                         const dailyAlertKey = `alert_outOfPattern_${category}_${currentDayKey}`;
                         const monthlyAlertKey = `alert_outOfPattern_${currentMonthKey}_${category}`;
                         if (userData?.[dailyAlertKey] || userData?.[monthlyAlertKey] || updates[dailyAlertKey]) continue;
 
                         const stats = categoryAverages[category];
-                        // Otimização: A média só é calculada se houver um histórico mínimo.
                         if (stats && stats.count > 5) {
                             const average = stats.total / stats.count;
                             if (transaction.amount > average * 3) {
                                 updates[dailyAlertKey] = true;
-                                updates[monthlyAlertKey] = true;
+                                updates[monthlyAlertKey] = true; // Mantém a trava mensal
                                 const messageText = `🚨 Detectei uma despesa fora do padrão em ${category}. Quer que eu investigue isso pra você?`;
                                 const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
                                 chatBatch.set(newChatDocRef, {
@@ -358,7 +354,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     
                     // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
                     const oneWeekAgo = subDays(now, 7);
-                    // Otimização: Reutiliza o array de transações em memória.
                     const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
                     const categoryCounts: { [key: string]: number } = {};
                     weeklyExpenses.forEach(t => {
@@ -366,10 +361,10 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     });
 
                     for (const category in categoryCounts) {
-                        if (categoryCounts[category] > 3) { // Mais de 3 gastos na mesma categoria
+                        if (categoryCounts[category] > 3) { 
                              const dailyAlertKey = `alert_unusualRecurrence_${category}_${currentDayKey}`;
-                            const monthlyAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
-                            if (userData?.[dailyAlertKey] || userData?.[monthlyAlertKey] || updates[dailyAlertKey]) continue;
+                             const monthlyAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
+                             if (userData?.[dailyAlertKey] || userData?.[monthlyAlertKey] || updates[dailyAlertKey]) continue;
                             
                             updates[dailyAlertKey] = true;
                             updates[monthlyAlertKey] = true;
@@ -392,7 +387,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         const monthStart = startOfMonth(now);
                         const monthlyExpensesByCategory: { [key: string]: number } = {};
 
-                        // Otimização: Calcula gastos do mês por categoria a partir dos dados já em memória.
                         transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => {
                             monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + t.amount;
                         });
@@ -405,7 +399,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                             const totalCategorySpending = monthlyExpensesByCategory[category] || 0;
                             const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
                             
-                            // Lógica para o alerta de 100%
                             const alertKey100 = `alert_100_${currentMonthKey}_${category}`;
                             if (spendingPercentage >= 100 && !(userData?.[alertKey100] || updates[alertKey100])) {
                                 updates[alertKey100] = true;
@@ -414,7 +407,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                                 chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
                                 chatMessagesCount++;
                             } else {
-                                // Lógica para o alerta de 80% (só roda se o de 100% não foi acionado)
                                 const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
                                 if (spendingPercentage >= 80 && !(userData?.[alertKey80] || updates[alertKey80])) {
                                     updates[alertKey80] = true;
@@ -463,5 +455,3 @@ const endOfDay = (date: Date): Date => {
   newDate.setHours(23, 59, 59, 999);
   return newDate;
 };
-
-    
