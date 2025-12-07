@@ -4,6 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import wav from 'wav';
+import { googleAI } from '@genkit-ai/googleai';
 
 async function toWav(
   pcmData: Buffer,
@@ -39,22 +40,22 @@ export const textToSpeech = ai.defineFlow(
     outputSchema: z.object({ audioUrl: z.string() }),
   },
   async (text) => {
-    const result = await ai.generate({
-      model: 'googleai/gemini-1.5-flash', // TTS model might be different in this version
-      prompt: text,
+    const { media } = await ai.generate({
+      model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
-        // @ts-ignore - This is a placeholder for potential TTS-specific config
+        // @ts-ignore
         responseMimeType: "audio/wav", 
       },
+      prompt: text,
     });
 
-    const media = result.output;
+    const output = media;
     
-    if (!media || typeof media !== 'string') {
+    if (!output || typeof output !== 'string') {
       throw new Error('No audio content returned from TTS model.');
     }
 
-    const audioBuffer = Buffer.from(media, 'base64');
+    const audioBuffer = Buffer.from(output, 'base64');
     const wavBase64 = await toWav(audioBuffer);
 
     return {
