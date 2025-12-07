@@ -1,18 +1,11 @@
 
 'use server';
 
-/**
- * @fileOverview An AI agent to generate a high-performance financial recovery plan.
- *
- * - runRecoveryProtocol - A function that analyzes transactions and provides a strategic turnaround plan.
- * - RecoveryProtocolInput - The input type for the function.
- * - RecoveryProtocolOutput - The return type for the function.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import { LUMINA_RECOVERY_PROMPT } from '@/ai/lumina/prompt/luminaRecoveryPrompt';
-
+import { generate } from 'genkit/ai';
 
 const RecoveryProtocolInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas) do período a ser analisado.'),
@@ -39,37 +32,31 @@ const FlashRecoveryOutputSchema = z.object({
 export type RecoveryProtocolOutput = z.infer<typeof RecoveryProtocolOutputSchema>;
 export type FlashRecoveryOutput = z.infer<typeof FlashRecoveryOutputSchema>;
 
-// Unified wrapper function
-export async function runRecoveryProtocol(input: RecoveryProtocolInput) {
-    if (input.promptType === 'flash') {
-        return runFlashRecoveryProtocolFlow(input);
-    }
-    return runFullRecoveryProtocolFlow(input);
-}
-
 // FULL PROTOCOL FLOW
-const fullPrompt = ai.definePrompt({
-  name: 'fullRecoveryProtocolPrompt',
-  input: { schema: RecoveryProtocolInputSchema },
-  output: { schema: RecoveryProtocolOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: LUMINA_RECOVERY_PROMPT + `
-  
-  ---
-  **Dados das Transações para Análise:**
-  {{{json transactions}}}
-
-  Execute a análise e retorne o resultado no formato JSON solicitado. Sem emoção. Apenas estratégia.`,
-});
-
-const runFullRecoveryProtocolFlow = ai.defineFlow(
+const runFullRecoveryProtocolFlow = defineFlow(
   {
     name: 'runFullRecoveryProtocolFlow',
     inputSchema: RecoveryProtocolInputSchema,
     outputSchema: RecoveryProtocolOutputSchema,
   },
   async (input) => {
-    const { output } = await fullPrompt(input);
+    const prompt = LUMINA_RECOVERY_PROMPT + `
+      ---
+      **Dados das Transações para Análise:**
+      ${JSON.stringify(input.transactions)}
+
+      Execute a análise e retorne o resultado no formato JSON solicitado. Sem emoção. Apenas estratégia.`;
+
+    const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: prompt,
+        output: {
+            format: 'json',
+            schema: RecoveryProtocolOutputSchema
+        }
+    });
+
+    const output = result.output();
     if (!output) {
       throw new Error('O Protocolo de Recuperação não pôde ser executado.');
     }
@@ -77,14 +64,15 @@ const runFullRecoveryProtocolFlow = ai.defineFlow(
   }
 );
 
-
 // FLASH PROTOCOL FLOW
-const flashPrompt = ai.definePrompt({
-    name: 'flashRecoveryProtocolPrompt',
-    input: { schema: RecoveryProtocolInputSchema },
-    output: { schema: FlashRecoveryOutputSchema },
-    model: 'googleai/gemini-2.5-flash',
-    prompt: `Você é uma I.A. de comando estratégico. Responda ao comando "Lúmina, modo flash" para um usuário que busca uma análise financeira rápida e direta. Tom de voz: ENTJ, focado em resultados, sem rodeios.
+const runFlashRecoveryProtocolFlow = defineFlow(
+  {
+    name: 'runFlashRecoveryProtocolFlow',
+    inputSchema: RecoveryProtocolInputSchema,
+    outputSchema: FlashRecoveryOutputSchema,
+  },
+  async (input) => {
+     const prompt = `Você é uma I.A. de comando estratégico. Responda ao comando "Lúmina, modo flash" para um usuário que busca uma análise financeira rápida e direta. Tom de voz: ENTJ, focado em resultados, sem rodeios.
 
     **Análise de Falha (1 Parágrafo):** Analise as transações. Identifique a causa raiz da performance negativa. Foque na maior fonte de dreno de capital e na principal falha de disciplina. Seja direto.
 
@@ -93,23 +81,32 @@ const flashPrompt = ai.definePrompt({
     **Mantra de Reprogramação:** Forneça um mantra de comando, curto e poderoso, para realinhar o foco mental do usuário para a vitória.
 
     **Dados das Transações para Análise:**
-    {{{json transactions}}}
+    ${JSON.stringify(input.transactions)}
 
-    Execute a análise e retorne o resultado no formato JSON solicitado.`,
-});
+    Execute a análise e retorne o resultado no formato JSON solicitado.`;
 
-
-const runFlashRecoveryProtocolFlow = ai.defineFlow(
-  {
-    name: 'runFlashRecoveryProtocolFlow',
-    inputSchema: RecoveryProtocolInputSchema,
-    outputSchema: FlashRecoveryOutputSchema,
-  },
-  async (input) => {
-    const { output } = await flashPrompt(input);
+     const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: prompt,
+        output: {
+            format: 'json',
+            schema: FlashRecoveryOutputSchema
+        }
+    });
+    
+    const output = result.output();
     if (!output) {
       throw new Error('O Protocolo Flash não pôde ser executado.');
     }
     return output;
   }
 );
+
+
+// Unified wrapper function
+export async function runRecoveryProtocol(input: RecoveryProtocolInput) {
+    if (input.promptType === 'flash') {
+        return runFlashRecoveryProtocolFlow(input);
+    }
+    return runFullRecoveryProtocolFlow(input);
+}

@@ -1,31 +1,25 @@
 
 'use server';
 
-/**
- * @fileOverview Um agente de IA para extrair informações de transações de texto em linguagem natural.
- *
- * - extractTransactionFromText - Uma função que extrai dados de transação de uma string.
- * - ExtractTransactionInput - O tipo de entrada para a função extractTransactionFromText.
- * - ExtractTransactionOutput - O tipo de retorno para a função extractTransactionFromText.
- */
-
-import { defineFlow, definePrompt } from 'genkit/flow';
+import { defineFlow } from 'genkit';
 import {
   ExtractTransactionInputSchema,
   ExtractTransactionOutputSchema,
   type ExtractTransactionInput,
   type ExtractTransactionOutput,
 } from '@/lib/types';
-import { googleAI } from '@genkit-ai/google-genai';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
+import { generate } from 'genkit/ai';
 
-const extractTransactionPrompt = definePrompt(
+export const extractTransactionFromText = defineFlow(
   {
-    name: 'extractTransactionPrompt',
+    name: 'extractTransactionFromTextFlow',
     inputSchema: ExtractTransactionInputSchema,
     outputSchema: ExtractTransactionOutputSchema,
-    model: googleAI.model('gemini-1.5-flash'),
-    prompt: `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
+  },
+  async (input) => {
+    const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
   1.  **Extraia os Dados:** Analise o texto para obter: descrição, valor, tipo e parcelamento.
@@ -41,30 +35,19 @@ const extractTransactionPrompt = definePrompt(
   - **Texto:** "Comprei um celular novo por 3 mil reais em 10 vezes" -> **Saída:** { "description": "Celular novo", "amount": 3000, "type": "expense", "category": "Compras", "paymentMethod": "installments", "installments": "10" }
 
   **Texto do usuário para análise:**
-  {{{text}}}
-  `,
-  },
-  async (input) => {
-    const llmResponse = await googleAI.model('gemini-1.5-flash').generate({
-      prompt: input.prompt,
-      output: { schema: ExtractTransactionOutputSchema },
-    });
-    return llmResponse.output() as z.infer<typeof ExtractTransactionOutputSchema>;
-  }
-);
+  ${input.text}
+  `;
 
-
-export const extractTransactionFlow = defineFlow(
-  {
-    name: 'extractTransactionFlow',
-    inputSchema: ExtractTransactionInputSchema,
-    outputSchema: ExtractTransactionOutputSchema,
-  },
-  async (input) => {
-    const result = await extractTransactionPrompt.generate({
-      input: input,
+    const llmResponse = await generate({
+      model: googleAI('gemini-1.5-flash'),
+      prompt: prompt,
+      output: {
+        format: 'json',
+        schema: ExtractTransactionOutputSchema
+      }
     });
-    let output = result.output();
+    
+    let output = llmResponse.output();
 
     if (!output || !output.description || !output.type) {
       // Fallback in case the model returns absolutely nothing
@@ -79,7 +62,3 @@ export const extractTransactionFlow = defineFlow(
     return output;
   }
 );
-
-export async function extractTransactionFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-  return extractTransactionFlow(input);
-}

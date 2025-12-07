@@ -1,13 +1,8 @@
 
 'use server';
 
-/**
- * @fileOverview An AI agent to extract financial transactions from various file formats.
- *
- * - extractFromFile - A function that extracts transactions from file content.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import { 
   transactionCategories,
@@ -16,18 +11,16 @@ import {
   type ExtractFromFileInput,
   type ExtractFromFileOutput
 } from '@/lib/types';
+import { generate } from 'genkit/ai';
 
-
-export async function extractFromFile(input: ExtractFromFileInput): Promise<ExtractFromFileOutput> {
-  return extractFromFileFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'extractFromFilePrompt',
-  input: { schema: ExtractFromFileInputSchema },
-  output: { schema: ExtractFromFileOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
+export const extractFromFile = defineFlow(
+  {
+    name: 'extractFromFileFlow',
+    inputSchema: ExtractFromFileInputSchema,
+    outputSchema: ExtractFromFileOutputSchema,
+  },
+  async (input) => {
+    const prompt = `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
 
   **Instruções de Processamento:**
   1.  **Analise o Conteúdo:** O conteúdo do arquivo será fornecido como uma string. Identifique o formato (mesmo que a extensão seja genérica) e a estrutura dos dados.
@@ -44,36 +37,30 @@ const prompt = ai.definePrompt({
   5.  **Retorno:** Retorne um objeto JSON contendo uma única chave \`transactions\`, que é um array de todos os objetos de transação que você conseguiu extrair.
 
   **Categorias Disponíveis para \`category\`:**
-  {{#each categories}}
-  - {{this}}
-  {{/each}}
+  ${transactionCategories.join('\n- ')}
 
-  **Nome do Arquivo (para contexto):** {{{fileName}}}
+  **Nome do Arquivo (para contexto):** ${input.fileName}
   **Conteúdo do Arquivo para Análise:**
-  {{media url=fileContent}}
+  (O conteúdo está no formato de data URI na próxima parte da mensagem)
 
-  Analise o conteúdo e retorne a lista de transações no formato JSON especificado.`,
-  templateOptions: {
-    // @ts-ignore
-    categories: transactionCategories,
-  },
-});
+  Analise o conteúdo e retorne a lista de transações no formato JSON especificado.`;
 
-const extractFromFileFlow = ai.defineFlow(
-  {
-    name: 'extractFromFileFlow',
-    inputSchema: ExtractFromFileInputSchema,
-    outputSchema: ExtractFromFileOutputSchema,
-     retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
-  },
-  async (input) => {
-    const { output } = await prompt(input);
+    const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: [
+            { text: prompt },
+            { media: { url: input.fileContent } }
+        ],
+        config: {
+          retries: 3,
+        },
+        output: {
+            format: 'json',
+            schema: ExtractFromFileOutputSchema
+        }
+    });
+
+    const output = result.output();
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar o arquivo.');
     }

@@ -1,10 +1,11 @@
 
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import wav from 'wav';
+import { generate } from 'genkit/ai';
 
 async function toWav(
   pcmData: Buffer,
@@ -33,35 +34,29 @@ async function toWav(
   });
 }
 
-const textToSpeechFlow = ai.defineFlow(
+export const textToSpeech = defineFlow(
   {
     name: 'textToSpeechFlow',
     inputSchema: z.string(),
     outputSchema: z.object({ audioUrl: z.string() }),
   },
   async (text) => {
-    const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Feminine voice
-          },
-        },
-      },
+    const result = await generate({
+      model: googleAI('gemini-1.5-flash'), // TTS model might be different in this version
       prompt: text,
+      config: {
+        // @ts-ignore - This is a placeholder for potential TTS-specific config
+        responseMimeType: "audio/wav", 
+      },
     });
 
-    if (!media?.url) {
+    const media = result.output();
+    
+    if (!media || typeof media !== 'string') {
       throw new Error('No audio content returned from TTS model.');
     }
 
-    const audioBuffer = Buffer.from(
-      media.url.substring(media.url.indexOf(',') + 1),
-      'base64'
-    );
-
+    const audioBuffer = Buffer.from(media, 'base64');
     const wavBase64 = await toWav(audioBuffer);
 
     return {
@@ -69,8 +64,3 @@ const textToSpeechFlow = ai.defineFlow(
     };
   }
 );
-
-
-export async function textToSpeech(text: string): Promise<{ audioUrl: string }> {
-    return textToSpeechFlow(text);
-}

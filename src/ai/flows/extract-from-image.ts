@@ -1,29 +1,20 @@
 
 'use server';
 
-/**
- * @fileOverview An AI agent to extract transaction information from an image.
- *
- * - extractFromImage - A function that extracts transaction data from an image.
- * - ExtractFromImageInput - The input type for the function.
- * - ExtractFromImageOutput - The return type for the function.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import { transactionCategories, ExtractFromImageInputSchema, ExtractFromImageOutputSchema, type ExtractFromImageInput, type ExtractFromImageOutput } from '@/lib/types';
+import { generate } from 'genkit/ai';
 
-
-export async function extractFromImage(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
-  return extractFromImageFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'extractFromImagePrompt',
-  input: { schema: ExtractFromImageInputSchema },
-  output: { schema: ExtractFromImageOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é Lúmina, uma assistente financeira especialista em interpretar imagens financeiras de todos os tipos. Sua missão é extrair, interpretar, categorizar e transformar imagens em dados estruturados, úteis e inteligentes.
+export const extractFromImage = defineFlow(
+  {
+    name: 'extractFromImageFlow',
+    inputSchema: ExtractFromImageInputSchema,
+    outputSchema: ExtractFromImageOutputSchema,
+  },
+  async (input) => {
+    const prompt = `Você é Lúmina, uma assistente financeira especialista em interpretar imagens financeiras de todos os tipos. Sua missão é extrair, interpretar, categorizar e transformar imagens em dados estruturados, úteis e inteligentes.
 
 Siga rigorosamente todas as regras abaixo.
 
@@ -104,43 +95,35 @@ Se a imagem **NÃO FOR UM BOLETO** e um logo não for claramente identificado, s
 4.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão devido a dados ausentes.
 
 **Categorias Disponíveis para os Módulos 2 e 3:**
-{{#each categories}}
-- {{this}}
-{{/each}}
+${transactionCategories.join('\n- ')}
 
 ---
 **DADOS PARA ANÁLISE:**
 
 **Histórico de Transações do Usuário (para contexto):**
-{{{json allTransactions}}}
+${JSON.stringify(input.allTransactions || [])}
 
 **Imagem para Análise:**
-{{media url=imageDataUri}}
+(A imagem está na próxima parte da mensagem)
 
-Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`,
-  templateOptions: {
-    // @ts-ignore
-    categories: transactionCategories,
-  },
-});
+Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`;
+    const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: [
+            { text: prompt },
+            { media: { url: input.imageDataUri } }
+        ],
+        config: {
+          retries: 3,
+        },
+        output: {
+            format: 'json',
+            schema: ExtractFromImageOutputSchema
+        }
+    });
 
-const extractFromImageFlow = ai.defineFlow(
-  {
-    name: 'extractFromImageFlow',
-    inputSchema: ExtractFromImageInputSchema,
-    outputSchema: ExtractFromImageOutputSchema,
-     retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
-  },
-  async (input) => {
-    const { output } = await prompt(input);
+    const output = result.output();
     if (!output || !output.description) {
-      // Fallback in case the model returns absolutely nothing
       return {
         description: 'Não foi possível ler a imagem',
         amount: 0,
@@ -152,5 +135,3 @@ const extractFromImageFlow = ai.defineFlow(
     return output;
   }
 );
-
-    

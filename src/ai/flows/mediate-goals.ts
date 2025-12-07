@@ -1,45 +1,37 @@
 
 'use server';
 
-/**
- * @fileOverview Um agente de IA para mediar e alinhar metas financeiras de um casal.
- *
- * - mediateGoals - Uma função que analisa duas metas e propõe um plano conjunto.
- * - MediateGoalsInput - O tipo de entrada para a função.
- * - MediateGoalsOutput - O tipo de retorno para a função.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { 
     MediateGoalsInputSchema, 
     MediateGoalsOutputSchema, 
     type MediateGoalsInput, 
     type MediateGoalsOutput 
 } from '@/lib/types';
+import { generate } from 'genkit/ai';
 
-
-export async function mediateGoals(input: MediateGoalsInput): Promise<MediateGoalsOutput> {
-  return mediateGoalsFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'mediateGoalsPrompt',
-  input: { schema: MediateGoalsInputSchema },
-  output: { schema: MediateGoalsOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes. Você deve ser empática, neutra e focada em soluções ganha-ganha.
+export const mediateGoals = defineFlow(
+  {
+    name: 'mediateGoalsFlow',
+    inputSchema: MediateGoalsInputSchema,
+    outputSchema: MediateGoalsOutputSchema,
+  },
+  async (input) => {
+    
+    const prompt = `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes. Você deve ser empática, neutra e focada em soluções ganha-ganha.
 
   **Contexto:**
   Um casal tem metas individuais e uma situação financeira conjunta. Você precisa analisar todos os dados para propor um plano conjunto equilibrado.
 
   **Informações Recebidas:**
   - **Renda e Despesas:**
-    - Parceiro A: Renda de {{{partnerAIncome}}}, Despesas de {{{partnerAExpenses}}}
-    - Parceiro B: Renda de {{{partnerBIncome}}}, Despesas de {{{partnerBExpenses}}}
-  - **Poupança Atual:** {{{currentSavings}}}
-  - **Capacidade de Economia Mensal do Casal:** {{{sharedMonthlySavings}}}
-  - **Meta do Parceiro A:** {{{json partnerAGoal}}}
-  - **Meta do Parceiro B:** {{{json partnerBGoal}}}
+    - Parceiro A: Renda de ${input.partnerAIncome}, Despesas de ${input.partnerAExpenses}
+    - Parceiro B: Renda de ${input.partnerBIncome}, Despesas de ${input.partnerBExpenses}
+  - **Poupança Atual:** ${input.currentSavings}
+  - **Capacidade de Economia Mensal do Casal:** ${input.sharedMonthlySavings}
+  - **Meta do Parceiro A:** ${JSON.stringify(input.partnerAGoal)}
+  - **Meta do Parceiro B:** ${JSON.stringify(input.partnerBGoal)}
 
   **Sua Tarefa:**
   1.  **Analisar a Viabilidade:** Verifique se a soma dos aportes mensais necessários para cada meta individual (\`amount\` / \`months\`) ultrapassa a capacidade de economia mensal do casal (\`sharedMonthlySavings\`). Se não ultrapassar, o plano é viável como está, e você deve alocar os valores e calcular o tempo para cada um, explicando que ambos são possíveis simultaneamente. Se ultrapassar, um compromisso será necessário. Considere a renda e despesas de cada um para comentar sobre a capacidade de contribuição.
@@ -55,30 +47,24 @@ const prompt = ai.definePrompt({
 
   5.  **Definir Passos de Ação (actionSteps):** Forneça 2 ou 3 passos práticos e imediatos. Ex: "1. Criem uma 'conta de metas' conjunta.", "2. Configurem uma transferência automática mensal de R$Z.", "3. Comemorem a primeira economia conjunta!".
 
-  Analise os dados e retorne o resultado no formato JSON solicitado.`,
-});
+  Analise os dados e retorne o resultado no formato JSON solicitado.`;
 
+    const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: prompt,
+        config: {
+          retries: 3,
+        },
+        output: {
+            format: 'json',
+            schema: MediateGoalsOutputSchema
+        }
+    });
 
-const mediateGoalsFlow = ai.defineFlow(
-  {
-    name: 'mediateGoalsFlow',
-    inputSchema: MediateGoalsInputSchema,
-    outputSchema: MediateGoalsOutputSchema,
-    retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
-  },
-  async (input) => {
-    const { output } = await prompt(input);
+    const output = result.output();
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
     }
     return output;
   }
 );
-
-    

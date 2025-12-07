@@ -1,15 +1,14 @@
 
-
-import '@/ai/flows/categorize-transaction.ts';
-import '@/ai/flows/extract-transaction-from-text.ts';
-import '@/ai/flows/generate-financial-analysis.ts';
-import '@/ai/flows/extract-from-file.ts';
-import '@/ai/flows/analyze-investor-profile.ts';
-import '@/ai/flows/lumina-chat.ts';
-import '@/ai/flows/lumina-couple-chat.ts';
-import '@/ai/flows/mediate-goals.ts';
-import '@/ai/flows/extract-from-image.ts';
-import '@/ai/flows/recovery-protocol-flow.ts';
-import '@/ai/flows/calculate-savings-goal.ts';
-import '@/ai/lumina/prompt/luminaRecoveryPrompt.ts';
-import '@/ai/flows/text-to-speech.ts';
+// Import to register all the flow files with Genkit
+import './flows/categorize-transaction';
+import './flows/extract-transaction-from-text';
+import './flows/generate-financial-analysis';
+import './flows/extract-from-file';
+import './flows/analyze-investor-profile';
+import './flows/lumina-chat';
+import './flows/lumina-couple-chat';
+import './flows/mediate-goals';
+import './flows/extract-from-image';
+import './flows/recovery-protocol-flow';
+import './flows/calculate-savings-goal';
+import './flows/text-to-speech';

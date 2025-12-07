@@ -1,45 +1,26 @@
 
 'use server';
 
-/**
- * @fileOverview Lúmina — fluxo de chat para casais.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import type { LuminaCoupleChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
+import { generate } from 'genkit/ai';
 
-
-// === Função externa chamada pela aplicação ===
-export async function generateCoupleSuggestion(input: LuminaCoupleChatInput): Promise<LuminaChatOutput> {
-  return luminaCoupleChatFlow(input);
-}
-
-const luminaCoupleChatFlow = ai.defineFlow(
+export const generateCoupleSuggestion = defineFlow(
   {
     name: 'luminaCoupleChatFlow',
     inputSchema: LuminaCoupleChatInputSchema,
     outputSchema: LuminaChatOutputSchema,
-     retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 1500,
-        multiplier: 2,
-      },
-    },
   },
   async (input) => {
     
     const mappedChatHistory = (input.chatHistory || []).map((msg) => ({
       role: msg.role === 'lumina' ? 'model' : ('user' as 'user' | 'model'),
-      content: [
-        {
-          text: (msg.text || '').toString(),
-        },
-      ],
+      parts: [{ text: (msg.text || '').toString() }],
     }));
 
     const transactionsForContext = (input.allTransactions || []).slice(0, 50);
@@ -62,22 +43,26 @@ const luminaCoupleChatFlow = ai.defineFlow(
         'Responda como Lúmina, dirigindo-se ao casal de forma inclusiva, humana e proativa. Sempre termine com uma pergunta para engajar a conversa.',
     ].join('\n');
     
-    let attachments: Array<any> | undefined = undefined;
+    let promptParts: any[] = [{ text: promptContext }];
     if (input.imageBase64) {
-        attachments = [{ media: { url: input.imageBase64, contentType: 'image/png' } }];
+        promptParts.push({ media: { url: `data:image/png;base64,${input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')}` } });
     }
 
     try {
-        const { output } = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
-            prompt: promptContext,
+        const result = await generate({
+            model: googleAI('gemini-1.5-flash'),
+            prompt: promptParts,
             history: mappedChatHistory,
-            attachments,
             output: {
+                format: 'json',
                 schema: LuminaChatOutputSchema,
             },
+            config: {
+                retries: 3
+            }
         });
 
+      const output = result.output();
       if (!output || !output.text) {
         throw new Error("A Lúmina não retornou uma resposta válida para o casal.");
       }

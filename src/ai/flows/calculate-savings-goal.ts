@@ -1,26 +1,18 @@
 
 'use server';
 
-/**
- * @fileOverview Um agente de IA para calcular uma meta de economia mensal inteligente.
- *
- * - calculateSavingsGoal - Uma função que analisa as finanças e propõe uma meta.
- * - SavingsGoalInput - O tipo de entrada para a função.
- * - SavingsGoalOutput - O tipo de retorno para a função.
- */
-
-import { ai } from '@/ai/genkit';
+import { defineFlow } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
 import { Transaction } from '@/lib/types';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from '@/ai/lumina/prompt/luminaGoalsPrompt';
+import { generate } from 'genkit/ai';
 
-// Schema de Entrada
 export const SavingsGoalInputSchema = z.object({
   transactions: z.array(z.any()).describe('Lista de transações dos últimos 30-90 dias.'),
 });
 export type SavingsGoalInput = z.infer<typeof SavingsGoalInputSchema>;
 
-// Schema de Saída
 export const SavingsGoalOutputSchema = z.object({
   monthlyIncome: z.number().describe('Renda mensal total calculada.'),
   currentExpenses: z.number().describe('Soma total dos gastos mensais.'),
@@ -30,43 +22,38 @@ export const SavingsGoalOutputSchema = z.object({
 });
 export type SavingsGoalOutput = z.infer<typeof SavingsGoalOutputSchema>;
 
-
-export async function calculateSavingsGoal(input: SavingsGoalInput): Promise<SavingsGoalOutput> {
-  return calculateSavingsGoalFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'calculateSavingsGoalPrompt',
-  input: { schema: SavingsGoalInputSchema },
-  output: { schema: SavingsGoalOutputSchema },
-  model: 'googleai/gemini-2.5-flash',
-  prompt: LUMINA_GOALS_SYSTEM_PROMPT + `
-  
-  ---
-  **Dados das Transações do Usuário para Análise:**
-  {{{json transactions}}}
-
-  Analise os dados, siga as regras definidas e retorne o resultado no formato JSON solicitado, preenchendo todos os campos do schema de saída.`,
-});
-
-const calculateSavingsGoalFlow = ai.defineFlow(
+export const calculateSavingsGoal = defineFlow(
   {
     name: 'calculateSavingsGoalFlow',
     inputSchema: SavingsGoalInputSchema,
     outputSchema: SavingsGoalOutputSchema,
-    retrier: {
-      maxAttempts: 3,
-      backoff: {
-        delayMs: 2000,
-        multiplier: 2,
-      },
-    },
   },
   async (input) => {
     if (!input.transactions || input.transactions.length === 0) {
         throw new Error('Não há transações suficientes para calcular uma meta.');
     }
-    const { output } = await prompt(input);
+    
+    const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
+  
+      ---
+      **Dados das Transações do Usuário para Análise:**
+      ${JSON.stringify(input.transactions)}
+
+      Analise os dados, siga as regras definidas e retorne o resultado no formato JSON solicitado, preenchendo todos os campos do schema de saída.`;
+
+    const result = await generate({
+        model: googleAI('gemini-1.5-flash'),
+        prompt: prompt,
+        config: {
+          retries: 3,
+        },
+        output: {
+            format: 'json',
+            schema: SavingsGoalOutputSchema
+        }
+    });
+
+    const output = result.output();
     if (!output) {
       throw new Error('A Lúmina não conseguiu calcular a meta de economia.');
     }

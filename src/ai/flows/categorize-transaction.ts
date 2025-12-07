@@ -1,15 +1,7 @@
 
 'use server';
 
-/**
- * @fileOverview An AI agent to categorize financial transactions based on their descriptions.
- *
- * - categorizeTransaction - A function that categorizes transactions.
- * - CategorizeTransactionInput - The input type for the categorizeTransaction function.
- * - CategorizeTransactionOutput - The return type for the categorizeTransaction function.
- */
-
-import { defineFlow, definePrompt } from 'genkit/flow';
+import { defineFlow } from 'genkit';
 import {
   transactionCategories,
   CategorizeTransactionInputSchema,
@@ -17,16 +9,18 @@ import {
   type CategorizeTransactionInput,
   type CategorizeTransactionOutput,
 } from '@/lib/types';
-import { googleAI } from '@genkit-ai/google-genai';
+import { googleAI } from '@genkit-ai/googleai';
 import { z } from 'zod';
+import { generate } from 'genkit/ai';
 
-const categorizeTransactionPrompt = definePrompt(
+export const categorizeTransaction = defineFlow(
   {
-    name: 'categorizeTransactionPrompt',
+    name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
     outputSchema: CategorizeTransactionOutputSchema,
-    model: googleAI.model('gemini-1.5-flash'),
-    prompt: `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
+  },
+  async (input) => {
+    const prompt = `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
 - "Pão na padaria" -> "Padaria"
@@ -42,52 +36,26 @@ const categorizeTransactionPrompt = definePrompt(
 - "Salário da empresa X" -> "Salário"
 
 **Categorias Disponíveis:**
-{{#each categories}}
-- {{this}}
-{{/each}}
+${transactionCategories.join('\n- ')}
 
 Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja o mais específico possível.
 
-**Descrição da Transação:** {{{description}}}
-`,
-    template: {
-      variables: {},
-      // @ts-ignore
-      context: {
-        categories: transactionCategories,
-      }
-    }
-  },
-  async (input) => {
-    const llmResponse = await googleAI.model('gemini-1.5-flash').generate({
-      prompt: input.prompt,
-      output: { schema: CategorizeTransactionOutputSchema },
-    });
-    return llmResponse.output() as z.infer<typeof CategorizeTransactionOutputSchema>;
-  }
-);
+**Descrição da Transação:** ${input.description}
+`;
 
-
-export const categorizeTransactionFlow = defineFlow(
-  {
-    name: 'categorizeTransactionFlow',
-    inputSchema: CategorizeTransactionInputSchema,
-    outputSchema: CategorizeTransactionOutputSchema,
-  },
-  async (input) => {
-    const result = await categorizeTransactionPrompt.generate({
-      input: input,
+    const llmResponse = await generate({
+      model: googleAI('gemini-1.5-flash'),
+      prompt: prompt,
+      output: {
+        format: 'json',
+        schema: CategorizeTransactionOutputSchema,
+      },
     });
 
-    const output = result.output();
+    const output = llmResponse.output();
     if (!output) {
       throw new Error('A Lúmina não conseguiu processar a categorização.');
     }
     return output;
   }
 );
-
-
-export async function categorizeTransaction(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-  return categorizeTransactionFlow(input);
-}
