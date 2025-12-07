@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { analyzeInvestorProfile } from '@/ai/flows/analyze-investor-profile';
 import { useToast } from '@/hooks/use-toast';
 import type { InvestorProfileInput } from '@/lib/types';
-import { runFlow } from 'genkit/flow';
+import { runFlow } from 'genkit';
 
 // Placeholder para as perguntas do questionário
 const questions = [

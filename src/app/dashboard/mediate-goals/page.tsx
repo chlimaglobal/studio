@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
 import { mediateGoals, type MediateGoalsInput, type MediateGoalsOutput } from '@/ai/flows/mediate-goals';
-import { runFlow } from 'genkit/flow';
+import { runFlow } from 'genkit';
 
 const ResultDisplay = ({ result, onReset }: { result: MediateGoalsOutput, onReset: () => void }) => {
     return (

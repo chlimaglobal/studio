@@ -27,12 +27,7 @@ const getFinancialMarketDataTool = ai.defineTool(
     }
 );
 
-export async function analyzeInvestorProfile (input: InvestorProfileInput): Promise<InvestorProfileOutput> {
-    return analyzeInvestorProfileFlow(input);
-}
-
-
-const analyzeInvestorProfileFlow = ai.defineFlow(
+export const analyzeInvestorProfile = ai.defineFlow(
   {
     name: 'analyzeInvestorProfileFlow',
     inputSchema: InvestorProfileInputSchema,

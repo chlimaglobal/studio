@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { runFlow } from 'genkit/flow';
+import { runFlow } from 'genkit';
 
 const PremiumBlocker = () => (
     <Card className="text-center">

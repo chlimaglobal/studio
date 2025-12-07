@@ -12,7 +12,7 @@ import { calculateSavingsGoal, type SavingsGoalOutput } from '@/ai/flows/calcula
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories } from '@/lib/types';
 import Link from 'next/link';
-import { runFlow } from 'genkit/flow';
+import { runFlow } from 'genkit';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">

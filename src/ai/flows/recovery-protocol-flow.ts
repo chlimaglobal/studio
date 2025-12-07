@@ -101,11 +101,17 @@ const runFlashRecoveryProtocolFlow = ai.defineFlow(
   }
 );
 
-
-// Unified wrapper function
-export async function runRecoveryProtocol(input: RecoveryProtocolInput) {
+// This is the main exported flow that will be called.
+export const runRecoveryProtocol = ai.defineFlow(
+  {
+    name: 'runRecoveryProtocol',
+    inputSchema: RecoveryProtocolInputSchema,
+    outputSchema: z.union([RecoveryProtocolOutputSchema, FlashRecoveryOutputSchema])
+  },
+  async (input) => {
     if (input.promptType === 'flash') {
         return runFlashRecoveryProtocolFlow(input);
     }
     return runFullRecoveryProtocolFlow(input);
-}
+  }
+);

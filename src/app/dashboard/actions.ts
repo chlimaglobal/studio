@@ -1,7 +1,7 @@
 
 'use server';
 
-import { runFlow } from "genkit/flow";
+import { runFlow } from "genkit";
 import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
 import { TransactionCategory, transactionCategories, ExtractTransactionOutput } from "@/lib/types";
@@ -12,7 +12,7 @@ export async function extractTransactionInfoFromText(text: string) {
   }
 
   try {
-    const result: ExtractTransactionOutput = await runFlow(extractTransactionFromText, { text });
+    const result = await runFlow(extractTransactionFromText, { text });
     if (result && result.amount !== undefined && result.description && result.type) {
       const transactionData = {
         description: result.description,
