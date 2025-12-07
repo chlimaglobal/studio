@@ -5,6 +5,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { Transaction } from '@/lib/types';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from '@/ai/lumina/prompt/luminaGoalsPrompt';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const SavingsGoalInputSchema = z.object({
   transactions: z.array(z.any()).describe('Lista de transações dos últimos 30-90 dias.'),
@@ -40,7 +41,7 @@ export const calculateSavingsGoal = ai.defineFlow(
       Analise os dados, siga as regras definidas e retorne o resultado no formato JSON solicitado, preenchendo todos os campos do schema de saída.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         config: {
           retries: 3,

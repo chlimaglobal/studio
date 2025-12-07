@@ -5,6 +5,7 @@ import { ai } from '@/ai/genkit';
 import { Transaction } from '@/lib/types';
 import { z } from 'zod';
 import { LUMINA_DIAGNOSTIC_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const GenerateFinancialAnalysisInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas).'),
@@ -57,7 +58,7 @@ export const generateFinancialAnalysis = ai.defineFlow(
       Analise os dados e retorne o resultado no formato JSON solicitado, preenchendo todas as partes do schema de saída.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         output: {
             format: 'json',

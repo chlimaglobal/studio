@@ -8,6 +8,7 @@ import {
     type MediateGoalsInput, 
     type MediateGoalsOutput 
 } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const mediateGoals = ai.defineFlow(
   {
@@ -48,7 +49,7 @@ export const mediateGoals = ai.defineFlow(
   Analise os dados e retorne o resultado no formato JSON solicitado.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         config: {
           retries: 3,

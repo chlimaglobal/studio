@@ -10,6 +10,7 @@ import {
 } from '@/lib/types';
 import { getFinancialMarketData, type FinancialData } from '@/services/market-data';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 
 const getFinancialMarketDataTool = ai.defineTool(
@@ -71,7 +72,7 @@ const analyzeInvestorProfileFlow = ai.defineFlow(
       Analise os dados e retorne o resultado no formato JSON solicitado.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         tools: [getFinancialMarketDataTool],
         config: {

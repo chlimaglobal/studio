@@ -7,6 +7,7 @@ import type { LuminaCoupleChatInput, LuminaChatOutput } from '@/lib/types';
 import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export async function generateCoupleSuggestion (input: LuminaCoupleChatInput): Promise<LuminaChatOutput> {
     return luminaCoupleChatFlow(input);
@@ -56,7 +57,7 @@ const luminaCoupleChatFlow = ai.defineFlow(
 
     try {
         const result = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
+            model: googleAI.model('gemini-1.5-flash'),
             system: systemPrompt,
             prompt: userMessageParts,
             history: mappedChatHistory,

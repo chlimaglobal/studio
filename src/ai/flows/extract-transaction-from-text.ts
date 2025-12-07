@@ -9,6 +9,7 @@ import {
   type ExtractTransactionOutput,
 } from '@/lib/types';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const extractTransactionFromText = ai.defineFlow(
   {
@@ -37,7 +38,7 @@ export const extractTransactionFromText = ai.defineFlow(
   `;
 
     const llmResponse = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
       output: {
         format: 'json',

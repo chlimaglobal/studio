@@ -11,6 +11,7 @@ import {
 import { getUserMemory, updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
 import { ai } from '@/ai/genkit';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 async function buildMemoryContext(userId: string) {
   const mem = await getUserMemory(userId);
@@ -67,8 +68,8 @@ export const luminaChatFlow = ai.defineFlow(
     const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
     if (input.imageBase64) {
       lastUserMessageParts.push({
-        inline_data: {
-          mime_type: 'image/png', // Assuming PNG, adjust if you support more types
+        inlineData: {
+          mimeType: 'image/png', // Assuming PNG, adjust if you support more types
           data: input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
         },
       });
@@ -76,7 +77,7 @@ export const luminaChatFlow = ai.defineFlow(
 
     try {
         const result = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
+            model: googleAI.model('gemini-1.5-flash'),
             system: systemPrompt,
             prompt: input.userQuery,
             history: history,

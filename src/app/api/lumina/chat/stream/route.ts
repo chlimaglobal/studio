@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           for await (const chunk of stream) {
-            const output = chunk.output();
-            if (output) {
-              controller.enqueue(JSON.stringify(output));
+            const output = chunk.output;
+            if (output?.text) {
+              controller.enqueue(output.text);
             }
           }
         } catch (e) {
@@ -33,21 +33,6 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    const transformedStream = responseStream.pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          try {
-            const jsonChunk = JSON.parse(chunk);
-            if(jsonChunk.text) {
-              controller.enqueue(jsonChunk.text);
-            }
-          } catch(e) {
-             // Ignore parsing errors for now
-          }
-        },
-      })
-    );
-    
     result().then(finalResponse => {
         data.append({ finalSuggestions: finalResponse?.suggestions || [] });
         data.close();
@@ -57,7 +42,7 @@ export async function POST(req: NextRequest) {
         data.close();
     });
 
-    return new StreamingTextResponse(transformedStream, {}, data);
+    return new StreamingTextResponse(responseStream, {}, data);
 
   } catch (error) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);

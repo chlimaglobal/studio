@@ -4,6 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { LUMINA_RECOVERY_PROMPT } from '@/ai/lumina/prompt/luminaRecoveryPrompt';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const RecoveryProtocolInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas) do período a ser analisado.'),
@@ -46,7 +47,7 @@ const runFullRecoveryProtocolFlow = ai.defineFlow(
       Execute a análise e retorne o resultado no formato JSON solicitado. Sem emoção. Apenas estratégia.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         output: {
             format: 'json',
@@ -84,7 +85,7 @@ const runFlashRecoveryProtocolFlow = ai.defineFlow(
     Execute a análise e retorne o resultado no formato JSON solicitado.`;
 
      const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: prompt,
         output: {
             format: 'json',

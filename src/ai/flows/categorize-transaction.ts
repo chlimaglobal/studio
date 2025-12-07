@@ -10,6 +10,7 @@ import {
   type CategorizeTransactionOutput,
 } from '@/lib/types';
 import { z } from 'zod';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const categorizeTransaction = ai.defineFlow(
   {
@@ -42,7 +43,7 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
 `;
 
     const llmResponse = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
       output: {
         format: 'json',

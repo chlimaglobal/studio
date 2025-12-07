@@ -10,6 +10,7 @@ import {
   type ExtractFromFileInput,
   type ExtractFromFileOutput
 } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const extractFromFile = ai.defineFlow(
   {
@@ -44,7 +45,7 @@ export const extractFromFile = ai.defineFlow(
   Analise o conteúdo e retorne a lista de transações no formato JSON especificado.`;
 
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: [
             { text: prompt },
             { media: { url: input.fileContent } }

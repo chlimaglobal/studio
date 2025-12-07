@@ -4,6 +4,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { transactionCategories, ExtractFromImageInputSchema, ExtractFromImageOutputSchema, type ExtractFromImageInput, type ExtractFromImageOutput } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export const extractFromImage = ai.defineFlow(
   {
@@ -106,7 +107,7 @@ ${JSON.stringify(input.allTransactions || [])}
 
 Analise a imagem e o contexto, siga as regras e retorne um JSON válido.`;
     const result = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: googleAI.model('gemini-1.5-flash'),
         prompt: [
             { text: prompt },
             { media: { url: input.imageDataUri } }
