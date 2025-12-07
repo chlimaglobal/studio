@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
 
-    const { stream, response } = luminaChatFlow(input, {stream: true});
+    const { stream, response } = await runFlow(luminaChatFlow, input, {stream: true});
 
     const data = new StreamData();
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     });
 
     response.then(finalResponse => {
-        data.append({ finalSuggestions: finalResponse?.suggestions || [] });
+        data.append({ finalSuggestions: finalResponse?.output?.suggestions || [] });
         data.close();
     }).catch(err => {
         console.error('[LUMINA_STREAM_RESPONSE_ERROR]', err);
