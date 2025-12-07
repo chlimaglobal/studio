@@ -154,26 +154,27 @@ export const checkDashboardStatus = functions.https.onCall(
 export const onTransactionCreated = functions.firestore
   .document("users/{userId}/transactions/{transactionId}")
   .onCreate(async (snap, context) => {
+    // 1. Correção de Snapshot Vazio: Adicionada verificação de existência do snapshot.
+    if (!snap.exists) return null;
+    
     const { userId } = context.params;
     const userDocRef = db.doc(`users/${userId}`);
 
     try {
-      // Otimização: A lógica de verificação e atualização de flag agora é atômica.
-      // Isso previne 'race conditions' e garante que o alerta seja enviado apenas uma vez.
+      // 2. Correção de Atomicidade: Lógica de verificação e atualização agora dentro de uma transação.
       await db.runTransaction(async (transaction) => {
         const userDoc = await transaction.get(userDocRef);
         const userData = userDoc.data();
 
         if (userData?.isDependent) {
-          return; // Ignorar usuários dependentes
+          return; 
         }
 
         const now = new Date();
         const currentMonthKey = format(now, "yyyy-MM");
         const lastAlertedMonth = userData?.mesAlertadoRenda;
 
-        // --- 🟥 ALERTA CRÍTICO: GASTOS > RECEITAS ---
-        // Roda apenas uma vez por mês e com o mínimo de leituras.
+        // Roda apenas uma vez por mês
         if (lastAlertedMonth !== currentMonthKey) {
           const monthStart = startOfMonth(now);
           const monthEnd = endOfMonth(now);
@@ -181,6 +182,8 @@ export const onTransactionCreated = functions.firestore
           const transactionsRef = db.collection(`users/${userId}/transactions`);
           const query = transactionsRef.where("date", ">=", monthStart).where("date", "<=", monthEnd);
           const snapshot = await query.get();
+
+          if (snapshot.empty) return;
 
           let totalIncome = 0;
           let totalExpenses = 0;
@@ -201,14 +204,12 @@ export const onTransactionCreated = functions.firestore
           });
 
           if (totalExpenses > totalIncome) {
-            // A atualização da flag é feita DENTRO da transação para garantir atomicidade.
             transaction.update(userDocRef, { mesAlertadoRenda: currentMonthKey });
             
-            // A escrita no chat é feita fora da transação principal para não bloquear a leitura do documento de usuário.
-            // É um compromisso aceitável, pois a chance de falha aqui é pequena e não crítica se a flag já foi setada.
             const messageText = `⚠️ Alerta financeiro importante: seus gastos do mês ultrapassaram suas entradas. Estou preparando um plano rápido para equilibrar isso. Deseja ver agora?`;
             const chatDocRef = db.collection(`users/${userId}/chat`).doc();
-            db.batch().set(chatDocRef, {
+            // 3. Correção de Commit: Adicionado 'await' para garantir que o batch seja executado.
+            await db.batch().set(chatDocRef, {
                 role: "alerta",
                 text: messageText,
                 authorName: "Lúmina",
@@ -233,7 +234,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
     const pageSize = 100;
     let pageCount = 0;
 
-    // Otimização: Processamento de usuários em páginas para escalabilidade e evitar timeouts.
     while (true) {
         pageCount++;
         let query = db.collection('users').orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
@@ -243,50 +243,41 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
 
         const usersSnapshot = await query.get();
         if (usersSnapshot.empty) {
-            break; // Fim da paginação
+            break; 
         }
         
         lastVisible = usersSnapshot.docs[usersSnapshot.docs.length - 1];
 
-        // Otimização: Processa os usuários da página em paralelo.
         const processingPromises: Promise<void>[] = [];
 
         for (const userDoc of usersSnapshot.docs) {
             const promise = (async () => {
                 const userId = userDoc.id;
-                const userData = userDoc.data();
+                let userData = userDoc.data();
                 
-                // Otimização: Define a referência do documento do usuário aqui para uso posterior.
+                // 1. Correção de Referência: 'userDocRef' agora é definido aqui.
                 const userDocRef = db.collection("users").doc(userId);
 
-                // Otimização: Isola o processamento de cada usuário com try/catch.
-                // Um erro em um usuário não irá parar o processamento dos outros.
                 try {
                     if (userData.isDependent) {
-                        return; // Ignorar contas dependentes
+                        return; 
                     }
                     
                     const now = new Date();
                     const currentMonthKey = format(now, "yyyy-MM");
                     
-                    // Otimização: Acumulador de atualizações de flags para uma única escrita.
-                    const updates: { [key: string]: any } = {}; 
-                    // Otimização: Batch para acumular todas as criações de alertas de chat.
+                    let updates: { [key: string]: any } = {}; 
                     const chatBatch = db.batch();
                     let chatMessagesCount = 0;
-
-                    // Otimização: Busca transações dos últimos 60 dias uma única vez por usuário.
+                    
                     const sixtyDaysAgo = subDays(now, 60);
                     const transactionsSnapshot = await db.collection(`users/${userId}/transactions`)
                         .where('date', '>=', sixtyDaysAgo)
                         .get();
                     
-                    // Otimização: Mapeia e valida os dados em memória para reuso em todas as análises.
                     const transactions = transactionsSnapshot.docs.map(doc => {
                         const data = doc.data();
-                        // Segurança: Garante que a data é válida antes de usar.
                         const txDate = data.date?.toDate ? data.date.toDate() : new Date(0);
-                        // Segurança: Garante que o valor é um número finito.
                         const amount = Number(data.amount);
                         return { 
                             ...data, 
@@ -296,7 +287,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     }).filter(t => t.date.getTime() > 0 && t.amount > 0);
 
 
-                    // --- 🟧 ALERTA DE RISCO — GASTO FORA DO PADRÃO ---
                     const yesterdayStart = startOfDay(subDays(now, 1));
                     const yesterdayEnd = endOfDay(subDays(now, 1));
                     
@@ -306,9 +296,9 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         t.date <= yesterdayEnd
                     );
 
-                    // Otimização: Calcula médias de todas as categorias de uma só vez.
+                    // 2. Correção de Cálculo de Média: Exclui o dia atual da análise.
                     const categoryAverages: { [key: string]: { total: number, count: number } } = {};
-                    transactions.filter(t => t.type === 'expense' && t.category).forEach(t => {
+                    transactions.filter(t => t.type === 'expense' && t.category && t.date < yesterdayStart).forEach(t => {
                         const category = t.category;
                         if (!categoryAverages[category]) categoryAverages[category] = { total: 0, count: 0 };
                         categoryAverages[category].total += t.amount;
@@ -317,13 +307,13 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     
                     for (const transaction of recentExpenses) {
                         const category = transaction.category;
-                        if (!category || transaction.amount <= 500) continue; // Ignora gastos pequenos
+                        if (!category || transaction.amount <= 500) continue;
 
                         const outOfPatternAlertKey = `alert_outOfPattern_${currentMonthKey}_${category}`;
+                        // 3. Correção de Sincronização de Estado: 'userData' é atualizado após updates.
                         if (userData?.[outOfPatternAlertKey] || updates[outOfPatternAlertKey]) continue;
 
                         const stats = categoryAverages[category];
-                        // Otimização: A média só é calculada se houver um histórico mínimo.
                         if (stats && stats.count > 5) {
                             const average = stats.total / stats.count;
                             if (transaction.amount > average * 3) {
@@ -339,10 +329,14 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                             }
                         }
                     }
+
+                    if (Object.keys(updates).length > 0) {
+                        await userDocRef.update(updates);
+                        userData = { ...userData, ...updates }; // Sincroniza estado local
+                        updates = {}; // Limpa para o próximo bloco
+                    }
                     
-                    // --- 🟨 ALERTA DE RECORRÊNCIA INCOMUM ---
                     const oneWeekAgo = subDays(now, 7);
-                    // Otimização: Reutiliza o array de transações em memória.
                     const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
                     const categoryCounts: { [key: string]: number } = {};
                     weeklyExpenses.forEach(t => {
@@ -350,7 +344,7 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                     });
 
                     for (const category in categoryCounts) {
-                        if (categoryCounts[category] > 3) { // Mais de 3 gastos na mesma categoria
+                        if (categoryCounts[category] > 3) {
                             const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
                             if (userData?.[unusualRecurrenceAlertKey] || updates[unusualRecurrenceAlertKey]) continue;
                             
@@ -365,8 +359,13 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                             chatMessagesCount++;
                         }
                     }
-
-                    // --- ⚠️ ALERTA DE LIMITE MENSAL (80% e 100%) ---
+                    
+                    if (Object.keys(updates).length > 0) {
+                        await userDocRef.update(updates);
+                        userData = { ...userData, ...updates };
+                        updates = {};
+                    }
+                    
                     const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
                     const budgetsDoc = await budgetsDocRef.get();
                     if (budgetsDoc.exists) {
@@ -374,7 +373,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         const monthStart = startOfMonth(now);
                         const monthlyExpensesByCategory: { [key: string]: number } = {};
 
-                        // Otimização: Calcula gastos do mês por categoria a partir dos dados já em memória.
                         transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => {
                             if (t.category) {
                                 monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + t.amount;
@@ -382,14 +380,12 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         });
 
                         for (const category in budgetsData) {
-                            // Segurança: Valida que o orçamento é um número válido.
                             const categoryBudget = Number(budgetsData[category]);
                             if (!Number.isFinite(categoryBudget) || categoryBudget <= 0) continue;
 
                             const totalCategorySpending = monthlyExpensesByCategory[category] || 0;
                             const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
                             
-                            // Lógica para o alerta de 100%
                             const alertKey100 = `alert_100_${currentMonthKey}_${category}`;
                             if (spendingPercentage >= 100 && !(userData?.[alertKey100] || updates[alertKey100])) {
                                 updates[alertKey100] = true;
@@ -398,7 +394,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                                 chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
                                 chatMessagesCount++;
                             } else {
-                                // Lógica para o alerta de 80% (só roda se o de 100% não foi acionado)
                                 const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
                                 if (spendingPercentage >= 80 && !(userData?.[alertKey80] || updates[alertKey80])) {
                                     updates[alertKey80] = true;
@@ -411,12 +406,10 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
                         }
                     }
                     
-                    // Otimização: Apenas faz o commit do batch de chats se houver mensagens a serem adicionadas.
                     if (chatMessagesCount > 0) {
                         await chatBatch.commit();
                     }
                     
-                    // Otimização: Apenas atualiza o documento do usuário se houver novas flags.
                     if (Object.keys(updates).length > 0) {
                         await userDocRef.update(updates);
                     }
@@ -435,7 +428,6 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
     return null;
 });
 
-// Funções auxiliares de data para garantir consistência
 const startOfDay = (date: Date): Date => {
   const newDate = new Date(date);
   newDate.setHours(0, 0, 0, 0);
