@@ -65,17 +65,35 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
     try {
         const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
         const result = await sendDependentInviteCallable({
-            dependentName: values.name,
-            dependentEmail: values.email,
+            name: values.name,
+            email: values.email,
+            inviterUid: user.uid,
+            inviterName: user.displayName,
         });
 
-        const resultData = result.data as { success: boolean, message: string, error?: string };
+        const resultData = result.data as { success: boolean, message: string, inviteToken?: string, error?: string };
 
         if (resultData.success) {
-             toast({
-                title: 'Convite Enviado!',
-                description: resultData.message,
+            // Construct the invitation link
+            const inviteLink = `${window.location.origin}/signup?inviteToken=${resultData.inviteToken}`;
+            
+            // Show a toast with the link and copy button
+            toast({
+                title: 'Convite Criado!',
+                description: (
+                    <div>
+                        <p>Compartilhe o link a seguir com seu dependente para que ele possa se cadastrar:</p>
+                        <div className="flex items-center space-x-2 mt-2">
+                            <Input value={inviteLink} readOnly className="text-xs" />
+                            <Button size="sm" onClick={() => navigator.clipboard.writeText(inviteLink)}>
+                                Copiar
+                            </Button>
+                        </div>
+                    </div>
+                ),
+                duration: 15000, // Keep toast open longer
             });
+
             form.reset();
             setOpen(false);
         } else {
@@ -100,7 +118,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         <DialogHeader>
           <DialogTitle>Adicionar Dependente</DialogTitle>
           <DialogDescription>
-            Insira os dados do dependente para enviar um convite. Ele poderá criar uma conta vinculada à sua.
+            Insira os dados do dependente para gerar um link de convite. Ele poderá criar uma conta vinculada à sua através deste link.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -135,7 +153,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Enviar Convite
+                Gerar Link de Convite
               </Button>
             </DialogFooter>
           </form>
@@ -144,5 +162,3 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
     </Dialog>
   );
 }
-
-    
