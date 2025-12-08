@@ -11,7 +11,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
+import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
 import { useTransactions, useAuth } from '@/components/client-providers';
@@ -30,7 +30,7 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
-import { runFlow } from 'genkit';
+import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 
 
 interface SummaryData {
@@ -75,7 +75,7 @@ const AiTipsCard = () => {
 
     if (operationalTransactions.length > 2) {
         try {
-            const result = await runFlow(generateFinancialAnalysis, { transactions: operationalTransactions });
+            const result = await runAnalysis({ transactions: operationalTransactions });
             setTips(result);
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
@@ -627,5 +627,3 @@ Correção:
     </div>
   );
 }
-
-    
