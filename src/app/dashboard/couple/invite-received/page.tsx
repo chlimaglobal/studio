@@ -9,8 +9,8 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -34,6 +34,7 @@ export default function InviteReceivedPage() {
 
         setIsActionLoading(true);
         try {
+            const functions = getFunctions(getApp());
             const callableFunctionName = action === 'accept' ? 'acceptPartnerInvite' : 'rejectPartnerInvite';
             const callableFunction = httpsCallable(functions, callableFunctionName);
             
@@ -104,3 +105,5 @@ export default function InviteReceivedPage() {
         </div>
     );
 }
+
+    

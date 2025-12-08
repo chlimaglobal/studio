@@ -17,8 +17,8 @@ import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -31,6 +31,7 @@ export default function InvitePartnerPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+        const functions = getFunctions(getApp());
         const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
         const result = await sendInviteCallable({ partnerEmail: email });
         const data = result.data as { success: boolean; message: string; error?: string };
@@ -101,3 +102,5 @@ export default function InvitePartnerPage() {
     </div>
   );
 }
+
+    

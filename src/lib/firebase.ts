@@ -1,13 +1,12 @@
+
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getFunctions } from 'firebase/functions';
 import { getMessaging, isSupported } from "firebase/messaging";
 
 
 // ---- CONFIG DO SEU PROJETO FIREBASE ----
-// (mantenha exatamente como você já tinha)
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -25,9 +24,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export { app }; // Exportando a instância do app
 
-// Agora forçamos a região correta das Cloud Functions:
-export const functions = getFunctions(app, 'southamerica-east1');
-
 
 // Initialize Firebase Cloud Messaging and get a reference to the service
 export const messaging = async () => {
@@ -37,3 +33,5 @@ export const messaging = async () => {
     }
     return null;
 };
+
+    

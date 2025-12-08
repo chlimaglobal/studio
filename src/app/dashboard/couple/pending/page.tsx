@@ -8,8 +8,8 @@ import { Loader2, Mail, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -44,6 +44,7 @@ export default function PendingInvitePage() {
       
       setIsActionLoading(true);
       try {
+          const functions = getFunctions(getApp());
           const rejectCallable = httpsCallable(functions, 'rejectPartnerInvite');
           const result = await rejectCallable({ inviteId: invite.id });
           const data = result.data as { success: boolean, message: string, error?: string };
@@ -94,3 +95,5 @@ export default function PendingInvitePage() {
     </div>
   );
 }
+
+    

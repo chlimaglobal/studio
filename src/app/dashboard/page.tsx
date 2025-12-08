@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,7 +12,6 @@ import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } fr
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
-import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
 import { useTransactions, useAuth } from '@/components/client-providers';
@@ -23,13 +23,14 @@ import { allInvestmentCategories } from '@/lib/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
-import { httpsCallable } from 'firebase/functions';
-import { functions, db } from '@/lib/firebase';
+import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
+import { runFlow } from 'genkit';
 
 
 interface SummaryData {
@@ -74,7 +75,7 @@ const AiTipsCard = () => {
 
     if (operationalTransactions.length > 2) {
         try {
-            const result = await generateFinancialAnalysis({ transactions: operationalTransactions });
+            const result = await runFlow(generateFinancialAnalysis, { transactions: operationalTransactions });
             setTips(result);
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
@@ -326,6 +327,7 @@ export default function DashboardPage() {
         
         const checkStatus = async () => {
             try {
+                const functions = getFunctions(getApp());
                 const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
                 await checkDashboardStatus();
             } catch (error) {
@@ -625,3 +627,5 @@ Correção:
     </div>
   );
 }
+
+    

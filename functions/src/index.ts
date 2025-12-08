@@ -1,7 +1,7 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import {format, startOfMonth, endOfMonth, subDays} from "date-fns";
+import {format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay} from "date-fns";
 import { DocumentData } from "firebase-admin/firestore";
 
 admin.initializeApp();
@@ -427,17 +427,5 @@ export const dailyFinancialCheckup = functions.pubsub.schedule('every 24 hours')
     console.log('Verificação financeira diária concluída para todos os usuários.');
     return null;
 });
-
-const startOfDay = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setHours(0, 0, 0, 0);
-  return newDate;
-};
-
-const endOfDay = (date: Date): Date => {
-  const newDate = new Date(date);
-  newDate.setHours(23, 59, 59, 999);
-  return newDate;
-};
 
     
