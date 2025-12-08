@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -28,16 +27,13 @@ export default function DependentDetailPage() {
   useEffect(() => {
     if (!parentUser || !dependentId) return;
 
-    // Fetch dependent's user data
     const userDocRef = doc(db, 'users', dependentId);
     const unsubUser = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as AppUser;
-        // Security check: ensure the logged-in user is the parent
         if (data.parentUid === parentUser.uid) {
           setDependent(data);
         } else {
-          // If not the parent, block access
           setDependent(null);
           router.replace('/dashboard/parental-control');
         }
@@ -46,7 +42,6 @@ export default function DependentDetailPage() {
       }
     });
 
-    // Fetch dependent's transactions
     const unsubTransactions = onTransactionsUpdate(dependentId, (txs) => {
       setTransactions(txs);
       setIsLoading(false);
@@ -58,12 +53,9 @@ export default function DependentDetailPage() {
     };
   }, [parentUser, dependentId, router]);
 
-  const balance = useMemo(() => {
-    return transactions.reduce((acc, t) => {
-      return t.type === 'income' ? acc + t.amount : acc - t.amount;
-    }, 0);
-  }, [transactions]);
-
+  const balance = transactions.reduce((acc, t) => {
+    return t.type === 'income' ? acc + t.amount : acc - t.amount;
+  }, 0);
 
   if (isLoading) {
     return (
@@ -77,49 +69,51 @@ export default function DependentDetailPage() {
   }
 
   if (!dependent) {
-     return (
-        <div className="text-center p-8">
-            <p className="text-destructive">Acesso negado ou dependente não encontrado.</p>
-            <Button variant="link" onClick={() => router.push('/dashboard/parental-control')}>Voltar</Button>
-        </div>
-     )
+    return (
+      <div className="text-center p-8">
+        <p className="text-destructive">Acesso negado ou dependente não encontrado.</p>
+        <Button variant="link" onClick={() => router.push('/dashboard/parental-control')}>Voltar</Button>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-       <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                <ArrowLeft className="h-6 w-6" />
-            </Button>
-            <Avatar className="h-12 w-12 border-2 border-border">
-                <AvatarImage src={dependent.photoURL || undefined} />
-                <AvatarFallback className="text-xl">{dependent.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-semibold">{dependent.displayName}</h1>
-              <p className="text-muted-foreground">Dashboard do Dependente</p>
-            </div>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+        <Avatar className="h-12 w-12 border-2 border-border">
+          <AvatarImage src={dependent.photoURL || undefined} />
+          <AvatarFallback className="text-xl">
+            {dependent.displayName?.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-2xl font-semibold">{dependent.displayName}</h1>
+          <p className="text-muted-foreground">Dashboard do Dependente</p>
+        </div>
       </div>
 
-       <Card>
-            <CardHeader>
-                <CardTitle>Saldo Atual</CardTitle>
-                <CardDescription>O saldo total na conta do seu dependente.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-3xl font-bold text-primary">{formatCurrency(balance)}</p>
-            </CardContent>
-       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Saldo Atual</CardTitle>
+          <CardDescription>O saldo total na conta do seu dependente.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-3xl font-bold text-primary">{formatCurrency(balance)}</p>
+        </CardContent>
+      </Card>
 
-       <Card>
-            <CardHeader>
-                <CardTitle>Histórico de Transações</CardTitle>
-                <CardDescription>Todas as movimentações financeiras de {dependent.displayName}.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <TransactionsTable transactions={transactions} />
-            </CardContent>
-       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Transações</CardTitle>
+          <CardDescription>Todas as movimentações financeiras de {dependent.displayName}.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TransactionsTable transactions={transactions} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

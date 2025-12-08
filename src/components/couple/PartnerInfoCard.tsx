@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -16,8 +15,8 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
-
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';   // ✅ Correto: usa o app inicializado
 
 import {
   AlertDialog,
@@ -43,10 +42,16 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(getApp());
+      // ✅ Corrigido: remove getApp() e usa app inicializado
+      const functions = getFunctions(app);
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectPartnerCallable();
-      const data = result.data as { success: boolean; message?: string; error?: string };
+
+      const data = result.data as {
+        success: boolean;
+        message?: string;
+        error?: string;
+      };
 
       if (data.success) {
         toast({
@@ -56,6 +61,7 @@ export function PartnerInfoCard() {
       } else {
         throw new Error(data.error || 'Erro desconhecido.');
       }
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -135,8 +141,7 @@ export function PartnerInfoCard() {
               <AlertDialogTitle>Desvincular Parceiro(a)?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta ação removerá o acesso compartilhado. Suas transações
-                permanecerão separadas. Você poderá se conectar novamente no
-                futuro.
+                permanecerão separadas. Você poderá se conectar novamente no futuro.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
@@ -160,5 +165,3 @@ export function PartnerInfoCard() {
     </Card>
   );
 }
-
-    

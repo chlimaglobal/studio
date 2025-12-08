@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -8,8 +7,9 @@ import { Loader2, Mail, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
 
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -44,8 +44,10 @@ export default function PendingInvitePage() {
       
       setIsActionLoading(true);
       try {
-          const functions = getFunctions(getApp());
+          // ✅ PEGANDO FUNCTIONS DO APP CORRETO
+          const functions = getFunctions(app);
           const rejectCallable = httpsCallable(functions, 'rejectPartnerInvite');
+
           const result = await rejectCallable({ inviteId: invite.id });
           const data = result.data as { success: boolean, message: string, error?: string };
 
@@ -79,15 +81,26 @@ export default function PendingInvitePage() {
             Um convite foi enviado e está aguardando a aceitação do seu parceiro(a).
           </CardDescription>
         </CardHeader>
+
         <CardContent>
             <div className="flex flex-col items-center justify-center p-4 border rounded-lg bg-secondary">
                 <p className="text-sm text-muted-foreground">Enviado para:</p>
                 <p className="font-semibold text-lg text-primary">{invite?.sentToEmail}</p>
             </div>
         </CardContent>
+
         <CardFooter>
-            <Button variant="destructive" className="w-full" onClick={handleCancel} disabled={isActionLoading}>
-                {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+            <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleCancel}
+                disabled={isActionLoading}
+            >
+                {isActionLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <X className="mr-2 h-4 w-4" />
+                )}
                 {isActionLoading ? 'Cancelando...' : 'Cancelar Convite'}
             </Button>
         </CardFooter>
@@ -95,5 +108,3 @@ export default function PendingInvitePage() {
     </div>
   );
 }
-
-    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -9,8 +8,9 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
 
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -30,32 +30,41 @@ export default function InviteReceivedPage() {
         if (!invite?.id) {
             console.error("No invite ID found");
             return;
-        };
+        }
 
         setIsActionLoading(true);
         try {
-            const functions = getFunctions(getApp());
-            const callableFunctionName = action === 'accept' ? 'acceptPartnerInvite' : 'rejectPartnerInvite';
-            const callableFunction = httpsCallable(functions, callableFunctionName);
+            // ✅ AGORA PEGANDO FUNCTIONS DO app CORRETO
+            const functions = getFunctions(app);
             
+            const callableFunctionName =
+                action === 'accept' ? 'acceptPartnerInvite' : 'rejectPartnerInvite';
+
+            const callableFunction = httpsCallable(functions, callableFunctionName);
+
             const result = await callableFunction({ inviteId: invite.id });
-            const data = result.data as { success: boolean, message: string, error?: string };
+            const data = result.data as { success: boolean; message: string; error?: string };
 
             if (data.success) {
                 toast({
                     title: 'Sucesso!',
                     description: data.message,
                 });
-                // The store listener will automatically redirect the user
             } else {
                 throw new Error(data.error);
             }
         } catch (error: any) {
-             toast({ variant: 'destructive', title: 'Erro', description: error.message || `Não foi possível ${action === 'accept' ? 'aceitar' : 'recusar'} o convite.` });
+            toast({
+                variant: 'destructive',
+                title: 'Erro',
+                description:
+                    error.message ||
+                    `Não foi possível ${action === 'accept' ? 'aceitar' : 'recusar'} o convite.`,
+            });
         } finally {
-             setIsActionLoading(false);
+            setIsActionLoading(false);
         }
-    }
+    };
 
     if (isStoreLoading) {
         return (
@@ -92,12 +101,28 @@ export default function InviteReceivedPage() {
                 </CardContent>
 
                 <CardFooter className="grid grid-cols-2 gap-4">
-                    <Button variant="destructive" onClick={() => handleAction('reject')} disabled={isActionLoading}>
-                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                    <Button
+                        variant="destructive"
+                        onClick={() => handleAction('reject')}
+                        disabled={isActionLoading}
+                    >
+                        {isActionLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <X className="mr-2 h-4 w-4" />
+                        )}
                         Recusar
                     </Button>
-                     <Button onClick={() => handleAction('accept')} disabled={isActionLoading}>
-                        {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+
+                    <Button
+                        onClick={() => handleAction('accept')}
+                        disabled={isActionLoading}
+                    >
+                        {isActionLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <UserPlus className="mr-2 h-4 w-4" />
+                        )}
                         Aceitar
                     </Button>
                 </CardFooter>
@@ -105,5 +130,3 @@ export default function InviteReceivedPage() {
         </div>
     );
 }
-
-    

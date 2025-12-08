@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -15,10 +14,14 @@ import { accountTypeLabels } from '@/lib/types';
 import { InviteDialog } from '@/components/invite-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
 
 
-
+// ----------------------
+// AcceptInviteCard
+// ----------------------
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -38,10 +41,15 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const functions = getFunctions(getApp());
+            // ❌ getApp() — NÃO FUNCIONA
+            // const functions = getFunctions(getApp());
+
+            // ✅ CORRETO:
+            const functions = getFunctions(app);
+
             const acceptInvite = httpsCallable(functions, 'acceptInviteCode');
             const result = await acceptInvite({ code: code.toUpperCase() });
-            // @ts-ignore
+
             const resultData = result.data as { success: boolean; accountName?: string; error?: string };
 
             if (resultData.success) {
@@ -50,7 +58,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
                     description: `Você agora tem acesso à conta "${resultData.accountName}".`,
                 });
                 setCode('');
-                onInviteAccepted(); // Callback to refresh the accounts list
+                onInviteAccepted(); 
             } else {
                  throw new Error(resultData.error || "Ocorreu um erro desconhecido.");
             }
@@ -75,7 +83,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                 <Input 
+                <Input 
                     placeholder="Código do convite" 
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -84,7 +92,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
                 />
                 <Button onClick={handleAccept} disabled={isLoading} className="w-full sm:w-auto">
                     {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowRight className="h-5 w-5" />}
-                     <span className="sm:hidden ml-2">Aceitar Convite</span>
+                    <span className="sm:hidden ml-2">Aceitar Convite</span>
                 </Button>
             </CardContent>
         </Card>
@@ -92,6 +100,9 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 }
 
 
+// ----------------------
+// BanksPage
+// ----------------------
 export default function BanksPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -218,5 +229,3 @@ export default function BanksPage() {
     </>
   );
 }
-
-    

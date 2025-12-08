@@ -16,7 +16,10 @@ import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+
+// ✅ CORREÇÃO AQUI
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -40,12 +43,12 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
+      // ✅ Agora funcionando corretamente
       const functions = getFunctions(getApp());
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
-      // 🔥 ENVIO TOTALMENTE CORRIGIDO
       const result = await sendInviteCallable({
-        email,                     // o email do parceiro(a)
+        email,
         inviterName: user.displayName || 'Usuário',
         inviterUid: user.uid,
       });
@@ -61,6 +64,7 @@ export default function InvitePartnerPage() {
           title: 'Sucesso!',
           description: data.message,
         });
+
         router.push('/dashboard/couple/pending');
       } else {
         throw new Error(data.error || 'Erro desconhecido.');

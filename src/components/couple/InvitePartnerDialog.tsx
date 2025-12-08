@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -16,7 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';        // ✅ Importa app inicializado (correto)
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useRouter } from 'next/navigation';
 
@@ -33,37 +33,57 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!user) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+      toast({
+        variant: 'destructive',
+        title: 'Erro',
+        description: 'Você precisa estar logado.',
+      });
       return;
     }
+
     setIsLoading(true);
+
     try {
-      const functions = getFunctions(getApp());
+      // ✅ Agora usando o app inicializado corretamente
+      const functions = getFunctions(app);
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-      const result = await sendInviteCallable({ 
-          partnerEmail: email,
-          senderName: user.displayName || 'Usuário',
-          senderEmail: user.email || '',
+
+      const result = await sendInviteCallable({
+        partnerEmail: email,
+        senderName: user.displayName || 'Usuário',
+        senderEmail: user.email || '',
       });
-      const data = result.data as { success: boolean; message: string; error?: string };
+
+      const data = result.data as {
+        success: boolean;
+        message: string;
+        error?: string;
+      };
 
       if (data.success) {
         toast({
           title: 'Sucesso!',
           description: data.message,
         });
+
         onOpenChange(false);
         setEmail('');
       } else {
         throw new Error(data.error || 'Ocorreu um erro desconhecido.');
       }
+
     } catch (error: any) {
+
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
-        description: error.message || 'Não foi possível enviar o convite. Verifique se o usuário com este e-mail já existe.',
+        description:
+          error.message ||
+          'Não foi possível enviar o convite. Verifique se o usuário com este e-mail já existe.',
       });
+      
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +105,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
               <Label htmlFor="email" className="text-right">
                 E-mail
               </Label>
+
               <Input
                 id="email"
                 name="email"
@@ -97,6 +118,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
               />
             </div>
           </div>
+
           <DialogFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -108,5 +130,3 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     </Dialog>
   );
 }
-
-    
