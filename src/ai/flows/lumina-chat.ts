@@ -12,6 +12,7 @@ import { getUserMemory, updateMemoryFromMessage } from '@/ai/lumina/memory/memor
 import { ai } from '@/ai/genkit';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
 import { googleAI } from '@genkit-ai/google-genai';
+import { Message } from 'genkit/experimental/ai';
 
 async function buildMemoryContext(userId: string) {
   const mem = await getUserMemory(userId);
@@ -58,19 +59,19 @@ export const luminaChatFlow = ai.defineFlow(
       transactionsJSON,
     ].join('\n');
 
-    const history: any[] = (input.messages || [])
-      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+    const history: Message[] = (input.chatHistory || [])
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant' || msg.role === 'model')
       .map((msg: any) => {
-          const role = msg.role === 'assistant' ? 'model' : 'user';
-          return { role, parts: [{ text: msg.content || '' }] };
+          const role = msg.role === 'assistant' ? 'model' : msg.role;
+          return { role, content: [{ text: msg.content || '' }] };
       });
     
     const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
     if (input.imageBase64) {
       lastUserMessageParts.push({
-        inlineData: {
-          mimeType: 'image/png', // Assuming PNG, adjust if you support more types
-          data: input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, ''),
+        media: {
+            contentType: 'image/png', // Assuming PNG, adjust if you support more types
+            url: `data:image/png;base64,${input.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '')}`,
         },
       });
     }
@@ -79,7 +80,7 @@ export const luminaChatFlow = ai.defineFlow(
         const result = await ai.generate({
             model: googleAI.model('gemini-1.5-flash'),
             system: systemPrompt,
-            prompt: input.userQuery,
+            prompt: lastUserMessageParts,
             history: history,
             config: {
                 temperature: 0.7,
