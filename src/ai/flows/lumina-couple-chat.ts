@@ -9,7 +9,7 @@ import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
 import { googleAI } from '@genkit-ai/google-genai';
 
-export const generateCoupleSuggestion = ai.defineFlow(
+export const luminaCoupleChatFlow = ai.defineFlow(
   {
     name: 'luminaCoupleChatFlow',
     inputSchema: LuminaCoupleChatInputSchema,

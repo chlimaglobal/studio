@@ -1,7 +1,7 @@
 
 'use client';
 
-import { generateFinancialAnalysis as generateFinancialAnalysisFlow } from '@/ai/flows/generate-financial-analysis';
+import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
@@ -90,7 +90,7 @@ export default function AnalysisPage() {
     }
     
     if (allTransactions.length > 0) {
-        const result = await runFlow(generateFinancialAnalysisFlow, { transactions: allTransactions });
+        const result = await runFlow(generateFinancialAnalysis, { transactions: allTransactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', transactionsHash);

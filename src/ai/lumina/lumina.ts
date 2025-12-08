@@ -1,7 +1,7 @@
 
 'use server';
 
-import { generateCoupleSuggestion } from '../flows/lumina-couple-chat';
+import { luminaCoupleChatFlow } from '../flows/lumina-couple-chat';
 import { luminaChatFlow } from '../flows/lumina-chat';
 import type { LuminaChatInput, LuminaCoupleChatInput, CoupleLink, ChatMessage } from '@/lib/types';
 import { addChatMessage, addCoupleChatMessage } from '@/lib/storage';
@@ -36,7 +36,7 @@ export async function sendMessageToLuminaCouple(input: LuminaCoupleChatInput, co
     });
 
     // 2. Chama a IA para gerar a resposta
-    const luminaResponse = await runFlow(generateCoupleSuggestion, {
+    const luminaResponse = await runFlow(luminaCoupleChatFlow, {
         ...input,
         userQuery: finalQuery,
     });

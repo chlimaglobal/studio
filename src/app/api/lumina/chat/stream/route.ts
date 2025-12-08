@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
 
-    const { stream, response } = await runFlow(luminaChatFlow, input, {stream: true});
+    const { stream, response } = runFlow(luminaChatFlow, input, {stream: true});
 
     const data = new StreamData();
 
