@@ -3,7 +3,7 @@ import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { runFlow } from 'genkit';
+import { runFlow } from 'genkit/flow';
 
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
 
-    const { stream, response } = runFlow(luminaChatFlow, input, {stream: true});
+    const { stream, response } = await runFlow(luminaChatFlow, input, {stream: true});
 
     const data = new StreamData();
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     });
 
     response.then(finalResponse => {
-        data.append({ finalSuggestions: finalResponse?.output?.suggestions || [] });
+        data.append({ finalSuggestions: finalResponse.output?.suggestions || [] });
         data.close();
     }).catch(err => {
         console.error('[LUMINA_STREAM_RESPONSE_ERROR]', err);

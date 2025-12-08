@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { LUMINA_DIAGNOSTIC_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { googleAI } from '@genkit-ai/google-genai';
 
-const GenerateFinancialAnalysisInputSchema = z.object({
+export const GenerateFinancialAnalysisInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas).'),
 });
 export type GenerateFinancialAnalysisInput = z.infer<typeof GenerateFinancialAnalysisInputSchema>;
@@ -21,7 +21,7 @@ const TrendAnalysisSchema = z.object({
   })).describe('Uma lista das 3 categorias com as maiores mudanças percentuais (positivas ou negativas).')
 }).optional();
 
-const GenerateFinancialAnalysisOutputSchema = z.object({
+export const GenerateFinancialAnalysisOutputSchema = z.object({
   healthStatus: z.enum(['Saudável', 'Atenção', 'Crítico']).describe('A pontuação geral da saúde financeira do usuário.'),
   diagnosis: z.string().describe('Um diagnóstico textual curto e amigável sobre a saúde financeira do usuário, explicando o status.'),
   suggestions: z.array(z.string()).describe('Uma lista de 2 a 4 dicas de economia acionáveis e personalizadas com base nos gastos.'),

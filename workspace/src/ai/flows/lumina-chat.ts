@@ -1,7 +1,7 @@
 
+
 "use server";
 
-import { GoogleGenerativeAI, GenerationCommon } from "@google/generative-ai";
 import type { LuminaChatInput, LuminaChatOutput } from "@/lib/types";
 import {
   LUMINA_BASE_PROMPT,
@@ -12,6 +12,7 @@ import { getUserMemory, saveUserMemory } from "@/ai/lumina/memory/memoryStore";
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
 import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { googleAI } from '@genkit-ai/google-genai';
 
 
 async function buildMemoryContext(userId: string) {
@@ -125,7 +126,7 @@ export const luminaChatFlow = ai.defineFlow(
     try {
       const { prompt: systemPrompt, history: prebuiltHistory, attachments } = await generateSuggestion(input as LuminaChatInput);
 
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+      const genAI = googleAI();
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash",
         systemInstruction: systemPrompt,

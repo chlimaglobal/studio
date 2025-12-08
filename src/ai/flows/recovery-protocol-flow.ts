@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { LUMINA_RECOVERY_PROMPT } from '@/ai/lumina/prompt/luminaRecoveryPrompt';
 import { googleAI } from '@genkit-ai/google-genai';
 
-const RecoveryProtocolInputSchema = z.object({
+export const RecoveryProtocolInputSchema = z.object({
   transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas) do período a ser analisado.'),
   promptType: z.enum(['full', 'flash']).default('full'),
 });
