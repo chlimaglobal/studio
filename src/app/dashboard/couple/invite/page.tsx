@@ -29,11 +29,18 @@ export default function InvitePartnerPage() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
+        return;
+    }
     setIsLoading(true);
     try {
         const functions = getFunctions(getApp());
         const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-        const result = await sendInviteCallable({ partnerEmail: email });
+        const result = await sendInviteCallable({ 
+            partnerEmail: email,
+            senderName: user.displayName, // Pass sender name
+        });
         const data = result.data as { success: boolean; message: string; error?: string };
 
         if (data.success) {

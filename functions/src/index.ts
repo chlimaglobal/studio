@@ -12,7 +12,8 @@ const db = admin.firestore();
  */
 export const sendPartnerInvite = functions.runWith({secrets: ["SENDGRID_API_KEY"]}).https.onCall(
   async (data, context) => {
-    const { email, name, inviterUid, inviterName } = data;
+    // FIX: Changed parameter names to match client request
+    const { partnerEmail, senderName } = data;
 
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -21,7 +22,8 @@ export const sendPartnerInvite = functions.runWith({secrets: ["SENDGRID_API_KEY"
       );
     }
 
-    if (!email || !inviterUid || !inviterName) {
+    // FIX: Updated validation to use correct parameter names
+    if (!partnerEmail || !senderName) {
       throw new functions.https.HttpsError(
         "invalid-argument",
         "Parâmetros inválidos ao enviar convite."
@@ -32,10 +34,10 @@ export const sendPartnerInvite = functions.runWith({secrets: ["SENDGRID_API_KEY"
     const inviteToken = db.collection("invites").doc().id;
 
     const inviteData = {
-      inviterUid,
-      sentByName: inviterName,
-      dependentEmail: email,
-      dependentName: name || "",
+      sentBy: context.auth.uid, // Use the authenticated user's UID
+      sentByName: senderName,
+      sentByEmail: context.auth.token.email,
+      sentToEmail: partnerEmail,
       status: "pending",
       createdAt: new Date()
     };
