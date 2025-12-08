@@ -10,7 +10,7 @@ const db = admin.firestore();
 /**
  * Função callable para enviar convite de parceiro
  */
-export const sendPartnerInvite = functions.https.onCall(
+export const sendPartnerInvite = functions.runWith({secrets: ["SENDGRID_API_KEY"]}).https.onCall(
   async (data, context) => {
     const { email, name, inviterUid, inviterName } = data;
 
