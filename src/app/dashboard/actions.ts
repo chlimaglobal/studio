@@ -4,19 +4,12 @@ import { runFlow } from "@/ai/run";
 import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
 import { generateFinancialAnalysis } from "@/ai/flows/generate-financial-analysis";
-import type { TransactionCategory, ExtractTransactionOutput } from "@/lib/types";
-import { GenerateFinancialAnalysisInputSchema, GenerateFinancialAnalysisOutputSchema } from "@/lib/types";
+import type { CategorizeTransactionOutput, ExtractTransactionOutput, GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput, ExtractFromFileInput, ExtractFromFileOutput, InvestorProfileInput, InvestorProfileOutput, SavingsGoalInput, SavingsGoalOutput, MediateGoalsInput, MediateGoalsOutput, ExtractFromImageInput, ExtractFromImageOutput } from "@/lib/types";
 import { extractFromFile } from "@/ai/flows/extract-from-file";
-import type { ExtractFromFileInput, ExtractFromFileOutput } from "@/lib/types";
 import { analyzeInvestorProfile } from "@/ai/flows/analyze-investor-profile";
-import type { InvestorProfileInput, InvestorProfileOutput } from "@/lib/types";
 import { calculateSavingsGoal } from "@/ai/flows/calculate-savings-goal";
-import type { SavingsGoalInput, SavingsGoalOutput } from "@/lib/types";
 import { mediateGoals } from "@/ai/flows/mediate-goals";
-import type { MediateGoalsInput, MediateGoalsOutput } from "@/lib/types";
 import { extractFromImage } from "@/ai/flows/extract-from-image";
-import type { ExtractFromImageInput, ExtractFromImageOutput } from "@/lib/types";
-import type { z } from "zod";
 
 /**
  * Gets a category suggestion from the AI based on a transaction description.
@@ -24,16 +17,12 @@ import type { z } from "zod";
  * @param description The description of the transaction.
  * @returns The suggested category or null if not found.
  */
-export async function getCategorySuggestion(description: string): Promise<TransactionCategory | null> {
+export async function getCategorySuggestion(description: string): Promise<CategorizeTransactionOutput | null> {
     if (!description) return null;
 
     try {
         const result = await runFlow(categorizeTransaction, { description });
-
-        if (result?.category) {
-            return result.category as TransactionCategory;
-        }
-        return null;
+        return result;
     } catch (e) {
         console.error("Lumina suggestion failed in Server Action:", e);
         return null;
@@ -49,18 +38,7 @@ export async function getCategorySuggestion(description: string): Promise<Transa
 export async function extractTransactionInfoFromText(text: string): Promise<ExtractTransactionOutput> {
     try {
         const result = await runFlow(extractTransactionFromText, { text });
-
-        if (result && result.amount !== undefined && result.description && result.type) {
-            return result;
-        }
-
-        return {
-            description: text,
-            amount: 0,
-            type: 'expense',
-            category: 'Outros',
-            paymentMethod: 'one-time',
-        };
+        return result;
     } catch (e) {
         console.error("Lumina extraction failed in Server Action:", e);
 
@@ -81,7 +59,7 @@ export async function extractTransactionInfoFromText(text: string): Promise<Extr
  * @param input The transaction data for analysis.
  * @returns The financial analysis output.
  */
-export async function runAnalysis(input: z.infer<typeof GenerateFinancialAnalysisInputSchema>): Promise<z.infer<typeof GenerateFinancialAnalysisOutputSchema>> {
+export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
     try {
         const result = await runFlow(generateFinancialAnalysis, input);
         return result;

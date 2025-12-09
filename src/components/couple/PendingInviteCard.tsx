@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useAuth } from '../client-providers';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';

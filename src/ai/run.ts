@@ -5,7 +5,7 @@ import { runFlow as genkitRunFlow, Flow } from 'genkit';
 /**
  * Executes a Genkit flow on the server.
  * This server-only function ensures that Genkit's server-side dependencies
- * are not bundled into the client application.
+ * are not bundled into the client application. It acts as a safe wrapper.
  *
  * @param flow The Genkit flow to execute.
  * @param input The input data for the flow.
