@@ -10,7 +10,7 @@ import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
+import { app } from '@/lib/firebase';
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -19,7 +19,7 @@ export default function InviteReceivedPage() {
     const router = useRouter();
     const [isActionLoading, setIsActionLoading] = useState(false);
 
-    // REDIRECT IF NOT EXPECTED STATE
+    // Redirect if wrong state
     useEffect(() => {
         if (!isStoreLoading && status !== 'pending_received') {
             router.replace('/dashboard/couple');
@@ -33,16 +33,19 @@ export default function InviteReceivedPage() {
         }
 
         setIsActionLoading(true);
+
         try {
-            // ✅ AGORA PEGANDO FUNCTIONS DO app CORRETO
             const functions = getFunctions(app);
-            
+
+            // ✅ Correção: função correta para recusar convite recebido
             const callableFunctionName =
-                action === 'accept' ? 'acceptPartnerInvite' : 'rejectPartnerInvite';
+                action === 'accept'
+                    ? 'acceptPartnerInvite'
+                    : 'declinePartnerInvite';
 
-            const callableFunction = httpsCallable(functions, callableFunctionName);
+            const callable = httpsCallable(functions, callableFunctionName);
 
-            const result = await callableFunction({ inviteId: invite.id });
+            const result = await callable({ inviteId: invite.id });
             const data = result.data as { success: boolean; message: string; error?: string };
 
             if (data.success) {
@@ -50,6 +53,9 @@ export default function InviteReceivedPage() {
                     title: 'Sucesso!',
                     description: data.message,
                 });
+
+                // Redireciona para o painel
+                router.replace('/dashboard/couple');
             } else {
                 throw new Error(data.error);
             }
@@ -89,6 +95,7 @@ export default function InviteReceivedPage() {
                         <UserPlus className="h-6 w-6 text-primary" />
                         Você tem um convite!
                     </CardTitle>
+
                     <CardDescription>
                         <b>{invite.sentByName || 'Alguém'}</b> ({invite.sentByEmail}) convidou você para vincular as contas.
                     </CardDescription>

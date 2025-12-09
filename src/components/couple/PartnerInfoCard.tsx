@@ -16,7 +16,7 @@ import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';   // ✅ Correto: usa o app inicializado
+import { app } from '@/lib/firebase';
 
 import {
   AlertDialog,
@@ -42,7 +42,6 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      // ✅ Corrigido: remove getApp() e usa app inicializado
       const functions = getFunctions(app);
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectPartnerCallable();
