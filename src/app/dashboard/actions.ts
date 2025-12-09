@@ -5,7 +5,7 @@ import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
 import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
 import { generateFinancialAnalysis } from "@/ai/flows/generate-financial-analysis";
 import type { TransactionCategory, ExtractTransactionOutput } from "@/lib/types";
-import type { GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput } from "@/ai/flows/generate-financial-analysis";
+import { GenerateFinancialAnalysisInputSchema, GenerateFinancialAnalysisOutputSchema } from "@/lib/types";
 import { extractFromFile } from "@/ai/flows/extract-from-file";
 import type { ExtractFromFileInput, ExtractFromFileOutput } from "@/lib/types";
 import { analyzeInvestorProfile } from "@/ai/flows/analyze-investor-profile";
@@ -16,6 +16,7 @@ import { mediateGoals } from "@/ai/flows/mediate-goals";
 import type { MediateGoalsInput, MediateGoalsOutput } from "@/lib/types";
 import { extractFromImage } from "@/ai/flows/extract-from-image";
 import type { ExtractFromImageInput, ExtractFromImageOutput } from "@/lib/types";
+import type { z } from "zod";
 
 /**
  * Gets a category suggestion from the AI based on a transaction description.
@@ -80,7 +81,7 @@ export async function extractTransactionInfoFromText(text: string): Promise<Extr
  * @param input The transaction data for analysis.
  * @returns The financial analysis output.
  */
-export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
+export async function runAnalysis(input: z.infer<typeof GenerateFinancialAnalysisInputSchema>): Promise<z.infer<typeof GenerateFinancialAnalysisOutputSchema>> {
     try {
         const result = await runFlow(generateFinancialAnalysis, input);
         return result;

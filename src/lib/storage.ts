@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
-import { httpsCallable, getFunctions } from 'firebase/functions';
 
 // Helper function to convert a File to a Base64 string
 export function fileToBase64(file: File): Promise<string> {
@@ -217,21 +216,6 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
             ownerId: currentUserId,
         };
         await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
-    }
-
-    try {
-        const funcs = getFunctions(app); // Use app instance
-        const onTransactionCreatedCallable = httpsCallable(funcs, 'onTransactionCreated');
-        await onTransactionCreatedCallable({
-            userId: currentUserId,
-            transactionData: {
-                type: data.type,
-                amount: data.amount,
-                description: data.description
-            }
-        });
-    } catch(e) {
-        console.warn("Could not call onTransactionCreated callable function.", e);
     }
 }
 
