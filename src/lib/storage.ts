@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 // Helper function to convert a File to a Base64 string
 export function fileToBase64(file: File): Promise<string> {
@@ -220,8 +221,8 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
     }
 
     try {
-        const functions = getFunctions(getApp());
-        const onTransactionCreatedCallable = httpsCallable(functions, 'onTransactionCreated');
+        const funcs = getFunctions(app);
+        const onTransactionCreatedCallable = httpsCallable(funcs, 'onTransactionCreated');
         await onTransactionCreatedCallable({
             userId: currentUserId,
             transactionData: {
@@ -697,5 +698,3 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
 
 // Re-exporting getDoc and updateDoc for use in page.tsx
 export { getDoc, doc, updateDoc };
-
-    

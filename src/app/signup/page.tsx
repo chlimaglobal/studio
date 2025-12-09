@@ -69,7 +69,7 @@ function SignUpPageContent() {
     }
 
     prefillFromInvite();
-  }, [inviteToken]);
+  }, [inviteToken, toast]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();

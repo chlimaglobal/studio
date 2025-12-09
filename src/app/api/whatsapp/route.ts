@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addStoredTransaction } from '@/lib/storage';
 import { TransactionFormSchema } from '@/lib/types';
+import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -37,20 +38,21 @@ export async function POST(request: NextRequest) {
       paid: true,
       paymentMethod: 'one-time',
     };
-
+    
     const validatedData = TransactionFormSchema.parse(transactionData);
-
+    
     // In a multi-user environment, you'd need a way to identify the user
-    // from the API key or another parameter. For now, we'll assume a
-    // specific user ID is passed or handled elsewhere.
-    // For this example, we assume a placeholder or single user. A user ID
-    // must be passed for multi-user scenarios.
-    await addStoredTransaction(validatedData);
+    // For this example, we assume a placeholder user ID 'whatsapp-user' is passed
+    // in the body or a default is used. This is NOT secure for production.
+    const userId = jsonBody.userId || 'default-user-id-placeholder';
+
+    await addStoredTransaction(validatedData, userId);
 
     return NextResponse.json({ success: true, message: 'Transação registrada com sucesso.' }, { status: 200 });
 
   } catch (error) {
     console.error('JSON API Error:', error);
-    return NextResponse.json({ error: 'Dados inválidos ou erro ao processar a transação.', details: error }, { status: 400 });
+    const details = error instanceof z.ZodError ? error.errors : error;
+    return NextResponse.json({ error: 'Dados inválidos ou erro ao processar a transação.', details: details }, { status: 400 });
   }
 }

@@ -12,51 +12,52 @@ import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useAuth } from '../client-providers';
-import { useActionState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useFormStatus } from 'react-dom';
-
-
-type ServerAction = (formData: FormData) => Promise<{ success: boolean; error?: string; message?: string } | null>;
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 interface PendingInviteCardProps {
-    acceptAction: ServerAction;
-    rejectAction: ServerAction;
+  // Props are no longer needed as logic is handled internally
 }
 
-
-function ActionButton({ variant, children, action }: { variant: 'accept' | 'reject', children: React.ReactNode, action: ServerAction }) {
-    const { pending } = useFormStatus();
-
-    return (
-        <Button
-            type="submit"
-            variant={variant === 'accept' ? 'default' : 'destructive'}
-            className="w-full"
-            disabled={pending}
-            formAction={action}
-        >
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : children}
-        </Button>
-    )
-}
-
-export function PendingInviteCard({ acceptAction, rejectAction }: PendingInviteCardProps) {
+export function PendingInviteCard(props: PendingInviteCardProps) {
   const { invite, status } = useCoupleStore();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [acceptState, wrappedAcceptAction] = useActionState(acceptAction, null);
-  const [rejectState, wrappedRejectAction] = useActionState(rejectAction, null);
+  const handleAction = async (action: 'accept' | 'reject' | 'cancel') => {
+    if (!invite?.id || !user) return;
+    setIsLoading(true);
 
-  useEffect(() => {
-    if (rejectState?.error) toast({ variant: 'destructive', title: 'Erro', description: rejectState.error });
-    if (rejectState?.success) toast({ title: 'Sucesso', description: rejectState.message });
+    let functionName: string;
+    if (action === 'accept') functionName = 'acceptPartnerInvite';
+    else if (action === 'reject') functionName = 'declinePartnerInvite';
+    else functionName = 'cancelPartnerInvite';
 
-    if (acceptState?.error) toast({ variant: 'destructive', title: 'Erro ao aceitar', description: acceptState.error });
-    if (acceptState?.success) toast({ title: 'Sucesso!', description: 'Vocês agora estão conectados!' });
+    try {
+      const functions = getFunctions(app);
+      const callable = httpsCallable(functions, functionName);
+      const result = await callable({ inviteId: invite.id });
+      const data = result.data as { success: boolean; message: string; error?: string };
+      
+      if (data.success) {
+        toast({ title: 'Sucesso!', description: data.message });
+      } else {
+        throw new Error(data.error);
+      }
 
-  }, [acceptState, rejectState, toast]);
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro',
+            description: error.message || `Não foi possível ${action} o convite.`,
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }
 
 
   if (!invite || status === 'linked') return null;
@@ -75,14 +76,15 @@ export function PendingInviteCard({ acceptAction, rejectAction }: PendingInviteC
           </CardDescription>
         </CardHeader>
         <CardFooter>
-            <form action={wrappedRejectAction} className="w-full">
-                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
-                <input type="hidden" name="userId" value={user?.uid || ''} />
-                <ActionButton variant="reject" action={wrappedRejectAction}>
-                    <X className="mr-2 h-4 w-4" />
-                    Cancelar Convite
-                </ActionButton>
-            </form>
+            <Button
+                variant="destructive"
+                className="w-full"
+                disabled={isLoading}
+                onClick={() => handleAction('cancel')}
+             >
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                Cancelar Convite
+            </Button>
         </CardFooter>
       </Card>
     );
@@ -107,20 +109,21 @@ export function PendingInviteCard({ acceptAction, rejectAction }: PendingInviteC
           </p>
         </CardContent>
         <CardFooter className="grid grid-cols-2 gap-4">
-            <form action={wrappedRejectAction}>
-                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
-                <input type="hidden" name="userId" value={user?.uid || ''} />
-                <ActionButton variant="reject" action={wrappedRejectAction}>
-                    <X className="mr-2 h-4 w-4" /> Recusar
-                </ActionButton>
-            </form>
-             <form action={wrappedAcceptAction}>
-                <input type="hidden" name="inviteId" value={invite.inviteId || ''} />
-                <input type="hidden" name="userId" value={user?.uid || ''} />
-                <ActionButton variant="accept" action={wrappedAcceptAction}>
-                    <UserPlus className="mr-2 h-4 w-4" /> Aceitar
-                </ActionButton>
-            </form>
+             <Button
+                variant="destructive"
+                disabled={isLoading}
+                onClick={() => handleAction('reject')}
+            >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />} 
+                Recusar
+            </Button>
+             <Button
+                disabled={isLoading}
+                onClick={() => handleAction('accept')}
+            >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} 
+                Aceitar
+            </Button>
         </CardFooter>
       </Card>
     );

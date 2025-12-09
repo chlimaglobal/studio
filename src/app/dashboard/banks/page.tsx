@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
+import { app } from '@/lib/firebase';
 
 
 // ----------------------
@@ -41,10 +41,6 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            // ❌ getApp() — NÃO FUNCIONA
-            // const functions = getFunctions(getApp());
-
-            // ✅ CORRETO:
             const functions = getFunctions(app);
 
             const acceptInvite = httpsCallable(functions, 'acceptInviteCode');

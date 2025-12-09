@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { httpsCallable, getFunctions, getApp } from 'firebase/functions';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { useAuth } from '@/components/client-providers';
 
 const Logo = () => (
@@ -74,7 +74,7 @@ export default function LoginPage() {
     localStorage.setItem('userEmail', loggedInUser.email || '');
     
     try {
-        const functions = getFunctions(getApp());
+        const functions = getFunctions(app);
         const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
         await handleUserLogin();
     } catch (error) {
@@ -289,5 +289,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
-    

@@ -28,7 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useAuth } from '@/components/client-providers';
 import { httpsCallable } from 'firebase/functions';
-import { getFunctions, getApp } from 'firebase/functions'; // Correct client-side imports
+import { getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 const AddDependentFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -63,7 +64,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
     }
     
     try {
-        const functions = getFunctions(getApp()); // Get functions instance on the client
+        const functions = getFunctions(app); // Get functions instance on the client
         const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
         const result = await sendDependentInviteCallable({
             name: values.name,
@@ -163,5 +164,3 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
     </Dialog>
   );
 }
-
-    

@@ -17,9 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
-// ✅ CORREÇÃO AQUI
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { app } from '@/lib/firebase';
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -43,8 +42,7 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
-      // ✅ Agora funcionando corretamente
-      const functions = getFunctions(getApp());
+      const functions = getFunctions(app);
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
       const result = await sendInviteCallable({
