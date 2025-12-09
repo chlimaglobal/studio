@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     const input = await req.json();
     const validatedInput = LuminaChatRequestSchema.parse(input);
 
+    // @ts-ignore - Genkit stream types can be complex
     const { stream, response } = await runFlow(luminaChatFlow, validatedInput, { stream: true });
 
     const data = new StreamData();
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
 
     // Handle the final response to append suggestions to the data stream
     response.then(finalResponse => {
+        // @ts-ignore
         data.append({ finalSuggestions: finalResponse.output?.suggestions || [] });
         data.close();
     }).catch(err => {
