@@ -10,7 +10,7 @@ import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { app } from '@/lib/firebase'; // Correct import for the app instance
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -35,7 +35,7 @@ export default function InviteReceivedPage() {
         setIsActionLoading(true);
 
         try {
-            const functions = getFunctions(app);
+            const functions = getFunctions(app); // Correctly get functions instance
 
             // ✅ Correção: função correta para recusar convite recebido
             const callableFunctionName =

@@ -42,7 +42,7 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app);
+      const functions = getFunctions(app); // Correctly get functions instance
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectPartnerCallable();
 

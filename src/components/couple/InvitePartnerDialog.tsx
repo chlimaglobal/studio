@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';        // ✅ Importa app inicializado (correto)
+import { app } from '@/lib/firebase';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useRouter } from 'next/navigation';
 
@@ -46,7 +46,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      // ✅ Agora usando o app inicializado corretamente
       const functions = getFunctions(app);
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 

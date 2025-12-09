@@ -12,14 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useAuth } from '../client-providers';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 
-interface PendingInviteCardProps {
-  // Props are no longer needed as logic is handled internally
-}
+interface PendingInviteCardProps {}
 
 export function PendingInviteCard(props: PendingInviteCardProps) {
   const { invite, status } = useCoupleStore();
@@ -58,7 +56,6 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
         setIsLoading(false);
     }
   }
-
 
   if (!invite || status === 'linked') return null;
 

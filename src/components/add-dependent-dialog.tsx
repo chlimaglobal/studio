@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,8 +26,7 @@ import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useAuth } from '@/components/client-providers';
-import { httpsCallable } from 'firebase/functions';
-import { getFunctions } from 'firebase/functions';
+import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 
 const AddDependentFormSchema = z.object({

@@ -1,57 +1,18 @@
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from "date-fns";
 import { DocumentData } from "firebase-admin/firestore";
 import * as sgMail from '@sendgrid/mail';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 admin.initializeApp();
 const db = admin.firestore();
 
-/**
- * Gatilho do Firestore para enviar um e-mail quando um novo convite é criado.
- */
-export const onInviteCreated = functions.firestore
-  .document("invites/{inviteId}")
-  .onCreate(async (snap, context) => {
-    const inviteData = snap.data();
-    if (!inviteData) {
-      console.error("Dados do convite não encontrados.");
-      return;
-    }
-
-    const { sentToEmail, sentByName, inviteToken } = inviteData;
-    const inviteLink = `https://financeflow-42a59.web.app/signup?inviteToken=${inviteToken}`;
-
-    const msg = {
-      to: sentToEmail,
-      from: "financeflowoficial@gmail.com", 
-      subject: `[FinanceFlow] Você recebeu um convite de ${sentByName}!`,
-      html: `
-        <p>Olá,</p>
-        <p>Você foi convidado(a) por <strong>${sentByName}</strong> para usar o FinanceFlow.</p>
-        <p>Clique no link abaixo para aceitar o convite e criar sua conta:</p>
-        <p><a href="${inviteLink}">Aceitar Convite</a></p>
-        <p>Se você não estava esperando este convite, pode ignorar este e-mail.</p>
-        <p>Atenciosamente,</p>
-        <p>Equipe FinanceFlow</p>
-      `,
-    };
-
-    try {
-      await sgMail.send(msg);
-      console.log(`E-mail de convite enviado para ${sentToEmail}`);
-    } catch (error) {
-      console.error("Erro ao enviar e-mail pelo SendGrid:", error);
-    }
-  });
-
+sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
 
 /**
  * Função callable para enviar convite de parceiro
  */
-export const sendPartnerInvite = functions.runWith({ secrets: ["SENDGRID_API_KEY"] }).https.onCall(
+export const sendPartnerInvite = functions.region("us-central1").runWith({ secrets: ["SENDGRID_API_KEY"] }).https.onCall(
   async (data, context) => {
     const { partnerEmail, senderName } = data;
 
@@ -78,9 +39,9 @@ export const sendPartnerInvite = functions.runWith({ secrets: ["SENDGRID_API_KEY
       sentToEmail: partnerEmail,
       status: "pending",
       createdAt: new Date(),
-      inviteToken: inviteToken // Adiciona o token ao documento
     };
 
+    // Este gatilho agora é acionado pelo 'onInviteCreated'
     await db.collection("invites").doc(inviteToken).set(inviteData);
 
     return {
@@ -91,11 +52,44 @@ export const sendPartnerInvite = functions.runWith({ secrets: ["SENDGRID_API_KEY
   }
 );
 
+/**
+ * Gatilho que envia o e-mail do convite.
+ */
+export const onInviteCreated = functions.region("us-central1").runWith({ secrets: ["SENDGRID_API_KEY"] }).firestore
+  .document("invites/{inviteId}")
+  .onCreate(async (snap, context) => {
+    try {
+      const invite = snap.data() as DocumentData;
+
+      if (!invite.sentToEmail) {
+        console.warn("Convite sem e-mail de destino, ignorando.");
+        return;
+      }
+
+      const msg = {
+        to: invite.sentToEmail,
+        from: {
+          email: "no-reply@financeflow.app",
+          name: "FinanceFlow",
+        },
+        subject: `Você recebeu um convite para o Modo Casal 💙`,
+        text: `Olá!\n\n${invite.sentByName} convidou você para vincular contas no FinanceFlow.\nAcesse o app para aceitar o convite.`,
+        html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
+      };
+      
+      await sgMail.send(msg);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao enviar email de convite:", error);
+      throw new functions.https.HttpsError("internal", "Erro ao enviar e-mail.");
+    }
+  });
 
 /**
  * Função callable para desvincular um parceiro.
  */
-export const disconnectPartner = functions.https.onCall(
+export const disconnectPartner = functions.region("us-central1").https.onCall(
   async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -169,7 +163,7 @@ export const disconnectPartner = functions.https.onCall(
 );
 
 
-export const checkDashboardStatus = functions.https.onCall(
+export const checkDashboardStatus = functions.region("us-central1").https.onCall(
   async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
@@ -187,7 +181,7 @@ export const checkDashboardStatus = functions.https.onCall(
 /**
  * Gatilho leve acionado em cada nova transação.
  */
-export const onTransactionCreated = functions.firestore
+export const onTransactionCreated = functions.region("us-central1").firestore
   .document("users/{userId}/transactions/{transactionId}")
   .onCreate(async (snap, context) => {
     if (!snap.exists) return null;
@@ -265,14 +259,14 @@ export const onTransactionCreated = functions.firestore
     } catch (error) {
       console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
-    return null; // Adicionado para garantir que a função sempre retorne algo
+    return null; 
   });
 
 
 /**
  * Função agendada para rodar diariamente
  */
-export const dailyFinancialCheckup = functions.pubsub
+export const dailyFinancialCheckup = functions.region("us-central1").pubsub
   .schedule('every 24 hours')
   .onRun(async () => {
 
@@ -545,5 +539,3 @@ export const dailyFinancialCheckup = functions.pubsub
     console.log(`Verificação concluída para todos os usuários.`);
     return null;
   });
-
-    

@@ -1,4 +1,4 @@
-import { db } from './firebase';
+import { db, app } from './firebase'; // Correctly import app
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
 import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from './types';
@@ -9,7 +9,6 @@ import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from '.
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
 
 // Helper function to convert a File to a Base64 string
 export function fileToBase64(file: File): Promise<string> {
@@ -221,7 +220,7 @@ export async function addStoredTransaction(data: z.infer<typeof TransactionFormS
     }
 
     try {
-        const funcs = getFunctions(app);
+        const funcs = getFunctions(app); // Use app instance
         const onTransactionCreatedCallable = httpsCallable(funcs, 'onTransactionCreated');
         await onTransactionCreatedCallable({
             userId: currentUserId,

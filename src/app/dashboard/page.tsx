@@ -326,7 +326,7 @@ export default function DashboardPage() {
         
         const checkStatus = async () => {
             try {
-                const functions = getFunctions(app);
+                const functions = getFunctions(app); // Correctly get functions instance
                 const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
                 await checkDashboardStatus();
             } catch (error) {
