@@ -1,12 +1,15 @@
-
-import { ai } from '@/ai/genkit';
-import { luminaChatFlow } from '@/ai/flows/lumina-chat';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+import { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import { runFlow } from 'genkit';
+
 
 export const dynamic = 'force-dynamic';
 
+// O schema de validação para o corpo da requisição
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ 
       id: z.string().optional(),
@@ -28,40 +31,43 @@ const LuminaChatRequestSchema = z.object({
 });
 
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const rawInput = await request.json();
-    const input = LuminaChatRequestSchema.parse(rawInput);
+    const input = await req.json();
+    const validatedInput = LuminaChatRequestSchema.parse(input);
 
-    const { stream, response } = await luminaChatFlow(input, { stream: true });
+    const functions = getFunctions(app, 'us-central1');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    
+    // Como a função de nuvem não suporta streaming diretamente para o cliente dessa forma,
+    // vamos chamar a função e retornar a resposta completa de uma vez.
+    // O cliente precisará ser adaptado para não esperar um stream.
+    const result = await luminaChatCallable(validatedInput);
+    const luminaResponse = result.data.data;
 
-    const aiStream = stream.pipeThrough(
-      new TransformStream({
-        transform(chunk, controller) {
-          if (chunk.output?.text) {
-            controller.enqueue(chunk.output.text);
-          }
-        },
-      })
-    );
-
-    const data = new StreamData();
-    response.then(finalResponse => {
-      data.append({ finalSuggestions: finalResponse?.output?.suggestions || [] });
-      data.close();
-    }).catch(err => {
-      console.error('[LUMINA_STREAM_RESPONSE_ERROR]', err);
-      data.append({ error: 'Erro ao finalizar a resposta.' });
-      data.close();
+    // Para simular um stream de uma resposta completa:
+    const readableStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(luminaResponse.text));
+        controller.close();
+      }
     });
 
-    return new StreamingTextResponse(aiStream, {}, data);
+    const data = new StreamData();
+    data.append({ finalSuggestions: luminaResponse.suggestions || [] });
+    data.close();
+
+    return new StreamingTextResponse(readableStream, {}, data);
 
   } catch (error) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
+    let errorMessage = "Erro interno do servidor. Verifique os logs.";
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
     }
-    return new Response(JSON.stringify({ error: "Erro interno do servidor. Verifique os logs." }), { status: 500 });
+    if(error instanceof Error) {
+        errorMessage = error.message;
+    }
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 }
