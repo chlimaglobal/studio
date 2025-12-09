@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { getApp } from 'firebase/app';
 import { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import { runFlow } from 'genkit';
 
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const input = await req.json();
     const validatedInput = LuminaChatRequestSchema.parse(input);
 
-    const functions = getFunctions(app, 'us-central1');
+    const functions = getFunctions(getApp(), 'us-central1');
     const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
     
     // Como a função de nuvem não suporta streaming diretamente para o cliente dessa forma,
