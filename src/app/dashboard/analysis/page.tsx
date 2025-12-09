@@ -1,7 +1,5 @@
-
 'use client';
 
-import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
@@ -12,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { runFlow } from 'genkit';
+import { runAnalysis } from '../actions';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
@@ -75,7 +73,7 @@ export default function AnalysisPage() {
     return JSON.stringify(allTransactions.map(t => t.id).sort());
   }, [allTransactions]);
 
-  const runAnalysis = useCallback(async (force = false) => {
+  const handleRunAnalysis = useCallback(async (force = false) => {
     if (!isSubscribed && !isAdmin) return; // Don't run if not subscribed (and not admin)
     setIsAnalyzing(true);
     
@@ -90,7 +88,7 @@ export default function AnalysisPage() {
     }
     
     if (allTransactions.length > 0) {
-        const result = await runFlow(generateFinancialAnalysis, { transactions: allTransactions });
+        const result = await runAnalysis({ transactions: allTransactions });
         setAnalysis(result);
         localStorage.setItem('financialAnalysis', JSON.stringify(result));
         localStorage.setItem('financialAnalysisHash', transactionsHash);
@@ -109,9 +107,9 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (!isLoadingTransactions && !isSubscriptionLoading) {
-      runAnalysis();
+      handleRunAnalysis();
     }
-  }, [isLoadingTransactions, isSubscriptionLoading, runAnalysis]);
+  }, [isLoadingTransactions, isSubscriptionLoading, handleRunAnalysis]);
 
   if (isLoadingTransactions || isSubscriptionLoading || (isAnalyzing && (isSubscribed || isAdmin))) {
     return (
@@ -157,7 +155,7 @@ export default function AnalysisPage() {
               </p>
             </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => runAnalysis(true)} disabled={isAnalyzing}>
+        <Button variant="outline" size="sm" onClick={() => handleRunAnalysis(true)} disabled={isAnalyzing}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Rerrodar Análise
         </Button>

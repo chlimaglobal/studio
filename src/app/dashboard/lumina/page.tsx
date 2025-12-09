@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useChat } from 'ai/react';
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
+import { runImageExtraction } from '../actions';
 
 
 const TypingIndicator = () => (

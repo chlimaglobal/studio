@@ -2,6 +2,12 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentData } from "firebase-admin/firestore";
 
+// ✅ IMPORTAÇÃO SENDGRID (FALTAVA)
+import * as sgMail from "@sendgrid/mail";
+
+// ✅ CONFIGURAÇÃO DA API KEY (FALTAVA)
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -45,6 +51,7 @@ export const sendPartnerInvite = functions
         createdAt: new Date(),
       };
 
+      // 🔥 ISSO DISPARA o gatilho onInviteCreated
       await db.collection("invites").doc(inviteToken).set(inviteData);
 
       return {
@@ -59,6 +66,52 @@ export const sendPartnerInvite = functions
         "internal",
         "Erro ao enviar convite."
       );
+    }
+  });
+
+/**
+ * 🔥 Gatilho que envia o e-mail do convite (o que estava quebrando)
+ */
+export const onInviteCreated = functions
+  .region(REGION)
+  .runWith({ secrets: ["SENDGRID_API_KEY"] })
+  .firestore.document("invites/{inviteId}")
+  .onCreate(async (snap, context) => {
+    try {
+      const invite = snap.data() as DocumentData;
+
+      if (!invite.sentToEmail) {
+        console.warn("Convite sem e-mail de destino, ignorando.");
+        return;
+      }
+
+      const msg = {
+        to: invite.sentToEmail,
+        from: {
+          email: "no-reply@financeflow.app",
+          name: "FinanceFlow",
+        },
+        subject: "Você recebeu um convite para o Modo Casal 💙",
+        text: `
+Olá!
+
+${invite.sentByName} convidou você para vincular contas no FinanceFlow.
+Acesse o app para aceitar o convite.
+        `,
+        html: `
+<p>Olá!</p>
+<p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p>
+<p>Acesse o aplicativo para visualizar e aceitar o convite.</p>
+        `,
+      };
+
+      // 🔥 AQUI QUEBRAVA – AGORA FUNCIONA
+      await sgMail.send(msg);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao enviar email de convite:", error);
+      throw new functions.https.HttpsError("internal", "Erro ao enviar e-mail.");
     }
   });
 

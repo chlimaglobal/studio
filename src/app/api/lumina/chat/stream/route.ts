@@ -1,9 +1,8 @@
-
 import { luminaChatFlow } from '@/ai/flows/lumina-chat';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { runFlow } from 'genkit/flow';
+import { runFlow } from 'genkit';
 
 
 export const dynamic = 'force-dynamic';

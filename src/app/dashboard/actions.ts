@@ -6,6 +6,16 @@ import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-
 import { generateFinancialAnalysis } from "@/ai/flows/generate-financial-analysis";
 import type { TransactionCategory, ExtractTransactionOutput } from "@/lib/types";
 import type { GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput } from "@/ai/flows/generate-financial-analysis";
+import { extractFromFile } from "@/ai/flows/extract-from-file";
+import type { ExtractFromFileInput, ExtractFromFileOutput } from "@/lib/types";
+import { analyzeInvestorProfile } from "@/ai/flows/analyze-investor-profile";
+import type { InvestorProfileInput, InvestorProfileOutput } from "@/lib/types";
+import { calculateSavingsGoal } from "@/ai/flows/calculate-savings-goal";
+import type { SavingsGoalInput, SavingsGoalOutput } from "@/lib/types";
+import { mediateGoals } from "@/ai/flows/mediate-goals";
+import type { MediateGoalsInput, MediateGoalsOutput } from "@/lib/types";
+import { extractFromImage } from "@/ai/flows/extract-from-image";
+import type { ExtractFromImageInput, ExtractFromImageOutput } from "@/lib/types";
 
 /**
  * Gets a category suggestion from the AI based on a transaction description.
@@ -83,5 +93,56 @@ export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promis
             suggestions: ['Verifique sua conexão e tente recarregar a página.'],
             trendAnalysis: undefined
         };
+    }
+}
+
+
+export async function runFileExtraction(input: ExtractFromFileInput): Promise<ExtractFromFileOutput> {
+    try {
+        const result = await runFlow(extractFromFile, input);
+        return result;
+    } catch (error) {
+        console.error("Lumina file extraction failed in Server Action:", error);
+        throw new Error("Falha ao extrair transações do arquivo.");
+    }
+}
+
+export async function runInvestorProfileAnalysis(input: InvestorProfileInput): Promise<InvestorProfileOutput> {
+    try {
+        const result = await runFlow(analyzeInvestorProfile, input);
+        return result;
+    } catch (error) {
+        console.error("Lumina investor profile analysis failed in Server Action:", error);
+        throw new Error("Falha ao analisar o perfil de investidor.");
+    }
+}
+
+export async function runSavingsGoalCalculation(input: SavingsGoalInput): Promise<SavingsGoalOutput> {
+    try {
+        const result = await runFlow(calculateSavingsGoal, input);
+        return result;
+    } catch (error) {
+        console.error("Lumina savings goal calculation failed in Server Action:", error);
+        throw new Error("Falha ao calcular a meta de economia.");
+    }
+}
+
+export async function runGoalMediation(input: MediateGoalsInput): Promise<MediateGoalsOutput> {
+    try {
+        const result = await runFlow(mediateGoals, input);
+        return result;
+    } catch (error) {
+        console.error("Lumina goal mediation failed in Server Action:", error);
+        throw new Error("Falha ao mediar as metas.");
+    }
+}
+
+export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
+    try {
+        const result = await runFlow(extractFromImage, input);
+        return result;
+    } catch (error) {
+        console.error("Lumina image extraction failed in Server Action:", error);
+        throw new Error("Falha ao extrair dados da imagem.");
     }
 }

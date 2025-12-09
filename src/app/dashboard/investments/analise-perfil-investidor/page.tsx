@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,9 +5,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { analyzeInvestorProfile } from '@/ai/flows/analyze-investor-profile';
 import { useToast } from '@/hooks/use-toast';
-import { runFlow } from 'genkit';
+import { runInvestorProfileAnalysis } from '../../actions';
 
 // Placeholder para as perguntas do questionário
 const questions = [
@@ -70,7 +68,7 @@ export default function InvestorProfilePage() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-        const result = await runFlow(analyzeInvestorProfile, { answers });
+        const result = await runInvestorProfileAnalysis({ answers });
         const query = new URLSearchParams({
             analysisResult: JSON.stringify(result)
         }).toString();
