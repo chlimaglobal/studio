@@ -17,8 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase'; // Correct import
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -42,13 +42,11 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app);
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
       const result = await sendInviteCallable({
-        email,
-        inviterName: user.displayName || 'Usuário',
-        inviterUid: user.uid,
+        partnerEmail: email,
+        senderName: user.displayName || 'Usuário',
       });
 
       const data = result.data as {

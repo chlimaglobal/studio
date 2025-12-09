@@ -1,127 +1,64 @@
 'use server';
 
-import { runFlow } from "@/ai/run"; 
-import { categorizeTransaction } from "@/ai/flows/categorize-transaction";
-import { extractTransactionFromText } from "@/ai/flows/extract-transaction-from-text";
-import { generateFinancialAnalysis } from "@/ai/flows/generate-financial-analysis";
-import type { CategorizeTransactionOutput, ExtractTransactionOutput, GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput, ExtractFromFileInput, ExtractFromFileOutput, InvestorProfileInput, InvestorProfileOutput, SavingsGoalInput, SavingsGoalOutput, MediateGoalsInput, MediateGoalsOutput, ExtractFromImageInput, ExtractFromImageOutput } from "@/lib/types";
-import { extractFromFile } from "@/ai/flows/extract-from-file";
-import { analyzeInvestorProfile } from "@/ai/flows/analyze-investor-profile";
-import { calculateSavingsGoal } from "@/ai/flows/calculate-savings-goal";
-import { mediateGoals } from "@/ai/flows/mediate-goals";
-import { extractFromImage } from "@/ai/flows/extract-from-image";
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+import type { 
+    CategorizeTransactionOutput,
+    ExtractTransactionOutput,
+    GenerateFinancialAnalysisOutput,
+    ExtractFromFileOutput,
+    InvestorProfileOutput,
+    SavingsGoalOutput,
+    MediateGoalsOutput,
+    ExtractFromImageOutput
+} from '@/lib/types';
+import { z } from 'zod';
 
-/**
- * Gets a category suggestion from the AI based on a transaction description.
- * This is a Server Action that can be called from client components.
- * @param description The description of the transaction.
- * @returns The suggested category or null if not found.
- */
-export async function getCategorySuggestion(description: string): Promise<CategorizeTransactionOutput | null> {
-    if (!description) return null;
-
+// Helper to call a Firebase Cloud Function and handle the response structure.
+async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
-        const result = await runFlow(categorizeTransaction, { description });
-        return result;
-    } catch (e) {
-        console.error("Lumina suggestion failed in Server Action:", e);
-        return null;
+        const functions = getFunctions(app); // Call with app instance
+        const callable = httpsCallable<I, { data: O }>(functions, functionName);
+        const result = await callable(data);
+        return result.data.data;
+    } catch (error) {
+        console.error(`Error calling Firebase function '${functionName}':`, error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to execute ${functionName}: ${error.message}`);
+        }
+        throw new Error(`An unknown error occurred while executing ${functionName}.`);
     }
 }
 
-/**
- * Extracts transaction information from a natural language text string.
- * This is a Server Action.
- * @param text The text to analyze.
- * @returns The extracted transaction data or a fallback object.
- */
+
+export async function getCategorySuggestion(description: string): Promise<CategorizeTransactionOutput> {
+    return callFirebaseFunction('getCategorySuggestion', { description });
+}
+
 export async function extractTransactionInfoFromText(text: string): Promise<ExtractTransactionOutput> {
-    try {
-        const result = await runFlow(extractTransactionFromText, { text });
-        return result;
-    } catch (e) {
-        console.error("Lumina extraction failed in Server Action:", e);
-
-        return {
-            description: text,
-            amount: 0,
-            type: 'expense',
-            category: 'Outros',
-            paymentMethod: 'one-time',
-        };
-    }
+     return callFirebaseFunction('extractTransactionInfoFromText', { text });
 }
 
-
-/**
- * Runs the financial analysis flow.
- * This is a Server Action.
- * @param input The transaction data for analysis.
- * @returns The financial analysis output.
- */
-export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
-    try {
-        const result = await runFlow(generateFinancialAnalysis, input);
-        return result;
-    } catch (e) {
-        console.error("Lumina analysis failed in Server Action:", e);
-        // Return a default/error state that matches the expected output schema
-        return {
-            healthStatus: 'Atenção',
-            diagnosis: 'Não foi possível gerar a análise no momento. Por favor, tente novamente mais tarde.',
-            suggestions: ['Verifique sua conexão e tente recarregar a página.'],
-            trendAnalysis: undefined
-        };
-    }
+export async function runAnalysis(input: { transactions: any[] }): Promise<GenerateFinancialAnalysisOutput> {
+    return callFirebaseFunction('runAnalysis', input);
 }
 
-
-export async function runFileExtraction(input: ExtractFromFileInput): Promise<ExtractFromFileOutput> {
-    try {
-        const result = await runFlow(extractFromFile, input);
-        return result;
-    } catch (error) {
-        console.error("Lumina file extraction failed in Server Action:", error);
-        throw new Error("Falha ao extrair transações do arquivo.");
-    }
+export async function runFileExtraction(input: { fileContent: string; fileName: string }): Promise<ExtractFromFileOutput> {
+    return callFirebaseFunction('runFileExtraction', input);
 }
 
-export async function runInvestorProfileAnalysis(input: InvestorProfileInput): Promise<InvestorProfileOutput> {
-    try {
-        const result = await runFlow(analyzeInvestorProfile, input);
-        return result;
-    } catch (error) {
-        console.error("Lumina investor profile analysis failed in Server Action:", error);
-        throw new Error("Falha ao analisar o perfil de investidor.");
-    }
+export async function runInvestorProfileAnalysis(input: { answers: Record<string, string> }): Promise<InvestorProfileOutput> {
+    return callFirebaseFunction('runInvestorProfileAnalysis', input);
 }
 
-export async function runSavingsGoalCalculation(input: SavingsGoalInput): Promise<SavingsGoalOutput> {
-    try {
-        const result = await runFlow(calculateSavingsGoal, input);
-        return result;
-    } catch (error) {
-        console.error("Lumina savings goal calculation failed in Server Action:", error);
-        throw new Error("Falha ao calcular a meta de economia.");
-    }
+export async function runSavingsGoalCalculation(input: { transactions: any[] }): Promise<SavingsGoalOutput> {
+    return callFirebaseFunction('runSavingsGoalCalculation', input);
 }
 
-export async function runGoalMediation(input: MediateGoalsInput): Promise<MediateGoalsOutput> {
-    try {
-        const result = await runFlow(mediateGoals, input);
-        return result;
-    } catch (error) {
-        console.error("Lumina goal mediation failed in Server Action:", error);
-        throw new Error("Falha ao mediar as metas.");
-    }
+export async function runGoalMediation(input: MediateGoalsOutput): Promise<MediateGoalsOutput> {
+    return callFirebaseFunction('runGoalMediation', input);
 }
 
-export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
-    try {
-        const result = await runFlow(extractFromImage, input);
-        return result;
-    } catch (error) {
-        console.error("Lumina image extraction failed in Server Action:", error);
-        throw new Error("Falha ao extrair dados da imagem.");
-    }
+export async function runImageExtraction(input: { imageDataUri: string, allTransactions?: any[] }): Promise<ExtractFromImageOutput> {
+    return callFirebaseFunction('runImageExtraction', input);
 }

@@ -1,5 +1,5 @@
 // src/lib/firebase.ts
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getMessaging, isSupported } from "firebase/messaging";
@@ -17,12 +17,13 @@ const firebaseConfig = {
 };
 
 // ---- INICIALIZAÇÃO SEGURA ----
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // ---- SERVICES ----
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app);
+// Always initialize functions with the region for consistency
+export const functions = getFunctions(app, 'us-central1');
 export { app }; // Exportando a instância do app
 
 

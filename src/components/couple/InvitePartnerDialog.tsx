@@ -15,8 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useRouter } from 'next/navigation';
 
@@ -46,13 +46,11 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app);
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
       const result = await sendInviteCallable({
         partnerEmail: email,
         senderName: user.displayName || 'Usuário',
-        senderEmail: user.email || '',
       });
 
       const data = result.data as {

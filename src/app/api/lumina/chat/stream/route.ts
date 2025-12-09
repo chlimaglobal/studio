@@ -1,15 +1,17 @@
-import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { runFlow } from '@/ai/run';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+
 
 export const dynamic = 'force-dynamic';
 
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ 
       id: z.string().optional(),
-      role: z.enum(['user', 'assistant']), 
+      role: z.enum(['user', 'assistant', 'model']), 
       content: z.string() 
     })).optional(),
   userQuery: z.string().optional(),
@@ -30,44 +32,43 @@ const LuminaChatRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
-    const validatedInput = LuminaChatRequestSchema.parse(input);
+    // Re-shape the message history for the callable function
+    const validatedInput = {
+      ...LuminaChatRequestSchema.parse(input),
+      chatHistory: input.messages || [],
+    };
 
-    // @ts-ignore - Genkit stream types can be complex
-    const { stream, response } = await runFlow(luminaChatFlow, validatedInput, { stream: true });
+    const functions = getFunctions(app);
+    const luminaChatCallable = httpsCallable<any, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    
+    // As the cloud function is not streaming, we call it and await the full response.
+    const result = await luminaChatCallable(validatedInput);
+    const luminaResponse = result.data.data;
 
-    const data = new StreamData();
-
-    // Use a TransformStream to correctly process chunks from the Genkit stream
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        // Genkit stream chunks have an 'output' property
-        if (chunk.output?.text) {
-          controller.enqueue(chunk.output.text);
-        }
+    // To maintain compatibility with the useChat hook, we create a simple stream
+    // that yields the full response at once.
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(luminaResponse.text));
+        controller.close();
       },
     });
 
-    // Pipe the Genkit stream through our transform stream
-    const responseStream = stream.pipeThrough(transformStream);
+    const data = new StreamData();
+    data.append({ finalSuggestions: luminaResponse.suggestions || [] });
+    data.close();
 
-    // Handle the final response to append suggestions to the data stream
-    response.then(finalResponse => {
-        // @ts-ignore
-        data.append({ finalSuggestions: finalResponse.output?.suggestions || [] });
-        data.close();
-    }).catch(err => {
-        console.error('[LUMINA_STREAM_RESPONSE_ERROR]', err);
-        data.append({ error: 'Erro ao finalizar a resposta.' });
-        data.close();
-    });
-
-    return new StreamingTextResponse(responseStream, {}, data);
+    return new StreamingTextResponse(stream, {}, data);
 
   } catch (error) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
+    let errorMessage = "Erro interno do servidor. Verifique os logs.";
     if (error instanceof z.ZodError) {
       return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
     }
-    return new Response(JSON.stringify({ error: "Erro interno do servidor. Verifique os logs." }), { status: 500 });
+    if(error instanceof Error) {
+        errorMessage = error.message;
+    }
+    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
   }
 }
