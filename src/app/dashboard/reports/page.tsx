@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -18,6 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
 import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
 import Papa from 'papaparse';
+import { runAnalysis } from '../actions';
 
 
 interface CategorySpending {
@@ -50,11 +50,11 @@ const TrendAnalysisCard = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const runAnalysis = async () => {
+        const analyze = async () => {
             setIsLoading(true);
              const operationalTransactions = transactions.filter(t => !t.hideFromReports && !allInvestmentCategories.has(t.category));
              if (operationalTransactions.length > 3) { // Need some data to analyze trends
-                const result = await generateFinancialAnalysis({ transactions: operationalTransactions });
+                const result = await runAnalysis({ transactions: operationalTransactions });
                 setAnalysis(result.trendAnalysis);
             } else {
                 setAnalysis(null);
@@ -62,7 +62,7 @@ const TrendAnalysisCard = () => {
             setIsLoading(false);
         };
         if (!isLoadingTransactions) {
-            runAnalysis();
+            analyze();
         }
     }, [transactions, isLoadingTransactions]);
 
@@ -403,5 +403,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    
