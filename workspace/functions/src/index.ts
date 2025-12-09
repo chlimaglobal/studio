@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentData, Timestamp } from "firebase-admin/firestore";
@@ -492,20 +493,26 @@ export const onInviteCreated = functions
       const invite = snap.data() as DocumentData;
       if (!invite.sentToEmail) {
         console.warn("Convite sem e-mail de destino, ignorando.");
-        return;
+        return null;
       }
+      
       const msg = {
         to: invite.sentToEmail,
-        from: { email: "no-reply@financeflow.app", name: "FinanceFlow" },
-        subject: "Você recebeu um convite para o Modo Casal 💙",
-        text: `Olá!\n\n${invite.sentByName} convidou você para vincular contas no FinanceFlow.\nAcesse o app para aceitar o convite.`,
+        from: { 
+            email: "no-reply@financeflow.app",
+            name: "FinanceFlow" 
+        },
+        subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
+        text: `Olá! ${invite.sentByName} (de ${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
         html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
       };
+
       await sgMail.send(msg);
       return { success: true };
     } catch (error) {
       console.error("Erro ao enviar email de convite:", error);
-      throw new functions.https.HttpsError("internal", "Erro ao enviar e-mail.");
+      // Não jogue um HttpsError aqui, pois é um gatilho. Apenas retorne nulo ou um erro para o log.
+      return null;
     }
   });
 
@@ -703,3 +710,5 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
