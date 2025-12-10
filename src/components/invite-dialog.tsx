@@ -16,8 +16,8 @@ import { Copy, Check, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 
 
@@ -48,6 +48,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     
     setIsLoading(true);
     try {
+      const functions = getFunctions(app);
       const generateCode = httpsCallable(functions, 'generateInviteCode');
       const result = await generateCode({ accountId: account.id });
       // @ts-ignore

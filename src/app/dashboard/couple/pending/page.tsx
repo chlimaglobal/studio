@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // ✅ IMPORTAÇÃO CORRETA
+import { app } from '@/lib/firebase'; 
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -44,7 +44,7 @@ export default function PendingInvitePage() {
 
     setIsActionLoading(true);
     try {
-      // ✅ Agora usa a função CERTA
+      
       const functions = getFunctions(app);
       const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
 

@@ -35,7 +35,7 @@ export default function InviteReceivedPage() {
         setIsActionLoading(true);
 
         try {
-            const functions = getFunctions(app); // Correctly get functions instance
+            const functions = getFunctions(app); 
 
             // ✅ Correção: função correta para recusar convite recebido
             const callableFunctionName =
