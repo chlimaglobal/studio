@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Loader2, Mic, Paperclip, Camera, Send, X } from "lucide-react";
+import { Loader2, Mic, Paperclip, Send, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,11 +11,9 @@ import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate 
 import type { ChatMessage } from "@/lib/types";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useChat } from 'ai/react';
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
-import { runImageExtraction } from '../actions';
 
 
 const TypingIndicator = () => (
@@ -30,7 +29,7 @@ export default function ChatPage() {
   const { transactions } = useTransactions();
   const { viewMode } = useViewMode();
   const { setHasUnread } = useLumina();
-  const { coupleLink } = useCoupleStore.getState();
+  const { coupleLink, partner } = useCoupleStore();
   const [isAudioOpen, setIsAudioOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -44,7 +43,6 @@ export default function ChatPage() {
     handleInputChange, 
     handleSubmit,
     isLoading, 
-    error,
   } = useChat({
     api: '/api/lumina/chat/stream',
     keepLastMessageOnError: true,
@@ -58,6 +56,12 @@ export default function ChatPage() {
         email: user?.email,
         photoURL: user?.photoURL,
       },
+      partner: viewMode === "together" ? {
+        uid: partner?.uid,
+        displayName: partner?.displayName,
+        email: partner?.email,
+        photoURL: partner?.photoURL,
+      } : undefined,
       imageBase64: imageBase64,
     },
     onFinish: (message) => {

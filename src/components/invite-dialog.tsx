@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -48,10 +49,10 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     
     setIsLoading(true);
     try {
-      const functions = getFunctions(app);
+      const functions = getFunctions(app, 'us-central1');
       const generateCode = httpsCallable(functions, 'generateInviteCode');
       const result = await generateCode({ accountId: account.id });
-      // @ts-ignore
+      
       const resultData = result.data as { success: boolean; code?: string; error?: string };
 
       if (resultData.success && resultData.code) {

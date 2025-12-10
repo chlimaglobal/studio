@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,7 @@ export default function LoginPage() {
     localStorage.setItem('userEmail', loggedInUser.email || '');
     
     try {
-        const functions = getFunctions(app); // Correctly get functions instance
+        const functions = getFunctions(app, 'us-central1'); // Correctly get functions instance
         const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
         await handleUserLogin();
     } catch (error) {

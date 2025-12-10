@@ -1,9 +1,10 @@
+
 import { NextRequest } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
-import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
+import type { LuminaChatOutput } from '@/lib/types';
 
 
 export const dynamic = 'force-dynamic';
@@ -38,12 +39,12 @@ export async function POST(req: NextRequest) {
       chatHistory: input.messages || [],
     };
 
-    const functions = getFunctions(app);
+    const functions = getFunctions(app, 'us-central1');
     const luminaChatCallable = httpsCallable<any, { data: LuminaChatOutput }>(functions, 'luminaChat');
     
     // As the cloud function is not streaming, we call it and await the full response.
     const result = await luminaChatCallable(validatedInput);
-    const luminaResponse = result.data.data;
+    const luminaResponse = result.data; // The data is directly on result.data now
 
     // To maintain compatibility with the useChat hook, we create a simple stream
     // that yields the full response at once.

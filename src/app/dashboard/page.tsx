@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -29,7 +30,7 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
-import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+import type { GenerateFinancialAnalysisOutput } from '@/lib/types';
 
 
 interface SummaryData {
@@ -326,7 +327,7 @@ export default function DashboardPage() {
         
         const checkStatus = async () => {
             try {
-                const functions = getFunctions(app); // Correctly get functions instance
+                const functions = getFunctions(app, 'us-central1'); // Correctly get functions instance
                 const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
                 await checkDashboardStatus();
             } catch (error) {

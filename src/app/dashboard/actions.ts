@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -20,7 +21,6 @@ import type {
     ExtractFromImageInput,
     ExtractFromImageOutput
 } from '@/lib/types';
-import { z } from 'zod';
 
 // Helper to call a Firebase Cloud Function and handle the response structure.
 async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
@@ -28,10 +28,9 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         const functions = getFunctions(app, 'us-central1');
         const callable = httpsCallable<T, { data: O }>(functions, functionName);
         const result = await callable(data);
-        return result.data.data;
+        return result.data; // The data is now directly on result.data
     } catch (error) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
-        // It's better to throw the error so the calling component can handle it.
         if (error instanceof Error) {
             throw new Error(`Failed to execute ${functionName}: ${error.message}`);
         }
@@ -40,9 +39,9 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
 }
 
 
-export async function getCategorySuggestion(description: string): Promise<string> {
+export async function getCategorySuggestion(description: string): Promise<CategorizeTransactionOutput> {
     const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', { description });
-    return result.category;
+    return result;
 }
 
 export async function extractTransactionInfoFromText(text: string): Promise<ExtractTransactionOutput> {

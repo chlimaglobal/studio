@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,6 +43,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof AddDependentFormSchema>>({
     resolver: zodResolver(AddDependentFormSchema),
@@ -61,8 +63,9 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         return;
     }
     
+    setIsLoading(true);
     try {
-        const functions = getFunctions(app); // Get functions instance on the client
+        const functions = getFunctions(app, 'us-central1'); 
         const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
         const result = await sendDependentInviteCallable({
             name: values.name,
@@ -108,6 +111,8 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
             title: 'Falha no Envio',
             description: errorMessage,
         });
+    } finally {
+        setIsLoading(false);
     }
   }
 
@@ -151,8 +156,8 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
             />
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Gerar Link de Convite
               </Button>
             </DialogFooter>

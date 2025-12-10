@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
@@ -38,7 +39,6 @@ function SignUpPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('inviteToken');
-
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,25 +51,35 @@ function SignUpPageContent() {
     async function prefillFromInvite() {
       if (!inviteToken) return;
 
-      const inviteRef = doc(db, 'invites', inviteToken);
-      const inviteSnap = await getDoc(inviteRef);
+      try {
+        const inviteRef = doc(db, 'invites', inviteToken);
+        const inviteSnap = await getDoc(inviteRef);
 
-      if (!inviteSnap.exists()) {
-        toast({
-          variant: 'destructive',
-          title: 'Convite inválido',
-          description: 'Este link de convite não é válido ou já expirou.'
-        });
-        return;
+        if (!inviteSnap.exists() || inviteSnap.data().status !== 'pending') {
+          toast({
+            variant: 'destructive',
+            title: 'Convite inválido',
+            description: 'Este link de convite não é válido, já foi usado ou expirou.'
+          });
+          router.push('/signup'); // Redirect to normal signup
+          return;
+        }
+
+        const data = inviteSnap.data();
+        if (data.dependentName) setName(data.dependentName);
+        if (data.dependentEmail) setEmail(data.dependentEmail);
+
+      } catch (e) {
+          toast({
+            variant: 'destructive',
+            title: 'Erro ao ler convite',
+            description: 'Não foi possível verificar o convite. Tente novamente.'
+          });
       }
-
-      const data = inviteSnap.data();
-      if (data.dependentName) setName(data.dependentName);
-      if (data.dependentEmail) setEmail(data.dependentEmail);
     }
 
     prefillFromInvite();
-  }, [inviteToken, toast]);
+  }, [inviteToken, toast, router]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,16 +101,14 @@ function SignUpPageContent() {
       await updateProfile(userCredential.user, { displayName: name });
       await initializeUser(userCredential.user);
 
-      // Se é cadastro pelo convite do parceiro
       if (inviteToken) {
         const inviteRef = doc(db, 'invites', inviteToken);
         const inviteSnap = await getDoc(inviteRef);
 
-        if (inviteSnap.exists()) {
+        if (inviteSnap.exists() && inviteSnap.data().status === 'pending') {
           const inviteData = inviteSnap.data();
           const inviterUid = inviteData.inviterUid;
 
-          // Marca o novo usuário como dependente
           await setDoc(
             doc(db, 'users', userCredential.user.uid),
             {
@@ -110,26 +118,21 @@ function SignUpPageContent() {
             { merge: true }
           );
 
-          // Adiciona dependente ao pai
           await setDoc(
             doc(db, 'users', inviterUid),
             {
               dependents: {
-                [userCredential.user.uid]: {
-                  name: name,
-                  email: email,
-                },
+                [userCredential.user.uid]: true,
               },
             },
             { merge: true }
           );
 
-          // Marca convite como concluído
           await setDoc(inviteRef, { status: 'completed' }, { merge: true });
 
           toast({
             title: 'Cadastro concluído!',
-            description: `Sua conta foi vinculada a ${inviteData.sentByName}.`,
+            description: `Sua conta foi vinculada à de ${inviteData.inviterName}.`,
           });
         }
       } else {
@@ -174,7 +177,7 @@ function SignUpPageContent() {
           <form onSubmit={handleSignUp} className="space-y-4">
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Input value={name} required onChange={e => setName(e.target.value)} disabled={!!inviteToken} />
+              <Input value={name} required onChange={e => setName(e.target.value)} disabled={!!(inviteToken && name)} />
             </div>
 
             <div className="space-y-2">
@@ -184,7 +187,7 @@ function SignUpPageContent() {
                 value={email}
                 required
                 onChange={e => setEmail(e.target.value)}
-                disabled={!!inviteToken}
+                disabled={!!(inviteToken && email)}
               />
             </div>
 

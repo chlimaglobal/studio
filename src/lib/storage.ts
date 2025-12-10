@@ -1,3 +1,4 @@
+
 import { db, app } from './firebase'; // Correctly import app
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './types';
@@ -436,26 +437,6 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
   return unsubscribe;
 }
 
-async function addCommissionAsTransaction(userId: string, commission: z.infer<typeof AddCommissionFormSchema>) {
-  const transactionData = {
-    description: `Comissão: ${commission.description}`,
-    amount: commission.amount,
-    date: commission.date,
-    type: 'income' as const,
-    category: 'Comissão' as const,
-    paid: true,
-    paymentMethod: 'one-time' as const,
-    ownerId: userId,
-  };
-  
-  try {
-    const validatedData = TransactionFormSchema.parse(transactionData);
-    await addStoredTransaction(validatedData, userId);
-  } catch (error) {
-    console.error("Failed to add commission as transaction:", error);
-  }
-}
-
 export async function addStoredCommission(userId: string, data: z.infer<typeof AddCommissionFormSchema>) {
   if (!userId) throw new Error("User not authenticated");
   try {
@@ -464,11 +445,24 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
       amount: Number(data.amount),
       date: Timestamp.fromDate(new Date(data.date)),
     };
-    await addDoc(collection(db, "users", userId, "commissions"), cleanDataForFirestore(commissionData));
+    const newCommissionRef = await addDoc(collection(db, "users", userId, "commissions"), cleanDataForFirestore(commissionData));
     
+    // If the status is 'received', also add it as a regular income transaction
     if (data.status === 'received') {
-      await addCommissionAsTransaction(userId, data);
+        const transactionData = {
+            description: `Comissão: ${data.description}`,
+            amount: data.amount,
+            date: data.date,
+            type: 'income' as const,
+            category: 'Comissão' as const,
+            paid: true,
+            paymentMethod: 'one-time' as const,
+            ownerId: userId,
+        };
+        const validatedTx = TransactionFormSchema.parse(transactionData);
+        await addStoredTransaction(validatedTx, userId);
     }
+
   } catch (e) {
     console.error("Error adding commission: ", e);
     throw new Error('Falha ao adicionar comissão no Firestore.');
@@ -483,8 +477,19 @@ export async function updateStoredCommissionStatus(userId: string, commissionId:
   
   if (newStatus === 'received') {
     const receivedCommissionData = { ...commission, status: newStatus, date: new Date(commission.date) };
-    // @ts-ignore
-    await addCommissionAsTransaction(userId, receivedCommissionData);
+    
+    const transactionData = {
+        description: `Comissão: ${receivedCommissionData.description}`,
+        amount: receivedCommissionData.amount,
+        date: receivedCommissionData.date,
+        type: 'income' as const,
+        category: 'Comissão' as const,
+        paid: true,
+        paymentMethod: 'one-time' as const,
+        ownerId: userId,
+    };
+    const validatedTx = TransactionFormSchema.parse(transactionData);
+    await addStoredTransaction(validatedTx, userId);
   }
 }
 
