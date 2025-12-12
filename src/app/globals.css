@@ -1,125 +1,94 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background-start-rgb: 13, 13, 15;
-    --background-end-rgb: 21, 21, 24;
-    --background: 240 10% 3.9%; /* Fallback */
-
-    --foreground: 0 0% 98%;
-
-    --card: 240 5% 10%; /* Slightly lighter than background */
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 38 92% 50%; /* Gold */
-    --primary-foreground: 45 50% 5%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 72% 51%; /* Brighter Red */
-    --destructive-foreground: 0 0% 98%;
-
-    --warning: 38 92% 50%; /* Bright Yellow */
-    --warning-foreground: 45 50% 5%;
-
-    --border: 240 3.7% 20%; /* Lighter border for dark theme */
-    --input: 240 3.7% 15.9%;
-    --ring: 38 92% 50%; /* Gold ring */
-    
-    --radius: 0.75rem; /* Slightly larger radius */
-
-    --chart-1: 142 76% 45%; /* Verde */
-    --chart-2: 0 72% 51%;   /* Vermelho */
-    --chart-3: 38 92% 50%;
-    --chart-4: 217 91% 60%;
-    --chart-5: 50 80% 60%;
-  }
-
   .light {
-    --background: 240 5% 96%; /* Off-white */
+    --background: 240 5% 96%;
     --foreground: 240 10% 3.9%;
-
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-
-    --primary: 217 91% 60%; /* Blue for light theme */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 98%;
-
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
-
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
-
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 98%;
-
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 217 91% 60%; /* Blue ring */
-    
-    --chart-1: 142 71% 45%; /* Verde */
-    --chart-2: 0 72% 51%;   /* Vermelho */
+    --ring: 217 91% 60%;
+    --chart-1: 142 71% 45%;
+    --chart-2: 0 72% 51%;
     --chart-3: 217 91% 60%;
     --chart-4: 35 92% 55%;
     --chart-5: 197 89% 51%;
   }
-
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 5% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 45 50% 5%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 45 50% 5%;
+    --border: 240 3.7% 20%;
+    --input: 240 3.7% 15.9%;
+    --ring: 38 92% 50%;
+    --chart-1: 142 76% 45%;
+    --chart-2: 0 72% 51%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 217 91% 60%;
+    --chart-5: 50 80% 60%;
+  }
   .gold {
-    --background: 25 20% 8%; /* Very dark brown/black */
-    --foreground: 38 80% 85%; /* Light gold text */
-
+    --background: 25 20% 8%;
+    --foreground: 38 80% 85%;
     --card: 30 15% 12%;
     --card-foreground: 38 80% 85%;
-
     --popover: 25 20% 8%;
     --popover-foreground: 38 80% 85%;
-
-    --primary: 38 92% 55%; /* Bright Gold */
+    --primary: 38 92% 55%;
     --primary-foreground: 30 20% 10%;
-    
     --secondary: 30 15% 15%;
     --secondary-foreground: 38 92% 55%;
-
     --muted: 30 15% 15%;
     --muted-foreground: 38 50% 65%;
-
     --accent: 30 15% 18%;
     --accent-foreground: 38 92% 55%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    
     --border: 38 20% 20%;
     --input: 38 20% 20%;
     --ring: 38 92% 55%;
-
-    --chart-1: 142 76% 45%; /* Verde */
-    --chart-2: 0 72% 51%;   /* Vermelho */
+    --chart-1: 142 76% 45%;
+    --chart-2: 0 72% 51%;
     --chart-3: 38 92% 50%;
     --chart-4: 217 91% 60%;
     --chart-5: 197 89% 51%;
+  }
+
+  :root {
+    --radius: 0.75rem;
   }
 }
 

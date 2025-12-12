@@ -388,9 +388,10 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
-        <ThemeProvider
+        <ThemeProvider 
           attribute="class"
           defaultTheme="system"
+          storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
           <AuthProvider>
