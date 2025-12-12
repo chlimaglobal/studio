@@ -158,7 +158,7 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 
 **Sua Missão:**
 1.  **Processe Linha por Linha:** Analise cada linha do texto como uma transação separada.
-2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, e categoria.
+2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, e categoria. Ignore o símbolo 'R$' e trate vírgulas como pontos decimais no valor.
 3.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos.
     -   O tipo padrão é 'expense' (despesa).
     -   Se o valor não for mencionado, use 0.
@@ -168,20 +168,34 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
 
-**Exemplo:**
-- **Texto de Entrada:**
+**Exemplos:**
+- **Texto de Entrada 1:**
   \`\`\`
   almoço no shopping 45.50
   gasolina 150
   cinema 32
   \`\`\`
-- **Saída Esperada (JSON):**
+- **Saída Esperada 1 (JSON):**
   \`\`\`json
   {
     "transactions": [
       { "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" },
       { "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível", "paymentMethod": "one-time" },
       { "description": "Cinema", "amount": 32, "type": "expense", "category": "Cinema", "paymentMethod": "one-time" }
+    ]
+  }
+  \`\`\`
+- **Texto de Entrada 2:**
+  \`\`\`
+  internet: R$84,00
+  Conta de luz: R$404,00
+  \`\`\`
+- **Saída Esperada 2 (JSON):**
+  \`\`\`json
+  {
+    "transactions": [
+      { "description": "internet", "amount": 84.00, "type": "expense", "category": "Internet", "paymentMethod": "one-time" },
+      { "description": "Conta de luz", "amount": 404.00, "type": "expense", "category": "Luz", "paymentMethod": "one-time" }
     ]
   }
   \`\`\`
@@ -783,6 +797,8 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
 
     
 
