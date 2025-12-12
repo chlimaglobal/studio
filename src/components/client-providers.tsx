@@ -79,7 +79,7 @@ export function useViewMode() {
 // 4. Transactions Context
 interface TransactionsContextType {
   transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema>, userId?: string) => Promise<void>;
+  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[], userId?: string) => Promise<void>;
   updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   isLoading: boolean;
@@ -264,33 +264,45 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema>, userId?: string) => {
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[], userId?: string) => {
     const currentUserId = userId || user?.uid;
     if (!currentUserId) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
       throw new Error("User not authenticated");
     }
-    
+
+    const transactionsToAdd = Array.isArray(data) ? data : [data];
+
     try {
-        await addStoredTransaction(data, currentUserId);
+        for (const trx of transactionsToAdd) {
+            await addStoredTransaction(trx, currentUserId);
+        }
 
-        const messageType = data.type === 'income' ? 'Receita' : 'Despesa';
-        toast({
-            title: `${messageType} adicionada!`,
-            description: `${data.description} - ${formatCurrency(data.amount)}`,
-        });
-
-        const soundToPlay = data.type === 'income'
-          ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
-          : localStorage.getItem('expenseSound') || 'swoosh.mp3';
-        playSound(soundToPlay);
+        if (transactionsToAdd.length === 1) {
+            const trx = transactionsToAdd[0];
+            const messageType = trx.type === 'income' ? 'Receita' : 'Despesa';
+            toast({
+                title: `${messageType} adicionada!`,
+                description: `${trx.description} - ${formatCurrency(trx.amount)}`,
+            });
+            const soundToPlay = trx.type === 'income'
+              ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
+              : localStorage.getItem('expenseSound') || 'swoosh.mp3';
+            playSound(soundToPlay);
+        } else {
+             toast({
+                title: `Transações em lote salvas!`,
+                description: `${transactionsToAdd.length} novas transações foram adicionadas com sucesso.`,
+            });
+             playSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
+        }
 
     } catch (error) {
-        console.error("Failed to save transaction:", error);
+        console.error("Failed to save transaction(s):", error);
         toast({
             variant: 'destructive',
             title: 'Erro ao Salvar Transação',
-            description: "Não foi possível salvar a transação no banco de dados. Tente novamente.",
+            description: "Não foi possível salvar as transações no banco de dados. Tente novamente.",
         });
         throw error;
     }

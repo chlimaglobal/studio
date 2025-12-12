@@ -82,20 +82,8 @@ function MultipleTransactionsForm() {
         try {
             const result = await extractMultipleTransactions(text);
             if (result && result.transactions.length > 0) {
-                let successCount = 0;
-                for (const trx of result.transactions) {
-                    try {
-                        const transactionData = { ...trx, date: new Date(), paid: true };
-                        await addTransaction(transactionData);
-                        successCount++;
-                    } catch (e) {
-                         console.error("Erro ao adicionar transação individual:", e);
-                    }
-                }
-                toast({
-                    title: "Processamento Concluído!",
-                    description: `${successCount} de ${result.transactions.length} transações foram adicionadas com sucesso.`
-                });
+                const transactionsToSave = result.transactions.map(trx => ({ ...trx, date: new Date(), paid: true }));
+                await addTransaction(transactionsToSave);
                 setText('');
             } else {
                 throw new Error("Nenhuma transação válida encontrada.");
@@ -287,10 +275,6 @@ function SingleTransactionForm() {
                 });
             } else {
                 await addTransaction(submissionData);
-                toast({
-                    title: 'Sucesso!',
-                    description: 'Transação salva.'
-                });
             }
             router.back();
         } catch (error) {
