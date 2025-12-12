@@ -19,7 +19,9 @@ import type {
     MediateGoalsInput,
     MediateGoalsOutput,
     ExtractFromImageInput,
-    ExtractFromImageOutput
+    ExtractFromImageOutput,
+    ExtractMultipleTransactionsInput,
+    ExtractMultipleTransactionsOutput
 } from '@/lib/types';
 
 // Helper to call a Firebase Cloud Function and handle the response structure.
@@ -39,13 +41,17 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
 }
 
 
-export async function getCategorySuggestion(description: string): Promise<CategorizeTransactionOutput> {
-    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', { description });
+export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
+    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
     return result;
 }
 
 export async function extractTransactionInfoFromText(text: string): Promise<ExtractTransactionOutput> {
      return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', { text });
+}
+
+export async function extractMultipleTransactions(text: string): Promise<ExtractMultipleTransactionsOutput> {
+    return callFirebaseFunction<ExtractMultipleTransactionsInput, ExtractMultipleTransactionsOutput>('extractMultipleTransactions', { text });
 }
 
 export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
@@ -71,3 +77,5 @@ export async function runGoalMediation(input: MediateGoalsInput): Promise<Mediat
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
     return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }
+
+    

@@ -420,4 +420,16 @@ export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSche
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
 export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
+
+// Types for Multiple Transaction Extraction
+export const ExtractMultipleTransactionsInputSchema = z.object({
+  text: z.string().describe('Um bloco de texto onde cada linha é uma transação a ser processada.'),
+});
+export type ExtractMultipleTransactionsInput = z.infer<typeof ExtractMultipleTransactionsInputSchema>;
+
+export const ExtractMultipleTransactionsOutputSchema = z.object({
+  transactions: z.array(ExtractTransactionOutputSchema),
+});
+export type ExtractMultipleTransactionsOutput = z.infer<typeof ExtractMultipleTransactionsOutputSchema>;
+
     
