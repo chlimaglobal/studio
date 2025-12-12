@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
@@ -390,7 +391,6 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          enableSystem
           disableTransitionOnChange
         >
           <AuthProvider>
