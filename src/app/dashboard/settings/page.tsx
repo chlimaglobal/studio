@@ -80,7 +80,7 @@ const ThemeSelector = () => {
                 <CardDescription>Escolha um tema de sua preferência para deixar o app com o seu estilo.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-4">
                     {themes.map((t) => (
                          <button
                             key={t.name}
@@ -105,9 +105,6 @@ const ThemeSelector = () => {
                         </button>
                     ))}
                 </div>
-                 <Button variant="link" className="p-0 text-sm h-auto text-muted-foreground">
-                    Tem alguma sugestão de tema? Toque aqui para nos sugerir.
-                </Button>
             </CardContent>
         </Card>
     );
