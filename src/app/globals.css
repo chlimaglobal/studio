@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 @layer base {
-  .light {
+  :root {
     --background: 240 5% 96%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -31,6 +31,7 @@
     --chart-3: 217 91% 60%;
     --chart-4: 35 92% 55%;
     --chart-5: 197 89% 51%;
+    --radius: 0.75rem;
   }
   .dark {
     --background: 240 10% 3.9%;
@@ -85,10 +86,6 @@
     --chart-3: 38 92% 50%;
     --chart-4: 217 91% 60%;
     --chart-5: 197 89% 51%;
-  }
-
-  :root {
-    --radius: 0.75rem;
   }
 }
 
