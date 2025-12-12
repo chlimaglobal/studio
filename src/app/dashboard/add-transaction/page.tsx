@@ -81,19 +81,53 @@ function MultipleTransactionsForm() {
         setIsProcessing(true);
         try {
             const result = await extractMultipleTransactions(text);
+
             if (result && result.transactions.length > 0) {
-                const transactionsToSave = result.transactions.map(trx => ({ ...trx, date: new Date(), paid: true }));
-                await addTransaction(transactionsToSave);
+                const validTransactions = [];
+                let invalidCount = 0;
+
+                for (const trx of result.transactions) {
+                    // Enrich with default values before validation
+                    const parsed = TransactionFormSchema.safeParse({
+                        description: trx.description,
+                        amount: trx.amount,
+                        type: trx.type,
+                        category: trx.category,
+                        date: new Date(),
+                        paid: true,
+                        paymentMethod: 'one-time'
+                    });
+
+                    if (parsed.success) {
+                        validTransactions.push(parsed.data);
+                    } else {
+                        invalidCount++;
+                        console.error('Transação inválida descartada:', parsed.error.format(), trx);
+                    }
+                }
+                
+                if (validTransactions.length === 0) {
+                    throw new Error('Nenhuma transação válida foi encontrada no texto após a validação.');
+                }
+                
+                await addTransaction(validTransactions);
+
+                toast({
+                    title: "Processamento Concluído",
+                    description: `${validTransactions.length} transações salvas. ${invalidCount > 0 ? `${invalidCount} inválidas foram descartadas.` : ''}`
+                });
+
                 setText('');
             } else {
-                throw new Error("Nenhuma transação válida encontrada.");
+                throw new Error("Nenhuma transação foi encontrada no texto.");
             }
         } catch (error) {
             console.error("Batch processing failed:", error);
+            const errorMessage = error instanceof Error ? error.message : "A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente.";
             toast({
                 variant: 'destructive',
                 title: "Erro ao Processar",
-                description: "A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente."
+                description: errorMessage
             });
         } finally {
             setIsProcessing(false);
@@ -762,6 +796,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-
-    
