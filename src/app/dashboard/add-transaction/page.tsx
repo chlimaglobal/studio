@@ -127,6 +127,7 @@ function MultipleTransactionsForm() {
 `Exemplos:
 almoço 25,50
 gasolina 150
+salário 5000
 cinema 35`
                 }
                 value={text}

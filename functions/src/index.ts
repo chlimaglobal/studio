@@ -158,44 +158,32 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 
 **Sua Missão:**
 1.  **Processe Linha por Linha:** Analise cada linha do texto como uma transação separada.
-2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, e categoria. Ignore o símbolo 'R$' e trate vírgulas como pontos decimais no valor.
-3.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos.
-    -   O tipo padrão é 'expense' (despesa).
+2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, tipo ('income' ou 'expense') e categoria.
+3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Caso contrário, assuma 'expense'.
+4.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos.
     -   Se o valor não for mencionado, use 0.
-4.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
-5.  **Retorne um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
+5.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
+6.  **Retorne um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
 
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
 
 **Exemplos:**
-- **Texto de Entrada 1:**
+- **Texto de Entrada:**
   \`\`\`
   almoço no shopping 45.50
   gasolina 150
+  salário da firma 5000
   cinema 32
   \`\`\`
-- **Saída Esperada 1 (JSON):**
+- **Saída Esperada (JSON):**
   \`\`\`json
   {
     "transactions": [
       { "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" },
       { "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível", "paymentMethod": "one-time" },
+      { "description": "Salário da firma", "amount": 5000, "type": "income", "category": "Salário", "paymentMethod": "one-time" },
       { "description": "Cinema", "amount": 32, "type": "expense", "category": "Cinema", "paymentMethod": "one-time" }
-    ]
-  }
-  \`\`\`
-- **Texto de Entrada 2:**
-  \`\`\`
-  internet: R$84,00
-  Conta de luz: R$404,00
-  \`\`\`
-- **Saída Esperada 2 (JSON):**
-  \`\`\`json
-  {
-    "transactions": [
-      { "description": "internet", "amount": 84.00, "type": "expense", "category": "Internet", "paymentMethod": "one-time" },
-      { "description": "Conta de luz", "amount": 404.00, "type": "expense", "category": "Luz", "paymentMethod": "one-time" }
     ]
   }
   \`\`\`
