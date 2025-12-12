@@ -1,0 +1,45 @@
+diff --git a/node_modules/react-day-picker/package.json b/node_modules/react-day-picker/package.json
+index 543501a..18c3b7a 100644
+--- a/node_modules/react-day-picker/package.json
++++ b/node_modules/react-day-picker/package.json
+@@ -69,6 +69,6 @@
+     "eslint-plugin-testing-library": "6.2.2",
+     "postcss": "8.4.38",
+     "prettier": "3.2.5",
+-    "react": "18.3.1",
++    "react": "^18.3.1 || ^19.0.0",
+     "react-dom": "18.3.1",
+     "rimraf": "5.0.7",
+     "tailwindcss": "3.4.3",
+diff --git a/node_modules/react-day-picker/dist/index.d.ts b/node_modules/react-day-picker/dist/index.d.ts
+index c20a204..c20a204 100644
+--- a/node_modules/react-day-picker/dist/index.d.ts
++++ b/node_modules/react-day-picker/dist/index.d.ts
+@@ -1,4 +1,4 @@
+-import * as React from 'react';
++import React from 'react';
+ 
+ /**
+  * The props for the {@link DayPicker} component.
+diff --git a/node_modules/react-day-picker/dist/index.mjs b/node_modules/react-day-picker/dist/index.mjs
+index 92a7e7a..67503f1 100644
+--- a/node_modules/react-day-picker/dist/index.mjs
++++ b/node_modules/react-day-picker/dist/index.mjs
+@@ -1,6 +1,6 @@
+ import { jsx, jsxs } from 'react/jsx-runtime';
+-import * as React from 'react';
+-import { createContext, useContext, useMemo, useRef, useState, useImperativeHandle } from 'react';
++import React from 'react';
++import { createContext, useContext, useMemo, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+ 
+ /**
+  * The props for the {@link DayPicker} component.
+@@ -226,7 +226,7 @@ function Head(props) {
+ }
+ Head.displayName = "Head";
+ 
+-const Root = React.forwardRef(DayPicker);
++const Root = forwardRef(DayPicker);
+ 
+ function useDayPicker() {
+     const context = useContext(DayPickerContext);
