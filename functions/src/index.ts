@@ -785,3 +785,5 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
