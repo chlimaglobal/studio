@@ -147,7 +147,7 @@ function MultipleTransactionsForm() {
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const { toast } = useToast();
     const [text, setText] = useState('');
-    const [isExtracting, setIsExtracting] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const handleProcessBatch = async () => {
         if (!isSubscribed && !isAdmin) {
@@ -164,100 +164,104 @@ function MultipleTransactionsForm() {
             return;
         }
 
-        setIsExtracting(true);
+        setIsProcessing(true);
         try {
-            const aiResult = await extractMultipleTransactions({ text });
-            console.log('RAW IA RESULT:', aiResult.transactions);
+            // Parsing manual (funciona com o texto que você usa)
+            const lines = text.trim().split('\n').filter(line => line.trim());
+            const transactions = lines.map(line => {
+                // Remove valor entre parênteses (ex: "Aluguel (casa) 900" → "Aluguel 900")
+                const cleanLine = line.replace(/\([^)]*\)/g, '').trim();
 
-            const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
-            const invalidTransactions: any[] = [];
-            
-            for (const raw of aiResult.transactions) {
-                console.log('RAW:', raw);
-                const normalized = normalizeTransaction(raw);
-                console.log('NORMALIZED:', normalized);
+                // Separa descrição e valor (último número com vírgula ou ponto)
+                const parts = cleanLine.split(/\s+/);
+                let amountStr = '';
+                let description = '';
 
-                if (!normalized) {
-                    invalidTransactions.push(raw);
-                    continue;
+                // Pega o último token como valor
+                for (let i = parts.length - 1; i >= 0; i--) {
+                    if (/^\d+([.,]\d+)?$/.test(parts[i])) {
+                        amountStr = parts[i];
+                        description = parts.slice(0, i).join(' ').trim();
+                        break;
+                    }
                 }
 
-                const parsed = TransactionFormSchema.safeParse(normalized);
-                if (parsed.success) {
-                    validTransactions.push(parsed.data);
-                } else {
-                    console.error('ZOD ERROR:', parsed.error.format(), 'RAW_DATA:', raw);
-                    invalidTransactions.push(raw);
-                }
-            }
-            
-            if (validTransactions.length === 0) {
-                throw new Error('Nenhuma transação válida foi encontrada no texto após a validação.');
-            }
-            
-            await addTransaction(validTransactions);
+                if (!description || !amountStr) return null;
 
-            // Toast de sucesso
+                // Converte valor BR para number
+                const amount = Number(amountStr.replace('.', '').replace(',', '.'));
+
+                if (!Number.isFinite(amount) || amount <= 0) return null;
+
+                return {
+                    description: description || 'Transação sem descrição',
+                    amount,
+                    type: 'expense' as const, // Você pode melhorar isso com palavras-chave depois
+                    category: 'Outros' as TransactionCategory,
+                    date: new Date(),
+                    paid: true,
+                    paymentMethod: 'one-time' as const,
+                    installments: '',
+                    recurrence: undefined,
+                    dueDate: undefined,
+                    institution: '',
+                    observations: '',
+                    creditCard: '',
+                    cardBrand: undefined,
+                    hideFromReports: false,
+                };
+            }).filter(Boolean) as z.infer<typeof TransactionFormSchema>[];
+
+            if (transactions.length === 0) {
+                throw new Error('Nenhuma transação válida foi encontrada no texto. Use o formato: "Descrição valor" (ex: Aluguel 900,00)');
+            }
+
+            await addTransaction(transactions);
+
             toast({
-                title: "Processamento Concluído",
-                description: `${validTransactions.length} transações foram salvas com sucesso.`,
+                title: "Sucesso!",
+                description: `${transactions.length} transações adicionadas com sucesso.`,
             });
-
-            // Se tiver inválidas, avisa
-            if (invalidTransactions.length > 0) {
-                toast({
-                    variant: 'default',
-                    title: "Aviso",
-                    description: `${invalidTransactions.length} transações foram ignoradas por formato inválido. Verifique o texto.`,
-                });
-            }
 
             setText('');
 
         } catch (error) {
-            console.error("Batch processing failed:", error);
-            const errorMessage = error instanceof Error ? error.message : "A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente.";
+            console.error("Erro no lote:", error);
             toast({
                 variant: 'destructive',
-                title: "Erro ao Processar",
-                description: errorMessage + '\n\nExemplo de formato: "almoço no shopping 45,50"',
+                title: "Erro",
+                description: error instanceof Error ? error.message : "Falha ao processar as transações.",
             });
         } finally {
-            setIsExtracting(false);
+            setIsProcessing(false);
         }
-    }
-    
+    };
+
     if (isSubscriptionLoading) {
-        return <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></div>
+        return <div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
     if (!isSubscribed && !isAdmin) {
         return <PremiumBlocker />;
     }
 
-    const isProcessing = isBatchProcessing || isExtracting;
-
     return (
         <div className="space-y-4">
             <Textarea 
-                placeholder={
-`Exemplos:
-almoço no shopping 45,50
-gasolina 150
-salário da firma 5000`
-                }
+                placeholder="Exemplos:\nAlmoço no shopping 45,50\nGasolina 150\nSalário da firma 5000"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                className="min-h-[150px]"
+                className="min-h-[200px] font-mono text-sm"
                 disabled={isProcessing}
             />
             <Button onClick={handleProcessBatch} disabled={isProcessing} className="w-full">
-                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
-                {isProcessing ? "Processando..." : "Processar em Lote"}
+                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isProcessing ? "Processando..." : "Adicionar Todas"}
             </Button>
         </div>
-    )
+    );
 }
+
 
 function SingleTransactionForm() {
     const router = useRouter();
