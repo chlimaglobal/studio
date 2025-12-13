@@ -68,26 +68,72 @@ function safeCategory(category?: string): TransactionCategory {
   return match || 'Outros';
 }
 
+function inferType(description: string): 'income' | 'expense' {
+  const incomeKeywords = [
+    'salário', 'salario', 'recebi', 'entrada', 'comissão',
+    'comissao', 'pagamento', 'renda', 'lucro'
+  ];
+
+  const desc = description.toLowerCase();
+  return incomeKeywords.some(k => desc.includes(k))
+    ? 'income'
+    : 'expense';
+}
+
 function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> | null {
   if (!raw?.description) return null;
 
-  const description = raw.description.trim();
+  const description = String(raw.description).trim();
+  if (!description) return null;
 
-  const amount = Number(String(raw.amount).replace(/\./g, '').replace(',', '.'));
+  const amount = Number(
+    String(raw.amount)
+      .replace(/\s/g, '')
+      .replace(/\./g, '')
+      .replace(',', '.')
+  );
+
   if (!Number.isFinite(amount) || amount <= 0) return null;
 
-  const type: 'income' | 'expense' = raw.type === 'income' ? 'income' : 'expense';
+  const type: 'income' | 'expense' =
+    raw.type === 'income' || raw.type === 'expense'
+      ? raw.type
+      : inferType(description);
 
   const category = safeCategory(raw.category);
 
   const date = raw.date ? new Date(raw.date) : new Date();
+  if (isNaN(date.getTime())) return null;
 
-  return {
+  // ✅ OBJETO BASE
+  const base = {
     description,
     amount,
     type,
     category,
     date,
+    hideFromReports: false,
+  };
+
+  // ✅ RECEITA (SEM CAMPOS DE DESPESA)
+  if (type === 'income') {
+    return {
+      ...base,
+      paid: true,
+      paymentMethod: 'one-time',
+      installments: '',
+      recurrence: undefined,
+      dueDate: undefined,
+      institution: '',
+      observations: '',
+      creditCard: '',
+      cardBrand: undefined,
+    };
+  }
+
+  // ✅ DESPESA
+  return {
+    ...base,
     paid: true,
     paymentMethod: 'one-time',
     installments: '',
@@ -97,7 +143,6 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
     observations: '',
     creditCard: '',
     cardBrand: undefined,
-    hideFromReports: false,
   };
 }
 
@@ -134,6 +179,7 @@ function MultipleTransactionsForm() {
             const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
             
             for (const raw of aiResult.transactions) {
+                console.log('RAW:', raw);
                 const normalized = normalizeTransaction(raw);
                 console.log('NORMALIZED:', normalized);
 
@@ -820,9 +866,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
