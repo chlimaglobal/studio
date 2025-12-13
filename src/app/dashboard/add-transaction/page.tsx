@@ -37,6 +37,7 @@ import { getCategorySuggestion, extractMultipleTransactions } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const PremiumBlocker = () => (
     <Card className="text-center mt-6">
@@ -787,5 +788,7 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
