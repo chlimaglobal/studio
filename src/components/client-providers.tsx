@@ -274,9 +274,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     const transactionsToAdd = Array.isArray(data) ? data : [data];
 
     try {
-        for (const trx of transactionsToAdd) {
-            await addStoredTransaction(trx, currentUserId);
-        }
+        await addStoredTransaction(transactionsToAdd, currentUserId);
 
         if (transactionsToAdd.length === 1) {
             const trx = transactionsToAdd[0];
@@ -423,3 +421,5 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 }
 
 export { useCoupleStore };
+
+    

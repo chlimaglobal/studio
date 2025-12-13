@@ -173,51 +173,51 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
   return unsubscribe;
 }
 
-export async function addStoredTransaction(data: z.infer<typeof TransactionFormSchema>, userId?: string) {
-    const currentUserId = userId || (data as any).ownerId;
+export async function addStoredTransaction(transactions: z.infer<typeof TransactionFormSchema>[], userId?: string) {
+    const currentUserId = userId;
     if (!currentUserId) throw new Error("User not authenticated");
-    
-    const installments = data.installments ? parseInt(data.installments, 10) : 0;
 
-    if (data.paymentMethod === 'installments' && installments > 1) {
-        const batch = writeBatch(db);
-        // Correctly parse the amount before division
-        const totalAmount = typeof data.amount === 'string' ? parseFloat(data.amount.replace(',', '.')) : data.amount;
-        // Round to 2 decimal places to prevent floating point issues
-        const installmentAmount = Math.round((totalAmount / installments) * 100) / 100;
-        
-        const originalDocId = doc(collection(db, 'users', currentUserId, 'transactions')).id; // Generate a base ID for grouping
+    const batch = writeBatch(db);
 
-        for (let i = 0; i < installments; i++) {
-            const installmentDate = addMonths(new Date(data.date), i);
+    for (const data of transactions) {
+        const installments = data.installments ? parseInt(data.installments, 10) : 0;
+
+        if (data.paymentMethod === 'installments' && installments > 1) {
+            const totalAmount = typeof data.amount === 'string' ? parseFloat(data.amount.replace(',', '.')) : data.amount;
+            const installmentAmount = Math.round((totalAmount / installments) * 100) / 100;
+            const originalDocId = doc(collection(db, 'users', currentUserId, 'transactions')).id;
+
+            for (let i = 0; i < installments; i++) {
+                const installmentDate = addMonths(new Date(data.date), i);
+                const transactionData = {
+                    ...data,
+                    amount: installmentAmount,
+                    date: Timestamp.fromDate(installmentDate),
+                    dueDate: data.dueDate ? Timestamp.fromDate(addMonths(new Date(data.dueDate), i)) : undefined,
+                    installmentNumber: i + 1,
+                    totalInstallments: installments,
+                    installmentGroupId: originalDocId,
+                    paymentMethod: 'installments',
+                    ownerId: currentUserId,
+                };
+                // @ts-ignore
+                delete transactionData.installments;
+                const newDocRef = doc(collection(db, 'users', currentUserId, 'transactions'));
+                batch.set(newDocRef, cleanDataForFirestore(transactionData));
+            }
+        } else {
             const transactionData = {
                 ...data,
-                amount: installmentAmount,
-                date: Timestamp.fromDate(installmentDate),
-                dueDate: data.dueDate ? Timestamp.fromDate(addMonths(new Date(data.dueDate), i)) : undefined,
-                installmentNumber: i + 1,
-                totalInstallments: installments,
-                installmentGroupId: originalDocId, // Group installments together
-                paymentMethod: 'installments',
+                amount: data.amount,
+                date: Timestamp.fromDate(new Date(data.date)),
+                dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
                 ownerId: currentUserId,
             };
-            // @ts-ignore
-            delete transactionData.installments; // remove the main installments field
             const newDocRef = doc(collection(db, 'users', currentUserId, 'transactions'));
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
         }
-        await batch.commit();
-
-    } else {
-         const transactionData = {
-            ...data,
-            amount: data.amount,
-            date: Timestamp.fromDate(new Date(data.date)),
-            dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
-            ownerId: currentUserId,
-        };
-        await addDoc(collection(db, 'users', currentUserId, 'transactions'), cleanDataForFirestore(transactionData));
     }
+    await batch.commit();
 }
 
 
@@ -460,7 +460,7 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
             ownerId: userId,
         };
         const validatedTx = TransactionFormSchema.parse(transactionData);
-        await addStoredTransaction(validatedTx, userId);
+        await addStoredTransaction([validatedTx], userId);
     }
 
   } catch (e) {
@@ -489,7 +489,7 @@ export async function updateStoredCommissionStatus(userId: string, commissionId:
         ownerId: userId,
     };
     const validatedTx = TransactionFormSchema.parse(transactionData);
-    await addStoredTransaction(validatedTx, userId);
+    await addStoredTransaction([validatedTx], userId);
   }
 }
 
@@ -683,3 +683,5 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
         return null;
     }
 }
+
+    

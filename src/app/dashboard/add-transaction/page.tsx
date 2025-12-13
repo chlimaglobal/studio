@@ -87,7 +87,6 @@ function MultipleTransactionsForm() {
                 let invalidCount = 0;
 
                 for (const trx of result.transactions) {
-                    // Enrich with default values before validation
                     const parsed = TransactionFormSchema.safeParse({
                         description: trx.description,
                         amount: trx.amount,
@@ -115,12 +114,12 @@ function MultipleTransactionsForm() {
 
                 toast({
                     title: "Processamento Concluído",
-                    description: `${validTransactions.length} transações salvas. ${invalidCount > 0 ? `${invalidCount} inválidas foram descartadas.` : ''}`
+                    description: `${validTransactions.length} transações salvas. ${invalidCount > 0 ? `${invalidCount} inválida(s) foi(ram) descartada(s).` : ''}`
                 });
 
                 setText('');
             } else {
-                throw new Error("Nenhuma transação foi encontrada no texto.");
+                throw new Error("A Lúmina não encontrou transações válidas no texto.");
             }
         } catch (error) {
             console.error("Batch processing failed:", error);
@@ -150,8 +149,8 @@ function MultipleTransactionsForm() {
 `Exemplos:
 almoço 25,50
 gasolina 150
-salário 5000
-cinema 35`
+salário da firma 5000
+cinema 32`
                 }
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -797,3 +796,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
