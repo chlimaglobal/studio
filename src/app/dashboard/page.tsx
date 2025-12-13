@@ -58,7 +58,7 @@ const AiTipsCard = () => {
 
 
   const getTips = useCallback(async () => {
-    if (isBatchProcessing) return; // Explicit lock as requested
+    if (isBatchProcessing) return;
     
     setIsLoading(true);
     const storedName = localStorage.getItem('userName') || 'Usuário';

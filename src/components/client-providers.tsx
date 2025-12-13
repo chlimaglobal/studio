@@ -262,7 +262,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       const audio = new Audio(`/${soundFile}`);
       audio.play().catch(e => console.error("Error playing sound:", e));
     } catch (e) {
-      console.error("Failed to play audio:", e);
+      console.error("Failed to create or play audio:", e);
     }
   }, []);
   
@@ -273,14 +273,14 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
 
     const transactionsToAdd = Array.isArray(data) ? data : [data];
-    const isBatch = Array.isArray(data);
+    const isBatch = transactionsToAdd.length > 1;
+
+    if (isBatch) setIsBatchProcessing(true);
 
     try {
-        if (isBatch) setIsBatchProcessing(true);
-        
         await addStoredTransaction(transactionsToAdd, user.uid);
 
-        if (transactionsToAdd.length === 1) {
+        if (!isBatch) {
             const trx = transactionsToAdd[0];
             const messageType = trx.type === 'income' ? 'Receita' : 'Despesa';
             toast({
