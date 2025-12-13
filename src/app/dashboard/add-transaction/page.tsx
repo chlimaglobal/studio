@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -193,10 +194,13 @@ function MultipleTransactionsForm() {
 
                 if (!Number.isFinite(amount) || amount <= 0) return null;
 
+                // AQUI ESTÁ A MÁGICA: usa sua função inferType!
+                const type = inferType(description);
+
                 return {
                     description: description || 'Transação sem descrição',
                     amount,
-                    type: 'expense' as const, // Você pode melhorar isso com palavras-chave depois
+                    type,
                     category: 'Outros' as TransactionCategory,
                     date: new Date(),
                     paid: true,
@@ -878,3 +882,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
