@@ -71,7 +71,6 @@ function MultipleTransactionsForm() {
     const [isExtracting, setIsExtracting] = useState(false);
 
     const handleProcessBatch = async () => {
-        // Frontend validation layer
         if (!isSubscribed && !isAdmin) {
             toast({
                 variant: 'destructive',
@@ -100,7 +99,7 @@ function MultipleTransactionsForm() {
                         amount: trx.amount,
                         type: trx.type || 'expense',
                         category: trx.category,
-                        date: new Date(),
+                        date: trx.date ? new Date(trx.date) : new Date(),
                         paid: true,
                         paymentMethod: trx.paymentMethod || 'one-time',
                         installments: trx.installments,
@@ -157,8 +156,8 @@ function MultipleTransactionsForm() {
             <Textarea 
                 placeholder={
 `Exemplos:
-almoço 25,50
-gasolina 150
+20/07 almoço no shopping 45,50
+ontem gasolina 150
 salário da firma 5000
 cinema 32`
                 }
@@ -790,3 +789,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
