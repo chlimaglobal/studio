@@ -41,6 +41,9 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         if (error.code === 'functions/unauthenticated') {
             throw new Error('Autenticação necessária para este recurso.');
         }
+        if (error.code === 'functions/not-found') {
+            throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
+        }
         
         // Fallback for other errors
         throw new Error(`Falha ao executar ${functionName}: ${error.message || 'Ocorreu um erro desconhecido.'}`);

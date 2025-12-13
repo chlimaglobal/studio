@@ -149,7 +149,7 @@ const extractTransactionFromTextFlow = defineFlow(
 
 const extractMultipleTransactionsFromTextFlow = defineFlow(
   {
-    name: 'extractMultipleTransactionsFromTextFlow',
+    name: 'extractMultipleTransactionsFlow',
     inputSchema: ExtractMultipleTransactionsInputSchema,
     outputSchema: ExtractMultipleTransactionsOutputSchema,
   },
