@@ -159,7 +159,7 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 **Sua Missão:**
 1.  **Processe Linha por Linha:** Analise cada linha do texto como uma transação separada.
 2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, tipo ('income' ou 'expense') e categoria.
-3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Caso contrário, assuma 'expense'.
+3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Para todas as outras linhas, **assuma 'expense' como padrão**.
 4.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos.
     -   Se o valor não for mencionado, use 0.
 5.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
@@ -171,7 +171,7 @@ ${transactionCategories.join('\n- ')}
 **Exemplos:**
 - **Texto de Entrada:**
   \`\`\`
-  almoço no shopping 45.50
+  almoço no shopping 45,50
   gasolina 150
   salário da firma 5000
   cinema 32
