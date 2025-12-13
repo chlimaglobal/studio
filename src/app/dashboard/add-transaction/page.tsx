@@ -83,7 +83,7 @@ function MultipleTransactionsForm() {
             const result = await extractMultipleTransactions(text);
 
             if (result && result.transactions.length > 0) {
-                const validTransactions = [];
+                const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
                 let invalidCount = 0;
 
                 for (const trx of result.transactions) {
@@ -91,11 +91,12 @@ function MultipleTransactionsForm() {
                     const parsed = TransactionFormSchema.safeParse({
                         description: trx.description,
                         amount: trx.amount,
-                        type: trx.type,
+                        type: trx.type || 'expense',
                         category: trx.category,
                         date: new Date(),
                         paid: true,
-                        paymentMethod: 'one-time'
+                        paymentMethod: trx.paymentMethod || 'one-time',
+                        installments: trx.installments,
                     });
 
                     if (parsed.success) {
