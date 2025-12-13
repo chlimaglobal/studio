@@ -24,7 +24,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { z } from 'zod';
 import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
 import { Switch } from '@/components/ui/switch';
@@ -99,7 +98,7 @@ function MultipleTransactionsForm() {
                         amount: trx.amount,
                         type: trx.type || 'expense',
                         category: trx.category,
-                        date: trx.date ? new Date(trx.date) : new Date(),
+                        date: new Date(), // Always use today's date
                         paid: true,
                         paymentMethod: trx.paymentMethod || 'one-time',
                         installments: trx.installments,
@@ -156,10 +155,9 @@ function MultipleTransactionsForm() {
             <Textarea 
                 placeholder={
 `Exemplos:
-20/07 almoço no shopping 45,50
-ontem gasolina 150
-salário da firma 5000
-cinema 32`
+almoço no shopping 45,50
+gasolina 150
+salário da firma 5000`
                 }
                 value={text}
                 onChange={(e) => setText(e.target.value)}

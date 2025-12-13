@@ -1,4 +1,5 @@
 
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentData, Timestamp } from "firebase-admin/firestore";
@@ -157,13 +158,12 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
     const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto em lote. Sua tarefa é analisar um bloco de texto, onde cada linha representa uma transação, e retornar uma lista de transações estruturadas.
 
 **Sua Missão:**
-1.  **Processar Linha por Linha:** Analise cada linha do texto como uma transação separada.
-2.  **Extrair os Dados:** Para cada linha, extraia: \`date\`, \`description\`, \`amount\`, \`type\` ('income' ou 'expense'), e \`category\`.
-3.  **Inteligência de Data:** Se a data for omitida, use a data de hoje. Entenda "ontem", "anteontem", e formatos como "dd/mm".
-4.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Para todas as outras linhas, **assuma 'expense' como padrão**.
-5.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos. Se o valor não for mencionado, use 0.
-6.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
-7.  **Retorne um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
+1.  **Processe Linha por Linha:** Analise cada linha do texto como uma transação separada.
+2.  **Extraia os Dados:** Para cada linha, extraia: \`description\`, \`amount\`, \`type\` ('income' ou 'expense'), e \`category\`.
+3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Para todas as outras linhas, **assuma 'expense' como padrão**.
+4.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos. Se o valor não for mencionado, use 0.
+5.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
+6.  **Retorne um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
 
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
@@ -171,19 +171,17 @@ ${transactionCategories.join('\n- ')}
 **Exemplos:**
 - **Texto de Entrada:**
   \`\`\`
-  20/07 almoço no shopping 45,50
-  ontem gasolina 150
+  almoço no shopping 45,50
+  gasolina 150
   salário da firma 5000
-  cinema 32
   \`\`\`
 - **Saída Esperada (JSON):**
   \`\`\`json
   {
     "transactions": [
-      { "date": "2024-07-20", "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" },
-      { "date": "2024-07-24", "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível", "paymentMethod": "one-time" },
-      { "date": "2024-07-25", "description": "Salário da firma", "amount": 5000, "type": "income", "category": "Salário", "paymentMethod": "one-time" },
-      { "date": "2024-07-25", "description": "Cinema", "amount": 32, "type": "expense", "category": "Cinema", "paymentMethod": "one-time" }
+      { "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante" },
+      { "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível" },
+      { "description": "Salário da firma", "amount": 5000, "type": "income", "category": "Salário" }
     ]
   }
   \`\`\`
