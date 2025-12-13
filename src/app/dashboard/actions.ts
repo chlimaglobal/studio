@@ -57,7 +57,7 @@ export async function getCategorySuggestion(input: CategorizeTransactionInput): 
 }
 
 export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
+     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', { text: input });
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {

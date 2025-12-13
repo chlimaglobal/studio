@@ -750,7 +750,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
             const oneWeekAgo = subDays(now, 7);
             const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
             const categoryCounts: { [key: string]: number } = {};
-            weeklyExpenses.forEach(t => { if (t.category) categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1; });
+            weeklyExpenses.forEach(t => { if (t.category) categoryCounts[t.category] = (categoryCounts[t.category] || 0) + t.amount; });
             for (const category in categoryCounts) {
               if (categoryCounts[category] > 3) {
                 const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
