@@ -149,7 +149,7 @@ const extractTransactionFromTextFlow = defineFlow(
 
 const extractMultipleTransactionsFromTextFlow = defineFlow(
   {
-    name: 'extractMultipleTransactionsFlow',
+    name: 'extractMultipleTransactionsFromTextFlow',
     inputSchema: ExtractMultipleTransactionsInputSchema,
     outputSchema: ExtractMultipleTransactionsOutputSchema,
   },
@@ -523,7 +523,11 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
 
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I) => {
+  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+    // This function is open to all authenticated users, so no subscription check.
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
+    }
     try {
       const result = await run(flow, data);
       return { data: result };
@@ -813,7 +817,3 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
-
-    
-
-    
