@@ -20,7 +20,7 @@ import { categoryData, cardBrands, brandNames, institutions } from '@/lib/types'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns'; // Adicionei parse para date BR
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -86,26 +86,36 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
   const description = String(raw.description).trim();
   if (!description) return null;
 
-  const amount = Number(
-    String(raw.amount)
-      .replace(/\s/g, '')
-      .replace(/\./g, '')
-      .replace(',', '.')
-  );
+  // Parsing robusto para amount (lida com string, vírgula BR, ponto milhar)
+  let amountStr = String(raw.amount || raw.valor || '').trim();
+  amountStr = amountStr.replace(/\./g, ''); // Remove pontos milhar
+  amountStr = amountStr.replace(',', '.'); // Vírgula para decimal BR
+  const amount = Number(amountStr);
 
-  if (!Number.isFinite(amount) || amount <= 0) return null;
+  if (!Number.isFinite(amount) || amount <= 0) {
+    console.warn('[DEBUG] Amount inválido:', raw.amount || raw.valor);
+    return null;
+  }
 
   const type: 'income' | 'expense' =
     raw.type === 'income' || raw.type === 'expense'
       ? raw.type
       : inferType(description);
 
-  const category = safeCategory(raw.category);
+  const category = safeCategory(raw.category || raw.categoria); // Fallback para 'categoria'
 
-  const date = raw.date ? new Date(raw.date) : new Date();
-  if (isNaN(date.getTime())) return null;
+  // Parsing robusto para date (formato BR dd/MM/yyyy)
+  let date = raw.date ? new Date(raw.date) : new Date();
+  if (isNaN(date.getTime())) {
+    // Tenta parse BR
+    date = parse(raw.date, 'dd/MM/yyyy', new Date(), { locale: ptBR });
+  }
+  if (isNaN(date.getTime())) {
+    console.warn('[DEBUG] Date inválido:', raw.date);
+    return null;
+  }
 
-  // ✅ OBJETO BASE
+  // OBJETO BASE
   const base = {
     description,
     amount,
@@ -115,7 +125,7 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
     hideFromReports: false,
   };
 
-  // ✅ RECEITA (SEM CAMPOS DE DESPESA)
+  // RECEITA (SEM CAMPOS DE DESPESA)
   if (type === 'income') {
     return {
       ...base,
@@ -131,7 +141,7 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
     };
   }
 
-  // ✅ DESPESA
+  // DESPESA
   return {
     ...base,
     paid: true,
@@ -177,19 +187,24 @@ function MultipleTransactionsForm() {
             console.log('RAW IA RESULT:', aiResult.transactions);
 
             const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
+            const invalidTransactions: any[] = [];
             
             for (const raw of aiResult.transactions) {
                 console.log('RAW:', raw);
                 const normalized = normalizeTransaction(raw);
                 console.log('NORMALIZED:', normalized);
 
-                if (!normalized) continue;
+                if (!normalized) {
+                    invalidTransactions.push(raw);
+                    continue;
+                }
 
                 const parsed = TransactionFormSchema.safeParse(normalized);
                 if (parsed.success) {
                     validTransactions.push(parsed.data);
                 } else {
                     console.error('ZOD ERROR:', parsed.error.format(), 'RAW_DATA:', raw);
+                    invalidTransactions.push(raw);
                 }
             }
             
@@ -199,10 +214,20 @@ function MultipleTransactionsForm() {
             
             await addTransaction(validTransactions);
 
+            // Toast de sucesso
             toast({
                 title: "Processamento Concluído",
-                description: `${validTransactions.length} transações foram salvas com sucesso.`
+                description: `${validTransactions.length} transações foram salvas com sucesso.`,
             });
+
+            // Se tiver inválidas, avisa
+            if (invalidTransactions.length > 0) {
+                toast({
+                    variant: 'default',
+                    title: "Aviso",
+                    description: `${invalidTransactions.length} transações foram ignoradas por formato inválido. Verifique o texto.`,
+                });
+            }
 
             setText('');
 
@@ -212,7 +237,7 @@ function MultipleTransactionsForm() {
             toast({
                 variant: 'destructive',
                 title: "Erro ao Processar",
-                description: errorMessage
+                description: errorMessage + '\n\nExemplo de formato: "almoço no shopping 45,50"',
             });
         } finally {
             setIsExtracting(false);
