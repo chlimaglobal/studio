@@ -15,8 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap, Star, Bot } from 'lucide-react';
-import { TransactionFormSchema, type TransactionCategory } from '@/lib/definitions';
-import { categoryData, cardBrands, brandNames, transactionCategories, institutions } from '@/lib/types';
+import { TransactionFormSchema, type TransactionCategory, transactionCategories } from '@/lib/definitions';
+import { categoryData, cardBrands, brandNames, institutions } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -89,27 +89,30 @@ function MultipleTransactionsForm() {
         try {
             const result = await extractMultipleTransactions({ text });
 
-            if (result && result.transactions.length > 0) {
+            if (result && result.transactions) {
                 const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
                 let invalidCount = 0;
-
+                
+                // Normalization and Validation Layer
                 for (const trx of result.transactions) {
-                    const parsed = TransactionFormSchema.safeParse({
-                        description: trx.description,
-                        amount: trx.amount,
-                        type: trx.type || 'expense',
-                        category: trx.category,
-                        date: new Date(), // Always use today's date
-                        paid: true,
-                        paymentMethod: trx.paymentMethod || 'one-time',
-                        installments: trx.installments,
-                    });
+                    const normalizedData = {
+                      description: trx.description,
+                      amount: trx.amount,
+                      type: String(trx.type).toLowerCase().includes('income') ? 'income' : 'expense',
+                      category: transactionCategories.find(c => c.toLowerCase() === String(trx.category).toLowerCase()) || 'Outros',
+                      date: trx.date ? new Date(trx.date) : new Date(),
+                      paid: true,
+                      paymentMethod: trx.paymentMethod || 'one-time',
+                      installments: trx.installments,
+                    };
+                    
+                    const parsed = TransactionFormSchema.safeParse(normalizedData);
 
                     if (parsed.success) {
                         validTransactions.push(parsed.data);
                     } else {
                         invalidCount++;
-                        console.error('Transação inválida descartada:', parsed.error.format(), trx);
+                        console.error('Transação em lote inválida descartada:', parsed.error.format(), trx);
                     }
                 }
                 
@@ -126,7 +129,7 @@ function MultipleTransactionsForm() {
 
                 setText('');
             } else {
-                throw new Error("A Lúmina não encontrou transações válidas no texto.");
+                 throw new Error("A Lúmina não encontrou transações válidas no texto.");
             }
         } catch (error) {
             console.error("Batch processing failed:", error);
@@ -788,7 +791,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
 
     

@@ -163,7 +163,7 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Para todas as outras linhas, **assuma 'expense' como padrão**.
 4.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos. Se o valor não for mencionado, use 0.
 5.  **Categorização Automática:** Use a descrição para inferir a categoria mais apropriada da lista fornecida.
-6.  **Retorne um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
+6.  **Retorno um JSON Válido:** Sua resposta DEVE ser um objeto JSON com uma chave 'transactions', contendo um array de objetos de transação. Ignore linhas em branco ou que não pareçam ser transações.
 
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
@@ -816,5 +816,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
 
     
