@@ -497,6 +497,7 @@ const REGION = "us-central1";
 // Generic helper to create a callable function with subscription check
 const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
   return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+    console.log(`[DEBUG] Iniciando execução de ${flow.name} para user ${context.auth?.uid}`); // Log para confirmar que a função roda
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
     }
@@ -513,7 +514,8 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
     try {
       const result = await run(flow, data);
-      return { data: result };
+      console.log(`[DEBUG] ${flow.name} concluída com sucesso para user ${context.auth.uid}`); // Log de sucesso
+      return { data: result }; // Retorna os dados dentro de um objeto { data: ... }
     } catch (e: any) {
       console.error(`Error in premium flow ${flow.name}:`, e);
       throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
@@ -541,13 +543,13 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const extractMultipleTransactions = createPremiumGenkitCallable(extractMultipleTransactionsFromTextFlow);
-export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createPremiumGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createPremiumGenkitCallable(analyzeInvestorProfileFlow);
 export const runSavingsGoalCalculation = createPremiumGenkitCallable(calculateSavingsGoalFlow);
 export const runGoalMediation = createPremiumGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createPremiumGenkitCallable(extractFromImageFlow);
 export const luminaChat = createGenkitCallable(luminaChatFlow);
+export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 
 
 // -----------------
