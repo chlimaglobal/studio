@@ -32,13 +32,13 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         const callable = httpsCallable<T, { data: O }>(functions, functionName);
         const result = await callable(data);
         console.log(`[DEBUG] Firebase function ${functionName} executada com sucesso`); // Log de sucesso
-        return result.data; // The data is now directly on result.data
+        return result.data; // The callable function result is on `result.data`
     } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
 
         // Tratamento de erro para dar feedback específico
         if (error.code === 'functions/permission-denied') {
-            throw new Error(`Permissão negada. ${error.message}`);
+            throw new Error(`${error.message}`);
         }
         if (error.code === 'functions/unauthenticated') {
             throw new Error('Autenticação necessária para este recurso.');
@@ -48,7 +48,13 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
             // Fallback para modo dev: pula análise se local
             if (process.env.NODE_ENV === 'development') {
                 console.warn(`[DEV MODE] Pulando análise para ${functionName} — use dados mock se necessário.`);
-                return { healthStatus: 'Atenção', diagnosis: 'Análise mock (modo dev)', suggestions: [] } as O; // Retorno mock mínimo para não quebrar UI
+                // Return a valid empty structure for the expected type
+                if (functionName === 'runAnalysis') {
+                    return { healthStatus: 'Atenção', diagnosis: 'Análise mock (modo dev)', suggestions: [] } as any;
+                }
+                if (functionName === 'extractMultipleTransactions') {
+                    return { transactions: [] } as any;
+                }
             }
             throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
         }
@@ -59,9 +65,7 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
 
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    // Note: This function uses a different helper in the original code, we'll align it if needed.
-    // For now, assuming it should also use the generic helper.
-    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
+    const result = await callFirebaseFunction<{description: string}, CategorizeTransactionOutput>('getCategorySuggestion', input);
     return result;
 }
 

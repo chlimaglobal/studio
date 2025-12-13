@@ -514,8 +514,7 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
     try {
       const result = await run(flow, data);
-      console.log(`[DEBUG] ${flow.name} concluída com sucesso para user ${context.auth.uid}`); // Log de sucesso
-      return { data: result }; // Retorna os dados dentro de um objeto { data: ... }
+      return { data: result };
     } catch (e: any) {
       console.error(`Error in premium flow ${flow.name}:`, e);
       throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
