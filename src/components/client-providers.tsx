@@ -79,10 +79,11 @@ export function useViewMode() {
 // 4. Transactions Context
 interface TransactionsContextType {
   transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[], userId?: string) => Promise<void>;
+  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => Promise<void>;
   updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   isLoading: boolean;
+  isBatchProcessing: boolean;
 }
 
 const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
@@ -196,6 +197,7 @@ function CoupleProvider({ children }: { children: React.ReactNode }) {
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { viewMode, partnerData } = useViewMode();
@@ -264,17 +266,19 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
   
-  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[], userId?: string) => {
-    const currentUserId = userId || user?.uid;
-    if (!currentUserId) {
+  const addTransaction = useCallback(async (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => {
+    if (!user?.uid) {
       toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado para adicionar uma transação.' });
       throw new Error("User not authenticated");
     }
 
     const transactionsToAdd = Array.isArray(data) ? data : [data];
+    const isBatch = Array.isArray(data);
 
     try {
-        await addStoredTransaction(transactionsToAdd, currentUserId);
+        if (isBatch) setIsBatchProcessing(true);
+        
+        await addStoredTransaction(transactionsToAdd, user.uid);
 
         if (transactionsToAdd.length === 1) {
             const trx = transactionsToAdd[0];
@@ -303,6 +307,8 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             description: "Não foi possível salvar as transações no banco de dados. Tente novamente.",
         });
         throw error;
+    } finally {
+        if (isBatch) setIsBatchProcessing(false);
     }
   }, [toast, user, playSound]);
 
@@ -337,7 +343,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   }, [toast, user]);
 
   return (
-    <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction, isLoading }}>
+    <TransactionsContext.Provider value={{ transactions, addTransaction, updateTransaction, deleteTransaction, isLoading, isBatchProcessing }}>
       {children}
     </TransactionsContext.Provider>
   );
@@ -421,5 +427,3 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
 }
 
 export { useCoupleStore };
-
-    

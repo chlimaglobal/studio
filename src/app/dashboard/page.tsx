@@ -47,7 +47,7 @@ type BudgetItem = {
 };
 
 const AiTipsCard = () => {
-  const { transactions } = useTransactions();
+  const { transactions, isBatchProcessing } = useTransactions();
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
@@ -58,6 +58,8 @@ const AiTipsCard = () => {
 
 
   const getTips = useCallback(async () => {
+    if (isBatchProcessing) return; // Explicit lock as requested
+    
     setIsLoading(true);
     const storedName = localStorage.getItem('userName') || 'Usuário';
     setUserName(storedName.split(' ')[0]);
@@ -89,7 +91,7 @@ const AiTipsCard = () => {
         localStorage.removeItem('financialAnalysisHash');
     }
     setIsLoading(false);
-  }, [transactions, transactionsHash]);
+  }, [transactions, transactionsHash, isBatchProcessing]);
 
 
   useEffect(() => {
