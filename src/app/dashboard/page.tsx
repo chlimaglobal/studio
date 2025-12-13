@@ -8,7 +8,7 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/types';
+import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
@@ -30,7 +30,7 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
-import type { GenerateFinancialAnalysisOutput } from '@/lib/types';
+import type { GenerateFinancialAnalysisOutput } from '@/lib/definitions';
 
 
 interface SummaryData {

@@ -1,3 +1,4 @@
+
 'use server';
 
 import {ai} from '@/ai/genkit';
@@ -6,7 +7,7 @@ import {
     InvestorProfileOutputSchema,
     type InvestorProfileInput,
     type InvestorProfileOutput
-} from '@/lib/types';
+} from '@/lib/definitions';
 import { getFinancialMarketData, type FinancialData } from '@/services/market-data';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';

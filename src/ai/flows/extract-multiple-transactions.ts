@@ -5,8 +5,8 @@ import { ai } from '@/ai/genkit';
 import {
   ExtractMultipleTransactionsInputSchema,
   ExtractMultipleTransactionsOutputSchema,
-  transactionCategories
-} from '@/lib/types';
+} from '@/lib/definitions';
+import { transactionCategories } from '@/lib/types';
 import { googleAI } from '@genkit-ai/google-genai';
 
 export const extractMultipleTransactions = ai.defineFlow(
@@ -72,5 +72,3 @@ ${input.text}
     return output;
   }
 );
-
-    

@@ -1,34 +1,11 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { LUMINA_RECOVERY_PROMPT } from '@/ai/lumina/prompt/luminaRecoveryPrompt';
 import { googleAI } from '@genkit-ai/google-genai';
-
-export const RecoveryProtocolInputSchema = z.object({
-  transactions: z.array(z.any()).describe('A lista de transações do usuário (receitas e despesas) do período a ser analisado.'),
-  promptType: z.enum(['full', 'flash']).default('full'),
-});
-
-export type RecoveryProtocolInput = z.infer<typeof RecoveryProtocolInputSchema>;
-
-const RecoveryProtocolOutputSchema = z.object({
-    inefficiencyPoint: z.string().describe("Análise objetiva dos pontos de ineficiência e desperdício."),
-    missedDecisions: z.string().describe("Decisões estratégicas que não foram tomadas."),
-    wastedOpportunities: z.string().describe("Oportunidades de otimização ou ganho que foram ignoradas."),
-    highPerformerActions: z.string().describe("As ações imediatas (próximas 48h) que um indivíduo de alta performance executaria."),
-    recoveryPlan: z.string().describe("O plano de ação mais curto e eficaz para garantir um resultado positivo no próximo mês."),
-    warMantra: z.string().describe("Um mantra de guerra, objetivo e motivacional, para foco e execução."),
-});
-
-const FlashRecoveryOutputSchema = z.object({
-    failureSummary: z.string().describe("Um resumo de 1 parágrafo sobre onde a falha ocorreu."),
-    actionNow: z.string().describe("Um resumo de 1 parágrafo sobre o que deve ser feito imediatamente."),
-    warMantra: z.string().describe("Um mantra de guerra, estilo ENTJ, para reprogramação mental."),
-});
-
-export type RecoveryProtocolOutput = z.infer<typeof RecoveryProtocolOutputSchema>;
-export type FlashRecoveryOutput = z.infer<typeof FlashRecoveryOutputSchema>;
+import { RecoveryProtocolInputSchema, RecoveryProtocolOutputSchema, FlashRecoveryOutputSchema } from '@/lib/definitions';
 
 // FULL PROTOCOL FLOW
 const runFullRecoveryProtocolFlow = ai.defineFlow(

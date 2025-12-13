@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
-import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+import type { GenerateFinancialAnalysisOutput } from '@/lib/definitions';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';

@@ -1,12 +1,11 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { 
     MediateGoalsInputSchema, 
     MediateGoalsOutputSchema, 
-    type MediateGoalsInput, 
-    type MediateGoalsOutput 
-} from '@/lib/types';
+} from '@/lib/definitions';
 import { googleAI } from '@genkit-ai/google-genai';
 
 export const mediateGoals = ai.defineFlow(

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +8,7 @@ import { ArrowLeft, Loader2, Sparkles, PiggyBank, DollarSign, TrendingUp, HandCo
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
-import type { SavingsGoalOutput } from '@/lib/types';
+import type { SavingsGoalOutput } from '@/lib/definitions';
 import { formatCurrency } from '@/lib/utils';
 import { allInvestmentCategories } from '@/lib/types';
 import Link from 'next/link';

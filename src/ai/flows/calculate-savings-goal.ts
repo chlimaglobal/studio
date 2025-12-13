@@ -1,24 +1,11 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { Transaction } from '@/lib/types';
+import { SavingsGoalInputSchema, SavingsGoalOutputSchema } from '@/lib/definitions';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from '@/ai/lumina/prompt/luminaGoalsPrompt';
 import { googleAI } from '@genkit-ai/google-genai';
-
-export const SavingsGoalInputSchema = z.object({
-  transactions: z.array(z.any()).describe('Lista de transações dos últimos 30-90 dias.'),
-});
-export type SavingsGoalInput = z.infer<typeof SavingsGoalInputSchema>;
-
-export const SavingsGoalOutputSchema = z.object({
-  monthlyIncome: z.number().describe('Renda mensal total calculada.'),
-  currentExpenses: z.number().describe('Soma total dos gastos mensais.'),
-  savingCapacity: z.number().describe('Capacidade real de economia (renda - gastos).'),
-  recommendedGoal: z.number().describe('A meta de economia mensal recomendada em valor monetário.'),
-  recommendedPercentage: z.number().describe('A porcentagem da renda que a meta recomendada representa.'),
-});
-export type SavingsGoalOutput = z.infer<typeof SavingsGoalOutputSchema>;
 
 export const calculateSavingsGoal = ai.defineFlow(
   {

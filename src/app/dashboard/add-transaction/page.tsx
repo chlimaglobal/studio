@@ -15,7 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap, Star, Bot } from 'lucide-react';
-import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames, transactionCategories, institutions } from '@/lib/types';
+import { TransactionFormSchema, type TransactionCategory } from '@/lib/definitions';
+import { categoryData, cardBrands, brandNames, transactionCategories, institutions } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -225,7 +226,7 @@ function SingleTransactionForm() {
             institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
             creditCard: searchParams.get('creditCard') || '',
-            cardBrand: searchParams.get('cardBrand') || undefined,
+            cardBrand: searchParams.get('cardBrand') as CardType['brand'] | undefined,
         };
     }, [isEditing, transactionId, transactions, searchParams]);
 
@@ -789,4 +790,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-

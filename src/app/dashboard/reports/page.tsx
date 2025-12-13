@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { TransactionCategory, Transaction } from '@/lib/types';
+import type { TransactionCategory, Transaction } from '@/lib/definitions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, PieChart as PieChartIcon, ArrowLeft, Loader2, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Sparkles, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import CategoryPieChart from '@/components/category-pie-chart';
@@ -14,8 +15,7 @@ import { allInvestmentCategories } from '@/lib/types';
 import { format, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { generateFinancialAnalysis } from '@/ai/flows/generate-financial-analysis';
-import type { GenerateFinancialAnalysisOutput } from '@/ai/flows/generate-financial-analysis';
+import type { GenerateFinancialAnalysisOutput } from '@/lib/definitions';
 import Papa from 'papaparse';
 import { runAnalysis } from '../actions';
 

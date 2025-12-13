@@ -1,7 +1,7 @@
+
 'use server';
 
 import { z } from 'zod';
-import type { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
 import {
   LUMINA_BASE_PROMPT,
   LUMINA_VOICE_COMMAND_PROMPT,
@@ -9,7 +9,7 @@ import {
 } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { getUserMemory, updateMemoryFromMessage } from '@/ai/lumina/memory/memoryStore';
 import { ai } from '@/ai/genkit';
-import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { LuminaChatInputSchema, LuminaChatOutputSchema } from '@/lib/definitions';
 import { googleAI } from '@genkit-ai/google-genai';
 import { Message } from 'genkit/experimental/ai';
 

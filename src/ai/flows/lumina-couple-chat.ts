@@ -1,9 +1,9 @@
+
 'use server';
 
 import {ai} from '@/ai/genkit';
 import { z } from 'zod';
-import type { LuminaCoupleChatInput, LuminaChatOutput } from '@/lib/types';
-import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/types';
+import { LuminaCoupleChatInputSchema, LuminaChatOutputSchema } from '@/lib/definitions';
 import { LUMINA_BASE_PROMPT } from '@/ai/lumina/prompt/luminaBasePrompt';
 import { LUMINA_COUPLE_PROMPT } from '@/ai/lumina/prompt/luminaCouplePrompt';
 import { googleAI } from '@genkit-ai/google-genai';

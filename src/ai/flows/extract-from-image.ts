@@ -1,8 +1,10 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { transactionCategories, ExtractFromImageInputSchema, ExtractFromImageOutputSchema, type ExtractFromImageInput, type ExtractFromImageOutput } from '@/lib/types';
+import { ExtractFromImageInputSchema, ExtractFromImageOutputSchema } from '@/lib/definitions';
+import { transactionCategories } from '@/lib/types';
 import { googleAI } from '@genkit-ai/google-genai';
 
 export const extractFromImage = ai.defineFlow(

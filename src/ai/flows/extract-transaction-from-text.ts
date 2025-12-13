@@ -1,12 +1,11 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
 import {
   ExtractTransactionInputSchema,
   ExtractTransactionOutputSchema,
-  type ExtractTransactionInput,
-  type ExtractTransactionOutput,
-} from '@/lib/types';
+} from '@/lib/definitions';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
 

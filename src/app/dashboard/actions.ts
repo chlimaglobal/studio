@@ -22,7 +22,7 @@ import type {
     ExtractFromImageOutput,
     ExtractMultipleTransactionsInput,
     ExtractMultipleTransactionsOutput
-} from '@/lib/types';
+} from '@/lib/definitions';
 
 // Helper to call a Firebase Cloud Function and handle the response structure.
 async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {

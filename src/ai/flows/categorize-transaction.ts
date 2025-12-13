@@ -1,3 +1,4 @@
+
 'use server';
 
 import { ai } from '@/ai/genkit';
@@ -5,8 +6,6 @@ import {
   transactionCategories,
   CategorizeTransactionInputSchema,
   CategorizeTransactionOutputSchema,
-  type CategorizeTransactionInput,
-  type CategorizeTransactionOutput,
 } from '@/lib/types';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
