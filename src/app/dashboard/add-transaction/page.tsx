@@ -69,29 +69,36 @@ function safeCategory(category?: string): TransactionCategory {
 }
 
 function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> | null {
-    if (!raw?.description) return null;
+  if (!raw?.description) return null;
 
-    const description = raw.description.trim();
+  const description = raw.description.trim();
 
-    const amount = Number(String(raw.amount).replace(/\./g, '').replace(',', '.'));
+  const amount = Number(String(raw.amount).replace(/\./g, '').replace(',', '.'));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
 
-    if (!Number.isFinite(amount) || amount <= 0) return null;
+  const type: 'income' | 'expense' = raw.type === 'income' ? 'income' : 'expense';
 
-    const type: 'income' | 'expense' = raw.type === 'income' ? 'income' : 'expense';
+  const category = safeCategory(raw.category);
 
-    const category = safeCategory(raw.category);
+  const date = raw.date ? new Date(raw.date) : new Date();
 
-    const date = raw.date ? new Date(raw.date) : new Date();
-
-    return {
-        description,
-        amount,
-        type,
-        category,
-        date,
-        paid: true,
-        paymentMethod: 'one-time',
-    };
+  return {
+    description,
+    amount,
+    type,
+    category,
+    date,
+    paid: true,
+    paymentMethod: 'one-time',
+    installments: '',
+    recurrence: undefined,
+    dueDate: undefined,
+    institution: '',
+    observations: '',
+    creditCard: '',
+    cardBrand: undefined,
+    hideFromReports: false,
+  };
 }
 
 
@@ -123,10 +130,6 @@ function MultipleTransactionsForm() {
         try {
             const aiResult = await extractMultipleTransactions({ text });
             console.log('RAW IA RESULT:', aiResult.transactions);
-
-            if (!aiResult || !aiResult.transactions) {
-                 throw new Error("A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente.");
-            }
 
             const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
             
@@ -817,6 +820,8 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
 
     
 
