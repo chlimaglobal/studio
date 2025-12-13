@@ -38,10 +38,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
 
-const institutions = [
-    "Banco do Brasil", "Bradesco", "Caixa", "C6 Bank", "Banco Inter", "Itaú", "Nubank", "Neon", "Banco Original", "Santander", "XP Investimentos", "BTG Pactual", "PagBank", "Will Bank", "Outro"
-];
-
 const PremiumBlocker = () => (
     <Card className="text-center mt-6">
         <CardHeader>
@@ -65,22 +61,33 @@ const PremiumBlocker = () => (
 );
 
 function MultipleTransactionsForm() {
-    const { addTransaction } = useTransactions();
+    const { addTransaction, isBatchProcessing } = useTransactions();
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { user } = useAuth();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const { toast } = useToast();
     const [text, setText] = useState('');
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isExtracting, setIsExtracting] = useState(false);
 
     const handleProcessBatch = async () => {
+        // Frontend validation layer
+        if (!isSubscribed && !isAdmin) {
+            toast({
+                variant: 'destructive',
+                title: "Recurso Premium",
+                description: "Apenas assinantes podem usar o processamento em lote.",
+            });
+            return;
+        }
+
         if (!text.trim()) {
             toast({ variant: 'destructive', description: "Por favor, insira as transações." });
             return;
         }
-        setIsProcessing(true);
+
+        setIsExtracting(true);
         try {
-            const result = await extractMultipleTransactions(text);
+            const result = await extractMultipleTransactions({ text });
 
             if (result && result.transactions.length > 0) {
                 const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
@@ -130,7 +137,7 @@ function MultipleTransactionsForm() {
                 description: errorMessage
             });
         } finally {
-            setIsProcessing(false);
+            setIsExtracting(false);
         }
     }
     
@@ -141,6 +148,8 @@ function MultipleTransactionsForm() {
     if (!isSubscribed && !isAdmin) {
         return <PremiumBlocker />;
     }
+
+    const isProcessing = isBatchProcessing || isExtracting;
 
     return (
         <div className="space-y-4">
@@ -159,7 +168,7 @@ cinema 32`
             />
             <Button onClick={handleProcessBatch} disabled={isProcessing} className="w-full">
                 {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
-                {isProcessing ? "Processando com a Lúmina..." : "Processar em Lote"}
+                {isProcessing ? "Processando..." : "Processar em Lote"}
             </Button>
         </div>
     )
@@ -308,7 +317,7 @@ function SingleTransactionForm() {
                     description: 'Transação atualizada.'
                 });
             } else {
-                await addTransaction(submissionData);
+                await addTransaction([submissionData]);
             }
             router.back();
         } catch (error) {
@@ -796,5 +805,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    

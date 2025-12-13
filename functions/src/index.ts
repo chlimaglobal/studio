@@ -494,6 +494,34 @@ const luminaChatFlow = defineFlow(
 // -----------------
 const REGION = "us-central1";
 
+// Generic helper to create a callable function with subscription check
+const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
+  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
+    }
+
+    // Backend subscription check
+    const userDoc = await db.collection('users').doc(context.auth.uid).get();
+    const userData = userDoc.data();
+    const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
+    const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
+
+    if (!isSubscribed && !isAdmin) {
+        throw new functions.https.HttpsError('permission-denied', 'Este é um recurso exclusivo para assinantes Premium.');
+    }
+
+    try {
+      const result = await run(flow, data);
+      return { data: result };
+    } catch (e: any) {
+      console.error(`Error in premium flow ${flow.name}:`, e);
+      throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
+    }
+  });
+};
+
+
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
   return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I) => {
     try {
@@ -508,7 +536,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
-export const extractMultipleTransactions = createGenkitCallable(extractMultipleTransactionsFromTextFlow);
+export const extractMultipleTransactions = createPremiumGenkitCallable(extractMultipleTransactionsFromTextFlow);
 export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createGenkitCallable(analyzeInvestorProfileFlow);
