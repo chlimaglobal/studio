@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, Functions, HttpsCallableError } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 import type { 
     CategorizeTransactionInput,
@@ -31,12 +31,19 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         const callable = httpsCallable<T, { data: O }>(functions, functionName);
         const result = await callable(data);
         return result.data; // The data is now directly on result.data
-    } catch (error) {
+    } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
-        if (error instanceof Error) {
-            throw new Error(`Failed to execute ${functionName}: ${error.message}`);
+
+        // Improved error handling to give specific feedback
+        if (error.code === 'functions/permission-denied') {
+            throw new Error(`Permissão negada. ${error.message}`);
         }
-        throw new Error(`An unknown error occurred while executing ${functionName}.`);
+        if (error.code === 'functions/unauthenticated') {
+            throw new Error('Autenticação necessária para este recurso.');
+        }
+        
+        // Fallback for other errors
+        throw new Error(`Falha ao executar ${functionName}: ${error.message || 'Ocorreu um erro desconhecido.'}`);
     }
 }
 
