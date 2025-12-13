@@ -81,41 +81,43 @@ function inferType(description: string): 'income' | 'expense' {
 }
 
 function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> | null {
-  if (!raw?.description) return null;
+  if (!raw || typeof raw !== 'object') return null;
 
-  const description = String(raw.description).trim();
+  const description = String(raw.description || raw.descricao || '').trim();
   if (!description) return null;
 
-  // Parsing robusto para amount (lida com string, vírgula BR, ponto milhar)
+  // Parsing robusto para amount (lida com "111,00", "111.00", "R$ 111,00", etc)
   let amountStr = String(raw.amount || raw.valor || '').trim();
+  amountStr = amountStr.replace(/R\$/g, '').replace(/\s/g, ''); // Remove R$ e espaços
   amountStr = amountStr.replace(/\./g, ''); // Remove pontos milhar
-  amountStr = amountStr.replace(',', '.'); // Vírgula para decimal BR
+  amountStr = amountStr.replace(',', '.'); // Vírgula BR para decimal
   const amount = Number(amountStr);
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    console.warn('[DEBUG] Amount inválido:', raw.amount || raw.valor);
+    console.warn('[NORMALIZE] Amount inválido:', raw.amount || raw.valor);
     return null;
   }
 
-  const type: 'income' | 'expense' =
-    raw.type === 'income' || raw.type === 'expense'
-      ? raw.type
-      : inferType(description);
+  // Type: prioridade ao raw.type, senão infere
+  const rawType = String(raw.type || raw.tipo || '').toLowerCase();
+  const type = rawType === 'receita' || rawType === 'income' ? 'income' : 
+              rawType === 'despesa' || rawType === 'expense' ? 'expense' : 
+              inferType(description);
 
-  const category = safeCategory(raw.category || raw.categoria); // Fallback para 'categoria'
+  // Category: fallback para 'categoria' se 'category' não existir
+  const category = safeCategory(raw.category || raw.categoria);
 
-  // Parsing robusto para date (formato BR dd/MM/yyyy)
-  let date = raw.date ? new Date(raw.date) : new Date();
+  // Date: tenta vários formatos
+  let dateStr = raw.date || raw.data || new Date().toISOString();
+  let date = new Date(dateStr);
   if (isNaN(date.getTime())) {
-    // Tenta parse BR
-    date = parse(raw.date, 'dd/MM/yyyy', new Date(), { locale: ptBR });
+    // Tenta dd/MM/yyyy
+    date = parse(dateStr, 'dd/MM/yyyy', new Date(), { locale: ptBR });
   }
   if (isNaN(date.getTime())) {
-    console.warn('[DEBUG] Date inválido:', raw.date);
-    return null;
+    date = new Date(); // fallback hoje
   }
 
-  // OBJETO BASE
   const base = {
     description,
     amount,
@@ -123,29 +125,8 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
     category,
     date,
     hideFromReports: false,
-  };
-
-  // RECEITA (SEM CAMPOS DE DESPESA)
-  if (type === 'income') {
-    return {
-      ...base,
-      paid: true,
-      paymentMethod: 'one-time',
-      installments: '',
-      recurrence: undefined,
-      dueDate: undefined,
-      institution: '',
-      observations: '',
-      creditCard: '',
-      cardBrand: undefined,
-    };
-  }
-
-  // DESPESA
-  return {
-    ...base,
     paid: true,
-    paymentMethod: 'one-time',
+    paymentMethod: 'one-time' as const,
     installments: '',
     recurrence: undefined,
     dueDate: undefined,
@@ -154,6 +135,8 @@ function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> |
     creditCard: '',
     cardBrand: undefined,
   };
+
+  return base;
 }
 
 
