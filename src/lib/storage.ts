@@ -1,10 +1,10 @@
 
 import { db, app } from './firebase'; // Correctly import app
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
-import { TransactionFormSchema } from './types';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from './types';
+import { TransactionFormSchema } from './definitions';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from './definitions';
 import type { Card, AddCardFormSchema } from './card-types';
-import type { Goal, AddGoalFormSchema } from './goal-types';
+import type { Goal, AddGoalFormSchema, EditGoalFormSchema } from './goal-types';
 import { z } from 'zod';
 import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
@@ -173,9 +173,8 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
   return unsubscribe;
 }
 
-export async function addStoredTransaction(transactions: z.infer<typeof TransactionFormSchema>[], userId?: string) {
-    const currentUserId = userId;
-    if (!currentUserId) throw new Error("User not authenticated");
+export async function addStoredTransaction(transactions: z.infer<typeof TransactionFormSchema>[], userId: string) {
+    if (!userId) throw new Error("User not authenticated");
 
     const batch = writeBatch(db);
 
@@ -185,7 +184,7 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
         if (data.paymentMethod === 'installments' && installments > 1) {
             const totalAmount = typeof data.amount === 'string' ? parseFloat(data.amount.replace(',', '.')) : data.amount;
             const installmentAmount = Math.round((totalAmount / installments) * 100) / 100;
-            const originalDocId = doc(collection(db, 'users', currentUserId, 'transactions')).id;
+            const originalDocId = doc(collection(db, 'users', userId, 'transactions')).id;
 
             for (let i = 0; i < installments; i++) {
                 const installmentDate = addMonths(new Date(data.date), i);
@@ -198,11 +197,11 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
                     totalInstallments: installments,
                     installmentGroupId: originalDocId,
                     paymentMethod: 'installments',
-                    ownerId: currentUserId,
+                    ownerId: userId,
                 };
                 // @ts-ignore
                 delete transactionData.installments;
-                const newDocRef = doc(collection(db, 'users', currentUserId, 'transactions'));
+                const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
                 batch.set(newDocRef, cleanDataForFirestore(transactionData));
             }
         } else {
@@ -211,9 +210,9 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
                 amount: data.amount,
                 date: Timestamp.fromDate(new Date(data.date)),
                 dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
-                ownerId: currentUserId,
+                ownerId: userId,
             };
-            const newDocRef = doc(collection(db, 'users', currentUserId, 'transactions'));
+            const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
         }
     }
@@ -393,7 +392,7 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
   }
 }
 
-export async function updateStoredGoal(userId: string, goalId: string, data: z.infer<typeof AddGoalFormSchema>) {
+export async function updateStoredGoal(userId: string, goalId: string, data: z.infer<typeof EditGoalFormSchema>) {
     if (!userId) throw new Error("User not authenticated");
     const goalRef = doc(db, 'users', userId, 'goals', goalId);
     const goalData = {
