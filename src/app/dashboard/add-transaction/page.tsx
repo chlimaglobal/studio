@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap, Star, Bot } from 'lucide-react';
-import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames, transactionCategories } from '@/lib/types';
+import { TransactionFormSchema, categoryData, TransactionCategory, allInvestmentCategories, cardBrands, brandNames, transactionCategories, institutions } from '@/lib/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -805,3 +805,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    

@@ -783,7 +783,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
               transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => { if (t.category) monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + t.amount; });
               for (const category in budgetsData) {
                 const categoryBudget = Number(budgetsData[category]);
-                if (!Number.is.finite(categoryBudget) || categoryBudget <= 0) continue;
+                if (!Number.isFinite(categoryBudget) || categoryBudget <= 0) continue;
                 const totalCategorySpending = monthlyExpensesByCategory[category] || 0;
                 const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
                 const alertKey100 = `alert_100_${currentMonthKey}_${category}`;

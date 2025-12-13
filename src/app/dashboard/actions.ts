@@ -56,8 +56,8 @@ export async function getCategorySuggestion(input: CategorizeTransactionInput): 
     return result;
 }
 
-export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', { text: input });
+export async function extractTransactionInfoFromText(input: {text: string}): Promise<ExtractTransactionOutput> {
+     return callFirebaseFunction<{text: string}, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {
@@ -87,3 +87,5 @@ export async function runGoalMediation(input: MediateGoalsInput): Promise<Mediat
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
     return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }
+
+    
