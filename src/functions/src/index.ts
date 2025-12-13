@@ -541,13 +541,13 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const extractMultipleTransactions = createPremiumGenkitCallable(extractMultipleTransactionsFromTextFlow);
-export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createPremiumGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createPremiumGenkitCallable(analyzeInvestorProfileFlow);
 export const runSavingsGoalCalculation = createPremiumGenkitCallable(calculateSavingsGoalFlow);
 export const runGoalMediation = createPremiumGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createPremiumGenkitCallable(extractFromImageFlow);
 export const luminaChat = createGenkitCallable(luminaChatFlow);
+export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 
 
 // -----------------
