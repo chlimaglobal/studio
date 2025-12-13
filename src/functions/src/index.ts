@@ -523,7 +523,11 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
 
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I) => {
+  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+    // This function is open to all authenticated users, so no subscription check.
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
+    }
     try {
       const result = await run(flow, data);
       return { data: result };
@@ -537,7 +541,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const extractMultipleTransactions = createPremiumGenkitCallable(extractMultipleTransactionsFromTextFlow);
-export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
+export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createPremiumGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createPremiumGenkitCallable(analyzeInvestorProfileFlow);
 export const runSavingsGoalCalculation = createPremiumGenkitCallable(calculateSavingsGoalFlow);
@@ -746,7 +750,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
             const oneWeekAgo = subDays(now, 7);
             const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
             const categoryCounts: { [key: string]: number } = {};
-            weeklyExpenses.forEach(t => { if (t.category) categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1; });
+            weeklyExpenses.forEach(t => { if (t.category) categoryCounts[t.category] = (categoryCounts[t.category] || 0) + t.amount; });
             for (const category in categoryCounts) {
               if (categoryCounts[category] > 3) {
                 const unusualRecurrenceAlertKey = `alert_unusualRecurrence_${currentMonthKey}_${category}`;
@@ -779,7 +783,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
               transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => { if (t.category) monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + t.amount; });
               for (const category in budgetsData) {
                 const categoryBudget = Number(budgetsData[category]);
-                if (!Number.isFinite(categoryBudget) || categoryBudget <= 0) continue;
+                if (!Number.is.finite(categoryBudget) || categoryBudget <= 0) continue;
                 const totalCategorySpending = monthlyExpensesByCategory[category] || 0;
                 const spendingPercentage = (totalCategorySpending / categoryBudget) * 100;
                 const alertKey100 = `alert_100_${currentMonthKey}_${category}`;
@@ -815,6 +819,3 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
   });
 
     
-
-    
-
