@@ -178,7 +178,7 @@ function SingleTransactionForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
-    const { addTransaction, updateTransaction, transactions } = useTransactions();
+    const { addTransaction, updateTransaction, transactions, isBatchProcessing } = useTransactions();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
     const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
     const { user } = useAuth();
@@ -194,22 +194,6 @@ function SingleTransactionForm() {
 
     const transactionId = searchParams.get('id');
     const isEditing = !!transactionId;
-
-    const initialCategory = (searchParams.get('category') as TransactionCategory) || undefined;
-    const isInvestment = initialCategory && allInvestmentCategories.has(initialCategory);
-
-    const getPageTitle = () => {
-        if (isEditing) return 'Editar Transação';
-        if (isInvestment) {
-             // @ts-ignore
-            if (['Proventos', 'Juros', 'Rendimentos'].includes(initialCategory)) {
-                 return 'Adicionar Rendimento';
-            }
-            return 'Adicionar Investimento';
-        }
-        return 'Adicionar Transação';
-    };
-
 
     const initialValues = useMemo(() => {
         if (isEditing) {
@@ -757,8 +741,8 @@ function SingleTransactionForm() {
                     </div>
                 </ScrollArea>
                 <div className="p-4 border-t">
-                    <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || isBatchProcessing}>
+                        {(form.formState.isSubmitting || isBatchProcessing) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isEditing ? 'Atualizar Transação' : 'Salvar Transação'}
                     </Button>
                 </div>
@@ -806,4 +790,3 @@ export default function AddTransactionPage() {
     )
 }
 
-    
