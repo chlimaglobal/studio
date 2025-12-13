@@ -683,5 +683,3 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
         return null;
     }
 }
-
-    
