@@ -61,6 +61,59 @@ const PremiumBlocker = () => (
     </Card>
 );
 
+// Helper function to map text descriptions to valid categories
+function mapCategoryFromDescription(description: string, type: 'income' | 'expense'): TransactionCategory {
+    if (type === 'income') {
+        if (description.toLowerCase().includes('salário')) return 'Salário';
+        return 'Outros';
+    }
+
+    const lowerCaseDesc = description.toLowerCase();
+    
+    // This is a simplified mapping. A more robust solution might use keywords or even another AI call.
+    if (lowerCaseDesc.includes('supermercado') || lowerCaseDesc.includes('mercado')) return 'Supermercado';
+    if (lowerCaseDesc.includes('aluguel')) return 'Aluguel/Prestação';
+    if (lowerCaseDesc.includes('internet') || lowerCaseDesc.includes('luz') || lowerCaseDesc.includes('água')) return 'Casa';
+    if (lowerCaseDesc.includes('restaurante')) return 'Restaurante';
+    if (lowerCaseDesc.includes('gasolina') || lowerCaseDesc.includes('combustível')) return 'Combustível';
+    if (lowerCaseDesc.includes('uber')) return 'Táxi/Uber';
+    
+    // Check if any valid category is mentioned directly
+    const foundCategory = transactionCategories.find(cat => lowerCaseDesc.includes(cat.toLowerCase()));
+    if (foundCategory) return foundCategory;
+
+    return 'Outros';
+}
+
+function normalizeTransaction(raw: any): z.infer<typeof TransactionFormSchema> | null {
+    if (!raw || typeof raw !== 'object') return null;
+
+    const description = raw.description?.trim();
+    if (!description) return null;
+    
+    // Safely parse amount
+    const amountStr = String(raw.amount || '').replace(/\./g, '').replace(',', '.');
+    const amount = Number(amountStr);
+    if (isNaN(amount) || amount <= 0) return null; // Batch transactions should have a value
+
+    const type = raw.type === 'income' || raw.type === 'receita' ? 'income' : 'expense';
+    
+    const category = mapCategoryFromDescription(description, type);
+
+    const date = raw.date && !isNaN(new Date(raw.date).getTime()) ? new Date(raw.date) : new Date();
+
+    return {
+        description,
+        amount,
+        type,
+        category,
+        date,
+        paid: true, // Default for batch import
+        paymentMethod: 'one-time', // Default
+    };
+}
+
+
 function MultipleTransactionsForm() {
     const { addTransaction, isBatchProcessing } = useTransactions();
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
@@ -89,48 +142,37 @@ function MultipleTransactionsForm() {
         try {
             const result = await extractMultipleTransactions({ text });
 
-            if (result && result.transactions) {
-                const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
-                let invalidCount = 0;
-                
-                // Normalization and Validation Layer
-                for (const trx of result.transactions) {
-                    const normalizedData = {
-                      description: trx.description,
-                      amount: trx.amount,
-                      type: String(trx.type).toLowerCase().includes('income') ? 'income' : 'expense',
-                      category: transactionCategories.find(c => c.toLowerCase() === String(trx.category).toLowerCase()) || 'Outros',
-                      date: trx.date ? new Date(trx.date) : new Date(),
-                      paid: true,
-                      paymentMethod: trx.paymentMethod || 'one-time',
-                      installments: trx.installments,
-                    };
-                    
-                    const parsed = TransactionFormSchema.safeParse(normalizedData);
-
-                    if (parsed.success) {
-                        validTransactions.push(parsed.data);
-                    } else {
-                        invalidCount++;
-                        console.error('Transação em lote inválida descartada:', parsed.error.format(), trx);
-                    }
-                }
-                
-                if (validTransactions.length === 0) {
-                    throw new Error('Nenhuma transação válida foi encontrada no texto após a validação.');
-                }
-                
-                await addTransaction(validTransactions);
-
-                toast({
-                    title: "Processamento Concluído",
-                    description: `${validTransactions.length} transações salvas. ${invalidCount > 0 ? `${invalidCount} inválida(s) foi(ram) descartada(s).` : ''}`
-                });
-
-                setText('');
-            } else {
-                 throw new Error("A Lúmina não encontrou transações válidas no texto.");
+            if (!result || !result.transactions) {
+                 throw new Error("A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente.");
             }
+
+            const validTransactions: z.infer<typeof TransactionFormSchema>[] = [];
+            
+            for (const raw of result.transactions) {
+                const normalized = normalizeTransaction(raw);
+                if (!normalized) continue;
+
+                const parsed = TransactionFormSchema.safeParse(normalized);
+                if (parsed.success) {
+                    validTransactions.push(parsed.data);
+                } else {
+                    console.warn('Transação em lote inválida descartada:', parsed.error.format(), raw);
+                }
+            }
+            
+            if (validTransactions.length === 0) {
+                throw new Error('Nenhuma transação válida foi encontrada no texto após a validação.');
+            }
+            
+            await addTransaction(validTransactions);
+
+            toast({
+                title: "Processamento Concluído",
+                description: `${validTransactions.length} transações foram salvas com sucesso.`
+            });
+
+            setText('');
+
         } catch (error) {
             console.error("Batch processing failed:", error);
             const errorMessage = error instanceof Error ? error.message : "A Lúmina não conseguiu processar o texto. Verifique o formato e tente novamente.";
@@ -791,5 +833,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
