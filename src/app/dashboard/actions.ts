@@ -77,5 +77,3 @@ export async function runGoalMediation(input: MediateGoalsInput): Promise<Mediat
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
     return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }
-
-    
