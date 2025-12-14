@@ -5,6 +5,7 @@ import { DocumentData, Timestamp } from "firebase-admin/firestore";
 import * as sgMail from "@sendgrid/mail";
 import { format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from "date-fns";
 import { defineSecret } from "firebase-functions/params";
+import * as cors from "cors";
 
 // Genkit Imports
 import { genkit, Flow, run, defineFlow, ai } from 'genkit';
@@ -61,6 +62,9 @@ genkit({
 });
 
 sgMail.setApiKey(sendgridApiKey.value());
+
+// CORS handler for onRequest functions
+const corsHandler = cors({ origin: true });
 
 
 // -----------------
@@ -158,7 +162,7 @@ const extractMultipleTransactionsFromTextFlow = defineFlow(
 
 **Sua Missão:**
 1.  **Processe Linha por Linha:** Analise cada linha do texto como uma transação separada.
-2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, tipo ('income' ou 'expense') e categoria.
+2.  **Extraia os Dados:** Para cada linha, extraia: descrição, valor, e categoria.
 3.  **Inteligência de Tipo:** Use palavras como "salário", "renda", "recebi", "ganhei", "bônus" para inferir o tipo 'income'. Para todas as outras linhas, **assuma 'expense' como padrão**.
 4.  **Seja Resiliente:** Se um dado estiver faltando em uma linha, infira os valores mais lógicos.
     -   Se o valor não for mencionado, use 0.
@@ -174,16 +178,14 @@ ${transactionCategories.join('\n- ')}
   almoço no shopping 45,50
   gasolina 150
   salário da firma 5000
-  cinema 32
   \`\`\`
 - **Saída Esperada (JSON):**
   \`\`\`json
   {
     "transactions": [
-      { "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" },
-      { "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível", "paymentMethod": "one-time" },
-      { "description": "Salário da firma", "amount": 5000, "type": "income", "category": "Salário", "paymentMethod": "one-time" },
-      { "description": "Cinema", "amount": 32, "type": "expense", "category": "Cinema", "paymentMethod": "one-time" }
+      { "description": "Almoço no shopping", "amount": 45.50, "type": "expense", "category": "Restaurante" },
+      { "description": "Gasolina", "amount": 150, "type": "expense", "category": "Combustível" },
+      { "description": "Salário da firma", "amount": 5000, "type": "income", "category": "Salário" }
     ]
   }
   \`\`\`
@@ -543,7 +545,7 @@ export const getCategorySuggestion = createGenkitCallable(categorizeTransactionF
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const extractMultipleTransactions = createPremiumGenkitCallable(extractMultipleTransactionsFromTextFlow);
 export const runFileExtraction = createPremiumGenkitCallable(extractFromFileFlow);
-export const runInvestorProfileAnalysis = createPremiumGenkitCallable(analyzeInvestorProfileFlow);
+export const runInvestorProfileAnalysis = createPremiumGenkitCallable(analyzeInvestorProfileAnalysis);
 export const runSavingsGoalCalculation = createPremiumGenkitCallable(calculateSavingsGoalFlow);
 export const runGoalMediation = createPremiumGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createPremiumGenkitCallable(extractFromImageFlow);
@@ -552,34 +554,53 @@ export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysis
 
 
 // -----------------
-// Original Firebase Functions
+// Original Firebase Functions (Refactored for CORS)
 // -----------------
 
-export const sendPartnerInvite = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .https.onCall(async (data, context) => {
-    try {
-      const { partnerEmail, senderName } = data;
-      if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-      if (!partnerEmail || !senderName) throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
-      
-      const inviteToken = db.collection("invites").doc().id;
-      const inviteData = {
-        sentBy: context.auth.uid,
-        sentByName: senderName,
-        sentByEmail: context.auth.token.email || null,
-        sentToEmail: partnerEmail,
-        status: "pending",
-        createdAt: Timestamp.now(),
-      };
-      await db.collection("invites").doc(inviteToken).set(inviteData);
-      return { success: true, inviteToken, message: "Convite criado com sucesso!" };
-    } catch (error) {
-      console.error("Erro em sendPartnerInvite:", error);
-      throw new functions.https.HttpsError("internal", "Erro ao enviar convite.");
-    }
-  });
+export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        // Manually verify authentication
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        let authUser;
+        if (token) {
+            try {
+                authUser = await admin.auth().verifyIdToken(token);
+            } catch (error) {
+                res.status(401).send({ error: 'Token inválido ou expirado.' });
+                return;
+            }
+        }
+
+        if (!authUser) {
+            res.status(401).send({ error: 'A autenticação é necessária.' });
+            return;
+        }
+
+        try {
+            const { partnerEmail, senderName } = req.body.data;
+            if (!partnerEmail || !senderName) {
+                res.status(400).send({ error: 'Parâmetros inválidos ao enviar convite.' });
+                return;
+            }
+            
+            const inviteToken = db.collection("invites").doc().id;
+            const inviteData = {
+                sentBy: authUser.uid,
+                sentByName: senderName,
+                sentByEmail: authUser.email || null,
+                sentToEmail: partnerEmail,
+                status: "pending",
+                createdAt: Timestamp.now(),
+            };
+            await db.collection("invites").doc(inviteToken).set(inviteData);
+            res.status(200).send({ data: { success: true, inviteToken, message: "Convite criado com sucesso!" } });
+        } catch (error) {
+            console.error("Erro em sendPartnerInvite:", error);
+            res.status(500).send({ error: "Erro interno ao enviar convite." });
+        }
+    });
+});
+
 
 export const onInviteCreated = functions
   .region(REGION)
@@ -613,34 +634,52 @@ export const onInviteCreated = functions
     }
   });
 
-export const disconnectPartner = functions
-  .region(REGION)
-  .https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Você precisa estar autenticado.");
-    const userId = context.auth.uid;
-    try {
-      const userDocRef = db.collection("users").doc(userId);
-      const userDoc = await userDocRef.get();
-      const userData = userDoc.data();
-      if (!userData || !userData.coupleId) throw new functions.https.HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
-      
-      const coupleId = userData.coupleId;
-      const coupleDocRef = db.collection("couples").doc(coupleId);
-      const coupleDoc = await coupleDocRef.get();
-      const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
-      const partnerId = members.find((id: string) => id !== userId);
-      const batch = db.batch();
-      batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
-      if (partnerId) batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
-      batch.delete(coupleDocRef);
-      await batch.commit();
-      return { success: true, message: "Desvinculação concluída." };
-    } catch (error) {
-      console.error("Erro ao desvincular parceiro:", error);
-      if (error instanceof functions.https.HttpsError) throw error;
-      throw new functions.https.HttpsError("internal", "Erro inesperado ao desvincular.");
-    }
-  });
+export const disconnectPartner = functions.region(REGION).https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            res.status(401).send({ error: 'A autenticação é necessária.' });
+            return;
+        }
+
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            const userId = decodedToken.uid;
+
+            const userDocRef = db.collection("users").doc(userId);
+            const userDoc = await userDocRef.get();
+            const userData = userDoc.data();
+            if (!userData || !userData.coupleId) {
+                res.status(412).send({ error: "Você não está vinculado a um parceiro." });
+                return;
+            }
+            
+            const coupleId = userData.coupleId;
+            const coupleDocRef = db.collection("couples").doc(coupleId);
+            const coupleDoc = await coupleDocRef.get();
+            const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
+            const partnerId = members.find((id: string) => id !== userId);
+
+            const batch = db.batch();
+            batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
+            if (partnerId) {
+                batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
+            }
+            batch.delete(coupleDocRef);
+            await batch.commit();
+            
+            res.status(200).send({ data: { success: true, message: "Desvinculação concluída." } });
+        } catch (error) {
+            console.error("Erro ao desvincular parceiro:", error);
+             if (error instanceof functions.https.HttpsError) {
+                res.status(error.httpErrorCode.status).send({ error: error.message });
+            } else {
+                res.status(500).send({ error: "Erro inesperado ao desvincular." });
+            }
+        }
+    });
+});
+
 
 export const checkDashboardStatus = functions.region(REGION).https.onCall(
   async (data, context) => {
@@ -818,6 +857,8 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
 
     
 
