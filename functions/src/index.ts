@@ -499,7 +499,6 @@ const REGION = "us-central1";
 // Generic helper to create a callable function with subscription check
 const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
   return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
-    console.log(`[DEBUG] Iniciando execução de ${flow.name} para user ${context.auth?.uid}`); // Log para confirmar que a função roda
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
     }
@@ -857,6 +856,8 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
 
     
 

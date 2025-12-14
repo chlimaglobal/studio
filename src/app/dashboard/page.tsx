@@ -17,7 +17,7 @@ import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/ut
 import { useTransactions, useAuth } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onBudgetsUpdate, getDoc, doc, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
+import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { allInvestmentCategories } from '@/lib/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
@@ -25,7 +25,7 @@ import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, app } from '@/lib/firebase';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
@@ -629,3 +629,5 @@ Correção:
     </div>
   );
 }
+
+    

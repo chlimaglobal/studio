@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -45,7 +46,9 @@ service cloud.firestore {
       // Allow read/write only to sender or recipient
       allow read, write: if request.auth != null &&
         (resource.data.sentBy == request.auth.uid ||
-         resource.data.sentTo == request.auth.uid);
+         resource.data.sentTo == request.auth.uid ||
+         request.auth.token.email == resource.data.sentToEmail
+        );
     }
 
     // Default: deny
@@ -54,3 +57,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
