@@ -15,10 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
-import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useRouter } from 'next/navigation';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -46,14 +42,30 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app);
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+      const token = await user.getIdToken();
+      
+      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/sendPartnerInvite`;
 
-      const result = await sendInviteCallable({
-        partnerEmail: email,
-        senderName: user.displayName || 'Usuário',
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            data: {
+                partnerEmail: email,
+                senderName: user.displayName || 'Usuário',
+            }
+        })
       });
 
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Falha na comunicação com o servidor.');
+      }
+      
       const data = result.data as {
         success: boolean;
         message: string;
@@ -73,7 +85,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       }
 
     } catch (error: any) {
-
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
