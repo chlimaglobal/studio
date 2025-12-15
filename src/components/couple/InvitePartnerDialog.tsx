@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -15,6 +16,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -26,6 +30,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,30 +47,14 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const token = await user.getIdToken();
-      
-      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/sendPartnerInvite`;
+      const functions = getFunctions(app, 'us-central1');
+      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            data: {
-                partnerEmail: email,
-                senderName: user.displayName || 'Usuário',
-            }
-        })
+      const result = await sendInviteCallable({
+        partnerEmail: email,
+        senderName: user.displayName || 'Usuário',
       });
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Falha na comunicação com o servidor.');
-      }
-      
       const data = result.data as {
         success: boolean;
         message: string;
@@ -80,6 +69,9 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
         onOpenChange(false);
         setEmail('');
+        // Force refresh of couple state by navigating to the pending page
+        router.push('/dashboard/couple/pending');
+
       } else {
         throw new Error(data.error || 'Ocorreu um erro desconhecido.');
       }

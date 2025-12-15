@@ -63,9 +63,6 @@ genkit({
 
 sgMail.setApiKey(sendgridApiKey.value());
 
-// CORS handler for onRequest functions
-const corsHandler = cors({ origin: true });
-
 
 // -----------------
 // Genkit Flows
@@ -499,7 +496,6 @@ const REGION = "us-central1";
 // Generic helper to create a callable function with subscription check
 const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
   return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
-    console.log(`[DEBUG] Iniciando execução de ${flow.name} para user ${context.auth?.uid}`); // Log para confirmar que a função roda
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
     }
@@ -554,53 +550,34 @@ export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysis
 
 
 // -----------------
-// Original Firebase Functions (Refactored for CORS)
+// Couple & Invite Functions (onCall)
 // -----------------
 
-export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-        // Manually verify authentication
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        let authUser;
-        if (token) {
-            try {
-                authUser = await admin.auth().verifyIdToken(token);
-            } catch (error) {
-                res.status(401).send({ error: 'Token inválido ou expirado.' });
-                return;
-            }
-        }
-
-        if (!authUser) {
-            res.status(401).send({ error: 'A autenticação é necessária.' });
-            return;
-        }
-
-        try {
-            const { partnerEmail, senderName } = req.body.data;
-            if (!partnerEmail || !senderName) {
-                res.status(400).send({ error: 'Parâmetros inválidos ao enviar convite.' });
-                return;
-            }
-            
-            const inviteToken = db.collection("invites").doc().id;
-            const inviteData = {
-                sentBy: authUser.uid,
-                sentByName: senderName,
-                sentByEmail: authUser.email || null,
-                sentToEmail: partnerEmail,
-                status: "pending",
-                createdAt: Timestamp.now(),
-            };
-            await db.collection("invites").doc(inviteToken).set(inviteData);
-            res.status(200).send({ data: { success: true, inviteToken, message: "Convite criado com sucesso!" } });
-        } catch (error) {
-            console.error("Erro em sendPartnerInvite:", error);
-            res.status(500).send({ error: "Erro interno ao enviar convite." });
-        }
-    });
+export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "A autenticação é necessária.");
+    }
+    const { partnerEmail, senderName } = data;
+    if (!partnerEmail || !senderName) {
+        throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+    }
+    try {
+        const inviteRef = db.collection("invites").doc();
+        const inviteData = {
+            sentBy: context.auth.uid,
+            sentByName: senderName,
+            sentByEmail: context.auth.token.email || null,
+            sentToEmail: partnerEmail,
+            status: "pending",
+            createdAt: Timestamp.now(),
+        };
+        await inviteRef.set(inviteData);
+        return { success: true, message: "Convite enviado com sucesso!" };
+    } catch (error) {
+        console.error("Erro em sendPartnerInvite:", error);
+        throw new functions.https.HttpsError("internal", "Erro interno ao enviar convite.");
+    }
 });
-
 
 export const onInviteCreated = functions
   .region(REGION)
@@ -621,7 +598,7 @@ export const onInviteCreated = functions
             name: "FinanceFlow" 
         },
         subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (de ${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
+        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
         html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
       };
 
@@ -629,58 +606,51 @@ export const onInviteCreated = functions
       return { success: true };
     } catch (error) {
       console.error("Erro ao enviar email de convite:", error);
-      // Não jogue um HttpsError aqui, pois é um gatilho. Apenas retorne nulo ou um erro para o log.
       return null;
     }
   });
 
-export const disconnectPartner = functions.region(REGION).https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            res.status(401).send({ error: 'A autenticação é necessária.' });
-            return;
+export const disconnectPartner = functions.region(REGION).https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar autenticado.");
+    }
+    const userId = context.auth.uid;
+    try {
+        const userDocRef = db.collection("users").doc(userId);
+        const userDoc = await userDocRef.get();
+        const userData = userDoc.data();
+
+        if (!userData || !userData.coupleId) {
+            throw new functions.https.HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
         }
+        
+        const coupleId = userData.coupleId;
+        const coupleDocRef = db.collection("couples").doc(coupleId);
+        const coupleDoc = await coupleDocRef.get();
+        const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
+        const partnerId = members.find((id: string) => id !== userId);
 
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(token);
-            const userId = decodedToken.uid;
-
-            const userDocRef = db.collection("users").doc(userId);
-            const userDoc = await userDocRef.get();
-            const userData = userDoc.data();
-            if (!userData || !userData.coupleId) {
-                res.status(412).send({ error: "Você não está vinculado a um parceiro." });
-                return;
-            }
-            
-            const coupleId = userData.coupleId;
-            const coupleDocRef = db.collection("couples").doc(coupleId);
-            const coupleDoc = await coupleDocRef.get();
-            const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
-            const partnerId = members.find((id: string) => id !== userId);
-
-            const batch = db.batch();
-            batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
-            if (partnerId) {
-                batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
-            }
-            batch.delete(coupleDocRef);
-            await batch.commit();
-            
-            res.status(200).send({ data: { success: true, message: "Desvinculação concluída." } });
-        } catch (error) {
-            console.error("Erro ao desvincular parceiro:", error);
-             if (error instanceof functions.https.HttpsError) {
-                res.status(error.httpErrorCode.status).send({ error: error.message });
-            } else {
-                res.status(500).send({ error: "Erro inesperado ao desvincular." });
-            }
+        const batch = db.batch();
+        batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
+        if (partnerId) {
+            const partnerDocRef = db.collection("users").doc(partnerId);
+            batch.update(partnerDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
         }
-    });
+        batch.delete(coupleDocRef);
+        await batch.commit();
+        
+        return { success: true, message: "Desvinculação concluída." };
+    } catch (error) {
+        console.error("Erro ao desvincular parceiro:", error);
+        if (error instanceof functions.https.HttpsError) throw error;
+        throw new functions.https.HttpsError("internal", "Erro inesperado ao desvincular.");
+    }
 });
 
 
+// -----------------
+// Other Functions
+// -----------------
 export const checkDashboardStatus = functions.region(REGION).https.onCall(
   async (data, context) => {
     if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
@@ -857,9 +827,3 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
-
-    
-
-    
-
-    
