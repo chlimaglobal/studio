@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getMessaging, isSupported } from "firebase/messaging";
 import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 
 
 // ---- CONFIG DO SEU PROJETO FIREBASE ----
@@ -24,6 +25,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 // Always initialize functions with the region for consistency
 export const functions = getFunctions(app, 'us-central1');
+export const storage = getStorage(app);
 export { app }; // Exportando a instância do app
 
 

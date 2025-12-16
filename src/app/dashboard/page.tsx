@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -496,7 +495,7 @@ Correção:
 2) Evitar compras não essenciais nos próximos dias`;
                 
                 await addChatMessage(user.uid, {
-                    role: 'lumina',
+                    role: 'alerta',
                     text: messageText,
                     authorName: "Lúmina"
                 });
