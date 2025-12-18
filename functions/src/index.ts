@@ -624,7 +624,7 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
 
     if (!isSubscribed && !isAdmin) {
-        throw new functions.https.HttpsError('permission-denied', 'Este é um recurso exclusivo para assinantes Premium.');
+        throw new functions.https.HttpsError('permission-denied', 'Recurso disponível apenas para assinantes Premium do FinanceFlow.');
     }
 
     try {
@@ -946,3 +946,5 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
+
+    
