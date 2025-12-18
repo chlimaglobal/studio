@@ -36,7 +36,9 @@ import {
     ExtractMultipleTransactionsInputSchema,
     ExtractMultipleTransactionsOutputSchema,
     AlexaExtractTransactionInputSchema,
-    AlexaExtractTransactionOutputSchema
+    AlexaExtractTransactionOutputSchema,
+    GetSimpleFinancialSummaryInputSchema,
+    GetSimpleFinancialSummaryOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
@@ -567,6 +569,42 @@ Agora processe o texto enviado pelo usuário: ${input.text}
 );
 
 
+const getSimpleFinancialSummaryFlow = defineFlow(
+    {
+        name: 'getSimpleFinancialSummaryFlow',
+        inputSchema: GetSimpleFinancialSummaryInputSchema,
+        outputSchema: GetSimpleFinancialSummaryOutputSchema,
+    },
+    async (input) => {
+        const prompt = `Você é a Lúmina, assistente financeira pessoal do usuário. Sua tarefa é gerar um RESUMO FINANCEIRO SIMPLES, baseado nos dados já calculados pelo sistema.
+
+O sistema fornecerá:
+- totalIncome: ${input.totalIncome}
+- totalExpense: ${input.totalExpense}
+- balance: ${input.balance}
+- period: ${input.period}
+
+Seu objetivo é responder em linguagem natural, curta, clara e objetiva, adequada para resposta por voz da Alexa.
+
+EXEMPLOS:
+Entrada: period: "today", totalExpense: 125
+Resposta: "Hoje você gastou cento e vinte e cinco reais."
+
+Entrada: period: "month", totalIncome: 8000, totalExpense: 5200, balance: 2800
+Resposta: "Neste mês, você recebeu oito mil reais, gastou cinco mil e duzentos, e seu saldo atual é de dois mil e oitocentos reais."
+
+Agora gere a resposta para os dados fornecidos.`;
+
+        const result = await ai.generate({
+            model: googleAI.model('gemini-1.5-flash'),
+            prompt: prompt,
+        });
+
+        return { summary: result.text || 'Não consegui gerar o resumo.' };
+    }
+);
+
+
 // -----------------
 // Callable Functions for Genkit Flows
 // -----------------
@@ -627,53 +665,36 @@ export const runImageExtraction = createPremiumGenkitCallable(extractFromImageFl
 export const luminaChat = createGenkitCallable(luminaChatFlow);
 export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
 export const alexaExtractTransaction = createPremiumGenkitCallable(alexaExtractTransactionFlow);
+export const getSimpleFinancialSummary = createPremiumGenkitCallable(getSimpleFinancialSummaryFlow);
 
 
 // -----------------
-// Couple & Invite Functions (onRequest for CORS)
+// Couple & Invite Functions (onCall)
 // -----------------
-const corsHandler = cors({ origin: true });
-
-export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-        if (req.method !== 'POST') {
-            res.status(405).send('Method Not Allowed');
-            return;
-        }
-
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            res.status(401).json({ error: 'Unauthorized', message: 'A autenticação é necessária.' });
-            return;
-        }
-
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(token);
-            const { partnerEmail, senderName } = req.body.data;
-            
-            if (!partnerEmail || !senderName) {
-                res.status(400).json({ error: 'Invalid Arguments', message: 'Parâmetros inválidos.' });
-                return;
-            }
-
-            const inviteRef = db.collection("invites").doc();
-            const inviteData = {
-                sentBy: decodedToken.uid,
-                sentByName: senderName,
-                sentByEmail: decodedToken.email || null,
-                sentToEmail: partnerEmail,
-                status: "pending" as const,
-                createdAt: Timestamp.now(),
-            };
-            await inviteRef.set(inviteData);
-
-            res.status(200).json({ data: { success: true, message: "Convite enviado com sucesso!" } });
-
-        } catch (error) {
-            console.error("Erro em sendPartnerInvite:", error);
-            res.status(500).json({ error: 'Internal Server Error', message: 'Erro interno ao criar convite.' });
-        }
-    });
+export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "A autenticação é necessária.");
+    }
+    const { partnerEmail, senderName } = data;
+    if (!partnerEmail || !senderName) {
+        throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+    }
+    try {
+        const inviteRef = db.collection("invites").doc();
+        const inviteData = {
+            sentBy: context.auth.uid,
+            sentByName: senderName,
+            sentByEmail: context.auth.token.email || null,
+            sentToEmail: partnerEmail,
+            status: "pending" as const,
+            createdAt: Timestamp.now(),
+        };
+        await inviteRef.set(inviteData);
+        return { success: true, message: "Convite enviado com sucesso!" };
+    } catch (error) {
+        console.error("Erro em sendPartnerInvite:", error);
+        throw new functions.https.HttpsError("internal", "Erro interno ao enviar convite.");
+    }
 });
 
 export const onInviteCreated = functions
@@ -707,75 +728,54 @@ export const onInviteCreated = functions
     }
   });
 
-export const disconnectPartner = functions.region(REGION).https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-        if (req.method !== 'POST') {
-            res.status(405).send('Method Not Allowed');
-            return;
+export const disconnectPartner = functions.region(REGION).https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Você precisa estar autenticado.");
+    }
+    const userId = context.auth.uid;
+    try {
+        const userDocRef = db.collection("users").doc(userId);
+        const userDoc = await userDocRef.get();
+        const userData = userDoc.data();
+
+        if (!userData || !userData.coupleId) {
+            throw new functions.https.HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
         }
         
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            res.status(401).json({ error: 'Unauthorized', message: 'A autenticação é necessária.' });
-            return;
+        const coupleId = userData.coupleId;
+        const coupleDocRef = db.collection("couples").doc(coupleId);
+        const coupleDoc = await coupleDocRef.get();
+        const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
+        const partnerId = members.find((id: string) => id !== userId);
+
+        const batch = db.batch();
+        batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
+        if (partnerId) {
+            const partnerDocRef = db.collection("users").doc(partnerId);
+            batch.update(partnerDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
         }
-
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(token);
-            const userId = decodedToken.uid;
-            
-            const userDocRef = db.collection("users").doc(userId);
-            const userDoc = await userDocRef.get();
-            const userData = userDoc.data();
-
-            if (!userData || !userData.coupleId) {
-                res.status(412).json({ error: "Precondition Failed", message: "Você não está vinculado a um parceiro." });
-                return;
-            }
-            
-            const coupleId = userData.coupleId;
-            const coupleDocRef = db.collection("couples").doc(coupleId);
-            const coupleDoc = await coupleDocRef.get();
-            const members = coupleDoc.exists ? (coupleDoc.data()?.members || []) : [];
-            const partnerId = members.find((id: string) => id !== userId);
-
-            const batch = db.batch();
-            batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
-            if (partnerId) {
-                const partnerDocRef = db.collection("users").doc(partnerId);
-                batch.update(partnerDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
-            }
-            batch.delete(coupleDocRef);
-            await batch.commit();
-            
-            res.status(200).json({ data: { success: true, message: "Desvinculação concluída." } });
-        } catch (error) {
-            console.error("Erro ao desvincular parceiro:", error);
-            res.status(500).json({ error: 'Internal Server Error', message: "Erro inesperado ao desvincular." });
-        }
-    });
+        batch.delete(coupleDocRef);
+        await batch.commit();
+        
+        return { success: true, message: "Desvinculação concluída." };
+    } catch (error) {
+        console.error("Erro ao desvincular parceiro:", error);
+        if (error instanceof functions.https.HttpsError) throw error;
+        throw new functions.https.HttpsError("internal", "Erro inesperado ao desvincular.");
+    }
 });
 
 
 // -----------------
-// Other Functions (using onRequest)
+// Other Functions
 // -----------------
-export const checkDashboardStatus = functions.region(REGION).https.onRequest((req, res) => {
-    corsHandler(req, res, async () => {
-         const token = req.headers.authorization?.split('Bearer ')[1];
-        if (!token) {
-            res.status(401).json({ error: 'Unauthorized' });
-            return;
-        }
-        try {
-            const decodedToken = await admin.auth().verifyIdToken(token);
-            console.log(`Rotina de verificação diária para o usuário: ${decodedToken.uid}`);
-            res.status(200).json({ data: { success: true, message: "Verificação concluída." } });
-        } catch(error) {
-            res.status(401).json({ error: 'Unauthorized' });
-        }
-    });
-});
+export const checkDashboardStatus = functions.region(REGION).https.onCall(
+  async (data, context) => {
+    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
+    return { success: true, message: "Verificação concluída." };
+  }
+);
 
 
 export const onTransactionCreated = functions.region(REGION).firestore

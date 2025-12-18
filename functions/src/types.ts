@@ -191,3 +191,16 @@ export const AlexaExtractTransactionOutputSchema = z.object({
     description: z.string(),
     date: z.string().describe("Data no formato YYYY-MM-DD"),
 }).nullable();
+
+export const GetSimpleFinancialSummaryInputSchema = z.object({
+    totalIncome: z.number(),
+    totalExpense: z.number(),
+    balance: z.number(),
+    period: z.enum(['today', 'month'])
+});
+export type GetSimpleFinancialSummaryInput = z.infer<typeof GetSimpleFinancialSummaryInputSchema>;
+
+export const GetSimpleFinancialSummaryOutputSchema = z.object({
+    summary: z.string().describe('O resumo financeiro em linguagem natural.'),
+});
+export type GetSimpleFinancialSummaryOutput = z.infer<typeof GetSimpleFinancialSummaryOutputSchema>;
