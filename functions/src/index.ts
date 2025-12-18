@@ -34,7 +34,9 @@ import {
     LuminaChatOutputSchema,
     LuminaCoupleChatInputSchema,
     ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema
+    ExtractMultipleTransactionsOutputSchema,
+    AlexaExtractTransactionInputSchema,
+    AlexaExtractTransactionOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
@@ -62,9 +64,6 @@ genkit({
 });
 
 sgMail.setApiKey(sendgridApiKey.value());
-
-// CORS handler for onRequest functions
-const corsHandler = cors({ origin: true });
 
 
 // -----------------
@@ -490,6 +489,83 @@ const luminaChatFlow = defineFlow(
   }
 );
 
+const alexaExtractTransactionFlow = defineFlow(
+  {
+    name: 'alexaExtractTransactionFlow',
+    inputSchema: AlexaExtractTransactionInputSchema,
+    outputSchema: AlexaExtractTransactionOutputSchema,
+  },
+  async (input) => {
+    const prompt = `Você é a Lúmina, uma assistente financeira inteligente.
+
+Sua tarefa é extrair **UMA ÚNICA TRANSAÇÃO FINANCEIRA** a partir de um texto falado pelo usuário (entrada de voz da Alexa).
+
+⚠️ REGRAS OBRIGATÓRIAS:
+1. Extraia APENAS UMA transação.
+2. Se houver mais de uma transação no texto, use APENAS A PRIMEIRA.
+3. Se nenhuma transação válida for encontrada, retorne null.
+4. O resultado DEVE seguir exatamente o schema abaixo.
+5. A categorização deve seguir o mesmo padrão usado no cadastro manual de transações.
+6. A data deve ser definida automaticamente:
+   - Se o usuário não informar data, use a data atual.
+7. Diferencie corretamente:
+   - Receita (entrada)
+   - Despesa (saída)
+8. Nunca invente valores ou categorias.
+
+---
+
+## 🧾 SCHEMA DE SAÍDA (OBRIGATÓRIO – JSON PURO)
+
+{
+  "amount": number,
+  "type": "income" | "expense",
+  "category": string,
+  "description": string,
+  "date": "YYYY-MM-DD"
+}
+
+---
+
+## 🧠 EXEMPLOS
+
+Entrada:
+"gastei 45 reais no mercado hoje"
+
+Saída:
+{
+  "amount": 45,
+  "type": "expense",
+  "category": "Alimentação",
+  "description": "Mercado",
+  "date": "2025-12-18"
+}
+
+Entrada:
+"recebi 3 mil reais de comissão"
+
+Saída:
+{
+  "amount": 3000,
+  "type": "income",
+  "category": "Renda",
+  "description": "Comissão",
+  "date": "2025-12-18"
+}
+
+---
+
+Agora processe o texto enviado pelo usuário: ${input.text}
+`;
+    const llmResponse = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'),
+      prompt: prompt,
+      output: { format: 'json', schema: AlexaExtractTransactionOutputSchema },
+    });
+    return llmResponse.output();
+  }
+);
+
 
 // -----------------
 // Callable Functions for Genkit Flows
@@ -550,56 +626,55 @@ export const runGoalMediation = createPremiumGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createPremiumGenkitCallable(extractFromImageFlow);
 export const luminaChat = createGenkitCallable(luminaChatFlow);
 export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
+export const alexaExtractTransaction = createPremiumGenkitCallable(alexaExtractTransactionFlow);
 
 
 // -----------------
-// Original Firebase Functions (Refactored for CORS)
+// Couple & Invite Functions (onRequest for CORS)
 // -----------------
+const corsHandler = cors({ origin: true });
 
 export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
-        // Manually verify authentication
-        const token = req.headers.authorization?.split('Bearer ')[1];
-        let authUser;
-        if (token) {
-            try {
-                authUser = await admin.auth().verifyIdToken(token);
-            } catch (error) {
-                res.status(401).send({ error: 'Token inválido ou expirado.' });
-                return;
-            }
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
         }
 
-        if (!authUser) {
-            res.status(401).send({ error: 'A autenticação é necessária.' });
+        const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            res.status(401).json({ error: 'Unauthorized', message: 'A autenticação é necessária.' });
             return;
         }
 
         try {
+            const decodedToken = await admin.auth().verifyIdToken(token);
             const { partnerEmail, senderName } = req.body.data;
+            
             if (!partnerEmail || !senderName) {
-                res.status(400).send({ error: 'Parâmetros inválidos ao enviar convite.' });
+                res.status(400).json({ error: 'Invalid Arguments', message: 'Parâmetros inválidos.' });
                 return;
             }
-            
-            const inviteToken = db.collection("invites").doc().id;
+
+            const inviteRef = db.collection("invites").doc();
             const inviteData = {
-                sentBy: authUser.uid,
+                sentBy: decodedToken.uid,
                 sentByName: senderName,
-                sentByEmail: authUser.email || null,
+                sentByEmail: decodedToken.email || null,
                 sentToEmail: partnerEmail,
-                status: "pending",
+                status: "pending" as const,
                 createdAt: Timestamp.now(),
             };
-            await db.collection("invites").doc(inviteToken).set(inviteData);
-            res.status(200).send({ data: { success: true, inviteToken, message: "Convite criado com sucesso!" } });
+            await inviteRef.set(inviteData);
+
+            res.status(200).json({ data: { success: true, message: "Convite enviado com sucesso!" } });
+
         } catch (error) {
             console.error("Erro em sendPartnerInvite:", error);
-            res.status(500).send({ error: "Erro interno ao enviar convite." });
+            res.status(500).json({ error: 'Internal Server Error', message: 'Erro interno ao criar convite.' });
         }
     });
 });
-
 
 export const onInviteCreated = functions
   .region(REGION)
@@ -620,7 +695,7 @@ export const onInviteCreated = functions
             name: "FinanceFlow" 
         },
         subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (de ${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
+        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
         html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
       };
 
@@ -628,28 +703,33 @@ export const onInviteCreated = functions
       return { success: true };
     } catch (error) {
       console.error("Erro ao enviar email de convite:", error);
-      // Não jogue um HttpsError aqui, pois é um gatilho. Apenas retorne nulo ou um erro para o log.
       return null;
     }
   });
 
 export const disconnectPartner = functions.region(REGION).https.onRequest((req, res) => {
     corsHandler(req, res, async () => {
+        if (req.method !== 'POST') {
+            res.status(405).send('Method Not Allowed');
+            return;
+        }
+        
         const token = req.headers.authorization?.split('Bearer ')[1];
         if (!token) {
-            res.status(401).send({ error: 'A autenticação é necessária.' });
+            res.status(401).json({ error: 'Unauthorized', message: 'A autenticação é necessária.' });
             return;
         }
 
         try {
             const decodedToken = await admin.auth().verifyIdToken(token);
             const userId = decodedToken.uid;
-
+            
             const userDocRef = db.collection("users").doc(userId);
             const userDoc = await userDocRef.get();
             const userData = userDoc.data();
+
             if (!userData || !userData.coupleId) {
-                res.status(412).send({ error: "Você não está vinculado a um parceiro." });
+                res.status(412).json({ error: "Precondition Failed", message: "Você não está vinculado a um parceiro." });
                 return;
             }
             
@@ -662,31 +742,41 @@ export const disconnectPartner = functions.region(REGION).https.onRequest((req, 
             const batch = db.batch();
             batch.update(userDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [userId] });
             if (partnerId) {
-                batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
+                const partnerDocRef = db.collection("users").doc(partnerId);
+                batch.update(partnerDocRef, { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
             }
             batch.delete(coupleDocRef);
             await batch.commit();
             
-            res.status(200).send({ data: { success: true, message: "Desvinculação concluída." } });
+            res.status(200).json({ data: { success: true, message: "Desvinculação concluída." } });
         } catch (error) {
             console.error("Erro ao desvincular parceiro:", error);
-             if (error instanceof functions.https.HttpsError) {
-                res.status(error.httpErrorCode.status).send({ error: error.message });
-            } else {
-                res.status(500).send({ error: "Erro inesperado ao desvincular." });
-            }
+            res.status(500).json({ error: 'Internal Server Error', message: "Erro inesperado ao desvincular." });
         }
     });
 });
 
 
-export const checkDashboardStatus = functions.region(REGION).https.onCall(
-  async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
-    return { success: true, message: "Verificação concluída." };
-  }
-);
+// -----------------
+// Other Functions (using onRequest)
+// -----------------
+export const checkDashboardStatus = functions.region(REGION).https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+         const token = req.headers.authorization?.split('Bearer ')[1];
+        if (!token) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            console.log(`Rotina de verificação diária para o usuário: ${decodedToken.uid}`);
+            res.status(200).json({ data: { success: true, message: "Verificação concluída." } });
+        } catch(error) {
+            res.status(401).json({ error: 'Unauthorized' });
+        }
+    });
+});
+
 
 export const onTransactionCreated = functions.region(REGION).firestore
   .document("users/{userId}/transactions/{transactionId}")
@@ -856,9 +946,3 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
     }
     return null;
   });
-
-    
-
-    
-
-    
