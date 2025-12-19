@@ -9,42 +9,54 @@ O FinanceFlow foi projetado para ajudar usuários a obter clareza e controle sob
 
 ---
 
-## Como Baixar e Executar este Projeto Localmente
+## Como Fazer o Deploy das Cloud Functions (Ex: Alexa)
 
-Como este projeto está no ambiente online do Firebase Studio, você precisará baixá-lo para seu computador para poder editá-lo com ferramentas como VS Code ou Cursor, e para versioná-lo no GitHub.
+Como este projeto está no ambiente online do Firebase Studio, você não pode executar o comando `firebase deploy` diretamente aqui. Para implantar as Cloud Functions, você precisará recriar a pasta `functions` no seu computador.
 
-**Siga estes passos:**
+**Siga este passo a passo:**
 
-### 1. Baixe o Código do Projeto
+### 1. Prepare o Ambiente no seu Computador
 
-*   Na interface do Firebase Studio, procure por um botão ou opção de menu com um dos seguintes nomes:
-    *   **"Download .zip"**
-    *   **"Exportar Código"**
-    *   **"Baixar Projeto"**
-*   Isso fará o download de um arquivo `.zip` contendo todo o código-fonte para a sua pasta de "Downloads".
+*   **Crie uma Pasta Principal:** Em algum lugar do seu computador, crie uma pasta para o projeto. Ex: `C:\Projetos\FinanceFlow`.
+*   **Instale as Ferramentas:** Se ainda não tiver, instale a versão **20 ou superior** do [Node.js](https://nodejs.org/) e o **[Firebase CLI](https://firebase.google.com/docs/cli#install_the_cli)**.
+*   **Faça Login no Firebase:** Abra o terminal e execute `firebase login`.
 
-### 2. Prepare o Ambiente Local
+### 2. Recrie a Estrutura da Pasta `functions`
 
-*   **Extraia o Arquivo:** Encontre o arquivo `.zip` que você baixou e descompacte-o em um local de sua preferência (ex: `C:\Projetos\` ou sua pasta de usuário).
-*   **Instale o Node.js:** Se ainda não tiver, instale a versão **20 ou superior** do Node.js a partir do site [nodejs.org](https://nodejs.org/).
-*   **Abra o Terminal:**
-    *   No Windows: Abra o menu Iniciar e digite `cmd` ou `PowerShell`.
-    *   No Mac/Linux: Abra o aplicativo "Terminal".
-*   **Navegue até a Pasta do Projeto:** Use o comando `cd` para entrar na pasta que você descompactou. Exemplo:
+Dentro da sua pasta `FinanceFlow`, crie a seguinte estrutura de pastas e arquivos. Você pode copiar o conteúdo de cada arquivo diretamente do editor do Firebase Studio.
+
+```
+FinanceFlow/
+└── functions/
+    ├── src/
+    │   ├── alexa.ts
+    │   ├── index.ts
+    │   ├── types.ts
+    │   ├── services/
+    │   │   └── market-data.ts
+    │   └── prompts/
+    │       ├── luminaBasePrompt.ts
+    │       ├── luminaCouplePrompt.ts
+    │       └── luminaGoalsPrompt.ts
+    ├── package.json
+    └── tsconfig.json
+```
+
+**Importante:** Copie o conteúdo exato de cada um desses arquivos do Firebase Studio e cole nos arquivos correspondentes que você criou no seu computador.
+
+### 3. Instale as Dependências e Faça o Deploy
+
+*   **Abra o Terminal na Pasta `functions`:** Use o comando `cd` para navegar até a pasta `functions` que você criou.
     ```bash
-    cd C:\Users\SeuNome\Downloads\studio-master
+    cd C:\Projetos\FinanceFlow\functions
     ```
-
-### 3. Instale as Dependências e Execute
-
-*   Dentro da pasta do projeto no terminal, execute o comando abaixo para instalar todas as bibliotecas necessárias:
+*   **Instale as Dependências:**
     ```bash
     npm install
     ```
-*   Após a instalação ser concluída com sucesso, inicie o servidor de desenvolvimento:
+*   **Execute o Deploy:**
     ```bash
-    npm run dev
+    firebase deploy --only functions
     ```
-*   Abra seu navegador e acesse [http://localhost:3000](http://localhost:3000) para ver o aplicativo funcionando na sua máquina!
 
-Agora você pode abrir a pasta do projeto no seu editor de código preferido (como o Cursor) e continuar o desenvolvimento.
+Ao final, o terminal mostrará a URL da sua função da Alexa. É essa URL que você usará na configuração da sua Skill na Amazon.
