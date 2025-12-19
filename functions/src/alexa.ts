@@ -1,63 +1,72 @@
+
 import * as functions from "firebase-functions";
 import { extractTransactionFromText } from "./ai/extractTransaction";
 import { saveTransaction } from "./transactions/saveTransaction";
 import { getUserSummary } from "./summary/getUserSummary";
 
-export const alexaWebhook = functions.https.onRequest(async (req, res) => {
+export const alexa = functions.https.onRequest(async (req, res) => {
   try {
-    const intent = req.body?.request?.intent?.name;
-    const slots = req.body?.request?.intent?.slots;
+    const request = req.body?.request;
+    const intentName = request?.intent?.name;
+    const slots = request?.intent?.slots;
 
     let speechText = "Não consegui entender.";
 
-    // 🔹 ADD TRANSACTION
-    if (intent === "AddTransactionIntent") {
+    // ============================
+    // 🔹 ADD TRANSACTION (VOZ)
+    // ============================
+    if (intentName === "AddTransactionIntent") {
       const phrase = slots?.frase?.value;
 
       if (!phrase) {
         speechText = "Não entendi a transação. Pode repetir?";
       } else {
-        // IA interpreta a frase
         const transaction = await extractTransactionFromText(phrase);
 
-        await saveTransaction({
-          userId: "ALEXA_USER", // depois vinculamos conta
-          ...transaction
-        });
+        if (!transaction) {
+          speechText = "Não consegui identificar valores ou categorias nessa transação.";
+        } else {
+          await saveTransaction({
+            userId: "ALEXA_USER", // MVP — depois entra Account Linking
+            ...transaction,
+          });
 
-        speechText = `Transação registrada: ${transaction.description}`;
+          speechText = `Transação registrada com sucesso.`;
+        }
       }
     }
 
+    // ============================
     // 🔹 GET SUMMARY
-    if (intent === "GetSummaryIntent") {
+    // ============================
+    if (intentName === "GetSummaryIntent") {
       const summary = await getUserSummary("ALEXA_USER");
 
-      speechText = `Seu saldo atual é ${summary.balance} reais`;
+      speechText = `Seu saldo atual é de ${summary.balance} reais.`;
     }
 
-    res.json({
+    res.status(200).json({
       version: "1.0",
       response: {
         outputSpeech: {
           type: "PlainText",
-          text: speechText
+          text: speechText,
         },
-        shouldEndSession: true
-      }
+        shouldEndSession: true,
+      },
     });
-
   } catch (error) {
-    console.error(error);
-    res.json({
+    console.error("Alexa error:", error);
+
+    res.status(200).json({
       version: "1.0",
       response: {
         outputSpeech: {
           type: "PlainText",
-          text: "Ocorreu um erro ao processar sua solicitação."
+          text: "Ocorreu um erro ao processar sua solicitação.",
         },
-        shouldEndSession: true
-      }
+        shouldEndSession: true,
+      },
     });
   }
 });
