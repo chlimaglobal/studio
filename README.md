@@ -50,11 +50,15 @@ FinanceFlow/
     ```bash
     cd C:\Projetos\FinanceFlow\functions
     ```
-*   **Instale as Dependências:**
+*   **Instale as Dependências das Functions:**
     ```bash
     npm install
     ```
-*   **Execute o Deploy:**
+*   **Volte para a Pasta Raiz:** Agora, volte para a pasta principal do projeto.
+    ```bash
+    cd ..
+    ```
+*   **Execute o Deploy:** A partir da pasta raiz, execute o comando:
     ```bash
     firebase deploy --only functions
     ```
