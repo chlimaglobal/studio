@@ -1,72 +1,58 @@
-
 import * as functions from "firebase-functions";
-import { extractTransactionFromText } from "./ai/extractTransaction";
-import { saveTransaction } from "./transactions/saveTransaction";
-import { getUserSummary } from "./summary/getUserSummary";
 
 export const alexa = functions.https.onRequest(async (req, res) => {
   try {
-    const request = req.body?.request;
-    const intentName = request?.intent?.name;
-    const slots = request?.intent?.slots;
+    const requestType = req.body?.request?.type;
+    const intentName = req.body?.request?.intent?.name;
+    const slots = req.body?.request?.intent?.slots;
 
-    let speechText = "Não consegui entender.";
+    let speechText = "Não entendi o que você quis dizer.";
 
-    // ============================
-    // 🔹 ADD TRANSACTION (VOZ)
-    // ============================
-    if (intentName === "AddTransactionIntent") {
+    // 🔹 1. QUANDO ABRE A SKILL
+    if (requestType === "LaunchRequest") {
+      speechText =
+        "Olá! Você pode adicionar uma transação ou pedir um resumo financeiro.";
+    }
+
+    // 🔹 2. ADICIONAR TRANSAÇÃO
+    if (requestType === "IntentRequest" && intentName === "AddTransactionIntent") {
       const phrase = slots?.frase?.value;
 
       if (!phrase) {
         speechText = "Não entendi a transação. Pode repetir?";
       } else {
-        const transaction = await extractTransactionFromText(phrase);
-
-        if (!transaction) {
-          speechText = "Não consegui identificar valores ou categorias nessa transação.";
-        } else {
-          await saveTransaction({
-            userId: "ALEXA_USER", // MVP — depois entra Account Linking
-            ...transaction,
-          });
-
-          speechText = `Transação registrada com sucesso.`;
-        }
+        // MVP: apenas confirma
+        speechText = `Transação registrada: ${phrase}`;
       }
     }
 
-    // ============================
-    // 🔹 GET SUMMARY
-    // ============================
-    if (intentName === "GetSummaryIntent") {
-      const summary = await getUserSummary("ALEXA_USER");
-
-      speechText = `Seu saldo atual é de ${summary.balance} reais.`;
+    // 🔹 3. RESUMO FINANCEIRO
+    if (requestType === "IntentRequest" && intentName === "GetSummaryIntent") {
+      speechText = "Seu resumo financeiro ainda está em desenvolvimento.";
     }
 
-    res.status(200).json({
+    res.json({
       version: "1.0",
       response: {
         outputSpeech: {
           type: "PlainText",
-          text: speechText,
+          text: speechText
         },
-        shouldEndSession: true,
-      },
+        shouldEndSession: true
+      }
     });
+
   } catch (error) {
     console.error("Alexa error:", error);
-
-    res.status(200).json({
+    res.json({
       version: "1.0",
       response: {
         outputSpeech: {
           type: "PlainText",
-          text: "Ocorreu um erro ao processar sua solicitação.",
+          text: "Ocorreu um erro ao processar sua solicitação."
         },
-        shouldEndSession: true,
-      },
+        shouldEndSession: true
+      }
     });
   }
 });
