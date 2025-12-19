@@ -48,6 +48,12 @@ service cloud.firestore {
         (resource.data.sentBy == request.auth.uid ||
          request.auth.token.email == resource.data.sentToEmail
         );
+        
+      // NEW RULE: Allow listing invites if the query is specific to the user
+      allow list: if request.auth != null &&
+                      (request.query.limit <= 1 &&
+                       request.query.filters.hasAny(['sentBy', '==', request.auth.uid]) ||
+                       request.query.filters.hasAny(['sentToEmail', '==', request.auth.token.email]));
     }
 
     // Default: deny
