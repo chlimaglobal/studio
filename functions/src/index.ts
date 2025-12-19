@@ -646,7 +646,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     try {
       const result = await run(flow, data);
-      return { data: result };
+      return result;
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
       throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
@@ -671,6 +671,8 @@ export const getSimpleFinancialSummary = createPremiumGenkitCallable(getSimpleFi
 // -----------------
 // Couple & Invite Functions (onCall)
 // -----------------
+const corsHandler = cors({ origin: true });
+
 export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onCall(async (data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "A autenticação é necessária.");
@@ -939,3 +941,5 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
   });
 
 export { alexa } from "./alexa";
+
+    
