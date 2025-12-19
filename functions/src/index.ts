@@ -769,15 +769,6 @@ export const disconnectPartner = functions.region(REGION).https.onCall(async (da
 // -----------------
 // Other Functions
 // -----------------
-export const checkDashboardStatus = functions.region(REGION).https.onCall(
-  async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
-    return { success: true, message: "Verificação concluída." };
-  }
-);
-
-
 export const onTransactionCreated = functions.region(REGION).firestore
   .document("users/{userId}/transactions/{transactionId}")
   .onCreate(async (snap, context) => {

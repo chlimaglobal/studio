@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -320,23 +321,6 @@ export default function DashboardPage() {
     const [manualCostOfLiving, setManualCostOfLiving] = useState<number | null>(null);
     const [userStatus, setUserStatus] = useState<UserStatus>({});
     const router = useRouter();
-
-
-    // Call the checkDashboardStatus function when the component mounts
-    useEffect(() => {
-        if (!user || !user.uid) return;
-        
-        const checkStatus = async () => {
-            try {
-                const functions = getFunctions(app, 'us-central1'); // Correctly get functions instance
-                const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
-                await checkDashboardStatus();
-            } catch (error) {
-                console.warn("Could not check dashboard status:", error);
-            }
-        };
-        checkStatus();
-    }, [user]);
 
      useEffect(() => {
         if (user) {
