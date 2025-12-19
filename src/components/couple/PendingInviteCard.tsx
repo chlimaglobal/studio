@@ -38,7 +38,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     else functionName = 'cancelPartnerInvite';
 
     try {
-      const functions = getFunctions(app, 'us-central1);
+      const functions = getFunctions(app, 'us-central1');
       const callable = httpsCallable(functions, functionName);
       const result = await callable({ inviteId: invite.id });
       const data = result.data as { success: boolean; message: string; error?: string };
