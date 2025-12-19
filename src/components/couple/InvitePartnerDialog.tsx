@@ -70,7 +70,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         onOpenChange(false);
         setEmail('');
         // Force refresh of couple state by navigating to the pending page
-        router.push('/dashboard/couple/pending');
+        router.refresh();
 
       } else {
         throw new Error(data.error || 'Ocorreu um erro desconhecido.');

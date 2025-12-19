@@ -28,11 +28,9 @@ import type {
 async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        console.log(`[DEBUG] Chamando Firebase function: ${functionName} na região us-central1`); // Log para debug de deploy
-        const callable = httpsCallable<T, { data: O }>(functions, functionName);
+        const callable = httpsCallable<T, O>(functions, functionName);
         const result = await callable(data);
-        console.log(`[DEBUG] Firebase function ${functionName} executada com sucesso`); // Log de sucesso
-        return result.data; // The callable function result is on `result.data`
+        return result.data;
     } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
 
@@ -44,18 +42,7 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
             throw new Error('Autenticação necessária para este recurso.');
         }
         if (error.code === 'functions/not-found') {
-            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique deploy com 'firebase deploy --only functions'`); // Log específico para deploy
-            // Fallback para modo dev: pula análise se local
-            if (process.env.NODE_ENV === 'development') {
-                console.warn(`[DEV MODE] Pulando análise para ${functionName} — use dados mock se necessário.`);
-                // Return a valid empty structure for the expected type
-                if (functionName === 'runAnalysis') {
-                    return { healthStatus: 'Atenção', diagnosis: 'Análise mock (modo dev)', suggestions: [] } as any;
-                }
-                if (functionName === 'extractMultipleTransactions') {
-                    return { transactions: [] } as any;
-                }
-            }
+            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique deploy com 'firebase deploy --only functions'`);
             throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
         }
         
@@ -65,12 +52,12 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
 
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    const result = await callFirebaseFunction<{description: string}, CategorizeTransactionOutput>('getCategorySuggestion', input);
+    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
     return result;
 }
 
-export async function extractTransactionInfoFromText(input: {text: string}): Promise<ExtractTransactionOutput> {
-     return callFirebaseFunction<{text: string}, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
+export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
+     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {

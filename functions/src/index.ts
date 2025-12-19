@@ -54,7 +54,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize Firebase Admin
 admin.initializeApp();
-const db = admin.firestore();
+export const db = admin.firestore();
 
 // Initialize Genkit
 genkit({
@@ -941,5 +941,3 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
   });
 
 export { alexa } from "./alexa";
-
-    

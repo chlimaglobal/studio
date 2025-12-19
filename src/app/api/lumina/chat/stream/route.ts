@@ -1,5 +1,5 @@
 
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
     // Re-shape the message history for the callable function
-    const validatedInput = {
+    const validatedInput: LuminaChatInput = {
       ...LuminaChatRequestSchema.parse(input),
       chatHistory: input.messages || [],
     };
 
     const functions = getFunctions(app, 'us-central1');
-    const luminaChatCallable = httpsCallable<any, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
     
     // As the cloud function is not streaming, we call it and await the full response.
     const result = await luminaChatCallable(validatedInput);
@@ -76,6 +76,6 @@ export async function POST(req: NextRequest) {
     if(error instanceof Error) {
         errorMessage = error.message;
     }
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

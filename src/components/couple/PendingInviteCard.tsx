@@ -17,6 +17,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 interface PendingInviteCardProps {}
 
@@ -25,6 +26,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleAction = async (action: 'accept' | 'reject' | 'cancel') => {
     if (!invite?.id || !user) return;
@@ -36,13 +38,14 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     else functionName = 'cancelPartnerInvite';
 
     try {
-      const functions = getFunctions(app, 'us-central1');
+      const functions = getFunctions(app, 'us-central1);
       const callable = httpsCallable(functions, functionName);
       const result = await callable({ inviteId: invite.id });
       const data = result.data as { success: boolean; message: string; error?: string };
       
       if (data.success) {
         toast({ title: 'Sucesso!', description: data.message });
+        router.refresh();
       } else {
         throw new Error(data.error);
       }
