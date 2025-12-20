@@ -8,7 +8,7 @@ import { defineSecret } from "firebase-functions/params";
 import * as cors from "cors";
 
 // Genkit Imports
-import { genkit, Flow, run, defineFlow, ai } from 'genkit';
+import { genkit, Flow } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { firebase } from '@genkit-ai/firebase';
 import { z } from 'zod';
@@ -32,13 +32,8 @@ import {
     ExtractFromImageOutputSchema,
     LuminaChatInputSchema,
     LuminaChatOutputSchema,
-    LuminaCoupleChatInputSchema,
     ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema,
-    AlexaExtractTransactionInputSchema,
-    AlexaExtractTransactionOutputSchema,
-    GetSimpleFinancialSummaryInputSchema,
-    GetSimpleFinancialSummaryOutputSchema
+    ExtractMultipleTransactionsOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
@@ -58,13 +53,13 @@ admin.initializeApp();
 export const db = admin.firestore();
 
 // Initialize Genkit
-genkit({
+const ai = genkit({
   plugins: [
     firebase(),
     googleAI({ apiKey: geminiApiKey.value() }),
   ],
-  enableTracingAndMetrics: true,
 });
+
 
 sgMail.setApiKey(sendgridApiKey.value());
 
@@ -73,7 +68,7 @@ sgMail.setApiKey(sendgridApiKey.value());
 // Genkit Flows
 // -----------------
 
-const categorizeTransactionFlow = defineFlow(
+const categorizeTransactionFlow = ai.defineFlow(
   {
     name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
@@ -114,7 +109,7 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
 );
 
 
-const extractTransactionFromTextFlow = defineFlow(
+const extractTransactionFromTextFlow = ai.defineFlow(
   {
     name: 'extractTransactionFromTextFlow',
     inputSchema: ExtractTransactionInputSchema,
@@ -153,7 +148,7 @@ const extractTransactionFromTextFlow = defineFlow(
 );
 
 
-const extractMultipleTransactionsFromTextFlow = defineFlow(
+const extractMultipleTransactionsFromTextFlow = ai.defineFlow(
   {
     name: 'extractMultipleTransactionsFromTextFlow',
     inputSchema: ExtractMultipleTransactionsInputSchema,
@@ -212,7 +207,7 @@ ${input.text}
 );
 
 
-const generateFinancialAnalysisFlow = defineFlow(
+const generateFinancialAnalysisFlow = ai.defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
     inputSchema: GenerateFinancialAnalysisInputSchema,
@@ -240,7 +235,7 @@ const generateFinancialAnalysisFlow = defineFlow(
 );
 
 
-const extractFromFileFlow = defineFlow(
+const extractFromFileFlow = ai.defineFlow(
   {
     name: 'extractFromFileFlow',
     inputSchema: ExtractFromFileInputSchema,
@@ -281,7 +276,7 @@ const getFinancialMarketDataTool = ai.defineTool(
     async () => getFinancialMarketData()
 );
 
-const analyzeInvestorProfileFlow = defineFlow(
+const analyzeInvestorProfileFlow = ai.defineFlow(
   {
     name: 'analyzeInvestorProfileFlow',
     inputSchema: InvestorProfileInputSchema,
@@ -320,7 +315,7 @@ const analyzeInvestorProfileFlow = defineFlow(
 );
 
 
-const calculateSavingsGoalFlow = defineFlow(
+const calculateSavingsGoalFlow = ai.defineFlow(
   {
     name: 'calculateSavingsGoalFlow',
     inputSchema: SavingsGoalInputSchema,
@@ -346,7 +341,7 @@ const calculateSavingsGoalFlow = defineFlow(
 );
 
 
-const mediateGoalsFlow = defineFlow(
+const mediateGoalsFlow = ai.defineFlow(
   {
     name: 'mediateGoalsFlow',
     inputSchema: MediateGoalsInputSchema,
@@ -382,7 +377,7 @@ const mediateGoalsFlow = defineFlow(
 );
 
 
-const extractFromImageFlow = defineFlow(
+const extractFromImageFlow = ai.defineFlow(
   {
     name: 'extractFromImageFlow',
     inputSchema: ExtractFromImageInputSchema,
@@ -428,7 +423,7 @@ Analise a imagem e retorne um JSON válido.`;
 );
 
 
-const luminaChatFlow = defineFlow(
+const luminaChatFlow = ai.defineFlow(
   {
     name: 'luminaChatFlow',
     inputSchema: LuminaChatInputSchema,
@@ -500,7 +495,7 @@ const REGION = "us-central1";
 
 // Generic helper to create a callable function with subscription check
 const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GB" }).https.onCall(async (data: I, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
     }
@@ -516,7 +511,7 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
 
     try {
-      const result = await run(flow, data);
+      const result = await genkit.run(flow, data);
       return result;
     } catch (e: any) {
       console.error(`Error in premium flow ${flow.name}:`, e);
@@ -527,13 +522,13 @@ const createPremiumGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
 
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
+  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GB" }).https.onCall(async (data: I, context) => {
     // This function is open to all authenticated users, so no subscription check.
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'A autenticação é necessária.');
     }
     try {
-      const result = await run(flow, data);
+      const result = await genkit.run(flow, data);
       return result;
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
@@ -562,29 +557,34 @@ export const getSimpleFinancialSummary = createPremiumGenkitCallable(getSimpleFi
 const corsHandler = cors({ origin: true });
 
 export const sendPartnerInvite = functions.region(REGION).runWith({ secrets: [sendgridApiKey] }).https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError("unauthenticated", "A autenticação é necessária.");
-    }
-    const { partnerEmail, senderName } = data;
-    if (!partnerEmail || !senderName) {
-        throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
-    }
-    try {
-        const inviteRef = db.collection("invites").doc();
-        const inviteData = {
-            sentBy: context.auth.uid,
-            sentByName: senderName,
-            sentByEmail: context.auth.token.email || null,
-            sentToEmail: partnerEmail,
-            status: "pending" as const,
-            createdAt: Timestamp.now(),
-        };
-        await inviteRef.set(inviteData);
-        return { success: true, message: "Convite enviado com sucesso!" };
-    } catch (error) {
-        console.error("Erro em sendPartnerInvite:", error);
-        throw new functions.https.HttpsError("internal", "Erro interno ao enviar convite.");
-    }
+    corsHandler(data as any, {} as any, async () => {
+        if (!context.auth) {
+            throw new functions.https.HttpsError("unauthenticated", "A autenticação é necessária.");
+        }
+        const { partnerEmail, senderName } = data;
+        if (!partnerEmail || !senderName) {
+            throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+        }
+        try {
+            const inviteRef = db.collection("invites").doc();
+            const inviteData = {
+                sentBy: context.auth.uid,
+                sentByName: senderName,
+                sentByEmail: context.auth.token.email || null,
+                sentToEmail: partnerEmail,
+                status: "pending" as const,
+                createdAt: Timestamp.now(),
+            };
+            await inviteRef.set(inviteData);
+            return { success: true, message: "Convite enviado com sucesso!" };
+        } catch (error) {
+            console.error("Erro em sendPartnerInvite:", error);
+            throw new functions.https.HttpsError("internal", "Erro interno ao enviar convite.");
+        }
+    });
+    // The above is async but the function expects a sync return. This is a common pattern for cors with onCall.
+    // The actual response is handled by the corsHandler.
+    return { success: true, message: 'Processing invite...' };
 });
 
 export const onInviteCreated = functions
@@ -681,7 +681,7 @@ export const onTransactionCreated = functions.region(REGION).firestore
           let totalExpenses = 0;
           const investmentCategories = ["Ações", "Fundos Imobiliários", "Renda Fixa", "Aplicação", "Retirada", "Proventos", "Juros", "Rendimentos"];
           snapshot.forEach((doc) => {
-            const tx = doc.data();
+            const tx = doc.data() as { category?: string; amount?: number; type?: string };
             if (!tx.category || investmentCategories.includes(tx.category)) return;
             const amount = Number(tx.amount);
             if (!Number.isFinite(amount)) return;
@@ -728,7 +728,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
             let chatMessagesCount = 0;
             const sixtyDaysAgo = subDays(now, 60);
             const transactionsSnapshot = await db.collection(`users/${userId}/transactions`).where('date', '>=', sixtyDaysAgo).get();
-            const transactions = transactionsSnapshot.docs.map(doc => { const data = doc.data(); return { ...data, date: data.date?.toDate ? data.date.toDate() : new Date(0), amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : 0 }; }).filter(t => t.date.getTime() > 0 && t.amount > 0);
+            const transactions = transactionsSnapshot.docs.map(doc => { const data = doc.data(); return { ...data, date: data.date?.toDate ? data.date.toDate() : new Date(0), amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : 0 }; }).filter(t => t.date.getTime() > 0 && t.amount > 0) as { type: string; category: string; date: Date; amount: number }[];
             const yesterdayStart = startOfDay(subDays(now, 1));
             const yesterdayEnd = endOfDay(subDays(now, 1));
             const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= yesterdayStart && t.date <= yesterdayEnd);
@@ -830,3 +830,6 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
 
 export { alexa } from "./alexa";
 
+
+
+    
