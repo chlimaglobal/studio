@@ -1,15 +1,16 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import * as sgMail from "@sendgrid/mail";
-import { format } from "date-fns";
+import { DocumentData, Timestamp } from "firebase-admin/firestore";
+// import * as sgMail from "@sendgrid/mail"; // Comentado para deploy local
+import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { defineSecret } from "firebase-functions/params";
+import * as cors from "cors";
 
-// Genkit Imports - Atualizado para v0.5+
+// Genkit Imports - Atualizado para a versão mais recente
 import { genkit, z } from 'genkit';
 import { googleAI, gemini15Flash } from '@genkit-ai/googleai';
 import { firebase } from '@genkit-ai/firebase';
 
-// Importação de Tipos e Prompts (Certifique-se que estes arquivos existem na pasta)
 import {
     CategorizeTransactionInputSchema,
     CategorizeTransactionOutputSchema,
@@ -17,27 +18,56 @@ import {
     ExtractTransactionOutputSchema,
     GenerateFinancialAnalysisInputSchema,
     GenerateFinancialAnalysisOutputSchema,
+    ExtractFromFileInputSchema,
+    ExtractFromFileOutputSchema,
+    InvestorProfileInputSchema,
+    InvestorProfileOutputSchema,
+    SavingsGoalInputSchema,
+    SavingsGoalOutputSchema,
+    MediateGoalsInputSchema,
+    MediateGoalsOutputSchema,
+    ExtractFromImageInputSchema,
+    ExtractFromImageOutputSchema,
+    LuminaChatInputSchema,
+    LuminaChatOutputSchema,
+    ExtractMultipleTransactionsInputSchema,
+    ExtractMultipleTransactionsOutputSchema,
     transactionCategories
 } from './types';
 
-import { LUMINA_DIAGNOSTIC_PROMPT } from './prompts/luminaBasePrompt';
+import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
+import { getFinancialMarketData } from './services/market-data';
+import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
+import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
 
 // Define Secrets
-const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
+// const sendgridApiKey = defineSecret("SENDGRID_API_KEY"); // Comentado para deploy local
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize Firebase Admin
 admin.initializeApp();
 export const db = admin.firestore();
 
-// Initialize Genkit - Sintaxe v0.5+ corrigida
+// Initialize Genkit - Configuração corrigida
 const ai = genkit({
   plugins: [
     firebase(),
     googleAI({ apiKey: geminiApiKey.value() }),
   ],
-  model: gemini15Flash, 
+  model: gemini15Flash, // Modelo padrão
 });
+
+// sgMail.setApiKey(sendgridApiKey.value()); // Comentado para deploy local
+
+// Interface para correção de tipagem de transações
+interface Transaction {
+  type: string;
+  category: string;
+  amount: number;
+  date: any;
+  description: string;
+}
 
 const REGION = "us-central1";
 
@@ -117,7 +147,7 @@ const createPremiumGenkitCallable = (flow: any) => {
   return functions
     .region(REGION)
     .runWith({ 
-        secrets: [geminiApiKey, sendgridApiKey], 
+        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
         memory: "1GB" 
     })
     .https.onCall(async (data, context) => {
@@ -144,7 +174,7 @@ const createGenkitCallable = (flow: any) => {
   return functions
     .region(REGION)
     .runWith({ 
-        secrets: [geminiApiKey, sendgridApiKey], 
+        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
         memory: "1GB" 
     })
     .https.onCall(async (data, context) => {
@@ -191,3 +221,38 @@ export const onTransactionCreated = functions.region(REGION).firestore
     }
     return null;
   });
+
+// A função de envio de email foi comentada para evitar o erro de permissão no deploy local.
+// No ambiente do Firebase Studio, essa função deve ser descomentada.
+/*
+export const onInviteCreated = functions
+  .region(REGION)
+  .runWith({ secrets: [sendgridApiKey] })
+  .firestore.document("invites/{inviteId}")
+  .onCreate(async (snap) => {
+    try {
+      const invite = snap.data() as DocumentData;
+      if (!invite.sentToEmail) {
+        console.warn("Convite sem e-mail de destino, ignorando.");
+        return null;
+      }
+      
+      const msg = {
+        to: invite.sentToEmail,
+        from: { 
+            email: "no-reply@financeflow.app",
+            name: "FinanceFlow" 
+        },
+        subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
+        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
+        html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
+      };
+
+      await sgMail.send(msg);
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao enviar email de convite:", error);
+      return null;
+    }
+  });
+*/
