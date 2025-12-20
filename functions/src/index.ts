@@ -49,14 +49,24 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 admin.initializeApp();
 export const db = admin.firestore();
 
-// Initialize Genkit - Configuração corrigida
-const ai = genkit({
-  plugins: [
-    firebase(),
-    googleAI({ apiKey: geminiApiKey.value() }),
-  ],
-  model: gemini15Flash, // Modelo padrão
-});
+/**
+ * Inicialização Segura do Genkit (Lazy Initialization)
+ * Resolve o erro de acesso ao Secret durante a fase de build/deploy.
+ */
+let aiInstance: any = null;
+function getAI() {
+  if (!aiInstance) {
+    aiInstance = genkit({
+      plugins: [
+        firebase(),
+        googleAI({ apiKey: geminiApiKey.value() }),
+      ],
+      model: gemini15Flash,
+    });
+  }
+  return aiInstance;
+}
+
 
 // sgMail.setApiKey(sendgridApiKey.value()); // Comentado para deploy local
 
@@ -75,13 +85,13 @@ const REGION = "us-central1";
 // Genkit Flows
 // -----------------
 
-const categorizeTransactionFlow = ai.defineFlow(
+const categorizeTransactionFlow = (ai: any) => ai.defineFlow(
   {
     name: 'categorizeTransactionFlow',
     inputSchema: CategorizeTransactionInputSchema,
     outputSchema: CategorizeTransactionOutputSchema,
   },
-  async (input) => {
+  async (input: any) => {
     const prompt = `Você é a Lúmina... Categorias: ${transactionCategories.join('\n- ')}. Descrição: ${input.description}`;
     const llmResponse = await ai.generate({
       prompt: prompt,
@@ -93,13 +103,14 @@ const categorizeTransactionFlow = ai.defineFlow(
   }
 );
 
-const extractTransactionFromTextFlow = ai.defineFlow(
+
+const extractTransactionFromTextFlow = (ai: any) => ai.defineFlow(
   {
     name: 'extractTransactionFromTextFlow',
     inputSchema: ExtractTransactionInputSchema,
     outputSchema: ExtractTransactionOutputSchema,
   },
-  async (input) => {
+  async (input: any) => {
     const prompt = `Extraia detalhes da transação do texto: ${input.text}`;
     const llmResponse = await ai.generate({
       prompt: prompt,
@@ -113,13 +124,13 @@ const extractTransactionFromTextFlow = ai.defineFlow(
   }
 );
 
-const generateFinancialAnalysisFlow = ai.defineFlow(
+const generateFinancialAnalysisFlow = (ai: any) => ai.defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
     inputSchema: GenerateFinancialAnalysisInputSchema,
     outputSchema: GenerateFinancialAnalysisOutputSchema,
   },
-  async (input) => {
+  async (input: any) => {
     if (!input.transactions || input.transactions.length === 0) {
       // Ajuste de retorno para satisfazer o enum do Schema (Saudável | Atenção | Crítico)
       return { 
@@ -143,7 +154,7 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
 // -----------------
 
 // CORREÇÃO: No Genkit v0.5+, o ai.runFlow foi substituído pela chamada direta da função do fluxo: flow(data)
-const createPremiumGenkitCallable = (flow: any) => {
+const createPremiumGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) => {
   return functions
     .region(REGION)
     .runWith({ 
@@ -161,8 +172,8 @@ const createPremiumGenkitCallable = (flow: any) => {
       if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária.');
 
       try {
-        // Chamada direta do fluxo na versão v0.5+
-        return await flow(data);
+        const ai = getAI();
+        return await flowLogic(ai, data);
       } catch (e: any) {
         console.error("Flow Error:", e);
         throw new functions.https.HttpsError('internal', e.message);
@@ -170,7 +181,7 @@ const createPremiumGenkitCallable = (flow: any) => {
     });
 };
 
-const createGenkitCallable = (flow: any) => {
+const createGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) => {
   return functions
     .region(REGION)
     .runWith({ 
@@ -180,7 +191,8 @@ const createGenkitCallable = (flow: any) => {
     .https.onCall(async (data, context) => {
       if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
       try {
-        return await flow(data);
+        const ai = getAI();
+        return await flowLogic(ai, data);
       } catch (e: any) {
         console.error("Flow Error:", e);
         throw new functions.https.HttpsError('internal', e.message);
@@ -189,9 +201,32 @@ const createGenkitCallable = (flow: any) => {
 };
 
 // Exportando as funções para o Firebase
-export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
-export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
-export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
+export const getCategorySuggestion = createGenkitCallable(async (ai: any, data: any) => {
+    const flow = categorizeTransactionFlow(ai);
+    return await flow(data);
+});
+
+export const extractTransactionInfoFromText = createGenkitCallable(async (ai: any, data: any) => {
+    const flow = extractTransactionFromTextFlow(ai);
+    return await flow(data);
+});
+
+export const runAnalysis = createPremiumGenkitCallable(async (ai: any, data: any) => {
+    const flow = generateFinancialAnalysisFlow(ai);
+    return await flow(data);
+});
+
+
+export const alexaExtractTransaction = createGenkitCallable(async (ai: any, data: any) => {
+    const flow = alexaExtractTransactionFlow;
+    return await flow(data);
+});
+
+export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, data: any) => {
+    const flow = getSimpleFinancialSummaryFlow;
+    return await flow(data);
+});
+
 
 // -----------------
 // Cloud Firestore Triggers
