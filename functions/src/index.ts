@@ -1,16 +1,15 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { DocumentData, Timestamp } from "firebase-admin/firestore";
 import * as sgMail from "@sendgrid/mail";
-import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
+import { format } from "date-fns";
 import { defineSecret } from "firebase-functions/params";
-import * as cors from "cors";
 
-// Genkit Imports - Atualizado para a versão mais recente
+// Genkit Imports - Atualizado para v0.5+
 import { genkit, z } from 'genkit';
 import { googleAI, gemini15Flash } from '@genkit-ai/googleai';
 import { firebase } from '@genkit-ai/firebase';
 
+// Importação de Tipos e Prompts (Certifique-se que estes arquivos existem na pasta)
 import {
     CategorizeTransactionInputSchema,
     CategorizeTransactionOutputSchema,
@@ -18,28 +17,10 @@ import {
     ExtractTransactionOutputSchema,
     GenerateFinancialAnalysisInputSchema,
     GenerateFinancialAnalysisOutputSchema,
-    ExtractFromFileInputSchema,
-    ExtractFromFileOutputSchema,
-    InvestorProfileInputSchema,
-    InvestorProfileOutputSchema,
-    SavingsGoalInputSchema,
-    SavingsGoalOutputSchema,
-    MediateGoalsInputSchema,
-    MediateGoalsOutputSchema,
-    ExtractFromImageInputSchema,
-    ExtractFromImageOutputSchema,
-    LuminaChatInputSchema,
-    LuminaChatOutputSchema,
-    ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema,
     transactionCategories
 } from './types';
 
-import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
-import { getFinancialMarketData } from './services/market-data';
-import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
-import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
+import { LUMINA_DIAGNOSTIC_PROMPT } from './prompts/luminaBasePrompt';
 
 // Define Secrets
 const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
@@ -49,25 +30,16 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 admin.initializeApp();
 export const db = admin.firestore();
 
-// Initialize Genkit - Configuração corrigida
+// Initialize Genkit - Sintaxe v0.5+ corrigida
 const ai = genkit({
   plugins: [
     firebase(),
     googleAI({ apiKey: geminiApiKey.value() }),
   ],
-  model: gemini15Flash, // Modelo padrão
+  model: gemini15Flash, 
 });
 
-sgMail.setApiKey(sendgridApiKey.value());
-
-// Interface para correção de tipagem de transações
-interface Transaction {
-  type: string;
-  category: string;
-  amount: number;
-  date: any;
-  description: string;
-}
+const REGION = "us-central1";
 
 // -----------------
 // Genkit Flows
@@ -111,8 +83,6 @@ const extractTransactionFromTextFlow = ai.defineFlow(
   }
 );
 
-// ... (Demais fluxos seguem a mesma lógica de ai.defineFlow)
-
 const generateFinancialAnalysisFlow = ai.defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
@@ -121,7 +91,13 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
   },
   async (input) => {
     if (!input.transactions || input.transactions.length === 0) {
-      return { healthStatus: 'Atenção', diagnosis: 'Sem dados.', suggestions: [], trendAnalysis: undefined };
+      // Ajuste de retorno para satisfazer o enum do Schema (Saudável | Atenção | Crítico)
+      return { 
+        healthStatus: 'Atenção' as const, 
+        diagnosis: 'Sem dados suficientes para análise.', 
+        suggestions: ['Adicione mais transações para uma análise detalhada.'], 
+        trendAnalysis: undefined 
+      };
     }
     const result = await ai.generate({
         prompt: LUMINA_DIAGNOSTIC_PROMPT + JSON.stringify(input.transactions),
@@ -135,43 +111,57 @@ const generateFinancialAnalysisFlow = ai.defineFlow(
 // -----------------
 // Callable Functions Helpers
 // -----------------
-const REGION = "us-central1";
 
-const createPremiumGenkitCallable = <I extends z.ZodTypeAny, O extends z.ZodTypeAny>(flow: any) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GB" }).https.onCall(async (data: z.infer<I>, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
+// CORREÇÃO: No Genkit v0.5+, o ai.runFlow foi substituído pela chamada direta da função do fluxo: flow(data)
+const createPremiumGenkitCallable = (flow: any) => {
+  return functions
+    .region(REGION)
+    .runWith({ 
+        secrets: [geminiApiKey, sendgridApiKey], 
+        memory: "1GB" 
+    })
+    .https.onCall(async (data, context) => {
+      if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
 
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
-    const userData = userDoc.data();
-    const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
-    const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
+      const userDoc = await db.collection('users').doc(context.auth.uid).get();
+      const userData = userDoc.data();
+      const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
+      const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
 
-    if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Premium necessário.');
+      if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária.');
 
-    try {
-      return await ai.runFlow(flow, data);
-    } catch (e: any) {
-      throw new functions.https.HttpsError('internal', e.message);
-    }
-  });
+      try {
+        // Chamada direta do fluxo na versão v0.5+
+        return await flow(data);
+      } catch (e: any) {
+        console.error("Flow Error:", e);
+        throw new functions.https.HttpsError('internal', e.message);
+      }
+    });
 };
 
-const createGenkitCallable = <I extends z.ZodTypeAny, O extends z.ZodTypeAny>(flow: any) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GB" }).https.onCall(async (data: z.infer<I>, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
-    try {
-      return await ai.runFlow(flow, data);
-    } catch (e: any) {
-      throw new functions.https.HttpsError('internal', e.message);
-    }
-  });
+const createGenkitCallable = (flow: any) => {
+  return functions
+    .region(REGION)
+    .runWith({ 
+        secrets: [geminiApiKey, sendgridApiKey], 
+        memory: "1GB" 
+    })
+    .https.onCall(async (data, context) => {
+      if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
+      try {
+        return await flow(data);
+      } catch (e: any) {
+        console.error("Flow Error:", e);
+        throw new functions.https.HttpsError('internal', e.message);
+      }
+    });
 };
 
-// Exportando as funções
+// Exportando as funções para o Firebase
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const runAnalysis = createPremiumGenkitCallable(generateFinancialAnalysisFlow);
-// ... Adicione os outros exports conforme necessário seguindo o padrão acima
 
 // -----------------
 // Cloud Firestore Triggers
@@ -193,12 +183,11 @@ export const onTransactionCreated = functions.region(REGION).firestore
         const now = new Date();
         const currentMonthKey = format(now, "yyyy-MM");
         
-        if (userData?.mesAlertadoRenda !== currentMonthKey) {
-            // Lógica de alerta de gastos...
-        }
+        // Aqui você pode adicionar lógica de notificação ou atualização de saldo
+        console.log(`Nova transação para usuário ${userId} no mês ${currentMonthKey}`);
       });
     } catch (error) {
-      console.error(error);
+      console.error("Trigger Error:", error);
     }
     return null;
   });
