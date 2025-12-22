@@ -1,294 +1,92 @@
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { DocumentData, Timestamp } from "firebase-admin/firestore";
-// import * as sgMail from "@sendgrid/mail"; // Comentado para deploy local
-import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { defineSecret } from "firebase-functions/params";
-import * as cors from "cors";
 
-// Genkit Imports - Atualizado para a versão mais recente
-import { genkit, z } from 'genkit';
-import { googleAI, gemini15Flash } from '@genkit-ai/googleai';
-import { firebase } from '@genkit-ai/firebase';
+// Genkit
+import { genkit } from "genkit";
+import { googleAI } from "@genkit-ai/googleai";
 
+// Flows
 import {
-    CategorizeTransactionInputSchema,
-    CategorizeTransactionOutputSchema,
-    ExtractTransactionInputSchema,
-    ExtractTransactionOutputSchema,
-    GenerateFinancialAnalysisInputSchema,
-    GenerateFinancialAnalysisOutputSchema,
-    ExtractFromFileInputSchema,
-    ExtractFromFileOutputSchema,
-    InvestorProfileInputSchema,
-    InvestorProfileOutputSchema,
-    SavingsGoalInputSchema,
-    SavingsGoalOutputSchema,
-    MediateGoalsInputSchema,
-    MediateGoalsOutputSchema,
-    ExtractFromImageInputSchema,
-    ExtractFromImageOutputSchema,
-    LuminaChatInputSchema,
-    LuminaChatOutputSchema,
-    ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema,
-    transactionCategories
-} from './types';
+  alexaExtractTransactionFlow,
+  getSimpleFinancialSummaryFlow,
+} from "./flows/alexa-flows";
 
-import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
-import { getFinancialMarketData } from './services/market-data';
-import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
-import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
-
-// Define Secrets
-// const sendgridApiKey = defineSecret("SENDGRID_API_KEY"); // Comentado para deploy local
+// Secret
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
-// Initialize Firebase Admin
+// Firebase
 admin.initializeApp();
-export const db = admin.firestore();
-
-/**
- * Inicialização Segura do Genkit (Lazy Initialization)
- * Resolve o erro de acesso ao Secret durante a fase de build/deploy.
- */
-let aiInstance: any = null;
-function getAI() {
-  if (!aiInstance) {
-    aiInstance = genkit({
-      plugins: [
-        firebase(),
-        googleAI({ apiKey: geminiApiKey.value() }),
-      ],
-      model: gemini15Flash,
-    });
-  }
-  return aiInstance;
-}
-
-
-// sgMail.setApiKey(sendgridApiKey.value()); // Comentado para deploy local
-
-// Interface para correção de tipagem de transações
-interface Transaction {
-  type: string;
-  category: string;
-  amount: number;
-  date: any;
-  description: string;
-}
 
 const REGION = "us-central1";
 
-// -----------------
-// Genkit Flows
-// -----------------
+/**
+ * Helper para criar o Genkit AI SOMENTE EM RUNTIME
+ */
+function createAI(apiKey: string) {
+  return genkit({
+    plugins: [
+      googleAI({
+        apiKey,
+      }),
+    ],
+    model: "googleai/gemini-1.5-flash",
+  });
+}
 
-const categorizeTransactionFlow = (ai: any) => ai.defineFlow(
-  {
-    name: 'categorizeTransactionFlow',
-    inputSchema: CategorizeTransactionInputSchema,
-    outputSchema: CategorizeTransactionOutputSchema,
-  },
-  async (input: any) => {
-    const prompt = `Você é a Lúmina... Categorias: ${transactionCategories.join('\n- ')}. Descrição: ${input.description}`;
-    const llmResponse = await ai.generate({
-      prompt: prompt,
-      output: { format: 'json', schema: CategorizeTransactionOutputSchema },
-    });
-    const output = llmResponse.output;
-    if (!output) throw new Error('Falha na categorização.');
-    return output;
-  }
-);
-
-
-const extractTransactionFromTextFlow = (ai: any) => ai.defineFlow(
-  {
-    name: 'extractTransactionFromTextFlow',
-    inputSchema: ExtractTransactionInputSchema,
-    outputSchema: ExtractTransactionOutputSchema,
-  },
-  async (input: any) => {
-    const prompt = `Extraia detalhes da transação do texto: ${input.text}`;
-    const llmResponse = await ai.generate({
-      prompt: prompt,
-      output: { format: 'json', schema: ExtractTransactionOutputSchema },
-    });
-    let output = llmResponse.output;
-    if (!output || !output.description) {
-      output = { description: input.text, amount: 0, type: 'expense', category: 'Outros', paymentMethod: 'one-time' };
+// --- ALEXA: EXTRAIR TRANSAÇÃO ---
+export const alexaExtractTransaction = functions
+  .region(REGION)
+  .runWith({
+    secrets: [geminiApiKey],
+    memory: "1GB",
+    timeoutSeconds: 60,
+  })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Erro de autenticação"
+      );
     }
-    return output;
-  }
-);
 
-const generateFinancialAnalysisFlow = (ai: any) => ai.defineFlow(
-  {
-    name: 'generateFinancialAnalysisFlow',
-    inputSchema: GenerateFinancialAnalysisInputSchema,
-    outputSchema: GenerateFinancialAnalysisOutputSchema,
-  },
-  async (input: any) => {
-    if (!input.transactions || input.transactions.length === 0) {
-      // Ajuste de retorno para satisfazer o enum do Schema (Saudável | Atenção | Crítico)
-      return { 
-        healthStatus: 'Atenção' as const, 
-        diagnosis: 'Sem dados suficientes para análise.', 
-        suggestions: ['Adicione mais transações para uma análise detalhada.'], 
-        trendAnalysis: undefined 
-      };
+    const ai = createAI(geminiApiKey.value());
+    const ctx = { ai };
+
+    return alexaExtractTransactionFlow.run(data, ctx);
+  });
+
+// --- ALEXA: RESUMO FINANCEIRO ---
+export const alexaGetFinancialSummary = functions
+  .region(REGION)
+  .runWith({
+    secrets: [geminiApiKey],
+    memory: "1GB",
+  })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Erro de autenticação"
+      );
     }
-    const result = await ai.generate({
-        prompt: LUMINA_DIAGNOSTIC_PROMPT + JSON.stringify(input.transactions),
-        output: { format: 'json', schema: GenerateFinancialAnalysisOutputSchema }
-    });
-    if (!result.output) throw new Error('Erro na análise.');
-    return result.output;
-  }
-);
 
-// -----------------
-// Callable Functions Helpers
-// -----------------
+    const ai = createAI(geminiApiKey.value());
+    const ctx = { ai };
 
-// CORREÇÃO: No Genkit v0.5+, o ai.runFlow foi substituído pela chamada direta da função do fluxo: flow(data)
-const createPremiumGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) => {
-  return functions
-    .region(REGION)
-    .runWith({ 
-        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
-        memory: "1GB" 
-    })
-    .https.onCall(async (data, context) => {
-      if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
+    return getSimpleFinancialSummaryFlow.run(data, ctx);
+  });
 
-      const userDoc = await db.collection('users').doc(context.auth.uid).get();
-      const userData = userDoc.data();
-      const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
-      const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
-
-      if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária.');
-
-      try {
-        const ai = getAI();
-        return await flowLogic(ai, data);
-      } catch (e: any) {
-        console.error("Flow Error:", e);
-        throw new functions.https.HttpsError('internal', e.message);
-      }
-    });
-};
-
-const createGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) => {
-  return functions
-    .region(REGION)
-    .runWith({ 
-        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
-        memory: "1GB" 
-    })
-    .https.onCall(async (data, context) => {
-      if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
-      try {
-        const ai = getAI();
-        return await flowLogic(ai, data);
-      } catch (e: any) {
-        console.error("Flow Error:", e);
-        throw new functions.https.HttpsError('internal', e.message);
-      }
-    });
-};
-
-// Exportando as funções para o Firebase
-export const getCategorySuggestion = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = categorizeTransactionFlow(ai);
-    return await flow(data);
-});
-
-export const extractTransactionInfoFromText = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = extractTransactionFromTextFlow(ai);
-    return await flow(data);
-});
-
-export const runAnalysis = createPremiumGenkitCallable(async (ai: any, data: any) => {
-    const flow = generateFinancialAnalysisFlow(ai);
-    return await flow(data);
-});
-
-
-export const alexaExtractTransaction = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = alexaExtractTransactionFlow;
-    return await flow(data);
-});
-
-export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = getSimpleFinancialSummaryFlow;
-    return await flow(data);
-});
-
-
-// -----------------
-// Cloud Firestore Triggers
-// -----------------
-
-export const onTransactionCreated = functions.region(REGION).firestore
-  .document("users/{userId}/transactions/{transactionId}")
-  .onCreate(async (snap, context) => {
-    if (!snap.exists) return null;
-    const { userId } = context.params;
-    const userDocRef = db.doc(`users/${userId}`);
-    
-    try {
-      await db.runTransaction(async (transaction) => {
-        const userDoc = await transaction.get(userDocRef);
-        const userData = userDoc.data();
-        if (userData?.isDependent) return;
-
-        const now = new Date();
-        const currentMonthKey = format(now, "yyyy-MM");
-        
-        // Aqui você pode adicionar lógica de notificação ou atualização de saldo
-        console.log(`Nova transação para usuário ${userId} no mês ${currentMonthKey}`);
-      });
-    } catch (error) {
-      console.error("Trigger Error:", error);
-    }
+// --- FIRESTORE TRIGGER ---
+export const onTransactionCreated = functions
+  .region(REGION)
+  .firestore.document("users/{userId}/transactions/{transactionId}")
+  .onCreate(async (snap) => {
+    console.log("Transação criada:", snap.id);
     return null;
   });
 
-// A função de envio de email foi comentada para evitar o erro de permissão no deploy local.
-// No ambiente do Firebase Studio, essa função deve ser descomentada.
-/*
-export const onInviteCreated = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .firestore.document("invites/{inviteId}")
-  .onCreate(async (snap) => {
-    try {
-      const invite = snap.data() as DocumentData;
-      if (!invite.sentToEmail) {
-        console.warn("Convite sem e-mail de destino, ignorando.");
-        return null;
-      }
-      
-      const msg = {
-        to: invite.sentToEmail,
-        from: { 
-            email: "no-reply@financeflow.app",
-            name: "FinanceFlow" 
-        },
-        subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
-        html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
-      };
-
-      await sgMail.send(msg);
-      return { success: true };
-    } catch (error) {
-      console.error("Erro ao enviar email de convite:", error);
-      return null;
-    }
-  });
-*/
+// --- ALIASES ---
+export const getCategorySuggestion = alexaExtractTransaction;
+export const extractTransactionInfoFromText = alexaExtractTransaction;
+export const runAnalysis = alexaExtractTransaction;
