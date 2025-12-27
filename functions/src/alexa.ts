@@ -1,4 +1,3 @@
-
 import * as functions from 'firebase-functions';
 import { extractTransactionFromSpeech, getSummaryFromSpeech } from './services/alexa-ai-client';
 import { db } from './index';
@@ -22,7 +21,7 @@ async function getUserIdFromAccessToken(accessToken: string | undefined): Promis
 }
 
 
-export const alexa = functions.https.onRequest(async (req, res) => {
+export const alexaWebhook = functions.https.onRequest(async (req, res) => {
   try {
     const requestType = req.body?.request?.type;
     const intentName = req.body?.request?.intent?.name;

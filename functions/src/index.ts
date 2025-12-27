@@ -8,7 +8,7 @@ import * as cors from "cors";
 
 // Genkit Imports - Atualizado para a versão mais recente
 import { genkit, z } from 'genkit';
-import { googleAI, gemini15Flash } from '@genkit-ai/googleai';
+import { googleAI, gemini15Flash } from '@genkit-ai/google-genai'; // Correção: @genkit-ai/google-genai
 import { firebase } from '@genkit-ai/firebase';
 
 import {
@@ -40,6 +40,7 @@ import { getFinancialMarketData } from './services/market-data';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
 import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
 import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
+import { alexaWebhook } from "./alexa"; // Correção: Importando a função correta
 
 // Define Secrets
 // const sendgridApiKey = defineSecret("SENDGRID_API_KEY"); // Comentado para deploy local
@@ -218,12 +219,12 @@ export const runAnalysis = createPremiumGenkitCallable(async (ai: any, data: any
 
 
 export const alexaExtractTransaction = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = alexaExtractTransactionFlow;
+    const flow = alexaExtractTransactionFlow(ai);
     return await flow(data);
 });
 
 export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = getSimpleFinancialSummaryFlow;
+    const flow = getSimpleFinancialSummaryFlow(ai);
     return await flow(data);
 });
 
@@ -291,3 +292,6 @@ export const onInviteCreated = functions
     }
   });
 */
+
+// Correção: Exportando a função com o nome correto para o endpoint
+export { alexaWebhook };
