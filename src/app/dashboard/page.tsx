@@ -63,7 +63,6 @@ const AiTipsCard = () => {
 
   const getTips = useCallback(async () => {
     if (isBatchProcessing || (!isSubscribed && !isAdmin)) {
-      setIsLoading(false);
       setTips(null);
       return;
     };
@@ -85,18 +84,14 @@ const AiTipsCard = () => {
 
     if (operationalTransactions.length > 2) {
         try {
-            if (!isSubscribed && !isAdmin) {
-                setTips(null);
-                return;
-            }
             const result = await runAnalysis({ transactions: operationalTransactions });
             setTips(result);
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
         } catch (error) {
-            // Silently fail for permission errors, as this is expected for non-premium users.
-            if (error instanceof Error && error.message.includes('permission-denied')) {
-                 // Do nothing, just prevent the app from crashing.
+            if (error instanceof Error && error.message.includes('Assinatura Premium necessária')) {
+                // Silently fail for permission errors, as this is expected for non-premium users.
+                // Do nothing, just prevent the app from crashing.
             } else {
                 console.error("Failed to fetch AI tips:", error);
             }
@@ -114,7 +109,6 @@ const AiTipsCard = () => {
   useEffect(() => {
     getTips();
     
-    // Add listener for username changes
     const updateUsername = () => {
        const storedName = localStorage.getItem('userName') || 'Usuário';
        setUserName(storedName.split(' ')[0]);

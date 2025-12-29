@@ -34,7 +34,7 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         
         // **A CORREÇÃO PRINCIPAL**
         // Desempacota o resultado para corresponder à estrutura do backend
-        return result.data.data;
+        return result.data;
 
     } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);

@@ -2,10 +2,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentData, Timestamp } from "firebase-admin/firestore";
-// import * as sgMail from "@sendgrid/mail"; // Comentado para deploy local
 import { format, startOfMonth, endOfMonth, subDays } from "date-fns";
 import { defineSecret } from "firebase-functions/params";
-import * as cors from "cors";
 
 // Genkit Imports - Atualizado para a versão mais recente
 import { genkit, z } from 'genkit';
@@ -41,20 +39,15 @@ import { getFinancialMarketData } from './services/market-data';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
 import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
 import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
-import { alexaWebhook } from "./alexa"; // Correção: Importando a função correta
+import { alexaWebhook } from "./alexa";
 
 // Define Secrets
-// const sendgridApiKey = defineSecret("SENDGRID_API_KEY"); // Comentado para deploy local
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize Firebase Admin
 admin.initializeApp();
 export const db = admin.firestore();
 
-/**
- * Inicialização Segura do Genkit (Lazy Initialization)
- * Resolve o erro de acesso ao Secret durante a fase de build/deploy.
- */
 let aiInstance: any = null;
 function getAI() {
   if (!aiInstance) {
@@ -67,18 +60,6 @@ function getAI() {
     });
   }
   return aiInstance;
-}
-
-
-// sgMail.setApiKey(sendgridApiKey.value()); // Comentado para deploy local
-
-// Interface para correção de tipagem de transações
-interface Transaction {
-  type: string;
-  category: string;
-  amount: number;
-  date: any;
-  description: string;
 }
 
 const REGION = "us-central1";
@@ -134,7 +115,6 @@ const generateFinancialAnalysisFlow = (ai: any) => ai.defineFlow(
   },
   async (input: any) => {
     if (!input.transactions || input.transactions.length === 0) {
-      // Ajuste de retorno para satisfazer o enum do Schema (Saudável | Atenção | Crítico)
       return { 
         healthStatus: 'Atenção' as const, 
         diagnosis: 'Sem dados suficientes para análise.', 
@@ -155,12 +135,11 @@ const generateFinancialAnalysisFlow = (ai: any) => ai.defineFlow(
 // Callable Functions Helpers
 // -----------------
 
-// CORREÇÃO: No Genkit v0.5+, o ai.runFlow foi substituído pela chamada direta da função do fluxo: flow(data)
 const createPremiumGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) => {
   return functions
     .region(REGION)
     .runWith({ 
-        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
+        secrets: [geminiApiKey],
         memory: "1GB" 
     })
     .https.onCall(async (data, context) => {
@@ -171,7 +150,7 @@ const createPremiumGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<
       const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
       const isAdmin = context.auth.token.email === 'digitalacademyoficiall@gmail.com';
 
-      if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária.');
+      if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
 
       try {
         const ai = getAI();
@@ -188,7 +167,7 @@ const createGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) =
   return functions
     .region(REGION)
     .runWith({ 
-        secrets: [geminiApiKey], // sendgridApiKey removido para deploy local
+        secrets: [geminiApiKey],
         memory: "1GB" 
     })
     .https.onCall(async (data, context) => {
@@ -222,15 +201,13 @@ export const runAnalysis = createPremiumGenkitCallable(async (ai: any, data: any
 
 
 export const alexaExtractTransaction = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = alexaExtractTransactionFlow;
-    // @ts-ignore
-    return await run(flow, data);
+    const flow = alexaExtractTransactionFlow(ai);
+    return await flow(data);
 });
 
 export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = getSimpleFinancialSummaryFlow;
-     // @ts-ignore
-    return await run(flow, data);
+    const flow = getSimpleFinancialSummaryFlow(ai);
+    return await flow(data);
 });
 
 
@@ -254,7 +231,6 @@ export const onTransactionCreated = functions.region(REGION).firestore
         const now = new Date();
         const currentMonthKey = format(now, "yyyy-MM");
         
-        // Aqui você pode adicionar lógica de notificação ou atualização de saldo
         console.log(`Nova transação para usuário ${userId} no mês ${currentMonthKey}`);
       });
     } catch (error) {
@@ -263,40 +239,4 @@ export const onTransactionCreated = functions.region(REGION).firestore
     return null;
   });
 
-// A função de envio de email foi comentada para evitar o erro de permissão no deploy local.
-// No ambiente do Firebase Studio, essa função deve ser descomentada.
-/*
-export const onInviteCreated = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .firestore.document("invites/{inviteId}")
-  .onCreate(async (snap) => {
-    try {
-      const invite = snap.data() as DocumentData;
-      if (!invite.sentToEmail) {
-        console.warn("Convite sem e-mail de destino, ignorando.");
-        return null;
-      }
-      
-      const msg = {
-        to: invite.sentToEmail,
-        from: { 
-            email: "no-reply@financeflow.app",
-            name: "FinanceFlow" 
-        },
-        subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
-        html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
-      };
-
-      await sgMail.send(msg);
-      return { success: true };
-    } catch (error) {
-      console.error("Erro ao enviar email de convite:", error);
-      return null;
-    }
-  });
-*/
-
-// Correção: Exportando a função com o nome correto para o endpoint
 export { alexaWebhook };
