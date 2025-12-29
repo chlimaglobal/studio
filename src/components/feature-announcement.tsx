@@ -18,8 +18,8 @@ const announcements = [
     },
     {
         id: 'feature_baby_category_20240730',
-        title: 'Nova Categoria: Despesas do Bebê!',
-        description: 'A família vai aumentar? Agora você pode organizar os gastos com o seu bebê em uma categoria dedicada.',
+        title: 'Nova Categoria: Despesas do Bebê',
+        description: 'Adicionamos uma nova categoria para ajudar a organizar os gastos com a chegada de um bebê.',
         duration: 12000,
         href: '/dashboard/categories',
         actionLabel: 'Ver Categoria',
