@@ -112,8 +112,6 @@ export function AudioInputDialog({ open, onOpenChange, onTranscript, children }:
     };
 
     recognition.onerror = (event) => {
-        // The 'aborted' error is triggered when we programmatically stop the recognition,
-        // for example, when the dialog is closed. It's not a true error.
         if (event.error === 'aborted') {
             return;
         }
@@ -125,7 +123,7 @@ export function AudioInputDialog({ open, onOpenChange, onTranscript, children }:
         } else if (event.error === 'no-speech') {
             errorMessage = "Não consegui ouvir nada. Fale mais alto ou verifique seu microfone.";
         } else if (event.error === 'network') {
-            errorMessage = "Ocorreu um erro de rede. Verifique sua conexão com a internet e tente novamente.";
+            errorMessage = "Não foi possível processar o áudio. Por favor, tente falar novamente.";
         }
         setError(errorMessage);
         setIsRecording(false);
