@@ -450,8 +450,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     
     try {
       const result = await run(flow, data);
-      // 🔥 CORREÇÃO: O Firebase já encapsula em 'data'. Retornamos o resultado diretamente.
-      return { data: result };
+      return result;
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
       throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');

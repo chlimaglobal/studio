@@ -52,8 +52,8 @@ export async function POST(req: NextRequest) {
     // Await the full response from the non-streaming cloud function
     const result = await luminaChatCallable(validatedInput);
     
-    // Extrai os dados corretamente (a resposta está em result.data.data)
-    const luminaResponse = result.data.data;
+    // Extrai os dados corretamente (a resposta está em result.data)
+    const luminaResponse = result.data;
 
     // Para manter a compatibilidade com o hook `useChat`, criamos um stream simples
     // que entrega a resposta completa de uma só vez.
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
       errorMessage = "Dados inválidos enviados ao servidor.";
       return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
     }
+    // Específico para o erro da imagem
     if (error.code === 'functions/not-found') {
         errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor."
     }
