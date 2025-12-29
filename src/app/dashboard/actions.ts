@@ -32,8 +32,7 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
         const callable = httpsCallable<T, { data: O }>(functions, functionName);
         const result = await callable(data);
         
-        // **A CORREÇÃO PRINCIPAL**
-        // Desempacota o resultado para corresponder à estrutura do backend
+        // A resposta da callable function vem encapsulada em um objeto 'data'.
         return result.data;
 
     } catch (error: any) {
