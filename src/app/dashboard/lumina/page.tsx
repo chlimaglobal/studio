@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, fileToBase64 } from "@/lib/utils";
 import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate } from "@/lib/storage";
-import type { ChatMessage } from "@/lib/types";
+import type { ChatMessage } from "@/lib/definitions";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
 import { useChat } from 'ai/react';
@@ -65,7 +65,7 @@ export default function ChatPage() {
     },
     onFinish: (message) => {
         if (!message.content.trim()) return;
-        const luminaMsg = {
+        const luminaMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
             role: 'lumina' as const,
             text: message.content,
             authorName: 'Lúmina',
@@ -81,11 +81,24 @@ export default function ChatPage() {
         setImagePreview(null);
         setImageBase64(null);
     },
-    onError: (e) => {
+    onError: (error) => {
+        let errorTitle = "Erro ao falar com a Lúmina";
+        let errorMessage = "Não foi possível obter uma resposta. Verifique sua conexão e tente novamente.";
+        
+        try {
+            // Tenta parsear o corpo do erro para uma mensagem mais específica
+            const errorJson = JSON.parse(error.message);
+            if (errorJson.error) {
+                errorMessage = errorJson.error;
+            }
+        } catch (e) {
+            // Se não for JSON, usa a mensagem padrão
+        }
+
         toast({
             variant: "destructive",
-            title: "Erro ao falar com a Lúmina",
-            description: e.message || "Não foi possível obter uma resposta. Verifique sua conexão e tente novamente.",
+            title: errorTitle,
+            description: errorMessage,
         })
     }
   });

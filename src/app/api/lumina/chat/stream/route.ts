@@ -39,21 +39,24 @@ const LuminaChatRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
-    // Re-shape the message history for the callable function
+    // Remapeia o histórico de mensagens para o formato esperado pelo backend
     const validatedInput: LuminaChatInput = {
       ...LuminaChatRequestSchema.parse(input),
       chatHistory: input.messages || [],
     };
 
     const functions = getFunctions(app, 'us-central1');
-    const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
+    // A função retornará um tipo { data: LuminaChatOutput }
+    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
     
-    // As the cloud function is not streaming, we call it and await the full response.
+    // Await the full response from the non-streaming cloud function
     const result = await luminaChatCallable(validatedInput);
-    const luminaResponse = result.data;
+    
+    // Extrai os dados corretamente (a resposta está em result.data.data)
+    const luminaResponse = result.data.data;
 
-    // To maintain compatibility with the useChat hook, we create a simple stream
-    // that yields the full response at once.
+    // Para manter a compatibilidade com o hook `useChat`, criamos um stream simples
+    // que entrega a resposta completa de uma só vez.
     const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(luminaResponse.text));
@@ -67,15 +70,18 @@ export async function POST(req: NextRequest) {
 
     return new StreamingTextResponse(stream, {}, data);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
-    let errorMessage = "Erro interno do servidor. Verifique os logs.";
+    let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
     if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
+      errorMessage = "Dados inválidos enviados ao servidor.";
+      return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
     }
-    if(error instanceof Error) {
-        errorMessage = error.message;
+    if (error.code === 'functions/not-found') {
+        errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor."
     }
+    
+    // Retorna uma resposta de erro padronizada em JSON
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
