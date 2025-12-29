@@ -85,12 +85,22 @@ const AiTipsCard = () => {
 
     if (operationalTransactions.length > 2) {
         try {
+            // Adicionado a verificação de assinatura aqui também, como uma dupla garantia.
+            if (!isSubscribed && !isAdmin) {
+                setTips(null);
+                return;
+            }
             const result = await runAnalysis({ transactions: operationalTransactions });
             setTips(result);
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
         } catch (error) {
-            console.error("Failed to fetch AI tips:", error);
+            // Não logar o erro de "permissão negada" como um erro real para o console
+            if (error instanceof Error && error.message.includes('permission-denied')) {
+                // Silently ignore permission errors for non-premium users
+            } else {
+                console.error("Failed to fetch AI tips:", error);
+            }
             setTips(null);
         }
     } else {
