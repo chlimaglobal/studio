@@ -52,7 +52,7 @@ const AiTipsCard = () => {
   const { isSubscribed } = useSubscription();
   const { user } = useAuth();
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 

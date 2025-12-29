@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { DocumentData, Timestamp } from "firebase-admin/firestore";
@@ -168,13 +169,14 @@ const createPremiumGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<
       const userDoc = await db.collection('users').doc(context.auth.uid).get();
       const userData = userDoc.data();
       const isSubscribed = userData?.stripeSubscriptionStatus === 'active' || userData?.stripeSubscriptionStatus === 'trialing';
-      const isAdmin = userData?.email === 'digitalacademyoficiall@gmail.com';
+      const isAdmin = context.auth.token.email === 'digitalacademyoficiall@gmail.com';
 
       if (!isSubscribed && !isAdmin) throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária.');
 
       try {
         const ai = getAI();
-        return await flowLogic(ai, data);
+        const result = await flowLogic(ai, data);
+        return { data: result };
       } catch (e: any) {
         console.error("Flow Error:", e);
         throw new functions.https.HttpsError('internal', e.message);
@@ -193,7 +195,8 @@ const createGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) =
       if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
       try {
         const ai = getAI();
-        return await flowLogic(ai, data);
+        const result = await flowLogic(ai, data);
+        return { data: result };
       } catch (e: any) {
         console.error("Flow Error:", e);
         throw new functions.https.HttpsError('internal', e.message);
@@ -219,13 +222,15 @@ export const runAnalysis = createPremiumGenkitCallable(async (ai: any, data: any
 
 
 export const alexaExtractTransaction = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = alexaExtractTransactionFlow(ai);
-    return await flow(data);
+    const flow = alexaExtractTransactionFlow;
+    // @ts-ignore
+    return await run(flow, data);
 });
 
 export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, data: any) => {
-    const flow = getSimpleFinancialSummaryFlow(ai);
-    return await flow(data);
+    const flow = getSimpleFinancialSummaryFlow;
+     // @ts-ignore
+    return await run(flow, data);
 });
 
 
