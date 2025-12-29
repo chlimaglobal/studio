@@ -28,21 +28,26 @@ import type {
 async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        const callable = httpsCallable<T, O>(functions, functionName);
+        // Define o tipo de retorno esperado da callable function. O backend encapsula em { data: ... }
+        const callable = httpsCallable<T, { data: O }>(functions, functionName);
         const result = await callable(data);
-        return result.data;
+        
+        // **A CORREÇÃO PRINCIPAL**
+        // Desempacota o resultado para corresponder à estrutura do backend
+        return result.data.data;
+
     } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
 
-        // Tratamento de erro para dar feedback específico
+        // Tratamento de erro aprimorado para dar feedback específico ao usuário
         if (error.code === 'functions/permission-denied') {
-            throw new Error(`${error.message}`);
+            throw new Error(`Assinatura Premium necessária para este recurso.`);
         }
         if (error.code === 'functions/unauthenticated') {
-            throw new Error('Autenticação necessária para este recurso.');
+            throw new Error('Autenticação necessária. Por favor, faça login novamente.');
         }
         if (error.code === 'functions/not-found') {
-            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique deploy com 'firebase deploy --only functions'`);
+            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique o deploy com 'firebase deploy --only functions'`);
             throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
         }
         
