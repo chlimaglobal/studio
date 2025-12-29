@@ -1,16 +1,18 @@
 
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { DocumentData, Timestamp } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { defineSecret } from "firebase-functions/params";
 import * as sgMail from "@sendgrid/mail";
 import { format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from "date-fns";
-import { defineSecret } from "firebase-functions/params";
 
 // Genkit Imports
 import { genkit, Flow, run, defineFlow, ai } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { firebase } from '@genkit-ai/firebase';
 import { z } from 'zod';
+import { Message } from "genkit/experimental/ai";
 
 import {
     CategorizeTransactionInputSchema,
@@ -38,15 +40,16 @@ import { transactionCategories } from './types';
 import { getFinancialMarketData } from './services/market-data';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
 import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
-import { Message } from "genkit/experimental/ai";
+import { alexaWebhook as alexaWebhookV1 } from './alexa';
 
-
-// Define Secrets
+// Define Secrets for v2
 const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize Firebase Admin
-admin.initializeApp();
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 
 // Initialize Genkit globally
@@ -58,8 +61,15 @@ genkit({
   enableTracingAndMetrics: true,
 });
 
+// Set SendGrid API key at runtime
 sgMail.setApiKey(sendgridApiKey.value());
 
+// Global options for functions
+const functionOptions = {
+    region: "us-central1",
+    secrets: [geminiApiKey, sendgridApiKey],
+    memory: "1GiB" as const, // Use const assertion for type safety
+};
 
 // -----------------
 // Genkit Flows (Defined Globally)
@@ -100,7 +110,7 @@ Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja
       output: { format: 'json', schema: CategorizeTransactionOutputSchema },
     });
     const output = llmResponse.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a categorização.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a categorização.');
     return output;
   }
 );
@@ -165,7 +175,7 @@ const generateFinancialAnalysisFlow = defineFlow(
         output: { format: 'json', schema: GenerateFinancialAnalysisOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu gerar a análise financeira.');
     return output;
   }
 );
@@ -200,7 +210,7 @@ const extractFromFileFlow = defineFlow(
         output: { format: 'json', schema: ExtractFromFileOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar o arquivo.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar o arquivo.');
     return output;
   }
 );
@@ -243,7 +253,7 @@ const analyzeInvestorProfileFlow = defineFlow(
         output: { format: 'json', schema: InvestorProfileOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a análise de perfil.');
     return output;
   }
 );
@@ -255,7 +265,7 @@ const calculateSavingsGoalFlow = defineFlow(
     outputSchema: SavingsGoalOutputSchema,
   },
   async (input) => {
-    if (!input.transactions || input.transactions.length === 0) throw new Error('Não há transações suficientes para calcular uma meta.');
+    if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
       **Dados das Transações do Usuário para Análise:**
@@ -268,7 +278,7 @@ const calculateSavingsGoalFlow = defineFlow(
         output: { format: 'json', schema: SavingsGoalOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu calcular a meta de economia.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu calcular a meta de economia.');
     return output;
   }
 );
@@ -303,7 +313,7 @@ const mediateGoalsFlow = defineFlow(
         output: { format: 'json', schema: MediateGoalsOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a mediação de metas.');
     return output;
   }
 );
@@ -408,10 +418,7 @@ const luminaChatFlow = defineFlow(
         
     } catch (err: any) {
         console.error("ERRO GEMINI:", err.message);
-        return {
-            text: "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido?",
-            suggestions: ["Resumo do mês", "Maiores gastos"],
-        };
+        throw new HttpsError('internal', "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido?");
     }
   }
 );
@@ -420,17 +427,15 @@ const luminaChatFlow = defineFlow(
 // -----------------
 // Callable Functions Wrapper
 // -----------------
-const REGION = "us-central1";
-
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey, sendgridApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'Autenticação necessária.');
+  return onCall(functionOptions, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
     const isPremium = async () => {
-        if (context.auth?.token.email === 'digitalacademyoficiall@gmail.com') return true;
-        const userDoc = await db.collection('users').doc(context.auth!.uid).get();
+        if (request.auth?.token.email === 'digitalacademyoficiall@gmail.com') return true;
+        const userDoc = await db.collection('users').doc(request.auth!.uid).get();
         const subStatus = userDoc.data()?.stripeSubscriptionStatus;
         return subStatus === 'active' || subStatus === 'trialing';
     };
@@ -441,14 +446,18 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     ]);
 
     if (premiumFlows.has(flow.name) && !(await isPremium())) {
-        throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+        throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
     }
     
     try {
-      return await run(flow, data);
+      // The request.data already contains the type I data
+      return await run(flow, request.data as I);
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
-      throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
+      if (e instanceof HttpsError) {
+        throw e;
+      }
+      throw new HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
     }
   });
 };
@@ -466,76 +475,72 @@ export const luminaChat = createGenkitCallable(luminaChatFlow);
 
 
 // -----------------
-// Original Firebase Functions
+// Original Firebase Functions (v2 Syntax)
 // -----------------
 
-export const sendPartnerInvite = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .https.onCall(async (data, context) => {
+export const sendPartnerInvite = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    
+    const { partnerEmail, senderName } = request.data;
+    if (!partnerEmail || !senderName) throw new HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+    
     try {
-      const { partnerEmail, senderName } = data;
-      if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-      if (!partnerEmail || !senderName) throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
-      
       const inviteToken = db.collection("invites").doc().id;
       const inviteData = {
-        sentBy: context.auth.uid,
+        sentBy: request.auth.uid,
         sentByName: senderName,
-        sentByEmail: context.auth.token.email || null,
+        sentByEmail: request.auth.token.email || null,
         sentToEmail: partnerEmail,
         status: "pending",
-        createdAt: Timestamp.now(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       await db.collection("invites").doc(inviteToken).set(inviteData);
       return { success: true, inviteToken, message: "Convite criado com sucesso!" };
     } catch (error) {
       console.error("Erro em sendPartnerInvite:", error);
-      throw new functions.https.HttpsError("internal", "Erro ao enviar convite.");
+      throw new HttpsError("internal", "Erro ao enviar convite.");
     }
-  });
+});
 
-export const onInviteCreated = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .firestore.document("invites/{inviteId}")
-  .onCreate(async (snap) => {
+
+export const onInviteCreated = onDocumentCreated({
+    document: "invites/{inviteId}",
+    region: functionOptions.region,
+    secrets: [sendgridApiKey]
+}, async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
     try {
-      const invite = snap.data() as DocumentData;
+      const invite = snap.data();
       if (!invite.sentToEmail) {
         console.warn("Convite sem e-mail de destino, ignorando.");
-        return null;
+        return;
       }
       
       const msg = {
         to: invite.sentToEmail,
-        from: { 
-            email: "no-reply@financeflow.app",
-            name: "FinanceFlow" 
-        },
+        from: { email: "no-reply@financeflow.app", name: "FinanceFlow" },
         subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (de ${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
+        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
         html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
       };
 
       await sgMail.send(msg);
-      return { success: true };
     } catch (error) {
       console.error("Erro ao enviar email de convite:", error);
-      return null;
     }
-  });
+});
 
-export const disconnectPartner = functions
-  .region(REGION)
-  .https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Você precisa estar autenticado.");
-    const userId = context.auth.uid;
+export const disconnectPartner = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Você precisa estar autenticado.");
+    
+    const userId = request.auth.uid;
     try {
       const userDocRef = db.collection("users").doc(userId);
       const userDoc = await userDocRef.get();
       const userData = userDoc.data();
-      if (!userData || !userData.coupleId) throw new functions.https.HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
+      if (!userData || !userData.coupleId) throw new HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
       
       const coupleId = userData.coupleId;
       const coupleDocRef = db.collection("couples").doc(coupleId);
@@ -550,24 +555,27 @@ export const disconnectPartner = functions
       return { success: true, message: "Desvinculação concluída." };
     } catch (error) {
       console.error("Erro ao desvincular parceiro:", error);
-      if (error instanceof functions.https.HttpsError) throw error;
-      throw new functions.https.HttpsError("internal", "Erro inesperado ao desvincular.");
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError("internal", "Erro inesperado ao desvincular.");
     }
-  });
+});
 
-export const checkDashboardStatus = functions.region(REGION).https.onCall(
-  async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
+
+export const checkDashboardStatus = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    console.log(`Rotina de verificação diária para o usuário: ${request.auth.uid}`);
     return { success: true, message: "Verificação concluída." };
   }
 );
 
-export const onTransactionCreated = functions.region(REGION).firestore
-  .document("users/{userId}/transactions/{transactionId}")
-  .onCreate(async (snap, context) => {
-    if (!snap.exists) return null;
-    const { userId } = context.params;
+export const onTransactionCreated = onDocumentCreated({
+    document: "users/{userId}/transactions/{transactionId}",
+    region: functionOptions.region,
+}, async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const { userId } = event.params;
     const userDocRef = db.doc(`users/${userId}`);
     try {
       await db.runTransaction(async (transaction) => {
@@ -604,12 +612,14 @@ export const onTransactionCreated = functions.region(REGION).firestore
       console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
     return null; 
-  });
+});
 
-export const dailyFinancialCheckup = functions.region(REGION).pubsub
-  .schedule('every 24 hours')
-  .onRun(async () => {
-    let lastVisible = null as functions.firestore.QueryDocumentSnapshot | null;
+
+export const dailyFinancialCheckup = onSchedule({
+    schedule: 'every 24 hours',
+    region: functionOptions.region,
+}, async (event) => {
+    let lastVisible = null as admin.firestore.QueryDocumentSnapshot | null;
     const pageSize = 100;
     while (true) {
       let query = db.collection('users').orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
@@ -719,6 +729,9 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
       await Promise.all(processingPromises);
     }
     return null;
-  });
+});
 
-export { alexaWebhook } from './alexa';
+// Export the v1 handler for Alexa, as it uses a different signature
+export const alexaWebhook = alexaWebhookV1;
+
+    

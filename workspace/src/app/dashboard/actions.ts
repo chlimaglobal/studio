@@ -25,19 +25,17 @@ import type {
 } from '@/lib/definitions';
 
 // Helper to call a Firebase Cloud Function.
-async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
+async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        // Define the type of return expected from the callable function.
-        // The backend now returns the result directly, which Firebase wraps in { data: result }.
-        const callable = httpsCallable<T, O>(functions, functionName);
+        const callable = httpsCallable<I, O>(functions, functionName);
         const result = await callable(data);
         
-        // The callable function's result is in result.data
+        // The callable function's result for v2 functions is directly in result.data
         return result.data;
 
     } catch (error: any) {
-        console.error(`Error calling Firebase function '${functionName}':`, error);
+        console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);
 
         // Improved error handling to provide specific feedback to the user
         if (error.code === 'functions/permission-denied') {
@@ -66,8 +64,6 @@ export async function extractTransactionInfoFromText(input: ExtractTransactionIn
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {
-    // This function doesn't have a corresponding flow yet, so we return a placeholder.
-    // In a real scenario, you would implement and call the flow.
     console.warn("extractMultipleTransactions called but no flow is implemented.");
     return { transactions: [] };
 }
@@ -95,3 +91,5 @@ export async function runGoalMediation(input: MediateGoalsInput): Promise<Mediat
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
     return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }
+
+    
