@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useAuth } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
@@ -48,9 +49,12 @@ type BudgetItem = {
 
 const AiTipsCard = () => {
   const { transactions, isBatchProcessing } = useTransactions();
+  const { isSubscribed } = useSubscription();
+  const { user } = useAuth();
   const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   const transactionsHash = useMemo(() => {
     return JSON.stringify(transactions.map(t => t.id).sort());
@@ -58,7 +62,11 @@ const AiTipsCard = () => {
 
 
   const getTips = useCallback(async () => {
-    if (isBatchProcessing) return;
+    if (isBatchProcessing || (!isSubscribed && !isAdmin)) {
+      setIsLoading(false);
+      setTips(null);
+      return;
+    };
     
     setIsLoading(true);
     const storedName = localStorage.getItem('userName') || 'Usuário';
@@ -91,7 +99,7 @@ const AiTipsCard = () => {
         localStorage.removeItem('financialAnalysisHash');
     }
     setIsLoading(false);
-  }, [transactions, transactionsHash, isBatchProcessing]);
+  }, [transactions, transactionsHash, isBatchProcessing, isSubscribed, isAdmin]);
 
 
   useEffect(() => {
