@@ -15,11 +15,14 @@ import { firebase } from '@genkit-ai/firebase';
 import {
     CategorizeTransactionInputSchema,
     CategorizeTransactionOutputSchema,
+    LuminaChatInputSchema,
+    LuminaChatOutputSchema,
     transactionCategories
 } from './types';
 
 import { LUMINA_DIAGNOSTIC_PROMPT } from './prompts/luminaBasePrompt';
 import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from "./flows/alexa-flows";
+import { z } from "zod";
 
 // Define Secrets
 const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
@@ -66,6 +69,48 @@ const categorizeTransactionFlow = (ai: any) => ai.defineFlow(
   }
 );
 
+
+const luminaChatFlow = (ai: any) => ai.defineFlow(
+  {
+    name: 'luminaChatFlow',
+    inputSchema: LuminaChatInputSchema,
+    outputSchema: LuminaChatOutputSchema,
+  },
+  async (input: z.infer<typeof LuminaChatInputSchema>) => {
+      const userQuery = (input.userQuery || '').trim();
+      const transactionsJSON = JSON.stringify((input.allTransactions || []).slice(0, 20), null, 2);
+
+      const systemPrompt = `
+          Você é a Lúmina, uma assistente financeira.
+          Contexto do usuário:
+          - Modo Casal: ${input.isCoupleMode ? 'Ativado' : 'Desativado'}
+          - Transações recentes: ${transactionsJSON}
+      `;
+      
+      const history = (input.chatHistory || []).map((msg: any) => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          content: [{ text: msg.content || '' }]
+      }));
+      
+      const lastUserMessageParts: any[] = [{ text: userQuery || '(vazio)' }];
+      if (input.imageBase64) {
+          lastUserMessageParts.push({ media: { contentType: 'image/png', url: `data:image/png;base64,${input.imageBase64}` } });
+      }
+
+      const result = await ai.generate({
+          system: systemPrompt,
+          prompt: lastUserMessageParts,
+          history: history,
+      });
+
+      return {
+          text: result.text || "Desculpe, não consegui processar sua solicitação.",
+          suggestions: [],
+      };
+  }
+);
+
+
 // -----------------
 // Callable Functions
 // -----------------
@@ -79,7 +124,8 @@ const createGenkitCallable = (flowLogic: (ai: any, data: any) => Promise<any>) =
       
       try {
         const ai = getAI();
-        return await flowLogic(ai, data);
+        const result = await flowLogic(ai, data);
+        return { data: result }; // Encapsula o resultado
       } catch (e: any) {
         console.error("Erro no Flow:", e);
         throw new functions.https.HttpsError('internal', e.message);
@@ -103,6 +149,10 @@ export const alexaGetFinancialSummary = createGenkitCallable(async (ai: any, dat
     return await flow(data);
 });
 
+export const luminaChat = createGenkitCallable(async (ai: any, data: any) => {
+    const flow = luminaChatFlow(ai);
+    return await flow(data);
+});
 
 // -----------------
 // Firestore Triggers
