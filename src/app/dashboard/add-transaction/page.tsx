@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,7 +37,7 @@ import { getCategorySuggestion, extractMultipleTransactions } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const PremiumBlocker = () => (
     <Card className="text-center mt-6">
@@ -167,64 +166,24 @@ function MultipleTransactionsForm() {
 
         setIsProcessing(true);
         try {
-            // Parsing manual (funciona com o texto que você usa)
-            const lines = text.trim().split('\n').filter(line => line.trim());
-            const transactions = lines.map(line => {
-                // Remove valor entre parênteses (ex: "Aluguel (casa) 900" → "Aluguel 900")
-                const cleanLine = line.replace(/\([^)]*\)/g, '').trim();
+            const result = await extractMultipleTransactions({ text });
 
-                // Separa descrição e valor (último número com vírgula ou ponto)
-                const parts = cleanLine.split(/\s+/);
-                let amountStr = '';
-                let description = '';
-
-                // Pega o último token como valor
-                for (let i = parts.length - 1; i >= 0; i--) {
-                    if (/^\d+([.,]\d+)?$/.test(parts[i])) {
-                        amountStr = parts[i];
-                        description = parts.slice(0, i).join(' ').trim();
-                        break;
-                    }
-                }
-
-                if (!description || !amountStr) return null;
-
-                // Converte valor BR para number
-                const amount = Number(amountStr.replace('.', '').replace(',', '.'));
-
-                if (!Number.isFinite(amount) || amount <= 0) return null;
-
-                // AQUI ESTÁ A MÁGICA: usa sua função inferType!
-                const type = inferType(description);
-
-                return {
-                    description: description || 'Transação sem descrição',
-                    amount,
-                    type,
-                    category: 'Outros' as TransactionCategory,
-                    date: new Date(),
-                    paid: true,
-                    paymentMethod: 'one-time' as const,
-                    installments: '',
-                    recurrence: undefined,
-                    dueDate: undefined,
-                    institution: '',
-                    observations: '',
-                    creditCard: '',
-                    cardBrand: undefined,
-                    hideFromReports: false,
-                };
-            }).filter(Boolean) as z.infer<typeof TransactionFormSchema>[];
-
-            if (transactions.length === 0) {
-                throw new Error('Nenhuma transação válida foi encontrada no texto. Use o formato: "Descrição valor" (ex: Aluguel 900,00)');
+            if (!result.transactions || result.transactions.length === 0) {
+                 throw new Error('Nenhuma transação válida foi encontrada no texto. Use o formato: "Descrição valor" (ex: Aluguel 900,00)');
             }
 
-            await addTransaction(transactions);
+            const transactionsToSave = result.transactions.map(normalizeTransaction).filter(Boolean);
+
+            if (transactionsToSave.length === 0) {
+                 throw new Error('As transações extraídas não puderam ser normalizadas. Verifique o formato.');
+            }
+            
+            // @ts-ignore
+            await addTransaction(transactionsToSave);
 
             toast({
                 title: "Sucesso!",
-                description: `${transactions.length} transações adicionadas com sucesso.`,
+                description: `${transactionsToSave.length} transações adicionadas com sucesso.`,
             });
 
             setText('');
@@ -882,5 +841,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
