@@ -1,9 +1,10 @@
+
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, Functions, HttpsCallableError } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 import type { 
-    CategorizeTransactionInput, 
+    CategorizeTransactionInput,
     CategorizeTransactionOutput,
     ExtractTransactionInput,
     ExtractTransactionOutput,
@@ -18,34 +19,57 @@ import type {
     MediateGoalsInput,
     MediateGoalsOutput,
     ExtractFromImageInput,
-    ExtractFromImageOutput
-} from '@/lib/types';
-import { z } from 'zod';
+    ExtractFromImageOutput,
+    ExtractMultipleTransactionsInput,
+    ExtractMultipleTransactionsOutput
+} from '@/lib/definitions';
 
-// Helper to call a Firebase Cloud Function and handle the response structure.
+// Helper to call a Firebase Cloud Function.
 async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        const callable = httpsCallable<T, { data: O }>(functions, functionName);
+        // Define the type of return expected from the callable function.
+        // The backend now returns the result directly, which Firebase wraps in { data: result }.
+        const callable = httpsCallable<T, O>(functions, functionName);
         const result = await callable(data);
-        return result.data.data;
-    } catch (error) {
+        
+        // The callable function's result is in result.data
+        return result.data;
+
+    } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error);
-        // It's better to throw the error so the calling component can handle it.
-        if (error instanceof Error) {
-            throw new Error(`Failed to execute ${functionName}: ${error.message}`);
+
+        // Improved error handling to provide specific feedback to the user
+        if (error.code === 'functions/permission-denied') {
+            throw new Error(`Assinatura Premium necessária para este recurso.`);
         }
-        throw new Error(`An unknown error occurred while executing ${functionName}.`);
+        if (error.code === 'functions/unauthenticated') {
+            throw new Error('Autenticação necessária. Por favor, faça login novamente.');
+        }
+        if (error.code === 'functions/not-found') {
+            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique o deploy com 'firebase deploy --only functions'`);
+            throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
+        }
+        
+        throw new Error(error.message || `Falha ao executar ${functionName}: Ocorreu um erro desconhecido.`);
     }
 }
 
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    return callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
+    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
+    return result;
 }
 
 export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
      return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
+}
+
+export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {
+    // This function doesn't have a corresponding flow yet, so we return a placeholder.
+    // In a real scenario, you would implement and call the flow.
+    console.warn("extractMultipleTransactions called but no flow is implemented.");
+    return { transactions: [] };
 }
 
 export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {

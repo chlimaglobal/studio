@@ -1,19 +1,18 @@
-import { NextRequest } from 'next/server';
+
+import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getApp } from 'firebase/app';
-import { LuminaChatInput, LuminaChatOutput } from '@/lib/types';
-import { runFlow } from 'genkit';
+import { app } from '@/lib/firebase';
+import type { LuminaChatInput, LuminaChatOutput } from '@/lib/definitions';
 
 
 export const dynamic = 'force-dynamic';
 
-// O schema de validação para o corpo da requisição
 const LuminaChatRequestSchema = z.object({
   messages: z.array(z.object({ 
       id: z.string().optional(),
-      role: z.enum(['user', 'assistant']), 
+      role: z.enum(['user', 'assistant', 'model']), 
       content: z.string() 
     })).optional(),
   userQuery: z.string().optional(),
@@ -28,46 +27,58 @@ const LuminaChatRequestSchema = z.object({
     email: z.string().nullable(),
     photoURL: z.string().nullable(),
   }).optional(),
+   partner: z.object({
+    uid: z.string(),
+    displayName: z.string().nullable(),
+    email: z.string().nullable(),
+    photoURL: z.string().nullable(),
+  }).optional(),
 });
 
 
 export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
-    const validatedInput = LuminaChatRequestSchema.parse(input);
-
-    const functions = getFunctions(getApp(), 'us-central1');
-    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    const validatedInput: LuminaChatInput = {
+      ...LuminaChatRequestSchema.parse(input),
+      chatHistory: input.messages || [],
+      userQuery: input.userQuery || input.messages?.[input.messages.length - 1]?.content || '',
+    };
     
-    // Como a função de nuvem não suporta streaming diretamente para o cliente dessa forma,
-    // vamos chamar a função e retornar a resposta completa de uma vez.
-    // O cliente precisará ser adaptado para não esperar um stream.
+    const functions = getFunctions(app, 'us-central1');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
+    
     const result = await luminaChatCallable(validatedInput);
-    const luminaResponse = result.data.data;
+    
+    // The callable function now returns the data directly (no double 'data' wrapper)
+    const luminaResponse = result.data;
 
-    // Para simular um stream de uma resposta completa:
-    const readableStream = new ReadableStream({
+    const stream = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(luminaResponse.text));
         controller.close();
-      }
+      },
     });
 
     const data = new StreamData();
     data.append({ finalSuggestions: luminaResponse.suggestions || [] });
     data.close();
 
-    return new StreamingTextResponse(readableStream, {}, data);
+    return new StreamingTextResponse(stream, {}, data);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
-    let errorMessage = "Erro interno do servidor. Verifique os logs.";
-    if (error instanceof z.ZodError) {
-      return new Response(JSON.stringify({ error: "Input inválido", details: error.errors }), { status: 400 });
+    let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
+
+    if (error.code === 'functions/not-found' || error.message.includes('not-found')) {
+      errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
+    } else if (error instanceof z.ZodError) {
+      errorMessage = "Dados inválidos enviados ao servidor.";
+      return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
+    } else if (error.message) {
+      errorMessage = error.message;
     }
-    if(error instanceof Error) {
-        errorMessage = error.message;
-    }
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
+    
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
