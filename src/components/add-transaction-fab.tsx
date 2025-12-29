@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ export function AddTransactionFab() {
   
   const handleAudioTranscript = async (transcript: string) => {
     try {
-        const result = await extractTransactionInfoFromText(transcript);
+        const result = await extractTransactionInfoFromText({ text: transcript });
         if (result && result.amount !== undefined && result.description && result.type) {
             handleTransactionExtracted(result);
         } else {

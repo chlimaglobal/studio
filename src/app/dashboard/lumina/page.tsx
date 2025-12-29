@@ -62,7 +62,6 @@ export default function ChatPage() {
         email: partner?.email,
         photoURL: partner?.photoURL,
       } : undefined,
-      imageBase64: imageBase64,
     },
     onFinish: (message) => {
         if (!message.content.trim()) return;
@@ -150,7 +149,7 @@ export default function ChatPage() {
     handleSubmit(e, {
         options: {
             body: {
-                imageBase64: imageBase64,
+                imageBase64: imageBase64, // Correctly include the imageBase64 in the submission
             }
         }
     });
