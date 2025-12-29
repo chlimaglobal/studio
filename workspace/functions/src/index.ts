@@ -68,7 +68,7 @@ sgMail.setApiKey(sendgridApiKey.value());
 const functionOptions = {
     region: "us-central1",
     secrets: [geminiApiKey, sendgridApiKey],
-    memory: "1GiB" as const, // Use const assertion for type safety
+    memory: "1GiB" as const,
 };
 
 // -----------------
@@ -450,7 +450,6 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     
     try {
-      // The request.data already contains the type I data
       return await run(flow, request.data as I);
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);

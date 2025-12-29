@@ -1,16 +1,18 @@
 
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { DocumentData, Timestamp } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { defineSecret } from "firebase-functions/params";
 import * as sgMail from "@sendgrid/mail";
 import { format, startOfMonth, endOfMonth, subDays, startOfDay, endOfDay } from "date-fns";
-import { defineSecret } from "firebase-functions/params";
 
 // Genkit Imports
 import { genkit, Flow, run, defineFlow, ai } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { firebase } from '@genkit-ai/firebase';
 import { z } from 'zod';
+import { Message } from "genkit/experimental/ai";
 
 import {
     CategorizeTransactionInputSchema,
@@ -31,25 +33,24 @@ import {
     ExtractFromImageOutputSchema,
     LuminaChatInputSchema,
     LuminaChatOutputSchema,
-    LuminaCoupleChatInputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
 import { getFinancialMarketData } from './services/market-data';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
-import { LUMINA_COUPLE_PROMPT } from "./prompts/luminaCouplePrompt";
-import { Message } from "genkit/experimental/ai";
+import { alexaWebhook as alexaWebhookV1 } from './alexa';
 
-
-// Define Secrets
+// Define Secrets for v2
 const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 // Initialize Firebase Admin
-admin.initializeApp();
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 const db = admin.firestore();
 
-// Initialize Genkit
+// Initialize Genkit globally
 genkit({
   plugins: [
     firebase(),
@@ -58,11 +59,18 @@ genkit({
   enableTracingAndMetrics: true,
 });
 
+// Set SendGrid API key at runtime
 sgMail.setApiKey(sendgridApiKey.value());
 
+// Global options for functions
+const functionOptions = {
+    region: "us-central1",
+    secrets: [geminiApiKey, sendgridApiKey],
+    memory: "1GiB" as const,
+};
 
 // -----------------
-// Genkit Flows
+// Genkit Flows (Defined Globally)
 // -----------------
 
 const categorizeTransactionFlow = defineFlow(
@@ -77,34 +85,22 @@ const categorizeTransactionFlow = defineFlow(
 **Exemplos de Categorização:**
 - "Pão na padaria" -> "Padaria"
 - "Gasolina no posto Shell" -> "Combustível"
-- "Almoço com amigos" -> "Restaurante"
-- "Cinema ingresso" -> "Cinema"
-- "iFood" -> "Delivery"
-- "Conta de luz" -> "Luz"
-- "Mensalidade da academia" -> "Assinaturas/Serviços"
-- "Compra no mercado" -> "Supermercado"
-- "Uber" -> "Táxi/Uber"
-- "Netflix" -> "Streamings"
-- "Salário da empresa X" -> "Salário"
 
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
 
-Analise a descrição a seguir e retorne **apenas uma** categoria da lista. Seja o mais específico possível.
-
 **Descrição da Transação:** ${input.description}
 `;
     const llmResponse = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash'),
+      model: 'gemini-1.5-flash',
       prompt: prompt,
       output: { format: 'json', schema: CategorizeTransactionOutputSchema },
     });
     const output = llmResponse.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a categorização.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a categorização.');
     return output;
   }
 );
-
 
 const extractTransactionFromTextFlow = defineFlow(
   {
@@ -118,21 +114,15 @@ const extractTransactionFromTextFlow = defineFlow(
   **Sua Missão:**
   1.  **Extraia os Dados:** Analise o texto para obter: descrição, valor, tipo e parcelamento.
   2.  **Seja Resiliente:** Se um dado estiver faltando, infira o valor mais lógico.
-      -   Se o valor não for mencionado, extraia a descrição e defina o valor como 0.
-      -   Se o tipo não for claro, assuma 'expense' (despesa).
-  3.  **Retorne um JSON Válido, SEMPRE:** Sua resposta DEVE ser um JSON no formato solicitado, mesmo que alguns campos sejam preenchidos com valores padrão.
-  4.  **Cálculo de Parcelas:** Se o usuário mencionar "em 10 vezes", "10x", etc., o valor deve ser o TOTAL da compra, 'paymentMethod' é 'installments' e 'installments' é "10".
-
-  **Exemplos:**
-  - **Texto:** "gastei 25 reais no almoço" -> **Saída:** { "description": "Almoço", "amount": 25, "type": "expense", "category": "Restaurante", "paymentMethod": "one-time" }
-  - **Texto:** "paguei o spotify" -> **Saída:** { "description": "Spotify", "amount": 0, "type": "expense", "category": "Streamings", "paymentMethod": "one-time" }
-  - **Texto:** "Comprei um celular novo por 3 mil reais em 10 vezes" -> **Saída:** { "description": "Celular novo", "amount": 3000, "type": "expense", "category": "Compras", "paymentMethod": "installments", "installments": "10" }
+      - Se o tipo não for claro, assuma 'expense' (despesa).
+  3.  **Retorne um JSON Válido, SEMPRE.**
+  4.  **Cálculo de Parcelas:** Se o usuário mencionar "em 10 vezes", "10x", etc., 'paymentMethod' é 'installments' e 'installments' é "10".
 
   **Texto do usuário para análise:**
   ${input.text}
   `;
     const llmResponse = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash'),
+      model: 'gemini-1.5-flash',
       prompt: prompt,
       output: { format: 'json', schema: ExtractTransactionOutputSchema },
     });
@@ -143,7 +133,6 @@ const extractTransactionFromTextFlow = defineFlow(
     return output;
   }
 );
-
 
 const generateFinancialAnalysisFlow = defineFlow(
   {
@@ -162,16 +151,15 @@ const generateFinancialAnalysisFlow = defineFlow(
 
       Analise os dados e retorne o resultado no formato JSON solicitado.`;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: prompt,
         output: { format: 'json', schema: GenerateFinancialAnalysisOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu gerar a análise financeira.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu gerar a análise financeira.');
     return output;
   }
 );
-
 
 const extractFromFileFlow = defineFlow(
   {
@@ -180,34 +168,25 @@ const extractFromFileFlow = defineFlow(
     outputSchema: ExtractFromFileOutputSchema,
   },
   async (input) => {
-    const prompt = `Você é a Lúmina, uma especialista em processar extratos bancários de diversos formatos (CSV, OFX, PDF). Sua tarefa é analisar o conteúdo de um arquivo, extrair todas as transações financeiras e retorná-las em um formato JSON estruturado.
+    const prompt = `Você é a Lúmina, especialista em processar extratos bancários (CSV, OFX, PDF). Extraia todas as transações, inferindo o tipo ('income'/'expense') e a categoria. Retorne um JSON com a chave \`transactions\`.
 
-  **Instruções de Processamento:**
-  1.  **Analise o Conteúdo:** O conteúdo do arquivo será fornecido como uma string. Identifique o formato e a estrutura.
-  2.  **Extraia os Campos:** Para cada transação, extraia: \`date\` (YYYY-MM-DD), \`description\`, \`amount\` (sempre positivo), \`type\` ('income' ou 'expense'), e \`category\`.
-  3.  **Lógica de Tipos:** Valores positivos são 'income', negativos são 'expense'. O \`amount\` no JSON de saída deve ser o valor absoluto.
-  4.  **Categorização**: Use a descrição para inferir a categoria mais provável da lista fornecida.
-  5.  **Retorno:** Retorne um objeto JSON com a chave \`transactions\`, que é um array de objetos de transação.
-
-  **Categorias Disponíveis para \`category\`:**
+  **Categorias Disponíveis:**
   ${transactionCategories.join('\n- ')}
 
-  **Nome do Arquivo (para contexto):** ${input.fileName}
-  **Conteúdo do Arquivo para Análise:**
-  (O conteúdo está no formato de data URI na próxima parte da mensagem)
-
-  Analise o conteúdo e retorne a lista de transações no formato JSON especificado.`;
+  **Nome do Arquivo:** ${input.fileName}
+  **Conteúdo do Arquivo:**
+  (O conteúdo está na próxima parte da mensagem)
+`;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: [ { text: prompt }, { media: { url: input.fileContent } } ],
         output: { format: 'json', schema: ExtractFromFileOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar o arquivo.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar o arquivo.');
     return output;
   }
 );
-
 
 const getFinancialMarketDataTool = ai.defineTool(
     { name: 'getFinancialMarketData', description: 'Obtém dados e taxas atuais do mercado financeiro brasileiro.', outputSchema: z.object({ selicRate: z.number(), ipcaRate: z.number() }) },
@@ -221,37 +200,22 @@ const analyzeInvestorProfileFlow = defineFlow(
     outputSchema: InvestorProfileOutputSchema,
   },
   async (input) => {
-    const prompt = `Você é a Lúmina, uma planejadora financeira especialista em análise de perfil de investidor (suitability). Sua tarefa é analisar as respostas de um questionário, buscar dados atuais do mercado financeiro e, com base em tudo isso, determinar o perfil de risco do investidor, fornecer uma análise detalhada, sugerir uma alocação de carteira e projetar uma rentabilidade real.
+    const prompt = `Você é a Lúmina, especialista em análise de perfil de investidor. Analise as respostas, use a ferramenta \`getFinancialMarketDataTool\` para obter dados de mercado e determine o perfil de risco, sugira uma carteira e projete a rentabilidade.
 
-      **Contexto das Perguntas e Respostas:**
-      - **q1 (Objetivo):** a1 (Preservar) -> a4 (Maximizar ganhos)
-      - **q2 (Horizonte de Tempo):** b1 (Curto prazo) -> b4 (Longo prazo)
-      - **q3 (Reação à Volatilidade):** c1 (Vende tudo) -> c4 (Compra mais)
-
-      **Instruções de Análise:**
-      1.  **Buscar Dados de Mercado:** Use a ferramenta \`getFinancialMarketDataTool\` para obter as taxas SELIC e IPCA atuais.
-      2.  **Determinar o Perfil:** Com base nas respostas, classifique o perfil como 'Conservador', 'Moderado' ou 'Arrojado'.
-      3.  **Escrever a Análise (analysis):** Elabore um texto claro e didático.
-      4.  **Sugerir Alocação de Ativos (assetAllocation):** Crie uma carteira diversificada. A soma deve ser 100.
-      5.  **Projetar Rentabilidade Real (expectedReturn):** Calcule e retorne a rentabilidade anual estimada da carteira acima da inflação no formato "IPCA + X,XX%".
-      6.  **Fornecer Recomendações (recommendations):** Dê 2 ou 3 dicas práticas.
-
-      **Respostas do Usuário para Análise:**
+      **Respostas do Usuário:**
       ${JSON.stringify(input.answers)}
-
-      Analise os dados e retorne o resultado no formato JSON solicitado.`;
+    `;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: prompt,
         tools: [getFinancialMarketDataTool],
         output: { format: 'json', schema: InvestorProfileOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a análise de perfil.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a análise de perfil.');
     return output;
   }
 );
-
 
 const calculateSavingsGoalFlow = defineFlow(
   {
@@ -260,24 +224,23 @@ const calculateSavingsGoalFlow = defineFlow(
     outputSchema: SavingsGoalOutputSchema,
   },
   async (input) => {
-    if (!input.transactions || input.transactions.length === 0) throw new Error('Não há transações suficientes para calcular uma meta.');
+    if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
-      **Dados das Transações do Usuário para Análise:**
+      **Dados das Transações do Usuário:**
       ${JSON.stringify(input.transactions)}
 
-      Analise os dados, siga as regras e retorne o resultado no formato JSON.`;
+      Analise os dados e retorne o resultado em JSON.`;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: prompt,
         output: { format: 'json', schema: SavingsGoalOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu calcular a meta de economia.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu calcular a meta de economia.');
     return output;
   }
 );
-
 
 const mediateGoalsFlow = defineFlow(
   {
@@ -286,34 +249,25 @@ const mediateGoalsFlow = defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
-    const prompt = `Você é a Lúmina, uma terapeuta e planejadora financeira especialista em casais. Sua missão é ajudar casais a alinhar suas metas financeiras, mesmo quando parecem conflitantes.
+    const prompt = `Você é a Lúmina, terapeuta financeira de casais. Ajude a alinhar metas conflitantes.
 
   **Contexto:**
-  - Renda e Despesas: Parceiro A (Renda: ${input.partnerAIncome}, Despesas: ${input.partnerAExpenses}), Parceiro B (Renda: ${input.partnerBIncome}, Despesas: ${input.partnerBExpenses})
-  - Poupança Atual: ${input.currentSavings}
-  - Capacidade de Economia Mensal: ${input.sharedMonthlySavings}
+  - Poupança Mensal: ${input.sharedMonthlySavings}
   - Meta A: ${JSON.stringify(input.partnerAGoal)}
   - Meta B: ${JSON.stringify(input.partnerBGoal)}
 
-  **Sua Tarefa:**
-  1.  **Analisar a Viabilidade:** Verifique se a soma dos aportes necessários para cada meta ultrapassa a capacidade de economia do casal.
-  2.  **Criar um Plano Conjunto (jointPlan):** Aloque a poupança mensal proporcionalmente e recalcule os prazos (\`newMonths\`).
-  3.  **Escrever um Resumo (summary):** Crie um parágrafo curto e positivo.
-  4.  **Elaborar a Análise (analysis):** Explique seu raciocínio de forma clara.
-  5.  **Definir Passos de Ação (actionSteps):** Forneça 2 ou 3 passos práticos.
-
-  Analise os dados e retorne o resultado no formato JSON especificado.`;
+  **Sua Tarefa:** Analise a viabilidade, crie um plano conjunto, escreva um resumo, elabore a análise e defina os próximos passos.
+  `;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: prompt,
         output: { format: 'json', schema: MediateGoalsOutputSchema }
     });
     const output = result.output;
-    if (!output) throw new Error('A Lúmina não conseguiu processar a mediação de metas.');
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar a mediação de metas.');
     return output;
   }
 );
-
 
 const extractFromImageFlow = defineFlow(
   {
@@ -322,35 +276,16 @@ const extractFromImageFlow = defineFlow(
     outputSchema: ExtractFromImageOutputSchema,
   },
   async (input) => {
-    const prompt = `Você é Lúmina, uma assistente financeira especialista em interpretar imagens financeiras. Sua missão é extrair, interpretar, e transformar imagens em dados estruturados.
-
-### MÓDULO 1: RECONHECIMENTO DE BOLETOS
-- **Campos:** \`amount\`, \`dueDate\` (YYYY-MM-DD), \`beneficiary\`, \`bank\`, \`digitableLine\`.
-- **Valores Fixos:** \`type\`: "expense", \`category\`: "Contas", \`paymentMethod\`: "one-time", \`description\`: "Pagamento de Boleto: [Beneficiário]".
-
-### MÓDULO 2: EXTRAÇÃO DE RECIBOS E NOTAS
-- **Campos:** \`description\`, \`amount\` (TOTAL), \`date\` (YYYY-MM-DD), \`type\`: 'expense', \`category\`, \`cnpj\`, \`items\` (lista com 'name', 'quantity', 'price').
-- **Cálculo de Parcelas:** Se "10x de R$27,17", o valor é 271.70, 'paymentMethod' é 'installments' e 'installments' é "10".
-
-**Sua Missão Final:**
-1.  **Identifique o Tipo de Imagem:** Boleto ou Recibo.
-2.  **Aplique o Módulo Correto.**
-3.  **Retorne um JSON Válido.**
+    const prompt = `Você é Lúmina, especialista em interpretar imagens financeiras (boletos, recibos, notas). Extraia os dados da imagem e retorne um JSON válido.
 
 **Categorias Disponíveis:**
 ${transactionCategories.join('\n- ')}
 
----
-**DADOS PARA ANÁLISE:**
-**Histórico de Transações (contexto):**
-${JSON.stringify(input.allTransactions || [])}
-
 **Imagem para Análise:**
 (A imagem está na próxima parte da mensagem)
-
-Analise a imagem e retorne um JSON válido.`;
+`;
     const result = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: 'gemini-1.5-flash',
         prompt: [ { text: prompt }, { media: { url: input.imageDataUri } } ],
         output: { format: 'json', schema: ExtractFromImageOutputSchema }
     });
@@ -360,7 +295,6 @@ Analise a imagem e retorne um JSON válido.`;
   }
 );
 
-
 const luminaChatFlow = defineFlow(
   {
     name: 'luminaChatFlow',
@@ -368,7 +302,6 @@ const luminaChatFlow = defineFlow(
     outputSchema: LuminaChatOutputSchema,
   },
   async function (input) {
-    const userId = input.user?.uid || 'default';
     const userQuery = (input.userQuery || '').trim();
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
@@ -403,7 +336,7 @@ const luminaChatFlow = defineFlow(
 
     try {
         const result = await ai.generate({
-            model: googleAI.model('gemini-1.5-flash'),
+            model: 'gemini-1.5-flash',
             system: systemPrompt,
             prompt: lastUserMessageParts,
             history: history,
@@ -417,47 +350,49 @@ const luminaChatFlow = defineFlow(
         
     } catch (err: any) {
         console.error("ERRO GEMINI:", err.message);
-        return {
-            text: "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido?",
-            suggestions: ["Resumo do mês", "Maiores gastos"],
-        };
+        throw new HttpsError('internal', "Desculpa, estou com um probleminha técnico agora... Mas posso te ajudar com um resumo rápido?");
     }
   }
 );
 
-
 // -----------------
-// Callable Functions for Genkit Flows
+// Callable Functions Wrapper
 // -----------------
-const REGION = "us-central1";
-
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
-  return functions.region(REGION).runWith({ secrets: [geminiApiKey], memory: "1GiB" }).https.onCall(async (data: I, context) => {
-    // Premium check logic
+  return onCall(functionOptions, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Autenticação necessária.');
+    }
+    
     const isPremium = async () => {
-        if (!context.auth) return false;
-        if (context.auth.token.email === 'digitalacademyoficiall@gmail.com') return true;
-        const userDoc = await db.collection('users').doc(context.auth.uid).get();
+        if (request.auth?.token.email === 'digitalacademyoficiall@gmail.com') return true;
+        const userDoc = await db.collection('users').doc(request.auth!.uid).get();
         const subStatus = userDoc.data()?.stripeSubscriptionStatus;
         return subStatus === 'active' || subStatus === 'trialing';
     };
 
-    if (['generateFinancialAnalysisFlow', 'extractFromFileFlow', 'analyzeInvestorProfileFlow', 'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow'].includes(flow.name)) {
-        if (!(await isPremium())) {
-            throw new functions.https.HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
-        }
+    const premiumFlows = new Set([
+      'generateFinancialAnalysisFlow', 'extractFromFileFlow', 'analyzeInvestorProfileFlow', 
+      'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow'
+    ]);
+
+    if (premiumFlows.has(flow.name) && !(await isPremium())) {
+        throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
     }
     
     try {
-      const result = await run(flow, data);
-      return result;
+      return await run(flow, request.data as I);
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
-      throw new functions.https.HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
+      if (e instanceof HttpsError) {
+        throw e;
+      }
+      throw new HttpsError('internal', e.message || 'An error occurred while executing the AI flow.');
     }
   });
 };
 
+// Export Callable Functions
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
 export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
@@ -470,77 +405,72 @@ export const luminaChat = createGenkitCallable(luminaChatFlow);
 
 
 // -----------------
-// Original Firebase Functions
+// Original Firebase Functions (v2 Syntax)
 // -----------------
 
-export const sendPartnerInvite = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .https.onCall(async (data, context) => {
+export const sendPartnerInvite = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    
+    const { partnerEmail, senderName } = request.data;
+    if (!partnerEmail || !senderName) throw new HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+    
     try {
-      const { partnerEmail, senderName } = data;
-      if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-      if (!partnerEmail || !senderName) throw new functions.https.HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
-      
       const inviteToken = db.collection("invites").doc().id;
       const inviteData = {
-        sentBy: context.auth.uid,
+        sentBy: request.auth.uid,
         sentByName: senderName,
-        sentByEmail: context.auth.token.email || null,
+        sentByEmail: request.auth.token.email || null,
         sentToEmail: partnerEmail,
         status: "pending",
-        createdAt: Timestamp.now(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       await db.collection("invites").doc(inviteToken).set(inviteData);
       return { success: true, inviteToken, message: "Convite criado com sucesso!" };
     } catch (error) {
       console.error("Erro em sendPartnerInvite:", error);
-      throw new functions.https.HttpsError("internal", "Erro ao enviar convite.");
+      throw new HttpsError("internal", "Erro ao enviar convite.");
     }
-  });
+});
 
-export const onInviteCreated = functions
-  .region(REGION)
-  .runWith({ secrets: [sendgridApiKey] })
-  .firestore.document("invites/{inviteId}")
-  .onCreate(async (snap) => {
+
+export const onInviteCreated = onDocumentCreated({
+    document: "invites/{inviteId}",
+    region: functionOptions.region,
+    secrets: [sendgridApiKey]
+}, async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
     try {
-      const invite = snap.data() as DocumentData;
+      const invite = snap.data();
       if (!invite.sentToEmail) {
         console.warn("Convite sem e-mail de destino, ignorando.");
-        return null;
+        return;
       }
       
       const msg = {
         to: invite.sentToEmail,
-        from: { 
-            email: "no-reply@financeflow.app",
-            name: "FinanceFlow" 
-        },
+        from: { email: "no-reply@financeflow.app", name: "FinanceFlow" },
         subject: `Você recebeu um convite de ${invite.sentByName} para o Modo Casal!`,
-        text: `Olá! ${invite.sentByName} (de ${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
+        text: `Olá! ${invite.sentByName} (${invite.sentByEmail || 'um e-mail privado'}) convidou você para usar o Modo Casal no FinanceFlow. Acesse o aplicativo para visualizar e aceitar o convite.`,
         html: `<p>Olá!</p><p><strong>${invite.sentByName}</strong> convidou você para usar o <strong>Modo Casal</strong> no FinanceFlow.</p><p>Acesse o aplicativo para visualizar e aceitar o convite.</p>`,
       };
 
       await sgMail.send(msg);
-      return { success: true };
     } catch (error) {
       console.error("Erro ao enviar email de convite:", error);
-      // Não jogue um HttpsError aqui, pois é um gatilho. Apenas retorne nulo ou um erro para o log.
-      return null;
     }
-  });
+});
 
-export const disconnectPartner = functions
-  .region(REGION)
-  .https.onCall(async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Você precisa estar autenticado.");
-    const userId = context.auth.uid;
+export const disconnectPartner = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "Você precisa estar autenticado.");
+    
+    const userId = request.auth.uid;
     try {
       const userDocRef = db.collection("users").doc(userId);
       const userDoc = await userDocRef.get();
       const userData = userDoc.data();
-      if (!userData || !userData.coupleId) throw new functions.https.HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
+      if (!userData || !userData.coupleId) throw new HttpsError("failed-precondition", "Você não está vinculado a um parceiro.");
       
       const coupleId = userData.coupleId;
       const coupleDocRef = db.collection("couples").doc(coupleId);
@@ -555,24 +485,27 @@ export const disconnectPartner = functions
       return { success: true, message: "Desvinculação concluída." };
     } catch (error) {
       console.error("Erro ao desvincular parceiro:", error);
-      if (error instanceof functions.https.HttpsError) throw error;
-      throw new functions.https.HttpsError("internal", "Erro inesperado ao desvincular.");
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError("internal", "Erro inesperado ao desvincular.");
     }
-  });
+});
 
-export const checkDashboardStatus = functions.region(REGION).https.onCall(
-  async (data, context) => {
-    if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${context.auth.uid}`);
+
+export const checkDashboardStatus = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    console.log(`Rotina de verificação diária para o usuário: ${request.auth.uid}`);
     return { success: true, message: "Verificação concluída." };
   }
 );
 
-export const onTransactionCreated = functions.region(REGION).firestore
-  .document("users/{userId}/transactions/{transactionId}")
-  .onCreate(async (snap, context) => {
-    if (!snap.exists) return null;
-    const { userId } = context.params;
+export const onTransactionCreated = onDocumentCreated({
+    document: "users/{userId}/transactions/{transactionId}",
+    region: functionOptions.region,
+}, async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const { userId } = event.params;
     const userDocRef = db.doc(`users/${userId}`);
     try {
       await db.runTransaction(async (transaction) => {
@@ -609,12 +542,15 @@ export const onTransactionCreated = functions.region(REGION).firestore
       console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
     return null; 
-  });
+});
 
-export const dailyFinancialCheckup = functions.region(REGION).pubsub
-  .schedule('every 24 hours')
-  .onRun(async () => {
-    let lastVisible = null as functions.firestore.QueryDocumentSnapshot | null;
+
+export const dailyFinancialCheckup = onSchedule({
+    schedule: 'every 24 hours',
+    region: functionOptions.region,
+    secrets: [geminiApiKey]
+}, async (event) => {
+    let lastVisible = null as admin.firestore.QueryDocumentSnapshot | null;
     const pageSize = 100;
     while (true) {
       let query = db.collection('users').orderBy(admin.firestore.FieldPath.documentId()).limit(pageSize);
@@ -724,6 +660,7 @@ export const dailyFinancialCheckup = functions.region(REGION).pubsub
       await Promise.all(processingPromises);
     }
     return null;
-  });
+});
 
-export { alexaWebhook } from './alexa';
+// Export the v1 handler for Alexa, as it uses a different signature
+export const alexaWebhook = alexaWebhookV1;

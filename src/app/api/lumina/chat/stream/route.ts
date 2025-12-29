@@ -43,16 +43,15 @@ export async function POST(req: NextRequest) {
     const validatedInput: LuminaChatInput = {
       ...LuminaChatRequestSchema.parse(input),
       chatHistory: input.messages || [],
+      userQuery: input.userQuery || input.messages?.[input.messages.length - 1]?.content || '',
     };
 
     const functions = getFunctions(app, 'us-central1');
-    // A função retornará um tipo { data: LuminaChatOutput }
-    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
     
     // Await the full response from the non-streaming cloud function
     const result = await luminaChatCallable(validatedInput);
     
-    // Extrai os dados corretamente (a resposta está em result.data)
     const luminaResponse = result.data;
 
     // Para manter a compatibilidade com o hook `useChat`, criamos um stream simples
@@ -73,16 +72,16 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
     let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
-    if (error instanceof z.ZodError) {
+
+    if (error.code === 'functions/not-found' || error.message.includes('not-found')) {
+      errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
+    } else if (error instanceof z.ZodError) {
       errorMessage = "Dados inválidos enviados ao servidor.";
       return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
-    }
-    // Específico para o erro da imagem
-    if (error.code === 'functions/not-found') {
-        errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor."
+    } else if (error.message) {
+        errorMessage = error.message;
     }
     
-    // Retorna uma resposta de erro padronizada em JSON
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
