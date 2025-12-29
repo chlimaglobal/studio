@@ -50,11 +50,10 @@ service cloud.firestore {
         );
         
       // NEW RULE: Allow listing invites if the query is specific to the user
-      allow list: if request.auth != null &&
-                      (request.query.limit <= 1 &&
-                       (request.query.where.size() == 2 && request.query.where[0][0] == 'sentBy' && request.query.where[0][2] == request.auth.uid && request.query.where[1][0] == 'status' && request.query.where[1][2] == 'pending') ||
-                       (request.query.where.size() == 2 && request.query.where[0][0] == 'sentToEmail' && request.query.where[0][2] == request.auth.token.email && request.query.where[1][0] == 'status' && request.query.where[1][2] == 'pending')
-                      );
+      allow list: if request.auth != null && request.query.limit <= 1 && (
+        (request.query.where[0][0] == 'sentBy' && request.query.where[0][2] == request.auth.uid && request.query.where[1][0] == 'status' && request.query.where[1][2] == 'pending') ||
+        (request.query.where[0][0] == 'sentToEmail' && request.query.where[0][2] == request.auth.token.email && request.query.where[1][0] == 'status' && request.query.where[1][2] == 'pending')
+      );
     }
 
     // Default: deny
@@ -63,5 +62,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
