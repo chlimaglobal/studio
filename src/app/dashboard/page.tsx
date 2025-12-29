@@ -85,7 +85,6 @@ const AiTipsCard = () => {
 
     if (operationalTransactions.length > 2) {
         try {
-            // Adicionado a verificação de assinatura aqui também, como uma dupla garantia.
             if (!isSubscribed && !isAdmin) {
                 setTips(null);
                 return;
@@ -95,9 +94,9 @@ const AiTipsCard = () => {
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
         } catch (error) {
-            // Não logar o erro de "permissão negada" como um erro real para o console
+            // Silently fail for permission errors, as this is expected for non-premium users.
             if (error instanceof Error && error.message.includes('permission-denied')) {
-                // Silently ignore permission errors for non-premium users
+                 // Do nothing, just prevent the app from crashing.
             } else {
                 console.error("Failed to fetch AI tips:", error);
             }
