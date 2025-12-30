@@ -30,6 +30,7 @@ async function callFirebaseFunction<I, O>(functionName: string, data: I): Promis
         const functions = getFunctions(app, 'us-central1');
         const callable = httpsCallable<I, { data: O }>(functions, functionName);
         const result = await callable(data);
+        // A resposta da v2 callable já vem em `result.data`, e o wrapper `createGenkitCallable` encapsula em `data`
         return result.data.data;
 
     } catch (error: any) {

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     // Await a resposta completa, já que a Cloud Function v2 não suporta streaming de forma nativa para o cliente
     const result = await luminaChatCallable(functionInput);
     
-    // A resposta da v2 callable já vem em `result.data`
+    // A resposta da v2 callable já vem em `result.data.data` porque o wrapper `createGenkitCallable` a encapsula
     const luminaResponse = result.data.data;
 
     // Para manter a compatibilidade com o hook `useChat`, criamos um stream simples
@@ -84,12 +84,12 @@ export async function POST(req: NextRequest) {
     let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
 
     // Trata erros específicos do Firebase Functions
-    if (error.code === 'functions/not-found' || (error.details && error.details.includes('NOT_FOUND'))) {
-      errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
-    } else if (error.code === 'functions/permission-denied') {
+    if (error.code === 'functions/permission-denied') {
         errorMessage = "Você não tem permissão para usar este recurso. Verifique sua assinatura.";
     } else if (error.code === 'functions/unauthenticated') {
         errorMessage = "Sessão expirada. Por favor, faça login novamente.";
+    } else if (error.code === 'functions/not-found' || (error.details && error.details.includes('NOT_FOUND'))) {
+      errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
     } else if (error instanceof z.ZodError) {
       errorMessage = "Dados inválidos enviados ao servidor.";
       return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
