@@ -491,7 +491,7 @@ export const sendPartnerInvite = onCall(functionOptions, async (request) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       await db.collection("invites").doc(inviteToken).set(inviteData);
-      return { success: true, inviteToken, message: "Convite criado com sucesso!" };
+      return { data: { success: true, inviteToken, message: "Convite criado com sucesso!" }};
     } catch (error) {
       console.error("Erro em sendPartnerInvite:", error);
       throw new HttpsError("internal", "Erro ao enviar convite.");
@@ -547,7 +547,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
       if (partnerId) batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
       batch.delete(coupleDocRef);
       await batch.commit();
-      return { success: true, message: "Desvinculação concluída." };
+      return { data: { success: true, message: "Desvinculação concluída." } };
     } catch (error) {
       console.error("Erro ao desvincular parceiro:", error);
       if (error instanceof HttpsError) throw error;
@@ -558,7 +558,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
 
 export const checkDashboardStatus = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    return { success: true, message: "Verificação concluída." };
+    return { data: { success: true, message: "Verificação concluída." } };
   }
 );
 
