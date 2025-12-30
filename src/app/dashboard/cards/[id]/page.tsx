@@ -7,7 +7,6 @@ import { ChevronLeft, ChevronRight, History, BarChart2, MoreHorizontal } from 'l
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactions } from '@/components/client-providers';
@@ -167,5 +166,3 @@ export default function CardDetailsPage({ params }: Props) {
         </div>
   );
 }
-
-    

@@ -34,11 +34,7 @@ import {
     LuminaChatInputSchema,
     LuminaChatOutputSchema,
     ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema,
-    AlexaExtractTransactionInputSchema,
-    AlexaExtractTransactionOutputSchema,
-    GetSimpleFinancialSummaryInputSchema,
-    GetSimpleFinancialSummaryOutputSchema
+    ExtractMultipleTransactionsOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
@@ -60,14 +56,19 @@ export const db = admin.firestore();
 let aiInstance: any;
 function getAI() {
     if (!aiInstance) {
-        genkit({
-            plugins: [
-                firebase(),
-                googleAI({ apiKey: geminiApiKey.value() }),
-            ],
-            enableTracingAndMetrics: true,
-        });
-        aiInstance = ai;
+        try {
+            genkit({
+                plugins: [
+                    firebase(),
+                    googleAI({ apiKey: geminiApiKey.value() }),
+                ],
+                enableTracingAndMetrics: true,
+            });
+            aiInstance = ai;
+        } catch(e) {
+            console.error("CRITICAL: Genkit initialization failed.", e);
+            return null; // Return null on failure
+        }
     }
     return aiInstance;
 }
@@ -95,6 +96,7 @@ const categorizeTransactionFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
@@ -125,6 +127,7 @@ const extractTransactionFromTextFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
@@ -158,6 +161,7 @@ const extractMultipleTransactionsFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em processar texto. Extraia todas as transações de cada linha do texto abaixo. Ignore linhas vazias. Para cada linha, extraia: descrição, valor e tipo (inferir 'expense' se não claro).
 
   **Categorias Disponíveis:**
@@ -186,6 +190,7 @@ const generateFinancialAnalysisFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     if (!input.transactions || input.transactions.length === 0) {
       return { healthStatus: 'Atenção', diagnosis: 'Ainda não há transações suficientes para uma análise detalhada.', suggestions: [], trendAnalysis: undefined };
     }
@@ -214,6 +219,7 @@ const extractFromFileFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em processar extratos bancários (CSV, OFX, PDF). Extraia todas as transações, inferindo o tipo ('income'/'expense') e a categoria. Retorne um JSON com a chave \`transactions\`.
 
   **Categorias Disponíveis:**
@@ -247,6 +253,7 @@ const analyzeInvestorProfileFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em análise de perfil de investidor. Analise as respostas, use a ferramenta \`getFinancialMarketDataTool\` para obter dados de mercado e determine o perfil de risco, sugira uma carteira e projete a rentabilidade.
 
       **Respostas do Usuário:**
@@ -272,6 +279,7 @@ const calculateSavingsGoalFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
@@ -298,6 +306,7 @@ const mediateGoalsFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, terapeuta financeira de casais. Ajude a alinhar metas conflitantes.
 
   **Contexto:**
@@ -326,6 +335,7 @@ const extractFromImageFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é Lúmina, especialista em interpretar imagens financeiras (boletos, recibos, notas). Extraia os dados da imagem e retorne um JSON válido.
 
 **Categorias Disponíveis:**
@@ -353,6 +363,7 @@ const luminaChatFlow = defineFlow(
   },
   async function (input) {
     const ai = getAI();
+    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const userQuery = (input.userQuery || '').trim();
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
@@ -408,64 +419,6 @@ const luminaChatFlow = defineFlow(
 
 
 // -----------------
-// Alexa Flows
-// -----------------
-
-export const alexaExtractTransactionFlow = defineFlow(
-    {
-      name: "alexaExtractTransactionFlow",
-      inputSchema: AlexaExtractTransactionInputSchema,
-      outputSchema: AlexaExtractTransactionOutputSchema,
-    },
-    async (input) => {
-        const ai = getAI();
-        const prompt = `
-        Você é a Lúmina, uma assistente financeira inteligente.
-        Sua tarefa é extrair UMA ÚNICA TRANSAÇÃO FINANCEIRA a partir de um texto falado.
-        REGRAS:
-        1. Extraia apenas UMA transação.
-        2. Se nenhuma transação válida for encontrada, retorne null.
-        3. O resultado DEVE seguir EXATAMENTE o schema fornecido.
-        4. A data deve ser a data atual se não for especificada.
-        Texto: ${input.text}
-        `;
-
-        const result = await ai.generate({
-            prompt,
-            model: 'gemini-1.5-flash',
-            output: { format: "json", schema: AlexaExtractTransactionOutputSchema },
-        });
-
-        return result.output;
-    }
-);
-
-export const getSimpleFinancialSummaryFlow = defineFlow(
-    {
-      name: "getSimpleFinancialSummaryFlow",
-      inputSchema: GetSimpleFinancialSummaryInputSchema,
-      outputSchema: GetSimpleFinancialSummaryOutputSchema,
-    },
-    async (input) => {
-        const ai = getAI();
-        const prompt = `
-        Você é a Lúmina. Gere um resumo financeiro CURTO e amigável para a Alexa.
-        Dados:
-        - Receitas: ${input.totalIncome}
-        - Despesas: ${input.totalExpense}
-        - Saldo: ${input.balance}
-        - Período: ${input.period}
-        `;
-
-        const result = await ai.generate({ prompt, model: 'gemini-1.5-flash' });
-
-        return { summary: result.text ?? "Não consegui gerar o resumo." };
-    }
-);
-
-
-
-// -----------------
 // Callable Functions Wrapper
 // -----------------
 const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
@@ -492,9 +445,8 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     
     try {
-      // Run the flow and return its output directly.
       const result = await run(flow, request.data as I);
-      return result;
+      return { data: result }; // Always wrap result in a 'data' object
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
       if (e instanceof HttpsError) {
@@ -558,7 +510,6 @@ export const onInviteCreated = onDocumentCreated({
     try {
       const invite = snap.data();
       if (!invite.sentToEmail) {
-        console.warn("Convite sem e-mail de destino, ignorando.");
         return;
       }
       
@@ -777,5 +728,3 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
-
-    

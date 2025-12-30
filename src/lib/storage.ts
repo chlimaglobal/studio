@@ -82,7 +82,6 @@ export function onUserUpdate(userId: string, callback: (userData: AppUser | null
 
 export function onUserSubscriptionUpdate(userId: string, callback: (status: string) => void): () => void {
     if (!userId) {
-        console.error("onUserSubscriptionUpdate called without a userId.");
         callback('inactive');
         return () => {};
     }
@@ -148,7 +147,6 @@ export async function saveFcmToken(userId: string, token: string) {
 
 export function onTransactionsUpdate(userId: string, callback: (transactions: Transaction[]) => void): () => void {
   if (!userId) {
-    console.error("onTransactionsUpdate called without a userId.");
     return () => {};
   }
   const q = query(collection(db, "users", userId, "transactions"));
@@ -680,3 +678,7 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
         return null;
     }
 }
+
+
+// Re-exporting getDoc and doc for use in other files
+export { getDoc, doc };

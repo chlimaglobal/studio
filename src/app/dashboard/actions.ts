@@ -45,7 +45,6 @@ async function callFirebaseFunction<I, O>(functionName: string, data: I): Promis
             throw new Error('Autenticação necessária. Por favor, faça login novamente.');
         }
         if (error.code === 'functions/not-found') {
-            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique o deploy com 'firebase deploy --only functions'`);
             throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
         }
         
