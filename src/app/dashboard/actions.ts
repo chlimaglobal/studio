@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getFunctions, httpsCallable, Functions, HttpsCallableError } from 'firebase/functions';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 import type { 
     CategorizeTransactionInput,

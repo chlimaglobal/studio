@@ -456,7 +456,6 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
             category: 'Comissão' as const,
             paid: true,
             paymentMethod: 'one-time' as const,
-            ownerId: userId,
         };
         const validatedTx = TransactionFormSchema.parse(transactionData);
         await addStoredTransaction([validatedTx], userId);
@@ -485,7 +484,6 @@ export async function updateStoredCommissionStatus(userId: string, commissionId:
         category: 'Comissão' as const,
         paid: true,
         paymentMethod: 'one-time' as const,
-        ownerId: userId,
     };
     const validatedTx = TransactionFormSchema.parse(transactionData);
     await addStoredTransaction([validatedTx], userId);
