@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactions } from '@/components/client-providers';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 
 type Props = {
   params: { id: string };
@@ -23,6 +23,7 @@ export default function CardDetailsPage({ params }: Props) {
   const cardName = decodeURIComponent(params.id);
   const [isMounted, setIsMounted] = useState(false);
   const { transactions } = useTransactions();
+  const router = useRouter();
 
   const cardTransactions = transactions.filter(
     (t) => t.type === 'expense' && t.category === 'Cartão de Crédito' && t.creditCard === cardName
@@ -42,11 +43,9 @@ export default function CardDetailsPage({ params }: Props) {
         <div className="flex flex-col h-full">
         {/* Header */}
         <header className="flex items-center justify-between p-4">
-            <Link href="/dashboard/cards" passHref>
-                <Button variant="ghost" size="icon">
-                    <ChevronLeft className="h-6 w-6" />
-                </Button>
-            </Link>
+            <Button variant="ghost" size="icon" onClick={() => router.push('/dashboard/cards')}>
+                <ChevronLeft className="h-6 w-6" />
+            </Button>
             <div className="text-center">
                 <h1 className="text-lg font-semibold">21 de Julho de 2025</h1>
                 <p className="text-xs text-muted-foreground">0:12</p>
@@ -168,3 +167,5 @@ export default function CardDetailsPage({ params }: Props) {
         </div>
   );
 }
+
+    

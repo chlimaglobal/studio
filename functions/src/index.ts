@@ -607,7 +607,6 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
 
 export const checkDashboardStatus = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${request.auth.uid}`);
     return { success: true, message: "Verificação concluída." };
   }
 );
@@ -778,3 +777,5 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
+
+    

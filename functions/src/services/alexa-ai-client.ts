@@ -41,3 +41,5 @@ export async function getSummaryFromSpeech(transactions: DocumentData[]): Promis
         return "Desculpe, não consegui gerar seu resumo financeiro no momento.";
     }
 }
+
+    

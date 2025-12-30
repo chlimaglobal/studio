@@ -14,7 +14,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { httpsCallable, getFunctions } from 'firebase/functions';
 import { useAuth } from '@/components/client-providers';
 
 const Logo = () => (
@@ -72,15 +71,6 @@ export default function LoginPage() {
     // Store user info for biometrics and settings page
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
-    
-    try {
-        const functions = getFunctions(app, 'us-central1');
-        const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
-        await handleUserLogin();
-    } catch (error) {
-        // Log the error but don't block the user from logging in
-        console.warn('Could not run handleUserLogin trigger:', error);
-    }
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -100,7 +90,6 @@ export default function LoginPage() {
             errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
         }
         
-        console.error("Login Error:", error);
         toast({
           variant: 'destructive',
           title: 'Falha no Login',
@@ -289,3 +278,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+    
