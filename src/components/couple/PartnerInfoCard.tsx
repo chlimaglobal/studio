@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, Heart, UserX } from 'lucide-react';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { httpsCallable, getFunctions } from 'firebase/functions';
