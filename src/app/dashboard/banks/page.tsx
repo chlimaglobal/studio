@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // Correct import for the app instance
+import { app } from '@/lib/firebase'; 
 
 
 // ----------------------
@@ -42,7 +41,7 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const functions = getFunctions(app); // Correctly get functions instance
+            const functions = getFunctions(app, 'us-central1');
 
             const acceptInvite = httpsCallable(functions, 'acceptInviteCode');
             const result = await acceptInvite({ code: code.toUpperCase() });

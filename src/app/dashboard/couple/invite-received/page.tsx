@@ -11,7 +11,7 @@ import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // Correct import for the app instance
+import { app } from '@/lib/firebase';
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -36,9 +36,8 @@ export default function InviteReceivedPage() {
         setIsActionLoading(true);
 
         try {
-            const functions = getFunctions(app); 
+            const functions = getFunctions(app, 'us-central1'); 
 
-            // ✅ Correção: função correta para recusar convite recebido
             const callableFunctionName =
                 action === 'accept'
                     ? 'acceptPartnerInvite'
@@ -55,7 +54,6 @@ export default function InviteReceivedPage() {
                     description: data.message,
                 });
 
-                // Redireciona para o painel
                 router.replace('/dashboard/couple');
             } else {
                 throw new Error(data.error);

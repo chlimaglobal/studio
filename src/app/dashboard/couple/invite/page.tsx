@@ -19,7 +19,7 @@ import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
 import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; // Correct import
+import { app } from '@/lib/firebase';
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -43,7 +43,7 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app);
+      const functions = getFunctions(app, 'us-central1');
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
       const result = await sendInviteCallable({

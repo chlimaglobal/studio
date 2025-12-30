@@ -46,7 +46,7 @@ export default function PendingInvitePage() {
     setIsActionLoading(true);
     try {
       
-      const functions = getFunctions(app);
+      const functions = getFunctions(app, 'us-central1');
       const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
 
       const result = await cancelCallable({ inviteId: invite.id });
