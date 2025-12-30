@@ -16,8 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAuth } from '../client-providers';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 interface InvitePartnerDialogProps {
@@ -47,33 +45,33 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app, 'us-central1');
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-
-      const result = await sendInviteCallable({
-        partnerEmail: email,
-        senderName: user.displayName || 'Usuário',
+      // Direct fetch to a Next.js API route
+      const response = await fetch('/api/couple/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getIdToken()}`,
+        },
+        body: JSON.stringify({
+          partnerEmail: email,
+          senderName: user.displayName || 'Usuário',
+        }),
       });
 
-      const data = (result.data as any)?.data as {
-        success: boolean;
-        message: string;
-        error?: string;
-      };
-
-      if (data.success) {
-        toast({
-          title: 'Sucesso!',
-          description: data.message,
-        });
-
-        onOpenChange(false);
-        setEmail('');
-        router.refresh();
-
-      } else {
-        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Falha na comunicação com o servidor.');
       }
+
+      toast({
+        title: 'Sucesso!',
+        description: result.message,
+      });
+
+      onOpenChange(false);
+      setEmail('');
+      router.refresh();
 
     } catch (error: any) {
       toast({

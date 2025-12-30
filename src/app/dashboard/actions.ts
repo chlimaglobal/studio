@@ -1,8 +1,6 @@
 
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
 import type { 
     CategorizeTransactionInput,
     CategorizeTransactionOutput,
@@ -23,67 +21,65 @@ import type {
     ExtractMultipleTransactionsInput,
     ExtractMultipleTransactionsOutput
 } from '@/lib/definitions';
+import { runFlow } from '@/ai/run';
 
-// Helper to call a Firebase Cloud Function.
-async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
-    try {
-        const functions = getFunctions(app, 'us-central1');
-        const callable = httpsCallable<I, { data: O }>(functions, functionName);
-        const result = await callable(data);
-        // A resposta da v2 callable já vem em `result.data`, e o wrapper `createGenkitCallable` encapsula em `data`
-        return result.data.data;
-
-    } catch (error: any) {
-        console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);
-
-        // Improved error handling to provide specific feedback to the user
-        if (error.code === 'functions/permission-denied') {
-            throw new Error(`Assinatura Premium necessária para este recurso.`);
-        }
-        if (error.code === 'functions/unauthenticated') {
-            throw new Error('Autenticação necessária. Por favor, faça login novamente.');
-        }
-        if (error.code === 'functions/not-found') {
-            throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
-        }
-        
-        throw new Error(error.message || `Falha ao executar ${functionName}: Ocorreu um erro desconhecido.`);
-    }
-}
-
+// TODO: Implementar os fluxos correspondentes
+// import { categorizeTransactionFlow, extractTransactionInfoFromTextFlow, ... } from '@/ai/flows/...';
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    return callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
+    // const result = await runFlow(categorizeTransactionFlow, input);
+    // return result;
+    console.warn("getCategorySuggestion called but no flow is implemented.");
+    return { category: 'Outros' };
 }
 
 export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
+    // const result = await runFlow(extractTransactionInfoFromTextFlow, input);
+    // return result;
+    console.warn("extractTransactionInfoFromText called but no flow is implemented.");
+    return { description: input.text, amount: 0, type: 'expense', category: 'Outros', paymentMethod: 'one-time' };
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {
-    return callFirebaseFunction<ExtractMultipleTransactionsInput, ExtractMultipleTransactionsOutput>('extractMultipleTransactions', input);
+    console.warn("extractMultipleTransactions called but no flow is implemented.");
+    return { transactions: [] };
 }
 
 export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
-    return callFirebaseFunction<GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput>('runAnalysis', input);
+    // const result = await runFlow(generateFinancialAnalysisFlow, input);
+    // return result;
+    console.warn("runAnalysis called but no flow is implemented.");
+    return { healthStatus: 'Atenção', diagnosis: 'A análise está temporariamente indisponível.', suggestions: [] };
 }
 
 export async function runFileExtraction(input: ExtractFromFileInput): Promise<ExtractFromFileOutput> {
-    return callFirebaseFunction<ExtractFromFileInput, ExtractFromFileOutput>('runFileExtraction', input);
+    console.warn("runFileExtraction called but no flow is implemented.");
+    return { transactions: [] };
 }
 
 export async function runInvestorProfileAnalysis(input: InvestorProfileInput): Promise<InvestorProfileOutput> {
-    return callFirebaseFunction<InvestorProfileInput, InvestorProfileOutput>('runInvestorProfileAnalysis', input);
+    console.warn("runInvestorProfileAnalysis called but no flow is implemented.");
+    return { profile: 'Moderado', analysis: 'Análise indisponível.', assetAllocation: [], recommendations: [], expectedReturn: 'N/A' };
 }
 
 export async function runSavingsGoalCalculation(input: SavingsGoalInput): Promise<SavingsGoalOutput> {
-    return callFirebaseFunction<SavingsGoalInput, SavingsGoalOutput>('runSavingsGoalCalculation', input);
+    console.warn("runSavingsGoalCalculation called but no flow is implemented.");
+    return { monthlyIncome: 0, currentExpenses: 0, savingCapacity: 0, recommendedGoal: 0, recommendedPercentage: 0 };
 }
 
 export async function runGoalMediation(input: MediateGoalsInput): Promise<MediateGoalsOutput> {
-    return callFirebaseFunction<MediateGoalsInput, MediateGoalsOutput>('runGoalMediation', input);
+    console.warn("runGoalMediation called but no flow is implemented.");
+    const fallbackPlan = {
+        partnerAPortion: 0,
+        partnerBPortion: 0,
+        unallocated: 0,
+        partnerANewMonths: input.partnerAGoal.months,
+        partnerBNewMonths: input.partnerBGoal.months,
+    };
+    return { summary: 'Análise indisponível.', jointPlan: fallbackPlan, analysis: '', actionSteps: [] };
 }
 
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
-    return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
+    console.warn("runImageExtraction called but no flow is implemented.");
+    return { description: 'Não foi possível ler a imagem', amount: 0, type: 'expense', category: 'Outros', paymentMethod: 'one-time' };
 }
