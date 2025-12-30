@@ -8,27 +8,14 @@ import { Loader2, Mail, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; 
+import { useAuth } from '@/components/client-providers';
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
   const { toast } = useToast();
   const router = useRouter();
   const [isActionLoading, setIsActionLoading] = useState(false);
-
-  // Loading
-  if (isStoreLoading) {
-    return (
-      <div className="flex justify-center items-center h-full p-8">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Verificando convites...</span>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   // Redirect if status is not pending_sent
   useEffect(() => {
@@ -44,12 +31,22 @@ export default function PendingInvitePage() {
 
     setIsActionLoading(true);
     try {
-      
-      const functions = getFunctions(app, 'us-central1');
-      const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
+      if (!user) throw new Error("Usuário não autenticado.");
+      const token = await user.getIdToken();
+      const response = await fetch('/api/couple/handle-invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ inviteId: invite.id, action: 'cancel' })
+      });
 
-      const result = await cancelCallable({ inviteId: invite.id });
-      const data = (result.data as any)?.data as { success: boolean; message: string; error?: string };
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao cancelar o convite.');
+      }
 
       if (data.success) {
         toast({ title: 'Sucesso!', description: data.message });
@@ -67,6 +64,17 @@ export default function PendingInvitePage() {
       setIsActionLoading(false);
     }
   };
+
+    if (isStoreLoading) {
+    return (
+      <div className="flex justify-center items-center h-full p-8">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Verificando convites...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Render nothing if redirecting
   if (status !== 'pending_sent' || !invite) {

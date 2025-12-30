@@ -2,7 +2,7 @@
 import { z } from "zod";
 
 // Base category data (can be moved to a JSON or separate config if needed)
-const categoryData = {
+export const categoryData = {
   "Alimentação": ["Padaria", "Cafeteria", "Delivery", "Restaurante", "Supermercado"],
   "Assinaturas/Serviços": ["Jogos", "Aplicativos", "Streamings", "Telefone/Celular", "Televisão", "Internet"],
   "Moradia": ["Luz", "Eletrodomésticos", "Condomínio", "Aluguel/Prestação", "Reformas", "Água", "Casa"],
@@ -23,8 +23,8 @@ const categoryData = {
   "Outros": ["Presentes", "Compras", "Outros"],
 } as const;
 
-const cardBrands = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'diners', 'other'] as const;
-const accountTypes = ['checking', 'savings', 'investment', 'other'] as const;
+export const cardBrands = ['visa', 'mastercard', 'elo', 'amex', 'hipercard', 'diners', 'other'] as const;
+export const accountTypes = ['checking', 'savings', 'investment', 'other'] as const;
 
 export type Category = keyof typeof categoryData;
 export type Subcategory = typeof categoryData[Category][number];
@@ -254,20 +254,21 @@ export type ChatMessage = z.infer<typeof ChatMessageSchema> & {
 };
 
 export const LuminaChatInputSchema = z.object({
-  chatHistory: z.array(z.object({
-    role: z.enum(['user', 'lumina', 'model']),
-    content: z.array(z.object({ text: z.string() })),
-  })).optional(),
+  chatHistory: z.array(z.any()).optional(),
   userQuery: z.string().describe('The new message from the user.'),
   audioText: z.string().optional().describe('The transcribed text from an audio message.'),
   allTransactions: z.array(z.any()).describe('A list of all financial transactions for context.'),
   imageBase64: z.string().optional().nullable(),
   isCoupleMode: z.boolean().optional(),
   isTTSActive: z.boolean().optional().describe('Whether the user has text-to-speech enabled.'),
+  user: z.object({
+    uid: z.string(),
+    displayName: z.string().nullable(),
+    email: z.string().nullable(),
+    photoURL: z.string().nullable(),
+  }).optional(),
 });
-export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema> & {
-    user: { uid: string, displayName: string, email: string | null, photoURL: string | null };
-};
+export type LuminaChatInput = z.infer<typeof LuminaChatInputSchema>;
 
 
 // Type for App User data

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,9 +17,6 @@ import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -42,19 +40,24 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app, 'us-central1');
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-
-      const result = await sendInviteCallable({
-        partnerEmail: email,
-        senderName: user.displayName || 'Usuário',
+      const token = await user.getIdToken();
+      const response = await fetch('/api/couple/invite', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+            partnerEmail: email,
+            senderName: user.displayName || 'Usuário',
+        })
       });
+      
+      const data = await response.json();
 
-      const data = result.data as {
-        success: boolean;
-        message: string;
-        error?: string;
-      };
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro desconhecido');
+      }
 
       if (data.success) {
         toast({

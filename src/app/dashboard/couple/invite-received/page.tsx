@@ -10,9 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
 
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
-
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
     const { user } = useAuth();
@@ -34,17 +31,23 @@ export default function InviteReceivedPage() {
         setIsActionLoading(true);
 
         try {
-            const functions = getFunctions(app, 'us-central1'); 
+            if (!user) throw new Error("Usuário não autenticado");
 
-            const callableFunctionName =
-                action === 'accept'
-                    ? 'acceptPartnerInvite'
-                    : 'declinePartnerInvite';
+            const token = await user.getIdToken();
+            const response = await fetch('/api/couple/handle-invite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ inviteId: invite.id, action })
+            });
 
-            const callable = httpsCallable(functions, callableFunctionName);
+            const data = await response.json();
 
-            const result = await callable({ inviteId: invite.id });
-            const data = (result.data as any)?.data as { success: boolean; message: string; error?: string };
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao processar o convite.');
+            }
 
             if (data.success) {
                 toast({

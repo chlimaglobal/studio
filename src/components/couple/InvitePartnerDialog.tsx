@@ -15,10 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/client-providers';
-import { useRouter } from 'next/navigation';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { useAuth } from '../client-providers';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -30,7 +27,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,32 +43,36 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app, 'us-central1');
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-
-      const result = await sendInviteCallable({
-        partnerEmail: email,
-        senderName: user.displayName || 'Usuário',
+      const token = await user.getIdToken();
+      
+      const response = await fetch('/api/couple/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            partnerEmail: email,
+            senderName: user.displayName || 'Usuário',
+        })
       });
 
-      const data = (result.data as any)?.data as {
-        success: boolean;
-        message: string;
-        error?: string;
-      };
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Falha na comunicação com o servidor.');
+      }
 
-      if (data.success) {
+      if (result.success) {
         toast({
           title: 'Sucesso!',
-          description: data.message,
+          description: result.message,
         });
 
         onOpenChange(false);
         setEmail('');
-        router.refresh();
-
       } else {
-        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+        throw new Error(result.error || 'Ocorreu um erro desconhecido.');
       }
 
     } catch (error: any) {
