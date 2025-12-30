@@ -1,6 +1,6 @@
 
 import { run } from 'genkit';
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../flows/alexa-flows';
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
 import { DocumentData } from 'firebase-admin/firestore';
 
 /**
