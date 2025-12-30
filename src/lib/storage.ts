@@ -1,4 +1,3 @@
-
 import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './definitions';
@@ -260,7 +259,7 @@ export function onAccountsUpdate(userId: string, callback: (accounts: Account[])
             combinedAccounts[doc.id] = { id: doc.id, ...doc.data() } as Account;
         });
         processAndCallback();
-    }, (error) => console.error("Error fetching owned accounts:", error));
+    }, (error) => {});
 
     // Listener for shared accounts references
     const sharedQuery = query(collection(db, "users", userId, "sharedAccounts"));
@@ -289,7 +288,7 @@ export function onAccountsUpdate(userId: string, callback: (accounts: Account[])
             sharedRefsUnsubs.push(unsub);
         });
         
-    }, (error) => console.error("Error fetching shared accounts:", error));
+    }, (error) => {});
 
     return () => {
         unsubOwned();
@@ -312,7 +311,6 @@ export async function addStoredAccount(userId: string, data: z.infer<typeof AddA
     };
     await addDoc(collection(db, "users", userId, "accounts"), cleanDataForFirestore(accountData));
   } catch (e) {
-    console.error("Error adding account: ", e);
     throw new Error('Falha ao adicionar conta no Firestore.');
   }
 }
@@ -331,9 +329,7 @@ export function onCardsUpdate(userId: string, callback: (cards: Card[]) => void)
     });
     cards.sort((a, b) => a.name.localeCompare(b.name));
     callback(cards);
-  }, (error) => {
-    console.error("Error fetching cards:", error);
-  });
+  }, (error) => {});
 
   return unsubscribe;
 }
@@ -343,7 +339,6 @@ export async function addStoredCard(userId: string, data: z.infer<typeof AddCard
    try {
     await addDoc(collection(db, "users", userId, "cards"), cleanDataForFirestore(data));
   } catch (e) {
-    console.error("Error adding card: ", e);
     throw new Error('Falha ao adicionar cartão no Firestore.');
   }
 }
@@ -367,9 +362,7 @@ export function onGoalsUpdate(userId: string, callback: (goals: Goal[]) => void)
     });
     goals.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
     callback(goals);
-  }, (error) => {
-    console.error("Error fetching goals:", error);
-  });
+  }, (error) => {});
   
   return unsubscribe;
 }
@@ -385,7 +378,6 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
     };
     await addDoc(collection(db, "users", userId, "goals"), cleanDataForFirestore(goalData));
   } catch (e) {
-    console.error("Error adding goal: ", e);
     throw new Error('Falha ao adicionar meta no Firestore.');
   }
 }
@@ -427,9 +419,7 @@ export function onCommissionsUpdate(userId: string, callback: (commissions: Comm
     });
     commissions.sort((a, b) => b.date.getTime() - a.date.getTime());
     callback(commissions);
-  }, (error) => {
-    console.error("Error fetching commissions:", error);
-  });
+  }, (error) => {});
 
   return unsubscribe;
 }
@@ -460,7 +450,6 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
     }
 
   } catch (e) {
-    console.error("Error adding commission: ", e);
     throw new Error('Falha ao adicionar comissão no Firestore.');
   }
 }
@@ -518,9 +507,7 @@ export function onBudgetsUpdate(userId: string, monthId: string, callback: (budg
         } else {
             callback(null);
         }
-    }, (error) => {
-        console.error("Error fetching budgets:", error);
-    });
+    }, (error) => {});
 
     return unsubscribe;
 }
@@ -554,9 +541,7 @@ export function onChatUpdate(
         });
 
         callback(newMessages);
-    }, (error) => {
-        console.error("Error fetching chat messages:", error);
-    });
+    }, (error) => {});
     
     return unsubscribe;
 }
@@ -597,9 +582,7 @@ export function onCoupleChatUpdate(
             } as ChatMessage);
         });
         callback(newMessages);
-    }, (error) => {
-        console.error("Error fetching couple chat messages:", error);
-    });
+    }, (error) => {});
     
     return unsubscribe;
 }
@@ -674,7 +657,6 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
         }
         return null;
     } catch (error) {
-        console.error("Error fetching partner data:", error);
         return null;
     }
 }

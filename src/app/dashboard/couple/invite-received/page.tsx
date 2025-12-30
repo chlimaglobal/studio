@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -29,7 +28,6 @@ export default function InviteReceivedPage() {
 
     const handleAction = async (action: 'accept' | 'reject') => {
         if (!invite?.id) {
-            console.error("No invite ID found");
             return;
         }
 
@@ -54,7 +52,6 @@ export default function InviteReceivedPage() {
                     description: data.message,
                 });
                 router.replace('/dashboard/couple');
-                router.refresh();
             } else {
                 throw new Error(data.error);
             }

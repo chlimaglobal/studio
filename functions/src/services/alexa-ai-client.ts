@@ -1,7 +1,6 @@
-
 import { run } from 'genkit';
 import { DocumentData } from 'firebase-admin/firestore';
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../flows/alexa-flows';
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
 import { getAI } from '..';
 
 
@@ -12,10 +11,7 @@ import { getAI } from '..';
  */
 export async function extractTransactionFromSpeech(text: string): Promise<any | null> {
     try {
-        const ai = getAI();
-        if (!ai) throw new Error("AI Service not available");
-        const flow = alexaExtractTransactionFlow(ai);
-        const result = await run(flow, { text });
+        const result = await run(alexaExtractTransactionFlow, { text });
         return result;
     } catch (error) {
         console.error("Error running alexaExtractTransactionFlow:", error);
@@ -34,10 +30,7 @@ export async function getSummaryFromSpeech(transactions: DocumentData[]): Promis
     const balance = totalIncome - totalExpense;
 
     try {
-        const ai = getAI();
-        if (!ai) throw new Error("AI Service not available");
-        const flow = getSimpleFinancialSummaryFlow(ai);
-        const result = await run(flow, {
+        const result = await run(getSimpleFinancialSummaryFlow, {
             totalIncome,
             totalExpense,
             balance,

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -104,7 +103,6 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         }
 
     } catch (error) {
-        console.error("Failed to send dependent invite:", error);
         const errorMessage = (error instanceof Error) ? error.message : "Não foi possível enviar o convite. Tente novamente.";
          toast({
             variant: 'destructive',

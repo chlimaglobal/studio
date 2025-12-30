@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -86,7 +85,7 @@ export default function LoginPage() {
         const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
         
-        if (errorCode === 'auth/invalid-credential') {
+        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {
             errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
         }
         

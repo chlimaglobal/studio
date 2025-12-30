@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -15,8 +14,10 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '../client-providers';
+import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -45,33 +46,33 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      // Direct fetch to a Next.js API route
-      const response = await fetch('/api/couple/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`,
-        },
-        body: JSON.stringify({
-          partnerEmail: email,
-          senderName: user.displayName || 'Usuário',
-        }),
+      const functions = getFunctions(app, 'us-central1');
+      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+
+      const result = await sendInviteCallable({
+        partnerEmail: email,
+        senderName: user.displayName || 'Usuário',
       });
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Falha na comunicação com o servidor.');
+      const data = result.data as {
+        success: boolean;
+        message: string;
+        error?: string;
+      };
+
+      if (data.success) {
+        toast({
+          title: 'Sucesso!',
+          description: data.message,
+        });
+
+        onOpenChange(false);
+        setEmail('');
+        router.refresh();
+
+      } else {
+        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
       }
-
-      toast({
-        title: 'Sucesso!',
-        description: result.message,
-      });
-
-      onOpenChange(false);
-      setEmail('');
-      router.refresh();
 
     } catch (error: any) {
       toast({

@@ -1,4 +1,3 @@
-
 import * as functions from 'firebase-functions';
 import { extractTransactionFromSpeech, getSummaryFromSpeech } from './services/alexa-ai-client';
 import { db } from './index';
@@ -6,18 +5,11 @@ import { db } from './index';
 // Helper to get User ID from Alexa's access token
 async function getUserIdFromAccessToken(accessToken: string | undefined): Promise<string | null> {
     if (!accessToken) {
-        console.log("Access token não encontrado.");
         return null;
     }
-    // Em um cenário real, você decodificaria o token para obter o UID.
-    // Para o MVP, vamos usar um mapeamento simples ou um UID fixo.
-    // IMPORTANTE: Esta é uma simulação e NÃO é segura para produção.
-    const userMapping: { [key: string]: string } = {
-        // "amzn1.ask.account...": "firebase-uid-123"
-    };
-
-    // Para testes, vamos assumir um UID fixo se o token existir.
-    // Substitua 'ALEXA_TEST_USER_UID' pelo UID real do usuário de teste no seu Firestore.
+    // In a real scenario, you would decode the token to get the UID.
+    // For this MVP, we'll use a fixed UID for testing.
+    // IMPORTANT: This is a simulation and is NOT secure for production.
     return 'ALEXA_TEST_USER_UID'; 
 }
 
@@ -31,7 +23,6 @@ export const alexaWebhook = functions.https.onRequest(async (req, res) => {
 
     let speechText = "Não entendi o que você quis dizer.";
 
-    // 🔹 1. QUANDO ABRE A SKILL
     if (requestType === 'LaunchRequest') {
       speechText = 'Olá! Você pode adicionar uma transação ou pedir um resumo financeiro.';
     }
@@ -51,7 +42,6 @@ export const alexaWebhook = functions.https.onRequest(async (req, res) => {
         return;
     }
 
-    // 🔹 2. ADICIONAR TRANSAÇÃO
     if (requestType === 'IntentRequest' && intentName === 'AddTransactionIntent') {
       const phrase = slots?.frase?.value;
 
@@ -68,9 +58,7 @@ export const alexaWebhook = functions.https.onRequest(async (req, res) => {
       }
     }
 
-    // 🔹 3. RESUMO FINANCEIRO
     if (requestType === 'IntentRequest' && intentName === 'GetSummaryIntent') {
-        // Para um resumo, precisamos buscar as transações do usuário
         const snapshot = await db.collection('users').doc(userId!).collection('transactions').get();
         const transactions = snapshot.docs.map(doc => doc.data());
         speechText = await getSummaryFromSpeech(transactions);

@@ -1,3 +1,4 @@
+'use client';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addStoredTransaction } from '@/lib/storage';

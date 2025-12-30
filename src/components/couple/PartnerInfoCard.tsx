@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -16,6 +15,9 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,25 +42,24 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/couple/disconnect', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
+      const functions = getFunctions(app, 'us-central1');
+      const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
+      const result = await disconnectPartnerCallable();
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(result.error || 'Falha na comunicação com o servidor.');
+      const data = result.data as {
+        success: boolean;
+        message?: string;
+        error?: string;
+      };
+
+      if (data.success) {
+        toast({
+          title: 'Sucesso!',
+          description: data.message || 'Vocês foram desvinculados.',
+        });
+      } else {
+        throw new Error(data.error || 'Erro desconhecido.');
       }
-
-      toast({
-        title: 'Sucesso!',
-        description: result.message || 'Vocês foram desvinculados.',
-      });
 
     } catch (error: any) {
       toast({

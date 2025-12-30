@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -39,7 +38,6 @@ export default function PendingInvitePage() {
 
   const handleCancel = async () => {
     if (!invite?.id) {
-      console.error("No invite ID found");
       return;
     }
 
