@@ -100,5 +100,3 @@ export const alexaWebhook = functions.https.onRequest(async (req, res) => {
     });
   }
 });
-
-    

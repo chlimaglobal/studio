@@ -1,7 +1,8 @@
 
 import { run } from 'genkit';
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
 import { DocumentData } from 'firebase-admin/firestore';
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
+
 
 /**
  * Invokes the Genkit flow to extract transaction details from a spoken phrase.
@@ -41,5 +42,3 @@ export async function getSummaryFromSpeech(transactions: DocumentData[]): Promis
         return "Desculpe, não consegui gerar seu resumo financeiro no momento.";
     }
 }
-
-    
