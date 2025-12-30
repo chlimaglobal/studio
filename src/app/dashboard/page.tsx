@@ -89,7 +89,6 @@ const AiTipsCard = () => {
         } catch (error) {
             if (error instanceof Error && error.message.includes('Assinatura Premium necessária')) {
                 // Silently fail for permission errors, as this is expected for non-premium users.
-                // Do nothing, just prevent the app from crashing.
             } else {
                 console.error("Failed to fetch AI tips:", error);
             }
@@ -345,13 +344,11 @@ export default function DashboardPage() {
     }, [user, router]);
     
     useEffect(() => {
-        // We need to read from localstorage in a useEffect to avoid SSR issues.
         const storedCostString = localStorage.getItem('manualCostOfLiving');
         if (storedCostString) {
             const parsedCost = parseFloat(storedCostString.replace(',', '.'));
             setManualCostOfLiving(isNaN(parsedCost) ? null : parsedCost);
         } else {
-             // If not set in localStorage, check the user's document in Firestore
             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
                 getDoc(userDocRef).then(docSnap => {
@@ -359,7 +356,6 @@ export default function DashboardPage() {
                         const userData = docSnap.data();
                         if (userData.manualCostOfLiving) {
                             setManualCostOfLiving(userData.manualCostOfLiving);
-                            // Also save it to localStorage for consistency
                             localStorage.setItem('manualCostOfLiving', String(userData.manualCostOfLiving));
                         }
                     }
@@ -463,9 +459,7 @@ export default function DashboardPage() {
         
         const userName = user.displayName?.split(' ')[0] || 'Usuário';
 
-        // Logic for negative balance alert
         const checkNegativeBalance = async () => {
-            // Check based on the *previous* month's final balance
             const lastMonth = subMonths(new Date(), 1);
             const lastMonthKey = format(lastMonth, 'MM/yy');
             const lastMonthData = chartData.find(d => d.date === lastMonthKey);

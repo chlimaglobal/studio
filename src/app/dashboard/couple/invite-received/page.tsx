@@ -46,15 +46,15 @@ export default function InviteReceivedPage() {
             const callable = httpsCallable(functions, callableFunctionName);
 
             const result = await callable({ inviteId: invite.id });
-            const data = result.data as { success: boolean; message: string; error?: string };
+            const data = (result.data as any)?.data as { success: boolean; message: string; error?: string };
 
             if (data.success) {
                 toast({
                     title: 'Sucesso!',
                     description: data.message,
                 });
-
                 router.replace('/dashboard/couple');
+                router.refresh();
             } else {
                 throw new Error(data.error);
             }

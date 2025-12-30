@@ -50,7 +50,7 @@ export default function PendingInvitePage() {
       const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
 
       const result = await cancelCallable({ inviteId: invite.id });
-      const data = result.data as { success: boolean; message: string; error?: string };
+      const data = (result.data as any)?.data as { success: boolean; message: string; error?: string };
 
       if (data.success) {
         toast({ title: 'Sucesso!', description: data.message });

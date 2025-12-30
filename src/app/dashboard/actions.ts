@@ -28,11 +28,9 @@ import type {
 async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        const callable = httpsCallable<I, O>(functions, functionName);
+        const callable = httpsCallable<I, { data: O }>(functions, functionName);
         const result = await callable(data);
-        
-        // The callable function's result for v2 functions is directly in result.data
-        return result.data;
+        return result.data.data;
 
     } catch (error: any) {
         console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);

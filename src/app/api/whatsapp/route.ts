@@ -51,7 +51,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, message: 'Transação registrada com sucesso.' }, { status: 200 });
 
   } catch (error) {
-    console.error('JSON API Error:', error);
     const details = error instanceof z.ZodError ? error.errors : error;
     return NextResponse.json({ error: 'Dados inválidos ou erro ao processar a transação.', details: details }, { status: 400 });
   }

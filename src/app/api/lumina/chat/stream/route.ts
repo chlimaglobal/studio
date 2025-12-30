@@ -42,28 +42,27 @@ const ApiRequestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const rawInput = await req.json();
-    const validatedApiInput = ApiRequestSchema.parse(rawInput);
     
     // Mapeia o input da API para o formato esperado pela Cloud Function (LuminaChatInput)
     const functionInput: LuminaChatInput = {
-      chatHistory: validatedApiInput.messages || [],
-      userQuery: validatedApiInput.data?.userQuery || validatedApiInput.messages?.slice(-1)[0]?.content || '',
-      allTransactions: validatedApiInput.data?.allTransactions,
-      imageBase64: validatedApiInput.data?.imageBase64,
-      audioText: validatedApiInput.data?.audioText,
-      isCoupleMode: validatedApiInput.data?.isCoupleMode,
-      isTTSActive: validatedApiInput.data?.isTTSActive,
-      user: validatedApiInput.data?.user,
+      chatHistory: rawInput.messages || [],
+      userQuery: rawInput.data?.userQuery || rawInput.messages?.slice(-1)[0]?.content || '',
+      allTransactions: rawInput.data?.allTransactions,
+      imageBase64: rawInput.data?.imageBase64,
+      audioText: rawInput.data?.audioText,
+      isCoupleMode: rawInput.data?.isCoupleMode,
+      isTTSActive: rawInput.data?.isTTSActive,
+      user: rawInput.data?.user,
     };
     
     const functions = getFunctions(app, 'us-central1');
-    const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
     
     // Await a resposta completa, já que a Cloud Function v2 não suporta streaming de forma nativa para o cliente
     const result = await luminaChatCallable(functionInput);
     
     // A resposta da v2 callable já vem em `result.data`
-    const luminaResponse = result.data;
+    const luminaResponse = result.data.data;
 
     // Para manter a compatibilidade com o hook `useChat`, criamos um stream simples
     // que entrega a resposta completa de uma só vez.

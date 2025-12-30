@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '../client-providers';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         senderName: user.displayName || 'Usuário',
       });
 
-      const data = result.data as {
+      const data = (result.data as any)?.data as {
         success: boolean;
         message: string;
         error?: string;
@@ -69,7 +69,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
         onOpenChange(false);
         setEmail('');
-        // Force refresh of couple state by navigating to the pending page
         router.refresh();
 
       } else {
