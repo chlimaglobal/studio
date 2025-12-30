@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
 
     // Trata erros específicos do Firebase Functions
-    if (error.code === 'functions/not-found') {
+    if (error.code === 'functions/not-found' || (error.details && error.details.includes('NOT_FOUND'))) {
       errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
     } else if (error.code === 'functions/permission-denied') {
         errorMessage = "Você não tem permissão para usar este recurso. Verifique sua assinatura.";

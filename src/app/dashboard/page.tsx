@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription, useCoupleStore } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
@@ -27,7 +27,6 @@ import UpcomingBills from '@/components/upcoming-bills';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { db, app } from '@/lib/firebase';
 import { Timestamp, doc, getDoc } from 'firebase/firestore';
-import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
@@ -490,7 +489,7 @@ Correção:
 2) Evitar compras não essenciais nos próximos dias`;
                 
                 await addChatMessage(user.uid, {
-                    role: 'alerta',
+                    role: "alerta",
                     text: messageText,
                     authorName: "Lúmina"
                 });
