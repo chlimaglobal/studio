@@ -24,21 +24,20 @@ import type {
     ExtractMultipleTransactionsOutput
 } from '@/lib/definitions';
 
-// Helper to call a Firebase Cloud Function and handle the response structure.
-async function callFirebaseFunction<T, O>(functionName: string, data: T): Promise<O> {
+// Helper to call a Firebase Cloud Function.
+async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
         const functions = getFunctions(app, 'us-central1');
-        // Define o tipo de retorno esperado da callable function. O backend encapsula em { data: ... }
-        const callable = httpsCallable<T, { data: O }>(functions, functionName);
+        const callable = httpsCallable<I, O>(functions, functionName);
         const result = await callable(data);
         
-        // A resposta da callable function vem encapsulada em um objeto 'data'.
+        // The callable function's result for v2 functions is directly in result.data
         return result.data;
 
     } catch (error: any) {
-        console.error(`Error calling Firebase function '${functionName}':`, error);
+        console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);
 
-        // Tratamento de erro aprimorado para dar feedback específico ao usuário
+        // Improved error handling to provide specific feedback to the user
         if (error.code === 'functions/permission-denied') {
             throw new Error(`Assinatura Premium necessária para este recurso.`);
         }
@@ -50,14 +49,13 @@ async function callFirebaseFunction<T, O>(functionName: string, data: T): Promis
             throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
         }
         
-        throw new Error(`Falha ao executar ${functionName}: ${error.message || 'Ocorreu um erro desconhecido.'}`);
+        throw new Error(error.message || `Falha ao executar ${functionName}: Ocorreu um erro desconhecido.`);
     }
 }
 
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    const result = await callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
-    return result;
+    return callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
 }
 
 export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {

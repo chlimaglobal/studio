@@ -33,6 +33,8 @@ import {
     ExtractFromImageOutputSchema,
     LuminaChatInputSchema,
     LuminaChatOutputSchema,
+    ExtractMultipleTransactionsInputSchema,
+    ExtractMultipleTransactionsOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
@@ -50,14 +52,22 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-// Initialize Genkit globally
-genkit({
-  plugins: [
-    firebase(),
-    googleAI({ apiKey: geminiApiKey.value() }),
-  ],
-  enableTracingAndMetrics: true,
-});
+// Lazy initialization for Genkit to access secrets at runtime
+let aiInstance: any;
+function getAI() {
+    if (!aiInstance) {
+        genkit({
+            plugins: [
+                firebase(),
+                googleAI({ apiKey: geminiApiKey.value() }),
+            ],
+            enableTracingAndMetrics: true,
+        });
+        aiInstance = ai;
+    }
+    return aiInstance;
+}
+
 
 // Set SendGrid API key at runtime
 sgMail.setApiKey(sendgridApiKey.value());
@@ -80,6 +90,7 @@ const categorizeTransactionFlow = defineFlow(
     outputSchema: CategorizeTransactionOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
@@ -109,6 +120,7 @@ const extractTransactionFromTextFlow = defineFlow(
     outputSchema: ExtractTransactionOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
@@ -134,6 +146,34 @@ const extractTransactionFromTextFlow = defineFlow(
   }
 );
 
+const extractMultipleTransactionsFlow = defineFlow(
+  {
+    name: 'extractMultipleTransactionsFlow',
+    inputSchema: ExtractMultipleTransactionsInputSchema,
+    outputSchema: ExtractMultipleTransactionsOutputSchema,
+  },
+  async (input) => {
+    const ai = getAI();
+    const prompt = `Você é a Lúmina, especialista em processar texto. Extraia todas as transações de cada linha do texto abaixo. Ignore linhas vazias. Para cada linha, extraia: descrição, valor e tipo (inferir 'expense' se não claro).
+
+  **Categorias Disponíveis:**
+  ${transactionCategories.join('\n- ')}
+
+  **Texto do usuário:**
+  ${input.text}
+`;
+    const result = await ai.generate({
+        model: 'gemini-1.5-flash',
+        prompt: prompt,
+        output: { format: 'json', schema: ExtractMultipleTransactionsOutputSchema }
+    });
+    const output = result.output;
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu processar o texto em lote.');
+    return output;
+  }
+);
+
+
 const generateFinancialAnalysisFlow = defineFlow(
   {
     name: 'generateFinancialAnalysisFlow',
@@ -141,6 +181,7 @@ const generateFinancialAnalysisFlow = defineFlow(
     outputSchema: GenerateFinancialAnalysisOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     if (!input.transactions || input.transactions.length === 0) {
       return { healthStatus: 'Atenção', diagnosis: 'Ainda não há transações suficientes para uma análise detalhada.', suggestions: [], trendAnalysis: undefined };
     }
@@ -168,6 +209,7 @@ const extractFromFileFlow = defineFlow(
     outputSchema: ExtractFromFileOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, especialista em processar extratos bancários (CSV, OFX, PDF). Extraia todas as transações, inferindo o tipo ('income'/'expense') e a categoria. Retorne um JSON com a chave \`transactions\`.
 
   **Categorias Disponíveis:**
@@ -200,6 +242,7 @@ const analyzeInvestorProfileFlow = defineFlow(
     outputSchema: InvestorProfileOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, especialista em análise de perfil de investidor. Analise as respostas, use a ferramenta \`getFinancialMarketDataTool\` para obter dados de mercado e determine o perfil de risco, sugira uma carteira e projete a rentabilidade.
 
       **Respostas do Usuário:**
@@ -224,6 +267,7 @@ const calculateSavingsGoalFlow = defineFlow(
     outputSchema: SavingsGoalOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
@@ -249,6 +293,7 @@ const mediateGoalsFlow = defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, terapeuta financeira de casais. Ajude a alinhar metas conflitantes.
 
   **Contexto:**
@@ -276,6 +321,7 @@ const extractFromImageFlow = defineFlow(
     outputSchema: ExtractFromImageOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é Lúmina, especialista em interpretar imagens financeiras (boletos, recibos, notas). Extraia os dados da imagem e retorne um JSON válido.
 
 **Categorias Disponíveis:**
@@ -302,6 +348,7 @@ const luminaChatFlow = defineFlow(
     outputSchema: LuminaChatOutputSchema,
   },
   async function (input) {
+    const ai = getAI();
     const userQuery = (input.userQuery || '').trim();
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
@@ -373,7 +420,8 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 
     const premiumFlows = new Set([
       'generateFinancialAnalysisFlow', 'extractFromFileFlow', 'analyzeInvestorProfileFlow', 
-      'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow'
+      'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow',
+      'extractMultipleTransactionsFlow'
     ]);
 
     if (premiumFlows.has(flow.name) && !(await isPremium())) {
@@ -381,7 +429,9 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     
     try {
-      return await run(flow, request.data as I);
+      // Run the flow and return its output directly.
+      const result = await run(flow, request.data as I);
+      return result;
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
       if (e instanceof HttpsError) {
@@ -395,6 +445,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
 // Export Callable Functions
 export const getCategorySuggestion = createGenkitCallable(categorizeTransactionFlow);
 export const extractTransactionInfoFromText = createGenkitCallable(extractTransactionFromTextFlow);
+export const extractMultipleTransactions = createGenkitCallable(extractMultipleTransactionsFlow);
 export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createGenkitCallable(analyzeInvestorProfileFlow);
