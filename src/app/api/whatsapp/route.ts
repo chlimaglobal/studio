@@ -1,4 +1,3 @@
-'use client';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addStoredTransaction } from '@/lib/storage';
@@ -42,9 +41,6 @@ export async function POST(request: NextRequest) {
     
     const validatedData = TransactionFormSchema.parse(transactionData);
     
-    // In a multi-user environment, you'd need a way to identify the user
-    // For this example, we assume a placeholder user ID 'whatsapp-user' is passed
-    // in the body or a default is used. This is NOT secure for production.
     const userId = jsonBody.userId || 'default-user-id-placeholder';
 
     await addStoredTransaction([validatedData], userId);

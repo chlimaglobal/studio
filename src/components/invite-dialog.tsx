@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -52,7 +53,7 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
       const generateCode = httpsCallable(functions, 'generateInviteCode');
       const result = await generateCode({ accountId: account.id });
       
-      const resultData = result.data as { success: boolean; code?: string; error?: string };
+      const resultData = (result.data as any)?.data as { success: boolean; code?: string; error?: string };
 
       if (resultData.success && resultData.code) {
         setInviteCode(resultData.code);
@@ -81,12 +82,11 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
   
   const handleClose = () => {
     onOpenChange(false);
-    // Reset state when closing
     setTimeout(() => {
         setInviteCode(null);
         setIsLoading(false);
         setIsCopied(false);
-    }, 300); // Delay to allow dialog to animate out
+    }, 300); 
   }
 
 

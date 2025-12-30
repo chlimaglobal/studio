@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -19,7 +20,6 @@ export default function InviteReceivedPage() {
     const router = useRouter();
     const [isActionLoading, setIsActionLoading] = useState(false);
 
-    // Redirect if wrong state
     useEffect(() => {
         if (!isStoreLoading && status !== 'pending_received') {
             router.replace('/dashboard/couple');

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -67,19 +68,15 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         const functions = getFunctions(app, 'us-central1'); 
         const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
         const result = await sendDependentInviteCallable({
-            name: values.name,
-            email: values.email,
-            inviterUid: user.uid,
-            inviterName: user.displayName,
+            dependentName: values.name,
+            dependentEmail: values.email,
         });
 
-        const resultData = result.data as { success: boolean, message: string, inviteToken?: string, error?: string };
+        const resultData = (result.data as any)?.data as { success: boolean, message: string, inviteToken?: string, error?: string };
 
         if (resultData.success) {
-            // Construct the invitation link
             const inviteLink = `${window.location.origin}/signup?inviteToken=${resultData.inviteToken}`;
             
-            // Show a toast with the link and copy button
             toast({
                 title: 'Convite Criado!',
                 description: (
@@ -93,7 +90,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
                         </div>
                     </div>
                 ),
-                duration: 15000, // Keep toast open longer
+                duration: 15000, 
             });
 
             form.reset();

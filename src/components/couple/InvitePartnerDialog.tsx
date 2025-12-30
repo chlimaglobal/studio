@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -54,7 +55,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         senderName: user.displayName || 'Usuário',
       });
 
-      const data = result.data as {
+      const data = (result.data as any)?.data as {
         success: boolean;
         message: string;
         error?: string;

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -46,7 +47,7 @@ export function PartnerInfoCard() {
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectPartnerCallable();
 
-      const data = result.data as {
+      const data = (result.data as any)?.data as {
         success: boolean;
         message?: string;
         error?: string;

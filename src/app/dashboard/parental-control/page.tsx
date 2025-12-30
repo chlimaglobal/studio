@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -48,11 +49,8 @@ export default function ParentalControlPage() {
   const [dependents, setDependents] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🔥 Admin destrava tudo sem assinatura
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
-
-  // 📌 CARREGA DEPENDENTES DO USUÁRIO
   useEffect(() => {
     if (!user || (!isSubscribed && !isAdmin)) {
       setIsLoading(false);
@@ -65,18 +63,12 @@ export default function ParentalControlPage() {
 
         const dependentsData = await Promise.all(
           dependentUids.map(async (depUid) => {
-            let depInfo: AppUser | null = null;
-
-            // 🔧 Observa o dependente uma única vez
-            const unsub = onUserUpdate(depUid, (snapshot) => {
-              if (snapshot) depInfo = snapshot;
+            return new Promise<AppUser | null>((resolve) => {
+              const unsub = onUserUpdate(depUid, (snapshot) => {
+                unsub(); 
+                resolve(snapshot);
+              });
             });
-
-            // Aguarda o snapshot
-            await new Promise((res) => setTimeout(res, 120));
-
-            unsub();
-            return depInfo;
           })
         );
 

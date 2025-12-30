@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -14,14 +15,10 @@ import { accountTypeLabels } from '@/lib/types';
 import { InviteDialog } from '@/components/invite-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase'; 
 
 
-// ----------------------
-// AcceptInviteCard
-// ----------------------
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
     const [code, setCode] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -42,11 +39,10 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
         setIsLoading(true);
         try {
             const functions = getFunctions(app, 'us-central1');
-
             const acceptInvite = httpsCallable(functions, 'acceptInviteCode');
             const result = await acceptInvite({ code: code.toUpperCase() });
 
-            const resultData = result.data as { success: boolean; accountName?: string; error?: string };
+            const resultData = (result.data as any)?.data as { success: boolean; accountName?: string; error?: string };
 
             if (resultData.success) {
                 toast({
@@ -96,9 +92,6 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 }
 
 
-// ----------------------
-// BanksPage
-// ----------------------
 export default function BanksPage() {
   const router = useRouter();
   const { user } = useAuth();

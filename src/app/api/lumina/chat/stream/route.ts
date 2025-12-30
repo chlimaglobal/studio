@@ -5,8 +5,6 @@ import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/definitions';
-import { runFlow } from '@/ai/run';
-import { luminaChatFlow } from '@/ai/flows/lumina-chat';
 
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +40,6 @@ export async function POST(req: NextRequest) {
   try {
     const input = await req.json();
     
-    // Validar o corpo da requisição
     const validatedBody = LuminaChatRequestSchema.parse(input);
 
     const functionInput: LuminaChatInput = {
@@ -56,7 +53,12 @@ export async function POST(req: NextRequest) {
       user: validatedBody.user,
     };
     
-    const luminaResponse = await runFlow(luminaChatFlow, functionInput);
+    const functions = getFunctions(app, 'us-central1');
+    const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
+    
+    const result = await luminaChatCallable(functionInput);
+    
+    const luminaResponse = result.data.data;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -75,8 +77,12 @@ export async function POST(req: NextRequest) {
     console.error('[LUMINA_API_ROUTE_ERROR]', error);
     let errorMessage = "Ocorreu um erro ao se comunicar com a Lúmina. Tente novamente mais tarde.";
 
-    if (error.code === 'functions/not-found' || error.message.includes('not-found')) {
+    if (error.code === 'functions/permission-denied') {
+        errorMessage = 'Você precisa de uma assinatura Premium para usar este recurso.';
+    } else if (error.code === 'functions/not-found' || error.message.includes('not-found')) {
       errorMessage = "A assistente Lúmina está offline. A função não foi encontrada no servidor.";
+    } else if (error.code === 'functions/unauthenticated') {
+        errorMessage = 'Sessão expirada. Por favor, faça login novamente.';
     } else if (error instanceof z.ZodError) {
       errorMessage = "Dados inválidos enviados ao servidor.";
       return NextResponse.json({ error: errorMessage, details: error.errors }, { status: 400 });
