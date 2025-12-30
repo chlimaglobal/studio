@@ -1,3 +1,4 @@
+
 import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from './definitions';
@@ -681,3 +682,6 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
         return null;
     }
 }
+
+// Re-exporting getDoc and updateDoc for use in page.tsx
+export { getDoc, doc, updateDoc };

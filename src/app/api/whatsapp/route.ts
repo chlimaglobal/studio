@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addStoredTransaction } from '@/lib/storage';
-import { TransactionFormSchema } from '@/lib/types';
+import { TransactionFormSchema } from '@/lib/definitions';
 import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // in the body or a default is used. This is NOT secure for production.
     const userId = jsonBody.userId || 'default-user-id-placeholder';
 
-    await addStoredTransaction(validatedData, userId);
+    await addStoredTransaction([validatedData], userId);
 
     return NextResponse.json({ success: true, message: 'Transação registrada com sucesso.' }, { status: 200 });
 
