@@ -27,11 +27,7 @@ import {
     SavingsGoalOutputSchema,
     RecoveryProtocolInputSchema,
     FlashRecoveryOutputSchema,
-    RecoveryProtocolOutputSchema,
-    AlexaExtractTransactionInputSchema,
-    AlexaExtractTransactionOutputSchema,
-    GetSimpleFinancialSummaryInputSchema,
-    GetSimpleFinancialSummaryOutputSchema
+    RecoveryProtocolOutputSchema
 } from './definitions';
 import type {
     Transaction,
@@ -159,11 +155,7 @@ export {
     SavingsGoalOutputSchema,
     RecoveryProtocolInputSchema,
     FlashRecoveryOutputSchema,
-    RecoveryProtocolOutputSchema,
-    AlexaExtractTransactionInputSchema,
-    AlexaExtractTransactionOutputSchema,
-    GetSimpleFinancialSummaryInputSchema,
-    GetSimpleFinancialSummaryOutputSchema
+    RecoveryProtocolOutputSchema
 }
 
 export type {
