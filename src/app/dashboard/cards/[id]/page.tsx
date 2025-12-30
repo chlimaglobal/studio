@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactions } from '@/components/client-providers';
-import type { Metadata } from 'next';
 import { notFound, useRouter } from 'next/navigation';
 
 type Props = {

@@ -1,7 +1,6 @@
 import { run } from 'genkit';
 import { DocumentData } from 'firebase-admin/firestore';
 import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
-import { getAI } from '..';
 
 
 /**
