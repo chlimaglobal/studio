@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import NewsTicker from '@/components/news-ticker';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppUser } from '@/lib/types';
+import type { AppUser } from '@/types';
 
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -168,6 +168,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <ClientProviders>
       <div className="flex flex-col min-h-screen w-full bg-background">
         <main className="flex-1 overflow-y-auto pb-40 p-4">
           {children}
@@ -178,6 +179,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
         <BottomNavBar />
       </div>
+    </ClientProviders>
   );
 }
 
@@ -187,8 +189,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
     return (
-        <ClientProviders>
-            <DashboardLayoutContent>{children}</DashboardLayoutContent>
-        </ClientProviders>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
     )
 }
