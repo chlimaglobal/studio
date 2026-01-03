@@ -67,7 +67,7 @@ function getAI() {
             aiInstance = ai;
         } catch(e) {
             console.error("CRITICAL: Genkit initialization failed.", e);
-            return null; // Return null on failure
+            throw new HttpsError('internal', 'AI service initialization failed.');
         }
     }
     return aiInstance;
@@ -96,7 +96,6 @@ const categorizeTransactionFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
@@ -127,7 +126,6 @@ const extractTransactionFromTextFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
@@ -161,7 +159,6 @@ const extractMultipleTransactionsFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em processar texto. Extraia todas as transações de cada linha do texto abaixo. Ignore linhas vazias. Para cada linha, extraia: descrição, valor e tipo (inferir 'expense' se não claro).
 
   **Categorias Disponíveis:**
@@ -190,7 +187,6 @@ const generateFinancialAnalysisFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     if (!input.transactions || input.transactions.length === 0) {
       return { healthStatus: 'Atenção', diagnosis: 'Ainda não há transações suficientes para uma análise detalhada.', suggestions: [], trendAnalysis: undefined };
     }
@@ -219,7 +215,6 @@ const extractFromFileFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em processar extratos bancários (CSV, OFX, PDF). Extraia todas as transações, inferindo o tipo ('income'/'expense') e a categoria. Retorne um JSON com a chave \`transactions\`.
 
   **Categorias Disponíveis:**
@@ -253,7 +248,6 @@ const analyzeInvestorProfileFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, especialista em análise de perfil de investidor. Analise as respostas, use a ferramenta \`getFinancialMarketDataTool\` para obter dados de mercado e determine o perfil de risco, sugira uma carteira e projete a rentabilidade.
 
       **Respostas do Usuário:**
@@ -279,7 +273,6 @@ const calculateSavingsGoalFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
@@ -306,7 +299,6 @@ const mediateGoalsFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é a Lúmina, terapeuta financeira de casais. Ajude a alinhar metas conflitantes.
 
   **Contexto:**
@@ -335,7 +327,6 @@ const extractFromImageFlow = defineFlow(
   },
   async (input) => {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const prompt = `Você é Lúmina, especialista em interpretar imagens financeiras (boletos, recibos, notas). Extraia os dados da imagem e retorne um JSON válido.
 
 **Categorias Disponíveis:**
@@ -363,7 +354,6 @@ const luminaChatFlow = defineFlow(
   },
   async function (input) {
     const ai = getAI();
-    if (!ai) throw new HttpsError('internal', 'AI service not available.');
     const userQuery = (input.userQuery || '').trim();
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);

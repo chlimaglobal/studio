@@ -1,6 +1,8 @@
 
 'use server';
 
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 import type { 
     CategorizeTransactionInput,
     CategorizeTransactionOutput,
@@ -23,63 +25,64 @@ import type {
 } from '@/lib/definitions';
 
 
-async function callApi<I, O>(endpoint: string, data: I): Promise<O> {
-    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
-        const response = await fetch(`${origin}/api/${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.json();
-            throw new Error(errorBody.error || `Falha na chamada da API: ${response.statusText}`);
-        }
-        
-        return await response.json();
+        const functions = getFunctions(app, 'us-central1');
+        const callable = httpsCallable<I, { data: O }>(functions, functionName);
+        const result = await callable(data);
+        return result.data.data;
 
     } catch (error: any) {
-        console.error(`Error calling API endpoint '${endpoint}':`, error.message);
-        throw new Error(error.message || `Falha ao executar ${endpoint}: Ocorreu um erro desconhecido.`);
+        console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);
+
+        if (error.code === 'functions/permission-denied') {
+            throw new Error(`Assinatura Premium necessária para este recurso.`);
+        }
+        if (error.code === 'functions/unauthenticated') {
+            throw new Error('Autenticação necessária. Por favor, faça login novamente.');
+        }
+        if (error.code === 'functions/not-found') {
+            console.error(`[DEBUG] Função '${functionName}' não encontrada — verifique o deploy com 'firebase deploy --only functions'`);
+            throw new Error(`A função '${functionName}' não foi encontrada no backend. Verifique se ela foi implantada corretamente.`);
+        }
+        
+        throw new Error(error.message || `Falha ao executar ${functionName}: Ocorreu um erro desconhecido.`);
     }
 }
 
 
 export async function getCategorySuggestion(input: CategorizeTransactionInput): Promise<CategorizeTransactionOutput> {
-    return callApi<CategorizeTransactionInput, CategorizeTransactionOutput>('lumina/categorize', input);
+    return callFirebaseFunction<CategorizeTransactionInput, CategorizeTransactionOutput>('getCategorySuggestion', input);
 }
 
 export async function extractTransactionInfoFromText(input: ExtractTransactionInput): Promise<ExtractTransactionOutput> {
-     return callApi<ExtractTransactionInput, ExtractTransactionOutput>('lumina/extract-text', input);
+     return callFirebaseFunction<ExtractTransactionInput, ExtractTransactionOutput>('extractTransactionInfoFromText', input);
 }
 
 export async function extractMultipleTransactions(input: ExtractMultipleTransactionsInput): Promise<ExtractMultipleTransactionsOutput> {
-    return callApi<ExtractMultipleTransactionsInput, ExtractMultipleTransactionsOutput>('lumina/extract-multiple', input);
+    return callFirebaseFunction<ExtractMultipleTransactionsInput, ExtractMultipleTransactionsOutput>('extractMultipleTransactions', input);
 }
 
 export async function runAnalysis(input: GenerateFinancialAnalysisInput): Promise<GenerateFinancialAnalysisOutput> {
-    return callApi<GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput>('lumina/analysis', input);
+    return callFirebaseFunction<GenerateFinancialAnalysisInput, GenerateFinancialAnalysisOutput>('runAnalysis', input);
 }
 
 export async function runFileExtraction(input: ExtractFromFileInput): Promise<ExtractFromFileOutput> {
-    return callApi<ExtractFromFileInput, ExtractFromFileOutput>('lumina/extract-file', input);
+    return callFirebaseFunction<ExtractFromFileInput, ExtractFromFileOutput>('runFileExtraction', input);
 }
 
 export async function runInvestorProfileAnalysis(input: InvestorProfileInput): Promise<InvestorProfileOutput> {
-    return callApi<InvestorProfileInput, InvestorProfileOutput>('lumina/investor-profile', input);
+    return callFirebaseFunction<InvestorProfileInput, InvestorProfileOutput>('runInvestorProfileAnalysis', input);
 }
 
 export async function runSavingsGoalCalculation(input: SavingsGoalInput): Promise<SavingsGoalOutput> {
-    return callApi<SavingsGoalInput, SavingsGoalOutput>('lumina/savings-goal', input);
+    return callFirebaseFunction<SavingsGoalInput, SavingsGoalOutput>('runSavingsGoalCalculation', input);
 }
 
 export async function runGoalMediation(input: MediateGoalsInput): Promise<MediateGoalsOutput> {
-    return callApi<MediateGoalsInput, MediateGoalsOutput>('lumina/mediate-goals', input);
+    return callFirebaseFunction<MediateGoalsInput, MediateGoalsOutput>('runGoalMediation', input);
 }
 
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
-    return callApi<ExtractFromImageInput, ExtractFromImageOutput>('lumina/extract-image', input);
+    return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }

@@ -66,7 +66,7 @@ export default function ChatPage() {
     onFinish: (message) => {
         if (!message.content.trim()) return;
         const luminaMsg: Omit<ChatMessage, 'id' | 'timestamp'> = {
-            role: 'lumina' as const,
+            role: 'lumina',
             text: message.content,
             authorName: 'Lúmina',
             authorPhotoUrl: '/lumina-avatar.png',
@@ -147,7 +147,7 @@ export default function ChatPage() {
     if ((!input.trim() && !imageBase64) || !user) return;
 
     const userMsgForDb: Omit<ChatMessage, 'id'|'timestamp'> = {
-      role: 'user' as const,
+      role: 'user',
       text: input,
       authorId: user.uid,
       authorName: user.displayName || 'Você',

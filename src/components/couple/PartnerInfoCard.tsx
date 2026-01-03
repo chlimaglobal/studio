@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, Heart, UserX } from 'lucide-react';
-import { useAuth } from '../client-providers';
+import { useAuth } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -42,13 +42,15 @@ export function PartnerInfoCard() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch('/api/couple/disconnect', {
+      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/disconnectPartner`;
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({ data: {} }) // Send empty data object if required by function
       });
 
       const result = await response.json();
@@ -57,13 +59,19 @@ export function PartnerInfoCard() {
         throw new Error(result.error || 'Falha na comunicação com o servidor.');
       }
 
-      if (result.success) {
+      const data = result.data as {
+        success: boolean;
+        message?: string;
+        error?: string;
+      };
+
+      if (data.success) {
         toast({
           title: 'Sucesso!',
-          description: result.message || 'Vocês foram desvinculados.',
+          description: data.message || 'Vocês foram desvinculados.',
         });
       } else {
-        throw new Error(result.error || 'Erro desconhecido.');
+        throw new Error(data.error || 'Erro desconhecido.');
       }
 
     } catch (error: any) {

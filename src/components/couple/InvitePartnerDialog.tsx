@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '../client-providers';
+import { useAuth } from '@/components/client-providers';
 
 interface InvitePartnerDialogProps {
   open: boolean;
@@ -45,15 +45,19 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     try {
       const token = await user.getIdToken();
       
-      const response = await fetch('/api/couple/invite', {
+      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/sendPartnerInvite`;
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-            partnerEmail: email,
-            senderName: user.displayName || 'Usuário',
+            data: {
+                partnerEmail: email,
+                senderName: user.displayName || 'Usuário',
+            }
         })
       });
 
@@ -62,17 +66,23 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       if (!response.ok) {
         throw new Error(result.error || 'Falha na comunicação com o servidor.');
       }
+      
+      const data = result.data as {
+        success: boolean;
+        message: string;
+        error?: string;
+      };
 
-      if (result.success) {
+      if (data.success) {
         toast({
           title: 'Sucesso!',
-          description: result.message,
+          description: data.message,
         });
 
         onOpenChange(false);
         setEmail('');
       } else {
-        throw new Error(result.error || 'Ocorreu um erro desconhecido.');
+        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
       }
 
     } catch (error: any) {

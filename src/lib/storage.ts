@@ -146,6 +146,7 @@ export async function saveFcmToken(userId: string, token: string) {
 
 export function onTransactionsUpdate(userId: string, callback: (transactions: Transaction[]) => void): () => void {
   if (!userId) {
+    callback([]);
     return () => {};
   }
   const q = query(collection(db, "users", userId, "transactions"));
