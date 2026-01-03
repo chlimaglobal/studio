@@ -4,7 +4,7 @@ import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { app } from '@/lib/firebase';
-import type { LuminaChatInput, LuminaChatOutput } from '@/lib/definitions';
+import type { LuminaChatInput, LuminaChatOutput } from '@/types';
 
 
 export const dynamic = 'force-dynamic';

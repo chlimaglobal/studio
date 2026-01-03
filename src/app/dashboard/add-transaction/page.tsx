@@ -15,8 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, ArrowLeft, Loader2, Landmark, CreditCard as CreditCardIcon, Zap, Star, Bot } from 'lucide-react';
-import { TransactionFormSchema, type TransactionCategory, transactionCategories } from '@/lib/definitions';
-import { categoryData, cardBrands, brandNames, institutions } from '@/lib/types';
+import { TransactionFormSchema, type TransactionCategory, transactionCategories } from '@/types';
+import { categoryData, cardBrands, brandNames, institutions } from '@/types';
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription } from '@/components/providers/client-providers';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -37,7 +37,7 @@ import { getCategorySuggestion, extractMultipleTransactions } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 const PremiumBlocker = () => (
     <Card className="text-center mt-6">

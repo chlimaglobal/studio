@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addStoredTransaction } from '@/lib/storage';
-import { TransactionFormSchema } from '@/lib/definitions';
+import { TransactionFormSchema } from '@/types';
 import { z } from 'zod';
 
 export async function POST(request: NextRequest) {

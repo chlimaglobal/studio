@@ -3,10 +3,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Sparkles, DollarSign, ArrowLeft, Star, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
-import type { GenerateFinancialAnalysisOutput } from '@/lib/definitions';
+import type { GenerateFinancialAnalysisOutput } from '@/types';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
+import { useTransactions, useSubscription, useAuth } from '@/components/providers/client-providers';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';

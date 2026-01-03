@@ -22,7 +22,7 @@ import type {
     ExtractFromImageOutput,
     ExtractMultipleTransactionsInput,
     ExtractMultipleTransactionsOutput
-} from '@/lib/definitions';
+} from '@/types';
 
 
 async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {

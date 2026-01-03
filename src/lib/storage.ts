@@ -1,12 +1,12 @@
 
 import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
-import { TransactionFormSchema } from './definitions';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from './definitions';
-import type { Card, AddCardFormSchema } from './card-types';
-import type { Goal, AddGoalFormSchema, EditGoalFormSchema } from './goal-types';
+import { TransactionFormSchema } from '@/types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from '@/types';
+import type { Card, AddCardFormSchema } from '@/lib/card-types';
+import type { Goal, AddGoalFormSchema } from '@/lib/goal-types';
 import { z } from 'zod';
-import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
+import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from '@/lib/commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
 
@@ -384,7 +384,7 @@ export async function addStoredGoal(userId: string, data: z.infer<typeof AddGoal
   }
 }
 
-export async function updateStoredGoal(userId: string, goalId: string, data: z.infer<typeof EditGoalFormSchema>) {
+export async function updateStoredGoal(userId: string, goalId: string, data: z.infer<typeof AddGoalFormSchema>) {
     if (!userId) throw new Error("User not authenticated");
     const goalRef = doc(db, 'users', userId, 'goals', goalId);
     const goalData = {
