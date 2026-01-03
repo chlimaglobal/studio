@@ -8,7 +8,7 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/lib/definitions';
+import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
@@ -19,7 +19,7 @@ import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { allInvestmentCategories } from '@/lib/types';
+import { allInvestmentCategories } from '@/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
@@ -28,7 +28,7 @@ import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
-import type { GenerateFinancialAnalysisOutput } from '@/lib/definitions';
+import type { GenerateFinancialAnalysisOutput } from '@/types';
 
 
 interface SummaryData {
