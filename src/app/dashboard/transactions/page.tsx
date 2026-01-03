@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { Transaction } from '@/lib/types';
+import type { Transaction } from '@/types';
 import TransactionsTable from '@/components/transactions-table';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ArrowRightLeft, Download, ArrowLeft } from 'lucide-react';
@@ -17,7 +17,7 @@ import {
 import Papa from 'papaparse';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { allInvestmentCategories } from '@/lib/types';
+import { allInvestmentCategories } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 

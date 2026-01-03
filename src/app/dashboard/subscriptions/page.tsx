@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
-import { Transaction } from '@/lib/types';
+import { Transaction } from '@/types';
 
 
 const recurrenceLabels: Record<string, string> = {
@@ -96,7 +96,7 @@ export default function SubscriptionsPage() {
     }
 
 
-    const SubscriptionCard = ({ subscription }: { subscription: typeof subscriptions[0] }) => {
+    const SubscriptionCard = ({ subscription }: { subscription: Transaction }) => {
         const lastPaymentDate = new Date(subscription.date);
 
         return (

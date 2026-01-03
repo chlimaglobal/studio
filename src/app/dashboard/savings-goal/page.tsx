@@ -8,9 +8,9 @@ import { ArrowLeft, Loader2, Sparkles, PiggyBank, DollarSign, TrendingUp, HandCo
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
-import type { SavingsGoalOutput } from '@/lib/definitions';
+import type { SavingsGoalOutput } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { allInvestmentCategories } from '@/lib/types';
+import { allInvestmentCategories } from '@/types';
 import Link from 'next/link';
 import { runSavingsGoalCalculation } from '../actions';
 

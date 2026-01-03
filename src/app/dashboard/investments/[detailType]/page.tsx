@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Landmark } from 'lucide-react';
 import TransactionsTable from '@/components/transactions-table';
-import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/lib/types';
+import { allInvestmentCategories, investmentApplicationCategories, investmentReturnCategories, investmentWithdrawalCategories, Transaction } from '@/types';
 
 
 const detailTypeConfig = {

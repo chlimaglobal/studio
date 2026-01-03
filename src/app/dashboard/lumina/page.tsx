@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, fileToBase64 } from "@/lib/utils";
 import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate } from "@/lib/storage";
-import type { ChatMessage } from "@/lib/definitions";
+import type { ChatMessage } from "@/types";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
 import { useChat } from 'ai/react';

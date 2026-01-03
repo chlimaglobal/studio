@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { Transaction } from '@/types';
 
 
 export default function BillsPage() {
@@ -42,7 +43,7 @@ export default function BillsPage() {
         // For simplicity, we create a compatible object
         const updatedData = {
             ...transaction,
-            amount: String(transaction.amount),
+            amount: transaction.amount,
             date: new Date(transaction.date),
             paid: isPaid,
             paymentMethod: transaction.paymentMethod || 'one-time',
@@ -73,7 +74,7 @@ export default function BillsPage() {
         );
     }
 
-    const BillCard = ({ bill }: { bill: typeof upcomingBills[0] }) => {
+    const BillCard = ({ bill }: { bill: Transaction }) => {
         const dueDate = new Date(bill.dueDate!);
         const daysLeft = differenceInDays(dueDate, new Date());
         const isBillOverdue = isPast(dueDate) && daysLeft < 0;

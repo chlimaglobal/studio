@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +10,7 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { AppUser, Transaction } from '@/lib/types';
+import type { AppUser, Transaction } from '@/types';
 import TransactionsTable from '@/components/transactions-table';
 import { formatCurrency } from '@/lib/utils';
 import { onTransactionsUpdate } from '@/lib/storage';

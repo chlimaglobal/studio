@@ -31,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
-import type { Transaction } from '@/lib/types';
+import type { Transaction } from '@/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -41,7 +41,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil, Landmark, MoreVertical } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { User } from 'firebase/auth';
-import { brandNames } from '@/lib/types';
+import { brandNames } from '@/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 
 
@@ -176,7 +176,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(transaction)} className="bg-destructive hover:bg-destructive/90">
+                                    <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction)} className="bg-destructive hover:bg-destructive/90">
                                         Sim, excluir
                                     </AlertDialogAction>
                                 </AlertDialogFooter>

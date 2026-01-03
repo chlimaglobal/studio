@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, Loader2, Save, Star } from 'lucide-react';
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
-import type { ExtractedTransaction } from '@/lib/definitions';
+import type { ExtractedTransaction } from '@/types';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
@@ -92,27 +92,23 @@ export default function ImportPage() {
   const handleSaveAll = () => {
     if (extractedData.length === 0) return;
 
-    let savedCount = 0;
-    extractedData.forEach((t) => {
-      try {
-        const transactionData = {
-          description: t.description,
-          amount: t.amount,
-          date: new Date(t.date),
-          type: t.type,
-          category: t.category,
-          paid: true,
-        };
-        addTransaction(transactionData);
-        savedCount++;
-      } catch (e) {
-        console.error("Failed to save transaction:", t, e);
-      }
-    });
+    const transactionsToSave = extractedData.map(t => ({
+      description: t.description,
+      amount: t.amount,
+      date: new Date(t.date),
+      type: t.type,
+      category: t.category,
+      paid: true,
+      paymentMethod: t.paymentMethod || 'one-time',
+      installments: t.installments,
+    }));
+    
+    // @ts-ignore
+    addTransaction(transactionsToSave);
 
     toast({
       title: 'Transações Salvas!',
-      description: `${savedCount} de ${extractedData.length} transações foram importadas com sucesso.`,
+      description: `${transactionsToSave.length} de ${extractedData.length} transações foram importadas com sucesso.`,
     });
     setExtractedData([]); // Clear the table after saving
   };

@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useAuth, useSubscription, useCoupleStore } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription, useCoupleStore } from '@/components/providers/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';

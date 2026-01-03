@@ -26,8 +26,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, AlertTriangle, Repeat } from 'lucide-react';
-import { TransactionFormSchema } from '@/lib/definitions';
-import { categoryData, transactionCategories } from '@/lib/types';
+import { TransactionFormSchema } from '@/types';
+import { categoryData, transactionCategories } from '@/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';

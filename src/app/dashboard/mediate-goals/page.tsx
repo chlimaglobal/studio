@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
-import type { MediateGoalsInput, MediateGoalsOutput } from '@/lib/definitions';
+import type { MediateGoalsInput, MediateGoalsOutput } from '@/types';
 import { runGoalMediation } from '../actions';
 
 const ResultDisplay = ({ result, onReset }: { result: MediateGoalsOutput, onReset: () => void }) => {
