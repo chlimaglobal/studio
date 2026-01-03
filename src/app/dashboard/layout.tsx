@@ -6,7 +6,7 @@ import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import { useRouter } from 'next/navigation';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { useAuth } from '@/components/client-providers'; 
+import { useAuth, ClientProviders } from '@/components/providers/client-providers'; 
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -100,11 +100,7 @@ const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
 
 
 // Main Layout Component
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { isLoading, user } = useAuth();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
@@ -183,4 +179,16 @@ export default function DashboardLayout({
         <BottomNavBar />
       </div>
   );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+    return (
+        <ClientProviders>
+            <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        </ClientProviders>
+    )
 }
