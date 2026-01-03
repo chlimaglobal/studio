@@ -35,84 +35,6 @@ interface AuthContextType {
 }
 const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-
-// 2. Subscription Context
-interface SubscriptionContextType {
-  isSubscribed: boolean;
-  isLoading: boolean;
-}
-const SubscriptionContext = createContext<SubscriptionContextType>({ isSubscribed: false, isLoading: true });
-
-export function useSubscription() {
-  const context = useContext(SubscriptionContext);
-  if (context === undefined) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
-  }
-  return context;
-}
-
-// 3. Couple Context (formerly ViewMode)
-type ViewMode = 'separate' | 'together';
-interface CoupleContextType {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  partnerData: AppUser | null;
-}
-const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
-
-export function useViewMode() {
-    const context = useContext(CoupleContext);
-    if (!context) {
-        throw new Error('useViewMode must be used within a CoupleProvider');
-    }
-    return context;
-}
-
-
-// 4. Transactions Context
-interface TransactionsContextType {
-  transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => Promise<void>;
-  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
-  isLoading: boolean;
-  isBatchProcessing: boolean;
-}
-
-const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
-
-export function useTransactions() {
-  const context = useContext(TransactionsContext);
-  if (!context) {
-    throw new Error('useTransactions must be used within a TransactionsProvider');
-  }
-  return context;
-}
-
-// 5. Lumina Unread Context
-interface LuminaContextType {
-  hasUnread: boolean;
-  setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
-}
-const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
-
-export function useLumina() {
-    const context = useContext(LuminaContext);
-    if (context === undefined) {
-        throw new Error('useLumina must be used within a ClientProviders');
-    }
-    return context;
-}
-
-// PROVIDER COMPONENTS
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,6 +62,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+// 2. Subscription Context
+interface SubscriptionContextType {
+  isSubscribed: boolean;
+  isLoading: boolean;
+}
+const SubscriptionContext = createContext<SubscriptionContextType>({ isSubscribed: false, isLoading: true });
 
 function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
@@ -172,6 +109,23 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+export function useSubscription() {
+  const context = useContext(SubscriptionContext);
+  if (context === undefined) {
+    throw new Error('useSubscription must be used within a SubscriptionProvider');
+  }
+  return context;
+}
+
+// 3. Couple Context (formerly ViewMode)
+type ViewMode = 'separate' | 'together';
+interface CoupleContextType {
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  partnerData: AppUser | null;
+}
+const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
+
 function CoupleProvider({ children }: { children: React.ReactNode }) {
     const { partner } = useCoupleStore();
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
@@ -193,6 +147,26 @@ function CoupleProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
+export function useViewMode() {
+    const context = useContext(CoupleContext);
+    if (!context) {
+        throw new Error('useViewMode must be used within a CoupleProvider');
+    }
+    return context;
+}
+
+
+// 4. Transactions Context
+interface TransactionsContextType {
+  transactions: Transaction[];
+  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => Promise<void>;
+  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  isLoading: boolean;
+  isBatchProcessing: boolean;
+}
+
+const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -349,6 +323,21 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function useTransactions() {
+  const context = useContext(TransactionsContext);
+  if (!context) {
+    throw new Error('useTransactions must be used within a TransactionsProvider');
+  }
+  return context;
+}
+
+// 5. Lumina Unread Context
+interface LuminaContextType {
+  hasUnread: boolean;
+  setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
+}
+const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
+
 function LuminaProvider({ children }: { children: React.ReactNode }) {
     const [hasUnread, setHasUnread] = useState(false);
     const { user } = useAuth();
@@ -400,6 +389,14 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
             {children}
         </LuminaContext.Provider>
     );
+}
+
+export function useLumina() {
+    const context = useContext(LuminaContext);
+    if (context === undefined) {
+        throw new Error('useLumina must be used within a ClientProviders');
+    }
+    return context;
 }
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {

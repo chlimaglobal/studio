@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransactions, useAuth } from '@/components/client-providers';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
-import { allInvestmentCategories } from '@/lib/types';
+import { allInvestmentCategories } from '@/types';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import Image from 'next/image';
@@ -103,7 +103,7 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background pt-4">
+    <header className="sticky top-0 z-30 flex h-auto flex-col gap-4 bg-background/80 backdrop-blur-sm pt-4 border-b -mx-4 px-4 pb-4">
       <div className="flex items-center justify-between">
         <Logo />
         <div className="flex items-center gap-2">

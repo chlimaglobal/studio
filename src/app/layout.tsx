@@ -4,7 +4,7 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { AuthProvider } from '@/components/providers/client-providers';
+import { AuthProvider, ClientProviders } from '@/components/providers/client-providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -35,15 +35,15 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000" />
       </head>
       <body className={cn('font-sans antialiased bg-background', inter.variable)}>
-        <ThemeProvider 
+        <ThemeProvider
           attribute="class"
           defaultTheme="system"
           storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
-            <AuthProvider>
-                {children}
-            </AuthProvider>
+          <AuthProvider>
+            <ClientProviders>{children}</ClientProviders>
+          </AuthProvider>
           <Toaster />
         </ThemeProvider>
       </body>

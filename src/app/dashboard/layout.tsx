@@ -6,7 +6,7 @@ import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import { useRouter } from 'next/navigation';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { useAuth, ClientProviders } from '@/components/providers/client-providers'; 
+import { useAuth } from '@/components/providers/client-providers'; 
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import NewsTicker from '@/components/news-ticker';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser } from '@/types';
+import DashboardHeader from '@/components/dashboard-header';
 
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -100,11 +101,24 @@ const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
 
 
 // Main Layout Component
-function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, user } = useAuth();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
   const [isDependent, setIsDependent] = useState<boolean | null>(null);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+
+  useEffect(() => {
+    const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
+    setIsPrivacyMode(storedPrivacyMode);
+  }, []);
+
+  const handleTogglePrivacyMode = () => {
+    const newMode = !isPrivacyMode;
+    setIsPrivacyMode(newMode);
+    localStorage.setItem('privacyMode', String(newMode));
+  };
+
 
   useEffect(() => {
     // If auth is done loading and there's no user, redirect to login
@@ -168,27 +182,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ClientProviders>
-      <div className="flex flex-col min-h-screen w-full bg-background">
-        <main className="flex-1 overflow-y-auto pb-40 p-4">
-          {children}
-        </main>
-        {!isDependent && <AddTransactionFab />}
-        <div className="fixed bottom-20 left-0 w-full z-40">
-            {!isDependent && <NewsTicker />}
-        </div>
-        <BottomNavBar />
+    <div className="flex flex-col min-h-screen w-full bg-background">
+      <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
+      <main className="flex-1 overflow-y-auto pb-40 p-4">
+        {children}
+      </main>
+      {!isDependent && <AddTransactionFab />}
+      <div className="fixed bottom-20 left-0 w-full z-40">
+          {!isDependent && <NewsTicker />}
       </div>
-    </ClientProviders>
+      <BottomNavBar />
+    </div>
   );
-}
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-    return (
-        <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    )
 }
