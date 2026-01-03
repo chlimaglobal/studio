@@ -463,7 +463,7 @@ export default function DashboardPage() {
             const lastMonthKey = format(lastMonth, 'MM/yy');
             const lastMonthData = chartData.find(d => d.date === lastMonthKey);
             
-            if (lastMonthData && lastMonthData.resultado < 0 && userStatus.ultimoMesChecado !== lastMonthKey) {
+            if (lastMonthData && lastMonthData.resultado < 0 && userStatus?.ultimoMesChecado !== lastMonthKey) {
                 
                 const mostExpensiveCategory = categorySpending.length > 0 ? categorySpending[0].name : 'seus gastos em geral';
                 const gastoCritico = categorySpending.length > 0 ? formatCurrency(categorySpending[0].value) : 'acima do esperado';
