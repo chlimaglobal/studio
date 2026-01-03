@@ -503,3 +503,28 @@ export const accountTypeLabels: Record<AccountType, string> = {
 };
 
 export const iconNames = Object.keys(icons) as [string, ...string[]];
+
+// Alexa Skill Schemas
+export const AlexaExtractTransactionInputSchema = z.object({
+    text: z.string().describe("Texto da fala do usuário vindo da Alexa."),
+});
+export const AlexaExtractTransactionOutputSchema = z.object({
+    amount: z.number(),
+    type: z.enum(["income", "expense"]),
+    category: z.string(),
+    description: z.string(),
+    date: z.string().describe("Data no formato YYYY-MM-DD"),
+}).nullable();
+
+export const GetSimpleFinancialSummaryInputSchema = z.object({
+    totalIncome: z.number(),
+    totalExpense: z.number(),
+    balance: z.number(),
+    period: z.enum(['today', 'month'])
+});
+export type GetSimpleFinancialSummaryInput = z.infer<typeof GetSimpleFinancialSummaryInputSchema>;
+
+export const GetSimpleFinancialSummaryOutputSchema = z.object({
+    summary: z.string().describe('O resumo financeiro em linguagem natural.'),
+});
+export type GetSimpleFinancialSummaryOutput = z.infer<typeof GetSimpleFinancialSummaryOutputSchema>;
