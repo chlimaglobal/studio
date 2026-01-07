@@ -103,12 +103,12 @@ const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
 
 // Main Layout Component
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth(); // No longer provides isLoading
+  const { user } = useAuth();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
   const [isDependent, setIsDependent] = useState<boolean | null>(null);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Internal loading state for this layout
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
@@ -123,7 +123,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    if (user === undefined) return; // Wait for auth state to be determined
+    if (user === undefined) return;
 
     if (user === null) {
       router.replace('/login');
@@ -148,10 +148,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }
             } catch (error) {
                  console.error("Error checking user role:", error);
-                 setIsDependent(false); // Default to not dependent on error
+                 setIsDependent(false);
             }
         }
-        setIsLoading(false); // Auth check and role check is done
+        setIsLoading(false);
     }
     checkUserRole();
   }, [user, router]);
@@ -189,7 +189,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <AppLockScreen onUnlock={handleUnlock} />;
   }
 
-  // The ClientProviders now wraps the content here, ensuring context is available to all children.
   return (
     <ClientProviders>
         <div className="flex flex-col min-h-screen w-full bg-background">

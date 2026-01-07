@@ -16,7 +16,7 @@ import {
   getPartnerData,
   onCoupleChatUpdate,
   addCoupleChatMessage,
-  onUserUpdate // Import the new function
+  onUserUpdate
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
 import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
-        initializeCoupleStore(user); // Initialize couple store ONLY after auth is confirmed
+        initializeCoupleStore(user);
         setUser(user);
       } else {
         setUser(null);
@@ -117,7 +117,7 @@ export function useSubscription() {
   return context;
 }
 
-// 3. Couple Context (formerly ViewMode)
+// 3. Couple Context
 type ViewMode = 'separate' | 'together';
 interface CoupleContextType {
   viewMode: ViewMode;
@@ -177,50 +177,42 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { viewMode, partnerData } = useViewMode();
   const { coupleLink } = useCoupleStore();
 
-  // This effect now handles fetching transactions for one or both users
   useEffect(() => {
     if (!user?.uid) {
       setTransactions([]);
       setIsLoading(false);
-      return () => {}; // Return empty cleanup function
+      return () => {};
     }
 
     setIsLoading(true);
     let userTransactions: Transaction[] = [];
     let partnerTransactions: Transaction[] = [];
 
-    // Always subscribe to the logged-in user's transactions
     const unsubUser = onTransactionsUpdate(user.uid, (newTxs) => {
       userTransactions = newTxs;
-      // If in separate mode, or no partner, just show user's transactions
       if (viewMode === 'separate' || !partnerData?.uid) {
         setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       } else {
-        // In 'together' mode, combine with partner's (if available)
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       }
     });
 
     let unsubPartner: (() => void) | null = null;
-    // If in 'together' mode and a partner exists, also subscribe to their transactions
     if (viewMode === 'together' && partnerData?.uid) {
       unsubPartner = onTransactionsUpdate(partnerData.uid, (newTxs) => {
         partnerTransactions = newTxs;
-        // Combine with user's transactions
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       });
     } else {
-        // If not in 'together' mode, clear partner transactions
         partnerTransactions = [];
         if(viewMode === 'separate') {
             setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
     }
 
-    // Cleanup function
     return () => {
       unsubUser();
       if (unsubPartner) {
@@ -345,7 +337,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const { isSubscribed } = useSubscription();
     const { viewMode, coupleLink } = useCoupleStore();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
-    let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
     useEffect(() => {
         if (pathname === '/dashboard/lumina') {
