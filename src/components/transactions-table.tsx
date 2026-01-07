@@ -48,15 +48,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 interface TransactionsTableProps {
   transactions: Transaction[];
   showExtraDetails?: boolean;
-  partnerData?: User | null;
 }
 
-export default function TransactionsTable({ transactions, showExtraDetails = false, partnerData }: TransactionsTableProps) {
+export default function TransactionsTable({ transactions, showExtraDetails = false }: TransactionsTableProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { deleteTransaction } = useTransactions();
   const { user } = useAuth();
-  const { viewMode } = useViewMode();
+  const { viewMode, partnerData } = useViewMode();
   const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
 
   const handleRowClick = (transaction: Transaction) => {
@@ -73,9 +72,9 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
     router.push(`/dashboard/add-transaction?id=${transaction.id}`);
   }
 
-  const handleDelete = async (transaction: Transaction) => {
+  const handleDelete = async (transactionId: string) => {
     try {
-        await deleteTransaction(transaction.id);
+        await deleteTransaction(transactionId);
         toast({
             title: 'Sucesso!',
             description: 'Transação excluída.',
@@ -90,7 +89,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
   }
 
   const renderOwnerAvatar = (transaction: Transaction) => {
-    if (viewMode !== 'together' || transaction.ownerId === user?.uid) {
+    if (viewMode !== 'together' || !partnerData || transaction.ownerId === user?.uid) {
         return null;
     }
     
@@ -176,7 +175,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction)} className="bg-destructive hover:bg-destructive/90">
+                                    <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction.id)} className="bg-destructive hover:bg-destructive/90">
                                         Sim, excluir
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -279,7 +278,7 @@ export default function TransactionsTable({ transactions, showExtraDetails = fal
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction)} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => selectedTransaction && handleDelete(selectedTransaction.id)} className="bg-destructive hover:bg-destructive/90">
                                 Sim, excluir
                             </AlertDialogAction>
                         </AlertDialogFooter>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -113,19 +114,21 @@ export default function FinancialChart({
           connectNulls={true}
         />
 
-        <ReferenceLine
-          y={costOfLiving}
-          label={{
-            value: 'Custo de Vida',
-            position: 'center',
-            fill: 'hsl(var(--muted-foreground))',
-            fontSize: 10
-          }}
-          stroke="hsl(var(--muted-foreground))"
-          strokeDasharray="4 4"
-          strokeWidth={1.5}
-          ifOverflow="extendDomain"
-        />
+        {costOfLiving > 0 && (
+            <ReferenceLine
+            y={costOfLiving}
+            label={{
+                value: 'Custo de Vida',
+                position: 'center',
+                fill: 'hsl(var(--muted-foreground))',
+                fontSize: 10
+            }}
+            stroke="hsl(var(--muted-foreground))"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            ifOverflow="extendDomain"
+            />
+        )}
       </LineChart>
     </ResponsiveContainer>
   );
