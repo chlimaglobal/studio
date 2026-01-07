@@ -10,9 +10,9 @@ import { useSubscription, useAuth } from '@/components/client-providers';
 import { Loader2 } from 'lucide-react';
 import { AddDependentDialog } from '@/components/add-dependent-dialog';
 import { useState, useEffect } from 'react';
-import { AppUser } from '@/lib/types';
 import { onUserUpdate } from '@/lib/storage';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import type { AppUser } from '@/types';
 
 
 // 🔒 BLOQUEIO PREMIUM

@@ -13,7 +13,6 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Progress } from '@/components/ui/progress';
-import type { Goal } from '@/lib/goal-types';
 import { AddGoalDialog } from '@/components/add-goal-dialog';
 import { onGoalsUpdate, deleteStoredGoal } from '@/lib/storage';
 import Icon from '@/components/icon';
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { EditGoalDialog } from '@/components/edit-goal-dialog';
+import type { Goal } from '@/types';
 
 
 const PremiumBlocker = () => (

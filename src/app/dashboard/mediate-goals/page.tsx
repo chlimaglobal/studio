@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatCurrency } from '@/lib/utils';
-import type { MediateGoalsInput, MediateGoalsOutput } from '@/types';
 import { runGoalMediation } from '../actions';
+import type { MediateGoalsInput, MediateGoalsOutput } from '@/types';
 
 const ResultDisplay = ({ result, onReset }: { result: MediateGoalsOutput, onReset: () => void }) => {
     return (
@@ -144,12 +144,12 @@ export default function MediateGoalsPage() {
     try {
         const result = await runGoalMediation(input);
         setAnalysisResult(result);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Mediation failed:", error);
         toast({
             variant: "destructive",
             title: "Erro na Análise",
-            description: "Não foi possível mediar as metas. Verifique os valores e tente novamente."
+            description: error.message || "Não foi possível mediar as metas. Verifique os valores e tente novamente."
         });
     } finally {
         setIsLoading(false);

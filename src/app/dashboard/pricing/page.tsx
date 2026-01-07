@@ -9,7 +9,6 @@ import { useState } from 'react';
 import { createCheckoutSession, createCustomerPortalSession } from './actions';
 import { useAuth, useSubscription } from '@/components/client-providers';
 import Link from 'next/link';
-import { getAuth } from 'firebase/auth';
 
 const freeFeatures = [
     "Controle de transações (receitas e despesas)",
@@ -41,7 +40,6 @@ const PricingCard = ({ title, price, description, priceId, features, isFeatured 
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
     const { user } = useAuth();
-    const auth = getAuth();
 
     const handleSubscribe = async () => {
         setIsLoading(true);
@@ -52,7 +50,7 @@ const PricingCard = ({ title, price, description, priceId, features, isFeatured 
         }
 
         try {
-            const token = await auth.currentUser?.getIdToken();
+            const token = await user.getIdToken();
             if (!token) throw new Error("Não foi possível obter o token de autenticação.");
             
             const { url } = await createCheckoutSession(priceId, token);
@@ -108,7 +106,6 @@ export default function PricingPage() {
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { toast } = useToast();
     const [isPortalLoading, setIsPortalLoading] = useState(false);
-    const auth = getAuth();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     const couplePriceId = process.env.NEXT_PUBLIC_STRIPE_COUPLE_PRICE_ID!;
@@ -116,8 +113,13 @@ export default function PricingPage() {
 
     const handleManageSubscription = async () => {
         setIsPortalLoading(true);
+        if (!user) {
+            toast({ variant: 'destructive', title: 'Você não está logado.' });
+            setIsPortalLoading(false);
+            return;
+        }
         try {
-            const token = await auth.currentUser?.getIdToken();
+            const token = await user.getIdToken();
             if (!token) throw new Error("Não foi possível obter o token de autenticação.");
             
             const { url } = await createCustomerPortalSession(token);
@@ -127,7 +129,7 @@ export default function PricingPage() {
             } else {
                 throw new Error("Não foi possível criar a sessão do portal.");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
              const errorMessage = (error instanceof Error) ? error.message : 'Não foi possível acessar o portal de gerenciamento. Tente novamente.';
              toast({

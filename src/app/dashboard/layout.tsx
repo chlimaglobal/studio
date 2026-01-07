@@ -103,11 +103,12 @@ const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
 
 // Main Layout Component
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading, user } = useAuth();
+  const { user } = useAuth(); // No longer provides isLoading
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
   const [isDependent, setIsDependent] = useState<boolean | null>(null);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Internal loading state for this layout
 
   useEffect(() => {
     const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
@@ -122,29 +123,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    // If auth is done loading and there's no user, redirect to login
-    if (!isLoading && !user) {
-      router.replace('/login');
-    }
-  }, [isLoading, user, router]);
+    if (user === undefined) return; // Wait for auth state to be determined
 
-   useEffect(() => {
+    if (user === null) {
+      router.replace('/login');
+      return;
+    }
+    
     async function checkUserRole() {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-          const userData = docSnap.data() as AppUser;
-          if (userData.isDependent) {
-            setIsDependent(true);
-            router.replace('/dashboard/dependent');
-          } else {
-            setIsDependent(false);
-          }
-        } else {
-            setIsDependent(false);
+        if (user) {
+            const userDocRef = doc(db, 'users', user.uid);
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const userData = docSnap.data() as AppUser;
+                    if (userData.isDependent) {
+                        setIsDependent(true);
+                        router.replace('/dashboard/dependent');
+                    } else {
+                        setIsDependent(false);
+                    }
+                } else {
+                    setIsDependent(false);
+                }
+            } catch (error) {
+                 console.error("Error checking user role:", error);
+                 setIsDependent(false); // Default to not dependent on error
+            }
         }
-      }
+        setIsLoading(false); // Auth check and role check is done
     }
     checkUserRole();
   }, [user, router]);
@@ -169,7 +176,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setIsLocked(false);
   };
 
-  if (isLoading || !user || isDependent === null) {
+  if (isLoading || isDependent === null) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -182,6 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <AppLockScreen onUnlock={handleUnlock} />;
   }
 
+  // The ClientProviders now wraps the content here, ensuring context is available to all children.
   return (
     <ClientProviders>
         <div className="flex flex-col min-h-screen w-full bg-background">
@@ -198,5 +206,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </ClientProviders>
   );
 }
-
-    

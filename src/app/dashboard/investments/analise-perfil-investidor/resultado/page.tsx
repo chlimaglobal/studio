@@ -6,9 +6,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, BarChart2, TrendingUp, PieChartIcon, UserCheck, Info, ChevronRight, PiggyBank, FilePieChart, Repeat } from 'lucide-react';
-import type { InvestorProfileOutput } from '@/types';
 import CategoryPieChart from '@/components/category-pie-chart';
 import Link from 'next/link';
+import type { InvestorProfileOutput } from '@/types';
 
 const recommendationActions = [
     {

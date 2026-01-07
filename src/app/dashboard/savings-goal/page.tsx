@@ -8,11 +8,11 @@ import { ArrowLeft, Loader2, Sparkles, PiggyBank, DollarSign, TrendingUp, HandCo
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
-import type { SavingsGoalOutput } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-import { allInvestmentCategories } from '@/types';
 import Link from 'next/link';
 import { runSavingsGoalCalculation } from '../actions';
+import type { SavingsGoalOutput } from '@/types';
+import { allInvestmentCategories } from '@/types';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -120,12 +120,12 @@ export default function SavingsGoalPage() {
         try {
             const result = await runSavingsGoalCalculation({ transactions: operationalTransactions });
             setAnalysisResult(result);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Savings goal calculation failed:", error);
             toast({
                 variant: "destructive",
                 title: "Erro na Análise",
-                description: "Não foi possível calcular sua meta. Tente novamente."
+                description: error.message || "Não foi possível calcular sua meta. Tente novamente."
             });
         } finally {
             setIsLoading(false);

@@ -8,18 +8,16 @@ import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useAuth, useSubscription, useCoupleStore } from '@/components/providers/client-providers';
+import { useTransactions, useAuth, useSubscription, useCoupleStore } from '@/components/client-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { allInvestmentCategories } from '@/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
@@ -28,8 +26,8 @@ import { Timestamp, doc, getDoc } from 'firebase/firestore';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
 import { PartnerInfoCard } from '@/components/couple/PartnerInfoCard';
 import { useRouter } from 'next/navigation';
-import type { GenerateFinancialAnalysisOutput } from '@/types';
-
+import type { Transaction, TransactionCategory, Budget, UserStatus, AppUser, GenerateFinancialAnalysisOutput } from '@/types';
+import { allInvestmentCategories } from '@/types';
 
 interface SummaryData {
   recebidos: number;
@@ -85,7 +83,7 @@ const AiTipsCard = () => {
             setTips(result);
             localStorage.setItem('financialAnalysis', JSON.stringify(result));
             localStorage.setItem('financialAnalysisHash', transactionsHash);
-        } catch (error) {
+        } catch (error: any) {
             if (error instanceof Error && error.message.includes('Assinatura Premium necessária')) {
                 // Silently fail for permission errors, as this is expected for non-premium users.
             } else {

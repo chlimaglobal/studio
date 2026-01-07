@@ -7,13 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, Loader2, Save, Star } from 'lucide-react';
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
-import type { ExtractedTransaction } from '@/types';
 import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { runFileExtraction } from '../actions';
+import type { ExtractFromFileOutput } from '@/types';
 
 const PremiumBlocker = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
@@ -44,7 +44,7 @@ export default function ImportPage() {
   const { toast } = useToast();
   const { addTransaction } = useTransactions();
   const [isProcessing, startProcessingTransition] = useTransition();
-  const [extractedData, setExtractedData] = useState<ExtractedTransaction[]>([]);
+  const [extractedData, setExtractedData] = useState<ExtractFromFileOutput['transactions']>([]);
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const { user } = useAuth();
   const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
@@ -76,11 +76,11 @@ export default function ImportPage() {
             } else {
               throw new Error('A Lúmina não conseguiu extrair transações.');
             }
-          } catch (error) {
+          } catch (error: any) {
             toast({
               variant: 'destructive',
               title: 'Erro na Extração',
-              description: 'Não foi possível processar o arquivo. Verifique o formato ou tente novamente.',
+              description: error.message || 'Não foi possível processar o arquivo. Verifique o formato ou tente novamente.',
             });
           }
         });
@@ -93,14 +93,10 @@ export default function ImportPage() {
     if (extractedData.length === 0) return;
 
     const transactionsToSave = extractedData.map(t => ({
-      description: t.description,
+      ...t,
       amount: t.amount,
       date: new Date(t.date),
-      type: t.type,
-      category: t.category,
       paid: true,
-      paymentMethod: t.paymentMethod || 'one-time',
-      installments: t.installments,
     }));
     
     // @ts-ignore

@@ -74,12 +74,12 @@ export default function InvestorProfilePage() {
             analysisResult: JSON.stringify(result)
         }).toString();
         router.push(`/dashboard/investments/analise-perfil-investidor/resultado?${query}`);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Analysis failed:", error);
         toast({
             variant: "destructive",
             title: "Erro na Análise",
-            description: "Não foi possível gerar seu perfil. Tente novamente."
+            description: error.message || "Não foi possível gerar seu perfil. Tente novamente."
         })
     } finally {
         setIsLoading(false);

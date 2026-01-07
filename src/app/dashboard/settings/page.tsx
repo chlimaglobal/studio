@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -21,21 +20,7 @@ import { getAllUserDataForBackup, saveFcmToken } from '@/lib/storage';
 import Link from 'next/link';
 import { messaging } from '@/lib/firebase';
 import { getToken } from 'firebase/messaging';
-
-
-type NotificationSettings = {
-  dailySummary: boolean;
-  futureIncome: boolean;
-  futurePayments: boolean;
-  sync: boolean;
-  promos: boolean;
-  goalsMet: boolean;
-  spendingLimits: boolean;
-  goalReminders: boolean;
-  spendingReminders: boolean;
-  invoiceDue: boolean;
-  invoiceClosed: boolean;
-};
+import type { NotificationSettings } from '@/types';
 
 
 const incomeSounds = [

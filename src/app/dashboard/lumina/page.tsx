@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, fileToBase64 } from "@/lib/utils";
 import { onChatUpdate, addChatMessage, addCoupleChatMessage, onCoupleChatUpdate } from "@/lib/storage";
-import type { ChatMessage } from "@/types";
 import { useTransactions, useViewMode, useAuth, useLumina, useCoupleStore } from "@/components/client-providers";
 import { AudioInputDialog } from "@/components/audio-transaction-dialog";
 import { useChat } from 'ai/react';
 import Image from 'next/image';
 import { useToast } from "@/hooks/use-toast";
+import type { ChatMessage } from "@/types";
 
 
 const TypingIndicator = () => (
@@ -50,17 +50,17 @@ export default function ChatPage() {
       allTransactions: transactions,
       isCoupleMode: viewMode === "together",
       isTTSActive: false,
-      user: {
-        uid: user?.uid,
-        displayName: user?.displayName,
-        email: user?.email,
-        photoURL: user?.photoURL,
-      },
-      partner: viewMode === "together" ? {
-        uid: partner?.uid,
-        displayName: partner?.displayName,
-        email: partner?.email,
-        photoURL: partner?.photoURL,
+      user: user ? {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      } : undefined,
+      partner: viewMode === "together" && partner ? {
+        uid: partner.uid,
+        displayName: partner.displayName,
+        email: partner.email,
+        photoURL: partner.photoURL,
       } : undefined,
     },
     onFinish: (message) => {
