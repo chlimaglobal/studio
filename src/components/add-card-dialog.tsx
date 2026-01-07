@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import React, { useMemo } from 'react';
-import { AddCardFormSchema, cardBrands } from '@/lib/card-types';
+import { AddCardFormSchema, cardBrands, brandNames } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { addStoredCard } from '@/lib/storage';
@@ -34,17 +34,6 @@ import { useAuth, useTransactions } from '@/components/client-providers';
 type AddCardDialogProps = {
   children: React.ReactNode;
 };
-
-const brandNames: Record<typeof cardBrands[number], string> = {
-    mastercard: 'Mastercard',
-    visa: 'Visa',
-    elo: 'Elo',
-    amex: 'American Express',
-    hipercard: 'Hipercard',
-    diners: 'Diners Club',
-    other: 'Outra',
-};
-
 
 export function AddCardDialog({ children }: AddCardDialogProps) {
   const [open, setOpen] = React.useState(false);

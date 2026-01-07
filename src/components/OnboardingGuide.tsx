@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,7 +32,7 @@ const onboardingSteps = [
     {
         icon: 'Plus' as keyof typeof icons,
         title: "Adicione Transações Facilmente",
-        description: "Use o botão '+' para adicionar despesas e receitas manualmente ou use sua voz com a assistente Lúmina.",
+        description: "Use o botão '+' para adicionar despesas e receitas manually ou use sua voz com a assistente Lúmina.",
         color: "bg-green-500/10 text-green-500"
     },
     {

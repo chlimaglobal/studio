@@ -157,5 +157,3 @@ export function AddAccountDialog({ children }: AddAccountDialogProps) {
     </Dialog>
   );
 }
-
-    
