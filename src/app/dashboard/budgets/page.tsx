@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Budget, BudgetSchema } from '@/lib/types';
+import { Budget, BudgetSchema } from '@/types';
 import { useAuth, useSubscription } from '@/components/client-providers';
 import { onBudgetsUpdate, saveBudgets } from '@/lib/storage';
 import { format } from 'date-fns';
@@ -200,3 +200,5 @@ export default function BudgetsPage() {
         </div>
     );
 }
+
+    

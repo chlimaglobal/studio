@@ -25,10 +25,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
-import { AddAccountFormSchema, accountTypes, accountTypeLabels } from '@/lib/types';
+import { AddAccountFormSchema, accountTypes, accountTypeLabels } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/client-providers';
 import { addStoredAccount } from '@/lib/storage';
 
 type AddAccountDialogProps = {
@@ -157,3 +157,5 @@ export function AddAccountDialog({ children }: AddAccountDialogProps) {
     </Dialog>
   );
 }
+
+    

@@ -1,5 +1,6 @@
 
 import { icons, LucideProps } from 'lucide-react';
+import { iconNames } from '@/types';
 
 interface IconProps extends LucideProps {
   name: keyof typeof icons;
@@ -16,3 +17,5 @@ const Icon = ({ name, color, size, className }: IconProps) => {
 };
 
 export default Icon;
+
+    

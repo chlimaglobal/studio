@@ -3,6 +3,7 @@
 
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
+import { useMemo } from 'react';
 
 interface CategoryPieChartProps {
   data: { name: string; value: number }[];
@@ -32,6 +33,9 @@ const CustomTooltip = ({ active, payload }: any) => {
 };
 
 const CategoryPieChart = ({ data }: CategoryPieChartProps) => {
+
+  const totalValue = useMemo(() => data.reduce((sum, entry) => sum + entry.value, 0), [data]);
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
@@ -57,6 +61,12 @@ const CategoryPieChart = ({ data }: CategoryPieChartProps) => {
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
+        <foreignObject x="50%" y="50%" width="160" height="100" style={{ transform: 'translate(-80px, -40px)', textAlign: 'center' }}>
+            <div style={{ color: 'hsl(var(--muted-foreground))', fontSize: '12px' }}>Gasto Total</div>
+            <div style={{ color: 'hsl(var(--foreground))', fontSize: '24px', fontWeight: 'bold' }}>
+                {formatCurrency(totalValue)}
+            </div>
+        </foreignObject>
       </PieChart>
     </ResponsiveContainer>
   );

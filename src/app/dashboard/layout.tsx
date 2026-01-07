@@ -15,6 +15,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser } from '@/types';
 import DashboardHeader from '@/components/dashboard-header';
+import { ClientProviders } from '@/components/providers/client-providers';
 
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
@@ -182,16 +183,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-background">
-      <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
-      <main className="flex-1 overflow-y-auto pb-40 p-4">
-        {children}
-      </main>
-      {!isDependent && <AddTransactionFab />}
-      <div className="fixed bottom-20 left-0 w-full z-40">
-          {!isDependent && <NewsTicker />}
-      </div>
-      <BottomNavBar />
-    </div>
+    <ClientProviders>
+        <div className="flex flex-col min-h-screen w-full bg-background">
+        <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
+        <main className="flex-1 overflow-y-auto pb-40 p-4">
+            {children}
+        </main>
+        {!isDependent && <AddTransactionFab />}
+        <div className="fixed bottom-20 left-0 w-full z-40">
+            {!isDependent && <NewsTicker />}
+        </div>
+        <BottomNavBar />
+        </div>
+    </ClientProviders>
   );
 }
+
+    

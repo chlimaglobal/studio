@@ -3,10 +3,10 @@ import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from '@/types';
 import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from '@/types';
-import type { Card, AddCardFormSchema } from '@/lib/card-types';
-import type { Goal, AddGoalFormSchema } from '@/lib/goal-types';
+import type { Card, AddCardFormSchema } from './card-types';
+import type { Goal, AddGoalFormSchema } from './goal-types';
 import { z } from 'zod';
-import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from '@/lib/commission-types';
+import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
 
@@ -666,3 +666,5 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
 
 // Re-exporting getDoc and doc for use in other files
 export { getDoc, doc };
+
+    

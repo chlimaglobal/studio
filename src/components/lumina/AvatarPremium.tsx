@@ -1,3 +1,4 @@
+
 // components/lumina/AvatarPremium.tsx
 'use client';
 
@@ -10,6 +11,8 @@ type Props = {
 
 export default function AvatarPremium({ isThinking = false }: Props) {
   return (
-    <div className={cn('lumina-avatar', isThinking && 'lumina-thinking')} aria-hidden />
+    <div className={cn('lumina-sphere', isThinking && 'lumina-thinking')} aria-hidden />
   );
 }
+
+    

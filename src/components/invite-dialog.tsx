@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog';
-import type { Account } from '@/lib/types';
+import type { Account } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -131,3 +131,5 @@ export function InviteDialog({ account, open, onOpenChange }: InviteDialogProps)
     </Dialog>
   );
 }
+
+    

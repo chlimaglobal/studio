@@ -8,7 +8,7 @@ import { BellRing, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { messaging } from '@/lib/firebase';
 import { getToken } from 'firebase/messaging';
-import { useAuth } from './client-providers';
+import { useAuth } from './providers/client-providers';
 import { saveFcmToken } from '@/lib/storage';
 
 export function NotificationPermission() {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -164,3 +165,5 @@ export default function CardDetailsPage({ params }: Props) {
         </div>
   );
 }
+
+    

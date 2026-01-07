@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/client-providers';
 
 const Logo = () => (
     <div className="p-4 inline-block">
@@ -277,3 +278,5 @@ export default function LoginPage() {
     </main>
   );
 }
+
+    

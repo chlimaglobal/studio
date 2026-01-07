@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { InvitePartnerDialog } from './InvitePartnerDialog';
-import { useViewMode } from '@/components/client-providers';
+import { useViewMode } from '@/components/providers/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '../ui/skeleton';
 
@@ -59,3 +59,5 @@ export function CoupleModeToggle() {
         </>
     );
 }
+
+    

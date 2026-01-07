@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useTransactions, useAuth } from '@/components/client-providers';
+import { useTransactions, useAuth } from '@/components/providers/client-providers';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
 import { allInvestmentCategories } from '@/types';
@@ -164,3 +164,5 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
     </header>
   );
 }
+
+    

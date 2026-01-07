@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarIcon, Loader2, icons } from 'lucide-react';
 import React from 'react';
-import { EditGoalFormSchema, iconNames, type Goal } from '@/lib/goal-types';
+import { EditGoalFormSchema, Goal } from '@/lib/goal-types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { ScrollArea } from './ui/scroll-area';
@@ -36,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/components/client-providers';
+import { iconNames } from '@/types';
 
 type EditGoalDialogProps = {
   goal: Goal;
@@ -243,3 +244,5 @@ export function EditGoalDialog({ goal, open, onOpenChange }: EditGoalDialogProps
     </Dialog>
   );
 }
+
+    

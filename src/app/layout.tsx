@@ -1,10 +1,11 @@
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
-import { AuthProvider, ClientProviders } from '@/components/providers/client-providers';
+import { AuthProvider } from '@/components/providers/client-providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -42,7 +43,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <ClientProviders>{children}</ClientProviders>
+            {children}
           </AuthProvider>
           <Toaster />
         </ThemeProvider>
@@ -50,3 +51,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    

@@ -528,3 +528,5 @@ export const GetSimpleFinancialSummaryOutputSchema = z.object({
     summary: z.string().describe('O resumo financeiro em linguagem natural.'),
 });
 export type GetSimpleFinancialSummaryOutput = z.infer<typeof GetSimpleFinancialSummaryOutputSchema>;
+
+    

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,8 +25,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, AlertTriangle, Repeat } from 'lucide-react';
-import { TransactionFormSchema } from '@/types';
-import { categoryData, transactionCategories } from '@/types';
+import { TransactionFormSchema, categoryData, transactionCategories } from '@/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
@@ -37,7 +35,7 @@ import { Calendar } from './ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Switch } from './ui/switch';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions } from '@/components/providers/client-providers';
 
 type AddTransactionSheetProps = {
   open: boolean;
@@ -74,9 +72,9 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
     }
   }, [initialData, form, open]);
 
-  function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
+  async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
-        addTransaction([values]);
+        await addTransaction([values]);
         onOpenChange(false);
         form.reset();
     } catch (error) {
@@ -234,3 +232,5 @@ export const AddTransactionSheet = Object.assign(AddTransactionSheetRoot, {
   Trigger: SheetTrigger,
   Close: SheetClose,
 });
+
+    

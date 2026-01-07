@@ -8,10 +8,10 @@ import { AddAccountDialog } from '@/components/add-account-dialog';
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/components/client-providers';
 import { onAccountsUpdate } from '@/lib/storage';
-import type { Account } from '@/lib/types';
+import type { Account } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { accountTypeLabels } from '@/lib/types';
+import { accountTypeLabels } from '@/types';
 import { InviteDialog } from '@/components/invite-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
@@ -218,3 +218,5 @@ export default function BanksPage() {
     </>
   );
 }
+
+    

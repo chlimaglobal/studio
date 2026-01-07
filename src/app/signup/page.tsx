@@ -233,3 +233,5 @@ function SignUpPageContent() {
     </main>
   );
 }
+
+    

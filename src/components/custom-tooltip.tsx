@@ -1,3 +1,4 @@
+
 'use client';
 
 import { formatCurrency } from '@/lib/utils';
@@ -26,3 +27,5 @@ const CustomTooltip = ({ active, payload, label, isPrivacyMode }: any) => {
 };
 
 export default CustomTooltip;
+
+    

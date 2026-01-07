@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import type { TransactionFormSchema } from '@/lib/types';
+import type { TransactionFormSchema } from '@/types';
 import { z } from 'zod';
 
 type QrScannerDialogProps = {
@@ -177,3 +177,5 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
     </Dialog>
   );
 }
+
+    

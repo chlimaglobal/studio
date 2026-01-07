@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Card } from '@/lib/card-types';
-import type { Transaction } from '@/lib/types';
+import type { Transaction } from '@/types';
 import { onTransactionsUpdate } from '@/lib/storage';
 import { useEffect, useState } from 'react';
 import CardIcon from './card-icon';
@@ -23,15 +23,16 @@ interface CardDetailsDialogProps {
   card: Card | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  userId: string;
 }
 
-export function CardDetailsDialog({ card, open, onOpenChange }: CardDetailsDialogProps) {
+export function CardDetailsDialog({ card, open, onOpenChange, userId }: CardDetailsDialogProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
 
   useEffect(() => {
-    if (open && card) {
-      const unsubscribe = onTransactionsUpdate((allTransactions) => {
+    if (open && card && userId) {
+      const unsubscribe = onTransactionsUpdate(userId, (allTransactions) => {
           const cardTransactions = allTransactions.filter(
             (t) => t.type === 'expense' && t.category === 'Cartão de Crédito' && t.creditCard === card.name
           );
@@ -42,7 +43,7 @@ export function CardDetailsDialog({ card, open, onOpenChange }: CardDetailsDialo
       });
       return () => unsubscribe();
     }
-  }, [open, card]);
+  }, [open, card, userId]);
 
   if (!card) return null;
 
@@ -94,3 +95,5 @@ export function CardDetailsDialog({ card, open, onOpenChange }: CardDetailsDialo
     </Dialog>
   );
 }
+
+    

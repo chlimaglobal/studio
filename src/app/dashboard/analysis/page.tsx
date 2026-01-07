@@ -89,15 +89,21 @@ export default function AnalysisPage() {
     }
     
     if (allTransactions.length > 0) {
-        const result = await runAnalysis({ transactions: allTransactions });
-        setAnalysis(result);
-        localStorage.setItem('financialAnalysis', JSON.stringify(result));
-        localStorage.setItem('financialAnalysisHash', transactionsHash);
+        try {
+            const result = await runAnalysis({ transactions: allTransactions });
+            setAnalysis(result);
+            localStorage.setItem('financialAnalysis', JSON.stringify(result));
+            localStorage.setItem('financialAnalysisHash', transactionsHash);
+        } catch(e) {
+            console.error("Failed to run analysis", e);
+            setAnalysis(null);
+        }
     } else {
         const defaultState: GenerateFinancialAnalysisOutput = {
           healthStatus: "Atenção",
           diagnosis: "Ainda não há transações para analisar. Comece adicionando seus gastos e receitas para obter uma análise financeira.",
-          suggestions: []
+          suggestions: [],
+          trendAnalysis: undefined,
         };
         setAnalysis(defaultState);
         localStorage.removeItem('financialAnalysis');
@@ -207,3 +213,5 @@ export default function AnalysisPage() {
     </div>
   );
 }
+
+    
