@@ -6,7 +6,7 @@ import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import { useRouter } from 'next/navigation';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { useAuth } from '@/components/providers/client-providers'; 
+import { useAuth, ClientProviders } from '@/components/providers/client-providers'; 
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser } from '@/types';
 import DashboardHeader from '@/components/dashboard-header';
-import { ClientProviders } from '@/components/providers/client-providers';
 
 
 const UNLOCK_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
