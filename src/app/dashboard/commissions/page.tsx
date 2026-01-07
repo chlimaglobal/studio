@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { CalendarIcon, Loader2, HandCoins, PlusCircle, Trash2, CheckCircle, Clock, PieChart, Pencil } from 'lucide-react';
-import { AddCommissionFormSchema, Commission } from '@/lib/commission-types';
+import { AddCommissionFormSchema, Commission } from '@/types';
 import React, { useEffect, useState, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn, formatCurrency } from '@/lib/utils';

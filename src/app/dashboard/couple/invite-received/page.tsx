@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -33,21 +35,11 @@ export default function InviteReceivedPage() {
         try {
             if (!user) throw new Error("Usuário não autenticado");
 
-            const token = await user.getIdToken();
-            const response = await fetch('/api/couple/handle-invite', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ inviteId: invite.id, action })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro ao processar o convite.');
-            }
+            const functionName = action === 'accept' ? 'acceptPartnerInvite' : 'declinePartnerInvite';
+            const callable = httpsCallable(functions, functionName);
+            
+            const result = await callable({ inviteId: invite.id });
+            const data = result.data as { success: boolean; message: string; error?: string };
 
             if (data.success) {
                 toast({

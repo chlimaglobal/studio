@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/client-providers';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -32,28 +34,18 @@ export default function PendingInvitePage() {
     setIsActionLoading(true);
     try {
       if (!user) throw new Error("Usuário não autenticado.");
-      const token = await user.getIdToken();
-      const response = await fetch('/api/couple/handle-invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ inviteId: invite.id, action: 'cancel' })
-      });
-
-      const data = await response.json();
       
-      if (!response.ok) {
+      const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
+      const result = await cancelCallable({ inviteId: invite.id });
+      const data = result.data as { success: boolean; message: string; error?: string };
+      
+      if (!data.success) {
         throw new Error(data.error || 'Erro ao cancelar o convite.');
       }
 
-      if (data.success) {
-        toast({ title: 'Sucesso!', description: data.message });
-        router.push('/dashboard/couple/invite');
-      } else {
-        throw new Error(data.error);
-      }
+      toast({ title: 'Sucesso!', description: data.message });
+      router.push('/dashboard/couple/invite');
+
     } catch (error: any) {
       toast({
         variant: 'destructive',

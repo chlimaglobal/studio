@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusCircle, CreditCard, Calendar, AlertCircle, ArrowLeft } from 'lucide-react';
-import type { Card as CardType } from '@/lib/card-types';
+import type { Card as CardType } from '@/types';
 import { AddCardDialog } from '@/components/add-card-dialog';
 import CardIcon from '@/components/card-icon';
 import { useEffect, useState } from 'react';

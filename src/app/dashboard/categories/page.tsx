@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { categoryData } from '@/lib/types';
+import { categoryData } from '@/types';
 import { 
     ArrowLeft, Home, MoreHorizontal, Plus, Utensils, Croissant, Coffee, Bike,
     UtensilsCrossed, ShoppingCart, Gamepad2, AppWindow, Tv, Smartphone, Wifi,

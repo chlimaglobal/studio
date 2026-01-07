@@ -1,4 +1,5 @@
 
+
       
 'use client';
 
@@ -12,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/utils';
 import { ResponsiveContainer, LineChart as RechartsLineChart, XAxis, YAxis, Tooltip, Legend, Line, ReferenceLine } from 'recharts';
-import { allInvestmentCategories, investmentWithdrawalCategories } from '@/lib/types';
+import { allInvestmentCategories, investmentWithdrawalCategories } from '@/types';
 import { Separator } from '@/components/ui/separator';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -279,5 +280,3 @@ export default function RetirementPlannerPage() {
     </div>
   );
 }
-
-    
