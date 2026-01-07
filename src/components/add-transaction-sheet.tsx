@@ -25,7 +25,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { CalendarIcon, Sparkles, AlertTriangle, Repeat } from 'lucide-react';
-import { TransactionFormSchema, categoryData, transactionCategories } from '@/types';
+import { TransactionFormSchema, categoryData } from '@/types';
 import React from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '@/lib/utils';
@@ -74,7 +74,7 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
 
   async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
-        await addTransaction([values]);
+        await addTransaction(values);
         onOpenChange(false);
         form.reset();
     } catch (error) {
@@ -232,5 +232,3 @@ export const AddTransactionSheet = Object.assign(AddTransactionSheetRoot, {
   Trigger: SheetTrigger,
   Close: SheetClose,
 });
-
-    

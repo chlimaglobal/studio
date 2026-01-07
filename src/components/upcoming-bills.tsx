@@ -9,7 +9,7 @@ import { formatCurrency, cn } from '@/lib/utils';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { Transaction } from '@/lib/definitions';
+import type { Transaction } from '@/types';
 import { useRouter } from 'next/navigation';
 
 const BillItem = ({ bill }: { bill: Transaction }) => {

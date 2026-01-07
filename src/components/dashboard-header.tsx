@@ -164,5 +164,3 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
     </header>
   );
 }
-
-    

@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { Card } from '@/lib/card-types';
+import type { Card } from '@/types';
 import type { Transaction } from '@/types';
 import { onTransactionsUpdate } from '@/lib/storage';
 import { useEffect, useState } from 'react';
@@ -95,5 +95,3 @@ export function CardDetailsDialog({ card, open, onOpenChange, userId }: CardDeta
     </Dialog>
   );
 }
-
-    

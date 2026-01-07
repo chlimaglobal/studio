@@ -177,5 +177,3 @@ export function QrScannerDialog({ open, onOpenChange, onTransactionExtracted, ch
     </Dialog>
   );
 }
-
-    

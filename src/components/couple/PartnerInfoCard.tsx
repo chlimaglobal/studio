@@ -16,7 +16,8 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-
+import { httpsCallable, getFunctions } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,23 +42,10 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const token = await user.getIdToken();
-      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/disconnectPartner`;
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: {} }) // Send empty data object if required by function
-      });
-
-      const result = await response.json();
+      const functions = getFunctions(app, 'us-central1');
+      const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Falha na comunicação com o servidor.');
-      }
+      const result = await disconnectPartnerCallable();
 
       const data = result.data as {
         success: boolean;

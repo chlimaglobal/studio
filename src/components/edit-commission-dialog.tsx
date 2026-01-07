@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import React from 'react';
-import { EditCommissionFormSchema, type Commission } from '@/lib/commission-types';
+import { EditCommissionFormSchema, type Commission } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { updateStoredCommission } from '@/lib/storage';
@@ -195,5 +195,3 @@ export function EditCommissionDialog({ commission, open, onOpenChange }: EditCom
     </Dialog>
   );
 }
-
-    

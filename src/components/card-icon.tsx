@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import { type CardBrand } from '@/lib/card-types';
+import type { CardBrand } from '@/types';
 
 interface CardIconProps extends React.SVGProps<SVGSVGElement> {
   brand: CardBrand;
@@ -58,5 +58,3 @@ const CardIcon: React.FC<CardIconProps> = ({ brand, ...props }) => {
 };
 
 export default CardIcon;
-
-    
