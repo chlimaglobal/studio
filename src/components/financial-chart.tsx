@@ -14,6 +14,19 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import CustomTooltip from './custom-tooltip';
+import type { TransactionCategory } from '@/types';
+
+const getCategoryColor = (category: TransactionCategory) => {
+    // This is a placeholder. In a real app, you'd have a mapping
+    // of categories to colors. We'll use a simple hashing function
+    // to generate a consistent color for a given category.
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) {
+        hash = category.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = `hsl(${hash % 360}, 70%, 60%)`;
+    return color;
+};
 
 interface FinancialChartProps {
   data: {
