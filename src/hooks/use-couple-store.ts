@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { onSnapshot, doc, collection, query, where, getDoc, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppUser, CoupleLink } from '@/lib/types';
+import type { AppUser, CoupleLink } from '@/types';
 import { getAuth, User } from 'firebase/auth';
 
 // Types

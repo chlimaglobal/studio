@@ -2,11 +2,8 @@
 import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from '@/types';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser } from '@/types';
-import type { Card, AddCardFormSchema } from './card-types';
-import type { Goal, AddGoalFormSchema } from './goal-types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser, Goal, AddGoalFormSchema, Commission, EditCommissionFormSchema, AddCommissionFormSchema, Card, AddCardFormSchema } from '@/types';
 import { z } from 'zod';
-import { AddCommissionFormSchema, Commission, EditCommissionFormSchema } from './commission-types';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
 
@@ -440,7 +437,7 @@ export async function addStoredCommission(userId: string, data: z.infer<typeof A
     if (data.status === 'received') {
         const transactionData = {
             description: `Comissão: ${data.description}`,
-            amount: data.amount,
+            amount: Number(data.amount),
             date: data.date,
             type: 'income' as const,
             category: 'Comissão' as const,
@@ -463,7 +460,7 @@ export async function updateStoredCommissionStatus(userId: string, commissionId:
   await updateDoc(commissionRef, { status: newStatus });
   
   if (newStatus === 'received') {
-    const receivedCommissionData = { ...commission, status: newStatus, date: new Date(commission.date) };
+    const receivedCommissionData = { ...commission, status: newStatus, date: new Date(commission.date), amount: Number(commission.amount) };
     
     const transactionData = {
         description: `Comissão: ${receivedCommissionData.description}`,
@@ -666,5 +663,3 @@ export async function getPartnerData(partnerId: string): Promise<AppUser | null>
 
 // Re-exporting getDoc and doc for use in other files
 export { getDoc, doc };
-
-    
