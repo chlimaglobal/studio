@@ -1,7 +1,6 @@
 
 'use client'; // ESSENCIAL: Transforma o layout em um Client Component para hospedar providers
 
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -11,7 +10,7 @@ import { AuthProvider, ClientProviders } from '@/components/providers/client-pro
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
-// A Metadata não pode ser exportada de um client component. 
+// A Metadata não pode ser exportada de um client component.
 // Vamos definir o título no <head> diretamente.
 
 export default function RootLayout({

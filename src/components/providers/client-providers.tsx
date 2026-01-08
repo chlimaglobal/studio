@@ -168,6 +168,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { viewMode, partnerData } = useViewMode();
+  const { coupleLink } = useCoupleStore();
 
   useEffect(() => {
     if (!user?.uid) {
