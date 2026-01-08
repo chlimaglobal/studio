@@ -1,4 +1,6 @@
 
+'use client'; // ESSENCIAL: Transforma o layout em um Client Component para hospedar providers
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -9,14 +11,8 @@ import { AuthProvider, ClientProviders } from '@/components/providers/client-pro
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
-export const metadata: Metadata = {
-  title: 'FinanceFlow',
-  description: 'Sua plataforma de controle financeiro para casais.',
-  manifest: '/manifest.json',
-  icons: {
-    apple: '/icon-512x512.png',
-  },
-};
+// A Metadata não pode ser exportada de um client component. 
+// Vamos definir o título no <head> diretamente.
 
 export default function RootLayout({
   children,
@@ -26,11 +22,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <title>FinanceFlow</title>
+        <meta name="description" content="Sua plataforma de controle financeiro para casais." />
         <meta name="application-name" content="FinanceFlow" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <meta name="apple-mobile-web-app-title" content="FinanceFlow" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="manifest" href="/manifest.json" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#000000" />
@@ -45,9 +44,9 @@ export default function RootLayout({
           <AuthProvider>
             <ClientProviders>
               {children}
+              <Toaster />
             </ClientProviders>
           </AuthProvider>
-          <Toaster />
         </ThemeProvider>
       </body>
     </html>

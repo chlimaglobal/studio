@@ -1,9 +1,8 @@
 
 'use client';
 
-import { ThemeProvider } from '@/components/theme-provider';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { app, functions } from '@/lib/firebase';
+import { app } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   addStoredTransaction, 
@@ -12,20 +11,15 @@ import {
   onTransactionsUpdate, 
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
-  onChatUpdate, 
-  getPartnerData,
+  onChatUpdate,
   onCoupleChatUpdate,
   addCoupleChatMessage,
-  onUserUpdate
 } from '@/lib/storage';
-import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser } from '@/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { useCoupleStore, initializeCoupleStore } from '@/hooks/use-couple-store';
 
 // 1. Auth Context
@@ -41,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const auth = getAuth(app);
-    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
@@ -52,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -96,7 +88,7 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
                 setIsLoading(false);
             });
             return () => unsubscribe();
-        } else {
+        } else if (user === null) {
             setIsSubscribed(false);
             setIsLoading(false);
         }
@@ -128,12 +120,14 @@ const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
 
 function CoupleProvider({ children }: { children: React.ReactNode }) {
     const { partner } = useCoupleStore();
-    const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
-        if (typeof window !== 'undefined') {
-            return (localStorage.getItem('viewMode') as ViewMode) || 'separate';
-        }
-        return 'separate';
-    });
+    const [viewMode, setViewModeInternal] = useState<ViewMode>('separate');
+    
+    useEffect(() => {
+      const storedMode = localStorage.getItem('viewMode') as ViewMode;
+      if (storedMode) {
+        setViewModeInternal(storedMode);
+      }
+    }, []);
     
     const setViewMode = (mode: ViewMode) => {
         setViewModeInternal(mode);
@@ -165,7 +159,6 @@ interface TransactionsContextType {
   isLoading: boolean;
   isBatchProcessing: boolean;
 }
-
 const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
@@ -175,7 +168,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const { viewMode, partnerData } = useViewMode();
-  const { coupleLink } = useCoupleStore();
 
   useEffect(() => {
     if (!user?.uid) {
@@ -192,11 +184,10 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       userTransactions = newTxs;
       if (viewMode === 'separate' || !partnerData?.uid) {
         setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        setIsLoading(false);
       } else {
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        setIsLoading(false);
       }
+      setIsLoading(false);
     });
 
     let unsubPartner: (() => void) | null = null;
@@ -204,20 +195,12 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
       unsubPartner = onTransactionsUpdate(partnerData.uid, (newTxs) => {
         partnerTransactions = newTxs;
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        setIsLoading(false);
       });
-    } else {
-        partnerTransactions = [];
-        if(viewMode === 'separate') {
-            setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-        }
     }
 
     return () => {
       unsubUser();
-      if (unsubPartner) {
-        unsubPartner();
-      }
+      unsubPartner?.();
     };
   }, [user?.uid, viewMode, partnerData]);
 
@@ -245,33 +228,24 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
 
     try {
         await addStoredTransaction(transactionsToAdd, user.uid);
-
         if (!isBatch) {
             const trx = transactionsToAdd[0];
-            const messageType = trx.type === 'income' ? 'Receita' : 'Despesa';
             toast({
-                title: `${messageType} adicionada!`,
+                title: `${trx.type === 'income' ? 'Receita' : 'Despesa'} adicionada!`,
                 description: `${trx.description} - ${formatCurrency(trx.amount)}`,
             });
-            const soundToPlay = trx.type === 'income'
-              ? localStorage.getItem('incomeSound') || 'cash-register.mp3'
-              : localStorage.getItem('expenseSound') || 'swoosh.mp3';
-            playSound(soundToPlay);
+            const sound = trx.type === 'income' ? localStorage.getItem('incomeSound') : localStorage.getItem('expenseSound');
+            playSound(sound || (trx.type === 'income' ? 'cash-register.mp3' : 'swoosh.mp3'));
         } else {
              toast({
                 title: `Transações em lote salvas!`,
-                description: `${transactionsToAdd.length} novas transações foram adicionadas com sucesso.`,
+                description: `${transactionsToAdd.length} novas transações foram adicionadas.`,
             });
              playSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
         }
-
     } catch (error) {
         console.error("Failed to save transaction(s):", error);
-        toast({
-            variant: 'destructive',
-            title: 'Erro ao Salvar Transação',
-            description: "Não foi possível salvar as transações no banco de dados. Tente novamente.",
-        });
+        toast({ variant: 'destructive', title: 'Erro ao Salvar', description: "Não foi possível salvar as transações." });
         throw error;
     } finally {
         if (isBatch) setIsBatchProcessing(false);
@@ -279,13 +253,9 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   }, [toast, user, playSound]);
 
   const updateTransaction = useCallback(async (id: string, data: z.infer<typeof TransactionFormSchema>) => {
-    const userId = user?.uid;
-    if (!userId) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
-      throw new Error("User not authenticated");
-    }
+    if (!user?.uid) throw new Error("User not authenticated");
     try {
-      await updateStoredTransaction(userId, id, data);
+      await updateStoredTransaction(user.uid, id, data);
     } catch (error) {
       console.error("Failed to update transaction:", error);
       toast({ variant: 'destructive', title: 'Erro ao Atualizar', description: "Não foi possível atualizar a transação." });
@@ -294,13 +264,9 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   }, [toast, user]);
 
   const deleteTransaction = useCallback(async (id: string) => {
-    const userId = user?.uid;
-    if (!userId) {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Você precisa estar logado.' });
-      throw new Error("User not authenticated");
-    }
+    if (!user?.uid) throw new Error("User not authenticated");
     try {
-      await deleteStoredTransaction(userId, id);
+      await deleteStoredTransaction(user.uid, id);
     } catch (error) {
       console.error("Failed to delete transaction:", error);
       toast({ variant: 'destructive', title: 'Erro ao Excluir', description: "Não foi possível excluir a transação." });
@@ -349,19 +315,11 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
         if (!user || (!isSubscribed && !isAdmin)) return;
         
         let unsubscribe: () => void;
-
         const handleNewMessages = (newMessages: ChatMessage[]) => {
              const latestMessage = newMessages[newMessages.length - 1];
             if (!latestMessage) return;
-
-            const lastVisitString = localStorage.getItem('lastLuminaVisit');
-            const lastVisit = lastVisitString ? new Date(lastVisitString) : new Date(0);
-            
-            if (
-                latestMessage.authorId !== user.uid && 
-                new Date(latestMessage.timestamp) > lastVisit && 
-                pathname !== '/dashboard/lumina'
-            ) {
+            const lastVisit = new Date(localStorage.getItem('lastLuminaVisit') || 0);
+            if (latestMessage.authorId !== user.uid && new Date(latestMessage.timestamp) > lastVisit && pathname !== '/dashboard/lumina') {
                 setHasUnread(true);
             }
         };
@@ -371,7 +329,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
         } else {
             unsubscribe = onChatUpdate(user.uid, handleNewMessages);
         }
-
         return () => unsubscribe();
     }, [user, isSubscribed, isAdmin, pathname, viewMode, coupleLink]);
 
@@ -385,11 +342,12 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
 export function useLumina() {
     const context = useContext(LuminaContext);
     if (context === undefined) {
-        throw new Error('useLumina must be used within a ClientProviders');
+        throw new Error('useLumina must be used within a LuminaProvider');
     }
     return context;
 }
 
+// Main ClientProviders Component
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <SubscriptionProvider>
@@ -401,7 +359,5 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             </TransactionsProvider>
           </CoupleProvider>
         </SubscriptionProvider>
-    )
+    );
 }
-
-export { useCoupleStore };

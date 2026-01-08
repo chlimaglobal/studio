@@ -102,11 +102,13 @@ const AppLockScreen = ({ onUnlock }: { onUnlock: () => void }) => {
 
 // Main Layout Component
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
   const [isDependent, setIsDependent] = useState<boolean | null>(null);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  
+  // Combines auth loading with role checking loading
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -122,9 +124,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
 
   useEffect(() => {
-    if (user === undefined) return;
+    if (isAuthLoading) return;
 
-    if (user === null) {
+    if (!user) {
       router.replace('/login');
       return;
     }
@@ -138,11 +140,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     const userData = docSnap.data() as AppUser;
                     if (userData.isDependent) {
                         setIsDependent(true);
-                        router.replace('/dashboard/dependent');
+                        // No need to replace, the component will render the dependent page
                     } else {
                         setIsDependent(false);
                     }
                 } else {
+                    // User doc might not be created yet, assume not dependent
                     setIsDependent(false);
                 }
             } catch (error) {
@@ -153,7 +156,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setIsLoading(false);
     }
     checkUserRole();
-  }, [user, router]);
+  }, [user, isAuthLoading, router]);
 
   useEffect(() => {
     const isAppLockEnabled = localStorage.getItem('appLockEnabled') === 'true';
@@ -188,17 +191,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <AppLockScreen onUnlock={handleUnlock} />;
   }
 
+  // If user is a dependent, redirect to their specific dashboard
+  if (isDependent) {
+    router.replace('/dashboard/dependent');
+    return ( // Render a loader while redirecting
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">A carregar dashboard...</p>
+        </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen w-full bg-background">
-    <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
-    <main className="flex-1 overflow-y-auto pb-40 p-4">
-        {children}
-    </main>
-    {!isDependent && <AddTransactionFab />}
-    <div className="fixed bottom-20 left-0 w-full z-40">
-        {!isDependent && <NewsTicker />}
-    </div>
-    <BottomNavBar />
+      <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
+      <main className="flex-1 overflow-y-auto pb-40 p-4">
+          {children}
+      </main>
+      <AddTransactionFab />
+      <div className="fixed bottom-20 left-0 w-full z-40">
+          <NewsTicker />
+      </div>
+      <BottomNavBar />
     </div>
   );
 }
