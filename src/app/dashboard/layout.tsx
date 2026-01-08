@@ -6,7 +6,7 @@ import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import { useRouter } from 'next/navigation';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { useAuth, ClientProviders } from '@/components/providers/client-providers'; 
+import { useAuth } from '@/components/providers/client-providers'; 
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -189,18 +189,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <ClientProviders>
-        <div className="flex flex-col min-h-screen w-full bg-background">
-        <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
-        <main className="flex-1 overflow-y-auto pb-40 p-4">
-            {children}
-        </main>
-        {!isDependent && <AddTransactionFab />}
-        <div className="fixed bottom-20 left-0 w-full z-40">
-            {!isDependent && <NewsTicker />}
-        </div>
-        <BottomNavBar />
-        </div>
-    </ClientProviders>
+    <div className="flex flex-col min-h-screen w-full bg-background">
+    <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
+    <main className="flex-1 overflow-y-auto pb-40 p-4">
+        {children}
+    </main>
+    {!isDependent && <AddTransactionFab />}
+    <div className="fixed bottom-20 left-0 w-full z-40">
+        {!isDependent && <NewsTicker />}
+    </div>
+    <BottomNavBar />
+    </div>
   );
 }
