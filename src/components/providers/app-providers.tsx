@@ -1,9 +1,14 @@
-
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
-import { AuthProvider, ClientProviders } from '@/components/providers/client-providers';
 import { Toaster } from '@/components/ui/toaster';
+import {
+  AuthProvider,
+  SubscriptionProvider,
+  CoupleProvider,
+  TransactionsProvider,
+  LuminaProvider,
+} from './client-providers';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -14,11 +19,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <AuthProvider>
-        <ClientProviders>
-          {children}
-          <Toaster />
-        </ClientProviders>
+        <SubscriptionProvider>
+          <CoupleProvider>
+            <TransactionsProvider>
+              <LuminaProvider>{children}</LuminaProvider>
+            </TransactionsProvider>
+          </CoupleProvider>
+        </SubscriptionProvider>
       </AuthProvider>
+      <Toaster />
     </ThemeProvider>
   );
 }

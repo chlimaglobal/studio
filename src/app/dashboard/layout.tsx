@@ -5,7 +5,7 @@ import BottomNavBar from '@/components/bottom-nav-bar';
 import { AddTransactionFab } from '@/components/add-transaction-fab';
 import { useRouter } from 'next/navigation';
 import { Loader2, Fingerprint } from 'lucide-react';
-import { useAuth } from '@/components/client-providers'; // ✅ CORREÇÃO CIRÚRGICA
+import { useAuth } from '@/components/client-providers';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -169,7 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setIsLocked(false);
   };
 
-  if (isLoading || isDependent === null) {
+  if (isAuthLoading || isLoading || isDependent === null) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
