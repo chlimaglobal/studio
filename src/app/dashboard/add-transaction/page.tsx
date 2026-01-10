@@ -24,7 +24,7 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { useTransactions, useAuth, useSubscription } from '@/components/providers/client-providers';
+import { useTransactions, useAuth, useSubscription } from '@/components/providers/app-providers';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -840,5 +840,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    

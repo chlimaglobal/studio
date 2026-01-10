@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Loader2, Save, Home, DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { updateUserFinancials } from '@/lib/storage';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';

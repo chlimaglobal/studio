@@ -26,7 +26,7 @@ import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { httpsCallable, getFunctions } from 'firebase/functions';
 import { app } from '@/lib/firebase';
 

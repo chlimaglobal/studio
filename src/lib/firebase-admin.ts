@@ -1,7 +1,7 @@
 
 import * as admin from 'firebase-admin';
 
-let app: admin.app.App | undefined;
+let app: admin.app.App;
 
 // Verifique se já existe uma instância para evitar reinicialização
 if (!admin.apps.length) {
@@ -21,13 +21,13 @@ if (!admin.apps.length) {
     } catch (e: any) {
         console.error('Falha na inicialização do Firebase Admin SDK:', e.message);
         // Em um cenário de produção, você pode querer lidar com isso de forma mais robusta.
-        // Por enquanto, apenas logamos o erro. As variáveis adminAuth e adminDb serão indefinidas.
+        // Por enquanto, apenas logamos o erro. O app será indefinido, e as outras variáveis também.
     }
 } else {
     app = admin.app();
 }
 
 // Assegura que app seja exportado mesmo em caso de erro, mas pode ser undefined
-export const adminApp = app;
+export const adminApp = app!; 
 export const adminAuth = app ? admin.auth() : undefined;
 export const adminDb = app ? admin.firestore() : undefined;

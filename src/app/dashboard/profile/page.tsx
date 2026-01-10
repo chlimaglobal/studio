@@ -38,7 +38,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
 import { bufferToBase64Url } from '@/lib/utils';
-import { useSubscription, useAuth } from '@/components/client-providers';
+import { useSubscription, useAuth } from '@/components/providers/app-providers';
 import { useRouter } from 'next/navigation';
 
 const menuItems = [

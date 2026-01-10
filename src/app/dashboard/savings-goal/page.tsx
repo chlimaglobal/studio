@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Loader2, Sparkles, PiggyBank, DollarSign, TrendingUp, HandCoins } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription } from '@/components/providers/app-providers';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
 import { runSavingsGoalCalculation } from '../actions';

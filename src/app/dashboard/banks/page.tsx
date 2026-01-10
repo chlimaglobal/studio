@@ -6,7 +6,7 @@ import { Landmark, PlusCircle, ArrowLeft, Loader2, Share2, Users, User, ArrowRig
 import { useRouter } from 'next/navigation';
 import { AddAccountDialog } from '@/components/add-account-dialog';
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { onAccountsUpdate } from '@/lib/storage';
 import type { Account } from '@/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -218,5 +218,3 @@ export default function BanksPage() {
     </>
   );
 }
-
-    

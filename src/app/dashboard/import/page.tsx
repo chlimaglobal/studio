@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Upload, Loader2, Save, Star } from 'lucide-react';
 import Link from 'next/link';
 import React, { useRef, useState, useTransition } from 'react';
-import { useTransactions, useSubscription, useAuth } from '@/components/client-providers';
+import { useTransactions, useSubscription, useAuth } from '@/components/providers/app-providers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';

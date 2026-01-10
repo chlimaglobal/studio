@@ -15,7 +15,7 @@ import { bufferToBase64Url, cn, base64UrlToBuffer } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { getAllUserDataForBackup, saveFcmToken } from '@/lib/storage';
 import Link from 'next/link';
 import { messaging } from '@/lib/firebase';

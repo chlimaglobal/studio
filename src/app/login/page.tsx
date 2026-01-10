@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 
 const Logo = () => (
     <div className="p-4 inline-block">

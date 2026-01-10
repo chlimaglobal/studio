@@ -27,7 +27,7 @@ import { z } from 'zod';
 import { addStoredCommission, onCommissionsUpdate, updateStoredCommissionStatus, deleteStoredCommission } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,

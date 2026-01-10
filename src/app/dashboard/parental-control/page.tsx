@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ArrowLeft, Star, UserPlus, Shield, Users, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSubscription, useAuth } from '@/components/client-providers';
+import { useSubscription, useAuth } from '@/components/providers/app-providers';
 import { Loader2 } from 'lucide-react';
 import { AddDependentDialog } from '@/components/add-dependent-dialog';
 import { useState, useEffect } from 'react';

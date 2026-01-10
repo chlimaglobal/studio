@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,5 +27,3 @@ export default function HomePage() {
     </main>
   );
 }
-
-    

@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSubscription, useTransactions, useAuth } from '@/components/client-providers';
+import { useSubscription, useTransactions, useAuth } from '@/components/providers/app-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, PlusCircle, Loader2, Star, LineChart, TrendingUp, TrendingDown, Landmark, Sparkles, Calculator } from 'lucide-react';

@@ -36,7 +36,7 @@ import { Calendar } from './ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { iconNames } from '@/types';
 
 type AddGoalDialogProps = {

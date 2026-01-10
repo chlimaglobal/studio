@@ -29,7 +29,7 @@ import { AddCardFormSchema, cardBrands, brandNames } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { addStoredCard } from '@/lib/storage';
-import { useAuth, useTransactions } from '@/components/client-providers';
+import { useAuth, useTransactions } from '@/components/providers/app-providers';
 
 type AddCardDialogProps = {
   children: React.ReactNode;

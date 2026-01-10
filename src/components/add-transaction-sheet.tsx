@@ -35,7 +35,7 @@ import { Calendar } from './ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Switch } from './ui/switch';
-import { useTransactions } from '@/components/providers/client-providers';
+import { useTransactions } from '@/components/providers/app-providers';
 
 type AddTransactionSheetProps = {
   open: boolean;
@@ -74,7 +74,7 @@ const AddTransactionSheetRoot = ({ open, onOpenChange, initialData, children }: 
 
   async function onSubmit(values: z.infer<typeof TransactionFormSchema>) {
     try {
-        await addTransaction(values);
+        await addTransaction([values]);
         onOpenChange(false);
         form.reset();
     } catch (error) {

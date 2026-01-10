@@ -6,7 +6,7 @@ import { AlertCircle, Lightbulb, ListChecks, Activity, Loader2, RefreshCw, Spark
 import type { GenerateFinancialAnalysisOutput } from '@/types';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { useTransactions, useSubscription, useAuth } from '@/components/providers/client-providers';
+import { useTransactions, useSubscription, useAuth } from '@/components/providers/app-providers';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
@@ -213,5 +213,3 @@ export default function AnalysisPage() {
     </div>
   );
 }
-
-    
