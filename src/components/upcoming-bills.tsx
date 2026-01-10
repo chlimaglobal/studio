@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTransactions } from '@/components/client-providers';
+import { useTransactions } from '@/components/providers/app-providers';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ const BillItem = ({ bill }: { bill: Transaction }) => {
             // @ts-ignore - We are providing the necessary fields for the schema
             await updateTransaction(bill.id, updatedData);
             toast({
-                title: `Conta ${isPaid ? 'marcada como paga' : 'marcada como pendente'}.`,
+                title: `Conta ${isPaid ? 'paga' : 'marcada como pendente'}.`,
                 description: `${bill.description} foi atualizada.`
             });
         } catch (error) {
