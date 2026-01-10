@@ -1,10 +1,9 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { messaging } from '@/lib/firebase';
 import { getToken } from 'firebase/messaging';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { saveFcmToken } from '@/lib/storage';
 
 export function NotificationPermission() {
