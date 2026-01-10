@@ -13,15 +13,19 @@ import {
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
   onChatUpdate, 
+  getPartnerData,
   onCoupleChatUpdate,
   addCoupleChatMessage,
+  onUserUpdate // Import the new function
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, AppUser } from '@/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { useCoupleStore, initializeCoupleStore } from '@/hooks/use-couple-store';
 
 // 1. Auth Context
@@ -30,32 +34,6 @@ interface AuthContextType {
   isLoading: boolean;
 }
 const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
-
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        await initializeUser(user);
-        initializeCoupleStore(user);
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{ user, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -71,6 +49,97 @@ interface SubscriptionContextType {
   isLoading: boolean;
 }
 const SubscriptionContext = createContext<SubscriptionContextType>({ isSubscribed: false, isLoading: true });
+
+export function useSubscription() {
+  const context = useContext(SubscriptionContext);
+  if (context === undefined) {
+    throw new Error('useSubscription must be used within a SubscriptionProvider');
+  }
+  return context;
+}
+
+// 3. Couple Context (formerly ViewMode)
+type ViewMode = 'separate' | 'together';
+interface CoupleContextType {
+  viewMode: ViewMode;
+  setViewMode: (mode: ViewMode) => void;
+  partnerData: AppUser | null;
+}
+const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
+
+export function useViewMode() {
+    const context = useContext(CoupleContext);
+    if (!context) {
+        throw new Error('useViewMode must be used within a CoupleProvider');
+    }
+    return context;
+}
+
+
+// 4. Transactions Context
+interface TransactionsContextType {
+  transactions: Transaction[];
+  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => Promise<void>;
+  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  isLoading: boolean;
+  isBatchProcessing: boolean;
+}
+
+const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
+
+export function useTransactions() {
+  const context = useContext(TransactionsContext);
+  if (!context) {
+    throw new Error('useTransactions must be used within a TransactionsProvider');
+  }
+  return context;
+}
+
+// 5. Lumina Unread Context
+interface LuminaContextType {
+  hasUnread: boolean;
+  setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
+}
+const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
+
+export function useLumina() {
+    const context = useContext(LuminaContext);
+    if (context === undefined) {
+        throw new Error('useLumina must be used within a ClientProviders');
+    }
+    return context;
+}
+
+// PROVIDER COMPONENTS
+
+function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const auth = getAuth(app);
+    
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        await initializeUser(user);
+        initializeCoupleStore(user); // Initialize couple store ONLY after auth is confirmed
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
 function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
@@ -103,23 +172,6 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function useSubscription() {
-  const context = useContext(SubscriptionContext);
-  if (context === undefined) {
-    throw new Error('useSubscription must be used within a SubscriptionProvider');
-  }
-  return context;
-}
-
-// 3. Couple Context
-type ViewMode = 'separate' | 'together';
-interface CoupleContextType {
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
-  partnerData: AppUser | null;
-}
-const CoupleContext = createContext<CoupleContextType | undefined>(undefined);
-
 function CoupleProvider({ children }: { children: React.ReactNode }) {
     const { partner } = useCoupleStore();
     const [viewMode, setViewModeInternal] = useState<ViewMode>(() => {
@@ -141,26 +193,6 @@ function CoupleProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function useViewMode() {
-    const context = useContext(CoupleContext);
-    if (!context) {
-        throw new Error('useViewMode must be used within a CoupleProvider');
-    }
-    return context;
-}
-
-
-// 4. Transactions Context
-interface TransactionsContextType {
-  transactions: Transaction[];
-  addTransaction: (data: z.infer<typeof TransactionFormSchema> | z.infer<typeof TransactionFormSchema>[]) => Promise<void>;
-  updateTransaction: (id: string, data: z.infer<typeof TransactionFormSchema>) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
-  isLoading: boolean;
-  isBatchProcessing: boolean;
-}
-
-const TransactionsContext = createContext<TransactionsContextType | undefined>(undefined);
 
 function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -171,42 +203,50 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { viewMode, partnerData } = useViewMode();
   const { coupleLink } = useCoupleStore();
 
+  // This effect now handles fetching transactions for one or both users
   useEffect(() => {
     if (!user?.uid) {
       setTransactions([]);
       setIsLoading(false);
-      return () => {};
+      return () => {}; // Return empty cleanup function
     }
 
     setIsLoading(true);
     let userTransactions: Transaction[] = [];
     let partnerTransactions: Transaction[] = [];
 
+    // Always subscribe to the logged-in user's transactions
     const unsubUser = onTransactionsUpdate(user.uid, (newTxs) => {
       userTransactions = newTxs;
+      // If in separate mode, or no partner, just show user's transactions
       if (viewMode === 'separate' || !partnerData?.uid) {
         setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       } else {
+        // In 'together' mode, combine with partner's (if available)
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       }
     });
 
     let unsubPartner: (() => void) | null = null;
+    // If in 'together' mode and a partner exists, also subscribe to their transactions
     if (viewMode === 'together' && partnerData?.uid) {
       unsubPartner = onTransactionsUpdate(partnerData.uid, (newTxs) => {
         partnerTransactions = newTxs;
+        // Combine with user's transactions
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       });
     } else {
+        // If not in 'together' mode, clear partner transactions
         partnerTransactions = [];
         if(viewMode === 'separate') {
             setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
     }
 
+    // Cleanup function
     return () => {
       unsubUser();
       if (unsubPartner) {
@@ -309,21 +349,6 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useTransactions() {
-  const context = useContext(TransactionsContext);
-  if (!context) {
-    throw new Error('useTransactions must be used within a TransactionsProvider');
-  }
-  return context;
-}
-
-// 5. Lumina Unread Context
-interface LuminaContextType {
-  hasUnread: boolean;
-  setHasUnread: React.Dispatch<React.SetStateAction<boolean>>;
-}
-const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
-
 function LuminaProvider({ children }: { children: React.ReactNode }) {
     const [hasUnread, setHasUnread] = useState(false);
     const { user } = useAuth();
@@ -331,6 +356,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const { isSubscribed } = useSubscription();
     const { viewMode, coupleLink } = useCoupleStore();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
     useEffect(() => {
         if (pathname === '/dashboard/lumina') {
@@ -376,15 +402,24 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function useLumina() {
-    const context = useContext(LuminaContext);
-    if (context === undefined) {
-        throw new Error('useLumina must be used within a ClientProviders');
-    }
-    return context;
+function ClientProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <SubscriptionProvider>
+        <CoupleProvider>
+          <TransactionsProvider>
+            <LuminaProvider>
+                {children}
+                <Toaster />
+            </LuminaProvider>
+          </TransactionsProvider>
+        </CoupleProvider>
+      </SubscriptionProvider>
+    </AuthProvider>
+  );
 }
 
-// Main Providers Wrapper
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider 
@@ -393,18 +428,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <SubscriptionProvider>
-              <CoupleProvider>
-                <TransactionsProvider>
-                  <LuminaProvider>
-                      {children}
-                      <Toaster />
-                  </LuminaProvider>
-                </TransactionsProvider>
-              </CoupleProvider>
-            </SubscriptionProvider>
-          </AuthProvider>
+          <ClientProviders>
+            {children}
+          </ClientProviders>
         </ThemeProvider>
     );
 }
+
+export { useCoupleStore };
