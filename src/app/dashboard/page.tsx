@@ -2,7 +2,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home, AlertTriangle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
@@ -233,7 +232,6 @@ const BudgetAlertsCard = ({ budgetItems, isPrivacyMode }: { budgetItems: BudgetI
 
 const DashboardLoadingSkeleton = () => (
     <div className="space-y-6">
-        <DashboardHeader isPrivacyMode={false} onTogglePrivacyMode={() => {}} />
         <Skeleton className="h-24 w-full" />
         <div className="flex items-center justify-center gap-2">
             <Skeleton className="h-8 w-8" />
@@ -501,7 +499,6 @@ Correção:
       <div className="w-full max-w-4xl space-y-5">
         <OnboardingGuide />
         <FeatureAnnouncement />
-        <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
         <NotificationPermission />
 

@@ -119,7 +119,7 @@ export default function DashboardHeader({ isPrivacyMode, onTogglePrivacyMode }: 
                 <DropdownMenuTrigger asChild>
                     <div className="flex items-center gap-2 cursor-pointer">
                         <Avatar className="h-10 w-10">
-                            <AvatarImage src={profilePic || '/icon-192x192.png'} alt="User Avatar" />
+                            <AvatarImage src={profilePic ?? undefined} alt="User Avatar" />
                             <AvatarFallback>
                                 {user?.displayName?.charAt(0).toUpperCase() || 'U'}
                             </AvatarFallback>
