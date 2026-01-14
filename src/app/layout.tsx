@@ -12,6 +12,7 @@ export const metadata = {
   icons: {
     apple: '/icon-192x192.png',
   },
+  themeColor: '#111827',
 };
 
 export default function RootLayout({
@@ -24,11 +25,10 @@ export default function RootLayout({
       <head>
         <meta name="application-name" content="FinanceFlow" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="FinanceFlow" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#000000" />
       </head>
       <body
         className={cn(

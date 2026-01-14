@@ -1,12 +1,7 @@
-
 {
   "name": "FinanceFlow",
   "short_name": "FinanceFlow",
-  "description": "Sua plataforma de controle financeiro para casais.",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#facc15",
+  "description": "Sua plataforma de controle financeiro para casais e indivíduos.",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -18,5 +13,10 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "theme_color": "#1f2937",
+  "background_color": "#111827",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait"
 }

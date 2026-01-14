@@ -31,6 +31,16 @@ export { app }; // Exportando a instância do app
 // Initialize Firebase Cloud Messaging and get a reference to the service
 export const messaging = async () => {
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
+        // Registra o Service Worker
+        if ('serviceWorker' in navigator) {
+            try {
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                console.log('Service Worker registration successful with scope: ', registration.scope);
+            } catch (err) {
+                console.log('Service Worker registration failed: ', err);
+            }
+        }
+        
         const supported = await isSupported();
         return supported ? getMessaging(app) : null;
     }

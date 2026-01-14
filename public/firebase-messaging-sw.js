@@ -1,23 +1,33 @@
-// public/firebase-messaging-sw.js
-import { initializeApp } from 'firebase/app';
-import { getMessaging } from 'firebase/messaging/sw';
+// Scripts for firebase and firebase messaging
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
 
-// Cole aqui a configuração do seu projeto Firebase,
-// que pode ser encontrada no Console do Firebase.
-// É seguro expor essas chaves no lado do cliente.
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+// Initialize the Firebase app in the service worker
+// by passing in the messagingSenderId.
+// O SENDER ID deve ser público e é seguro estar aqui.
+firebase.initializeApp({
+    apiKey: "__API_KEY__",
+    authDomain: "__AUTH_DOMAIN__",
+    projectId: "__PROJECT_ID__",
+    storageBucket: "__STORAGE_BUCKET__",
+    messagingSenderId: "__MESSAGING_SENDER_ID__",
+    appId: "__APP_ID__"
+});
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
 
-// O Service Worker não precisa de mais nada aqui.
-// Ele apenas inicializa o serviço de mensagens em segundo plano.
-// A lógica de exibição de notificação é tratada automaticamente pelo Firebase
-// quando a notificação é enviada com um campo `notification` pelo backend.
+// Retrieve an instance of Firebase Messaging so that it can handle background
+// messages.
+const messaging = firebase.messaging();
+
+messaging.onBackgroundMessage((payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  
+  // Customize notification here
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/icon-192x192.png' // Ícone da notificação
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
+});
