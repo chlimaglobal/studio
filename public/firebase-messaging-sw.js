@@ -1,32 +1,29 @@
-// Scripts for firebase and firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+// Importar os scripts de compatibilidade do Firebase
+importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js");
 
-// Initialize the Firebase app in the service worker
-// by passing in the messagingSenderId.
-// O SENDER ID deve ser público e é seguro estar aqui.
-firebase.initializeApp({
-    apiKey: "__API_KEY__",
-    authDomain: "__AUTH_DOMAIN__",
-    projectId: "__PROJECT_ID__",
-    storageBucket: "__STORAGE_BUCKET__",
-    messagingSenderId: "__MESSAGING_SENDER_ID__",
-    appId: "__APP_ID__"
-});
+// Suas credenciais do Firebase (serão substituídas no cliente, mas necessárias para inicialização)
+// É seguro tê-las aqui, pois este ficheiro é público. A segurança é feita nas regras do Firebase.
+const firebaseConfig = {
+  apiKey: "AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas",
+  authDomain: "financeflow-we0in.firebaseapp.com",
+  projectId: "financeflow-we0in",
+  storageBucket: "financeflow-we0in.appspot.com",
+  messagingSenderId: "1083416954344",
+  appId: "1:1083416954344:web:8064d8a5b9e5999086f0d4"
+};
 
+firebase.initializeApp(firebaseConfig);
 
-// Retrieve an instance of Firebase Messaging so that it can handle background
-// messages.
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  
-  // Customize notification here
+
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon-192x192.png' // Ícone da notificação
+    icon: '/icon-192x192.png' // Certifique-se que este ícone existe em /public
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

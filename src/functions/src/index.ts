@@ -50,16 +50,29 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-const db = admin.firestore();
+export const db = admin.firestore();
 
-// Initialize Genkit globally
-genkit({
-  plugins: [
-    firebase(),
-    googleAI({ apiKey: geminiApiKey.value() }),
-  ],
-  enableTracingAndMetrics: true,
-});
+// Lazy initialization for Genkit to access secrets at runtime
+let aiInstance: any;
+function getAI() {
+    if (!aiInstance) {
+        try {
+            genkit({
+                plugins: [
+                    firebase(),
+                    googleAI({ apiKey: geminiApiKey.value() }),
+                ],
+                enableTracingAndMetrics: true,
+            });
+            aiInstance = ai;
+        } catch(e) {
+            console.error("CRITICAL: Genkit initialization failed.", e);
+            throw new HttpsError('internal', 'AI service initialization failed.');
+        }
+    }
+    return aiInstance;
+}
+
 
 // Set SendGrid API key at runtime
 sgMail.setApiKey(sendgridApiKey.value());
@@ -82,6 +95,7 @@ const categorizeTransactionFlow = defineFlow(
     outputSchema: CategorizeTransactionOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, uma especialista em finanças pessoais. Sua tarefa é categorizar a transação com base na descrição, escolhendo a categoria mais apropriada da lista abaixo.
 
 **Exemplos de Categorização:**
@@ -111,6 +125,7 @@ const extractTransactionFromTextFlow = defineFlow(
     outputSchema: ExtractTransactionOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, uma assistente financeira especialista em interpretar texto. Sua tarefa é extrair detalhes de transações e NUNCA falhar.
 
   **Sua Missão:**
@@ -143,6 +158,7 @@ const extractMultipleTransactionsFlow = defineFlow(
     outputSchema: ExtractMultipleTransactionsOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, especialista em processar texto. Extraia todas as transações de cada linha do texto abaixo. Ignore linhas vazias. Para cada linha, extraia: descrição, valor e tipo (inferir 'expense' se não claro).
 
   **Categorias Disponíveis:**
@@ -170,6 +186,7 @@ const generateFinancialAnalysisFlow = defineFlow(
     outputSchema: GenerateFinancialAnalysisOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     if (!input.transactions || input.transactions.length === 0) {
       return { healthStatus: 'Atenção', diagnosis: 'Ainda não há transações suficientes para uma análise detalhada.', suggestions: [], trendAnalysis: undefined };
     }
@@ -197,6 +214,7 @@ const extractFromFileFlow = defineFlow(
     outputSchema: ExtractFromFileOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, especialista em processar extratos bancários (CSV, OFX, PDF). Extraia todas as transações, inferindo o tipo ('income'/'expense') e a categoria. Retorne um JSON com a chave \`transactions\`.
 
   **Categorias Disponíveis:**
@@ -229,6 +247,7 @@ const analyzeInvestorProfileFlow = defineFlow(
     outputSchema: InvestorProfileOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, especialista em análise de perfil de investidor. Analise as respostas, use a ferramenta \`getFinancialMarketDataTool\` para obter dados de mercado e determine o perfil de risco, sugira uma carteira e projete a rentabilidade.
 
       **Respostas do Usuário:**
@@ -253,6 +272,7 @@ const calculateSavingsGoalFlow = defineFlow(
     outputSchema: SavingsGoalOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     if (!input.transactions || input.transactions.length === 0) throw new HttpsError('failed-precondition', 'Não há transações suficientes para calcular uma meta.');
     const prompt = LUMINA_GOALS_SYSTEM_PROMPT + `
       ---
@@ -278,6 +298,7 @@ const mediateGoalsFlow = defineFlow(
     outputSchema: MediateGoalsOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é a Lúmina, terapeuta financeira de casais. Ajude a alinhar metas conflitantes.
 
   **Contexto:**
@@ -305,6 +326,7 @@ const extractFromImageFlow = defineFlow(
     outputSchema: ExtractFromImageOutputSchema,
   },
   async (input) => {
+    const ai = getAI();
     const prompt = `Você é Lúmina, especialista em interpretar imagens financeiras (boletos, recibos, notas). Extraia os dados da imagem e retorne um JSON válido.
 
 **Categorias Disponíveis:**
@@ -331,6 +353,7 @@ const luminaChatFlow = defineFlow(
     outputSchema: LuminaChatOutputSchema,
   },
   async function (input) {
+    const ai = getAI();
     const userQuery = (input.userQuery || '').trim();
     const transactionsForContext = (input.allTransactions || []).slice(0, 30);
     const transactionsJSON = JSON.stringify(transactionsForContext, null, 2);
@@ -384,6 +407,7 @@ const luminaChatFlow = defineFlow(
   }
 );
 
+
 // -----------------
 // Callable Functions Wrapper
 // -----------------
@@ -411,7 +435,8 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     
     try {
-      return await run(flow, request.data as I);
+      const result = await run(flow, request.data as I);
+      return { data: result }; // Always wrap result in a 'data' object
     } catch (e: any) {
       console.error(`Error in flow ${flow.name}:`, e);
       if (e instanceof HttpsError) {
@@ -456,7 +481,7 @@ export const sendPartnerInvite = onCall(functionOptions, async (request) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       await db.collection("invites").doc(inviteToken).set(inviteData);
-      return { success: true, inviteToken, message: "Convite criado com sucesso!" };
+      return { data: { success: true, inviteToken, message: "Convite criado com sucesso!" }};
     } catch (error) {
       console.error("Erro em sendPartnerInvite:", error);
       throw new HttpsError("internal", "Erro ao enviar convite.");
@@ -475,7 +500,6 @@ export const onInviteCreated = onDocumentCreated({
     try {
       const invite = snap.data();
       if (!invite.sentToEmail) {
-        console.warn("Convite sem e-mail de destino, ignorando.");
         return;
       }
       
@@ -513,7 +537,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
       if (partnerId) batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
       batch.delete(coupleDocRef);
       await batch.commit();
-      return { success: true, message: "Desvinculação concluída." };
+      return { data: { success: true, message: "Desvinculação concluída." } };
     } catch (error) {
       console.error("Erro ao desvincular parceiro:", error);
       if (error instanceof HttpsError) throw error;
@@ -524,8 +548,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
 
 export const checkDashboardStatus = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    console.log(`Rotina de verificação diária para o usuário: ${request.auth.uid}`);
-    return { success: true, message: "Verificação concluída." };
+    return { data: { success: true, message: "Verificação concluída." } };
   }
 );
 
@@ -595,19 +618,50 @@ export const dailyFinancialCheckup = onSchedule({
           const userId = userDoc.id;
           let userData = userDoc.data();
           const userDocRef = db.collection("users").doc(userId);
+          
+           // Helper function to send notifications
+          const sendNotification = async (messageText: string, suggestions: string[]) => {
+              const chatBatch = db.batch();
+              const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
+              chatBatch.set(newChatDocRef, { 
+                  role: "alerta", 
+                  text: messageText, 
+                  authorName: "Lúmina", 
+                  timestamp: admin.firestore.FieldValue.serverTimestamp(), 
+                  suggestions: suggestions 
+              });
+              await chatBatch.commit();
+
+              if (userData?.fcmTokens && Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0) {
+                  const message = {
+                      notification: {
+                          title: 'FinanceFlow - Alerta Financeiro',
+                          body: messageText,
+                      },
+                      tokens: userData.fcmTokens,
+                  };
+                  try {
+                      await admin.messaging().sendEachForMulticast(message);
+                  } catch (error) {
+                      console.error('Erro ao enviar notificação push:', error);
+                  }
+              }
+          };
+
           try {
             if (userData.isDependent) return;
             const now = new Date();
             const currentMonthKey = format(now, "yyyy-MM");
             let updates: { [key: string]: any } = {};
-            const chatBatch = db.batch();
-            let chatMessagesCount = 0;
+
             const sixtyDaysAgo = subDays(now, 60);
             const transactionsSnapshot = await db.collection(`users/${userId}/transactions`).where('date', '>=', sixtyDaysAgo).get();
             const transactions = transactionsSnapshot.docs.map(doc => { const data = doc.data(); return { ...data, date: data.date?.toDate ? data.date.toDate() : new Date(0), amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : 0 }; }).filter(t => t.date.getTime() > 0 && t.amount > 0);
+            
             const yesterdayStart = startOfDay(subDays(now, 1));
             const yesterdayEnd = endOfDay(subDays(now, 1));
             const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= yesterdayStart && t.date <= yesterdayEnd);
+            
             const categoryAverages: { [key: string]: { total: number, count: number } } = {};
             transactions.filter(t => t.type === 'expense' && t.category && t.date < yesterdayStart).forEach(t => {
               const category = t.category;
@@ -615,6 +669,7 @@ export const dailyFinancialCheckup = onSchedule({
               categoryAverages[category].total += t.amount;
               categoryAverages[category].count += 1;
             });
+
             for (const transaction of recentExpenses) {
               const category = transaction.category;
               if (!category || transaction.amount <= 500) continue;
@@ -626,13 +681,12 @@ export const dailyFinancialCheckup = onSchedule({
                 if (transaction.amount > average * 3) {
                   updates[outOfPatternAlertKey] = true;
                   const messageText = `🚨 Detectei uma despesa fora do padrão em ${category}. Quer que eu investigue isso pra você?`;
-                  const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                  chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"] });
-                  chatMessagesCount++;
+                  await sendNotification(messageText, ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"]);
                 }
               }
             }
             if (Object.keys(updates).length > 0) { await userDocRef.update(updates); userData = { ...userData, ...updates }; updates = {}; }
+
             const oneWeekAgo = subDays(now, 7);
             const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
             const categoryCounts: { [key: string]: number } = {};
@@ -643,19 +697,18 @@ export const dailyFinancialCheckup = onSchedule({
                 if (userData?.[unusualRecurrenceAlertKey] || updates[unusualRecurrenceAlertKey]) continue;
                 updates[unusualRecurrenceAlertKey] = true;
                 const messageText = `📌 Você fez ${categoryCounts[category]} despesas recentes em ${category}. Esse comportamento está acima da sua média.`;
-                const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Ver transações", "Definir orçamento", "Entendido"] });
-                chatMessagesCount++;
+                await sendNotification(messageText, ["Ver transações", "Definir orçamento", "Entendido"]);
               }
             }
             if (Object.keys(updates).length > 0) { await userDocRef.update(updates); userData = { ...userData, ...updates }; updates = {}; }
+
             const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
             const budgetsDoc = await budgetsDocRef.get();
             if (budgetsDoc.exists) {
               const budgetsData = budgetsDoc.data()!;
               const monthStart = startOfMonth(now);
               const monthlyExpensesByCategory: { [key: string]: number } = {};
-              transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => { if (t.category) monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[t.category] || 0) + t.amount; });
+              transactions.filter(t => t.type === 'expense' && t.date >= monthStart).forEach(t => { if (t.category) monthlyExpensesByCategory[t.category] = (monthlyExpensesByCategory[category] || 0) + t.amount; });
               for (const category in budgetsData) {
                 const categoryBudget = Number(budgetsData[category]);
                 if (!Number.isFinite(categoryBudget) || categoryBudget <= 0) continue;
@@ -665,22 +718,17 @@ export const dailyFinancialCheckup = onSchedule({
                 if (spendingPercentage >= 100 && !(userData?.[alertKey100] || updates[alertKey100])) {
                   updates[alertKey100] = true;
                   const messageText = `🟥 Meta de gastos para ${category} ultrapassada. Preciso ajustar o plano.`;
-                  const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                  chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
-                  chatMessagesCount++;
+                  await sendNotification(messageText, ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"]);
                 } else {
                   const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
                   if (spendingPercentage >= 80 && !(userData?.[alertKey80] || updates[alertKey80])) {
                     updates[alertKey80] = true;
                     const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${category}. Sugiro revisar suas próximas despesas.`;
-                    const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                    chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
-                    chatMessagesCount++;
+                    await sendNotification(messageText, ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"]);
                   }
                 }
               }
             }
-            if (chatMessagesCount > 0) await chatBatch.commit();
             if (Object.keys(updates).length > 0) await userDocRef.update(updates);
           } catch (error) {
             console.error(`Erro na verificação diária para o usuário ${userId}:`, error);
@@ -695,3 +743,7 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
+
+
+
+
