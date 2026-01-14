@@ -1,8 +1,10 @@
-// Scripts for firebase and firebase messaging
-importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.2.0/firebase-messaging-compat.js');
+// public/firebase-messaging-sw.js
+import { initializeApp } from 'firebase/app';
+import { getMessaging } from 'firebase/messaging/sw';
 
-// Your web app's Firebase configuration
+// Cole aqui a configuração do seu projeto Firebase,
+// que pode ser encontrada no Console do Firebase.
+// É seguro expor essas chaves no lado do cliente.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,25 +14,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-} else {
-    firebase.app();
-}
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
-  if (payload.notification) {
-    const notificationTitle = payload.notification.title || 'FinanceFlow';
-    const notificationOptions = {
-      body: payload.notification.body || 'Você tem uma nova notificação.',
-      icon: '/icon-192x192.png'
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  }
-});
+// O Service Worker não precisa de mais nada aqui.
+// Ele apenas inicializa o serviço de mensagens em segundo plano.
+// A lógica de exibição de notificação é tratada automaticamente pelo Firebase
+// quando a notificação é enviada com um campo `notification` pelo backend.
