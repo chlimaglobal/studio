@@ -618,19 +618,51 @@ export const dailyFinancialCheckup = onSchedule({
           const userId = userDoc.id;
           let userData = userDoc.data();
           const userDocRef = db.collection("users").doc(userId);
+          
+           // Helper function to send notifications
+          const sendNotification = async (messageText: string, suggestions: string[]) => {
+              const chatBatch = db.batch();
+              const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
+              chatBatch.set(newChatDocRef, { 
+                  role: "alerta", 
+                  text: messageText, 
+                  authorName: "Lúmina", 
+                  timestamp: admin.firestore.FieldValue.serverTimestamp(), 
+                  suggestions: suggestions 
+              });
+              await chatBatch.commit();
+
+              if (userData?.fcmTokens && Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0) {
+                  const message = {
+                      notification: {
+                          title: 'FinanceFlow - Alerta Financeiro',
+                          body: messageText,
+                          icon: '/icon-192x192.png',
+                      },
+                      tokens: userData.fcmTokens,
+                  };
+                  try {
+                      await admin.messaging().sendEachForMulticast(message);
+                  } catch (error) {
+                      console.error('Erro ao enviar notificação push:', error);
+                  }
+              }
+          };
+
           try {
             if (userData.isDependent) return;
             const now = new Date();
             const currentMonthKey = format(now, "yyyy-MM");
             let updates: { [key: string]: any } = {};
-            const chatBatch = db.batch();
-            let chatMessagesCount = 0;
+
             const sixtyDaysAgo = subDays(now, 60);
             const transactionsSnapshot = await db.collection(`users/${userId}/transactions`).where('date', '>=', sixtyDaysAgo).get();
             const transactions = transactionsSnapshot.docs.map(doc => { const data = doc.data(); return { ...data, date: data.date?.toDate ? data.date.toDate() : new Date(0), amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : 0 }; }).filter(t => t.date.getTime() > 0 && t.amount > 0);
+            
             const yesterdayStart = startOfDay(subDays(now, 1));
             const yesterdayEnd = endOfDay(subDays(now, 1));
             const recentExpenses = transactions.filter(t => t.type === 'expense' && t.date >= yesterdayStart && t.date <= yesterdayEnd);
+            
             const categoryAverages: { [key: string]: { total: number, count: number } } = {};
             transactions.filter(t => t.type === 'expense' && t.category && t.date < yesterdayStart).forEach(t => {
               const category = t.category;
@@ -638,6 +670,7 @@ export const dailyFinancialCheckup = onSchedule({
               categoryAverages[category].total += t.amount;
               categoryAverages[category].count += 1;
             });
+
             for (const transaction of recentExpenses) {
               const category = transaction.category;
               if (!category || transaction.amount <= 500) continue;
@@ -649,13 +682,12 @@ export const dailyFinancialCheckup = onSchedule({
                 if (transaction.amount > average * 3) {
                   updates[outOfPatternAlertKey] = true;
                   const messageText = `🚨 Detectei uma despesa fora do padrão em ${category}. Quer que eu investigue isso pra você?`;
-                  const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                  chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"] });
-                  chatMessagesCount++;
+                  await sendNotification(messageText, ["Sim, detalhe", "Foi um gasto pontual", "Ok, obrigado"]);
                 }
               }
             }
             if (Object.keys(updates).length > 0) { await userDocRef.update(updates); userData = { ...userData, ...updates }; updates = {}; }
+
             const oneWeekAgo = subDays(now, 7);
             const weeklyExpenses = transactions.filter(t => t.type === 'expense' && t.date >= oneWeekAgo);
             const categoryCounts: { [key: string]: number } = {};
@@ -666,12 +698,11 @@ export const dailyFinancialCheckup = onSchedule({
                 if (userData?.[unusualRecurrenceAlertKey] || updates[unusualRecurrenceAlertKey]) continue;
                 updates[unusualRecurrenceAlertKey] = true;
                 const messageText = `📌 Você fez ${categoryCounts[category]} despesas recentes em ${category}. Esse comportamento está acima da sua média.`;
-                const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Ver transações", "Definir orçamento", "Entendido"] });
-                chatMessagesCount++;
+                await sendNotification(messageText, ["Ver transações", "Definir orçamento", "Entendido"]);
               }
             }
             if (Object.keys(updates).length > 0) { await userDocRef.update(updates); userData = { ...userData, ...updates }; updates = {}; }
+
             const budgetsDocRef = db.doc(`users/${userId}/budgets/${currentMonthKey}`);
             const budgetsDoc = await budgetsDocRef.get();
             if (budgetsDoc.exists) {
@@ -688,22 +719,17 @@ export const dailyFinancialCheckup = onSchedule({
                 if (spendingPercentage >= 100 && !(userData?.[alertKey100] || updates[alertKey100])) {
                   updates[alertKey100] = true;
                   const messageText = `🟥 Meta de gastos para ${category} ultrapassada. Preciso ajustar o plano.`;
-                  const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                  chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"] });
-                  chatMessagesCount++;
+                  await sendNotification(messageText, ["Me ajude a cortar gastos", "O que aconteceu?", "Ok"]);
                 } else {
                   const alertKey80 = `alert_80_${currentMonthKey}_${category}`;
                   if (spendingPercentage >= 80 && !(userData?.[alertKey80] || updates[alertKey80])) {
                     updates[alertKey80] = true;
                     const messageText = `⚠️ Você está prestes a atingir 100% da sua meta de gastos do mês em ${category}. Sugiro revisar suas próximas despesas.`;
-                    const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
-                    chatBatch.set(newChatDocRef, { role: "alerta", text: messageText, authorName: "Lúmina", timestamp: admin.firestore.FieldValue.serverTimestamp(), suggestions: ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"] });
-                    chatMessagesCount++;
+                    await sendNotification(messageText, ["O que posso fazer?", "Mostrar gastos da categoria", "Ok, estou ciente"]);
                   }
                 }
               }
             }
-            if (chatMessagesCount > 0) await chatBatch.commit();
             if (Object.keys(updates).length > 0) await userDocRef.update(updates);
           } catch (error) {
             console.error(`Erro na verificação diária para o usuário ${userId}:`, error);

@@ -1,34 +1,32 @@
-// This file must be in the public folder.
 
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+// Import and initialize the Firebase SDK
+// This is required to get the messaging service object.
+import { initializeApp } from 'firebase/app';
+import { getMessaging } from 'firebase/messaging';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  "projectId": "financeflow-we0in",
-  "appId": "1:123511329863:web:a81c91b72098fa668d8d62",
-  "storageBucket": "financeflow-we0in.firebasestorage.app",
-  "apiKey": "AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas",
-  "authDomain": "financeflow-we0in.firebaseapp.com",
-  "measurementId": "G-EW74L3HEX7",
-  "messagingSenderId": "123511329863"
+  apiKey: "AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas",
+  authDomain: "financeflow-we0in.firebaseapp.com",
+  projectId: "financeflow-we0in",
+  storageBucket: "financeflow-we0in.appspot.com",
+  messagingSenderId: "1074128612143",
+  appId: "1:1074128612143:web:04c538a7c251f21151c8e7"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage((payload) => {
-  console.log(
-    "[firebase-messaging-sw.js] Received background message ",
-    payload
+// This part of the code is executed when a push notification is received
+// while the app is in the background or closed.
+// You can customize the notification title, body, icon, etc. here.
+// For now, it will show the notification as sent from the server.
+self.addEventListener('push', (event) => {
+  const notification = event.data.json().notification;
+  event.waitUntil(
+    self.registration.showNotification(notification.title, {
+      body: notification.body,
+      icon: notification.icon,
+    })
   );
-  
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.notification.icon || '/icon.png',
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
 });
