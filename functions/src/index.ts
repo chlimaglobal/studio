@@ -645,6 +645,12 @@ export const dailyFinancialCheckup = onSchedule({
                         payload: {
                           aps: {
                             'content-available': 1,
+                             alert: {
+                                title: 'FinanceFlow - Alerta Financeiro',
+                                body: messageText,
+                             },
+                             badge: 1,
+                             sound: 'default'
                           },
                         },
                       },

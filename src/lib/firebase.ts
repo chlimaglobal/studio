@@ -31,10 +31,9 @@ export { app }; // Exportando a instância do app
 // Initialize Firebase Cloud Messaging and get a reference to the service
 export const messaging = async () => {
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
-        // Registra o Service Worker, passando a config via query params de forma segura
+        // Registra o Service Worker de forma direta e robusta
         if ('serviceWorker' in navigator) {
-            const configParams = new URLSearchParams(firebaseConfig).toString();
-            const swUrl = `/firebase-messaging-sw.js?${configParams}`;
+            const swUrl = `/firebase-messaging-sw.js`;
             
             try {
                 const registration = await navigator.serviceWorker.register(swUrl);

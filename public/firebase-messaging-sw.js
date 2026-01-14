@@ -1,73 +1,66 @@
-// Importa os scripts de compatibilidade do Firebase para garantir o funcionamento em todos os cenários
+// /public/firebase-messaging-sw.js
+
+// Importa os SDKs de compatibilidade do Firebase. Use a versão mais recente compatível.
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-// O Service Worker é inicializado dinamicamente pelo script do cliente que passa a configuração
-// de forma segura através dos parâmetros da URL.
-// Isso evita a exposição de chaves de API no arquivo público.
-self.addEventListener('fetch', event => {
-  try {
-    const url = new URL(event.request.url);
-    if (url.pathname === '/firebase-messaging-sw.js' && url.searchParams.has('firebaseConfig')) {
-      const firebaseConfig = JSON.parse(url.searchParams.get('firebaseConfig'));
-      // Inicializa o Firebase apenas se ainda não foi inicializado
-      if (firebase.apps.length === 0) {
-          firebase.initializeApp(firebaseConfig);
-      }
-    }
-  } catch (e) {
-    console.error('Erro ao inicializar Firebase no Service Worker:', e);
-  }
-});
+// CONFIGURAÇÃO ESTÁTICA E OBRIGATÓRIA DO FIREBASE
+// Estes valores são públicos e necessários para o SW identificar o projeto correto.
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
 
+// Inicialização segura e síncrona do Firebase
+// Garante que o app só seja inicializado uma vez.
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// Obtém a instância de mensagens
 const messaging = firebase.messaging();
 
-// Manipulador para mensagens recebidas quando o app está em segundo plano ou fechado
+// Handler para mensagens recebidas quando o app está em segundo plano ou fechado
 messaging.onBackgroundMessage((payload) => {
   console.log("[firebase-messaging-sw.js] Mensagem recebida em segundo plano: ", payload);
 
-  // Valida a existência do payload 'data'
-  if (!payload.data) {
-    console.error("Payload 'data' não encontrado na notificação.");
-    return;
-  }
-
-  // Constrói a notificação a partir do payload 'data' para compatibilidade total (incluindo iOS)
+  // Extrai o payload de 'data' para compatibilidade universal (Android/iOS)
+  // O backend DEVE enviar o payload dentro do campo 'data'.
   const notificationTitle = payload.data.title;
   const notificationOptions = {
     body: payload.data.body,
     icon: payload.data.icon || "/icon-192x192.png", // Ícone padrão
     data: {
-      url: payload.data.url || '/' // URL para abrir ao clicar na notificação
+      url: payload.data.url // URL para abrir ao clicar na notificação
     }
   };
 
-  // Exibe a notificação
+  // Exibe a notificação manualmente, garantindo controle total
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Manipulador para o evento de clique na notificação
+// Listener para o evento de clique na notificação
 self.addEventListener('notificationclick', (event) => {
-  // Fecha a notificação
-  event.notification.close();
+  event.notification.close(); // Fecha a notificação assim que clicada
 
   const urlToOpen = event.notification.data.url || '/';
   
-  // Procura por uma janela/aba do app que já esteja aberta para focá-la
+  // Procura por uma aba/janela do app que já esteja aberta e foca nela.
+  // Se não encontrar, abre uma nova janela.
   event.waitUntil(
     clients.matchAll({
       type: 'window',
       includeUncontrolled: true
     }).then((clientList) => {
       for (const client of clientList) {
-        // Se encontrar uma aba com a mesma URL, foca nela
-        if (client.url === urlToOpen && 'focus' in client) {
+        // Usa `new URL` para comparar apenas o pathname, ignorando query params
+        if ((new URL(client.url)).pathname === (new URL(urlToOpen, self.location.origin)).pathname && 'focus' in client) {
           return client.focus();
         }
       }
-      // Se nenhuma aba estiver aberta, abre uma nova
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
