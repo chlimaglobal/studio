@@ -1,32 +1,35 @@
 
-// Import and initialize the Firebase SDK
-// This is required to get the messaging service object.
+// Import the Firebase app and messaging services
 import { initializeApp } from 'firebase/app';
-import { getMessaging } from 'firebase/messaging';
+import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas",
-  authDomain: "financeflow-we0in.firebaseapp.com",
-  projectId: "financeflow-we0in",
-  storageBucket: "financeflow-we0in.appspot.com",
-  messagingSenderId: "1074128612143",
-  appId: "1:1074128612143:web:04c538a7c251f21151c8e7"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Initialize the Firebase app in the service worker
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// This part of the code is executed when a push notification is received
-// while the app is in the background or closed.
-// You can customize the notification title, body, icon, etc. here.
-// For now, it will show the notification as sent from the server.
-self.addEventListener('push', (event) => {
-  const notification = event.data.json().notification;
-  event.waitUntil(
-    self.registration.showNotification(notification.title, {
-      body: notification.body,
-      icon: notification.icon,
-    })
-  );
+// Handle background messages
+onBackgroundMessage(messaging, (payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+
+  if (!payload.notification) {
+    return;
+  }
+  
+  const notificationTitle = payload.notification.title || 'Nova Notificação';
+  const notificationOptions = {
+    body: payload.notification.body || '',
+    icon: payload.notification.icon || '/icon-192x192.png',
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

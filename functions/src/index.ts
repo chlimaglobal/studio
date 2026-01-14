@@ -637,7 +637,6 @@ export const dailyFinancialCheckup = onSchedule({
                       notification: {
                           title: 'FinanceFlow - Alerta Financeiro',
                           body: messageText,
-                          icon: '/icon-192x192.png',
                       },
                       tokens: userData.fcmTokens,
                   };
