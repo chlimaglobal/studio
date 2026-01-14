@@ -6,8 +6,6 @@ import { getMessaging, isSupported } from "firebase/messaging";
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
-
-// ---- CONFIG DO SEU PROJETO FIREBASE ----
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -17,33 +15,34 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// ---- INICIALIZAÇÃO SEGURA ----
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// ---- SERVICES ----
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
-export { app }; // Exportando a instância do app
+export { app };
 
-
-// Initialize Firebase Cloud Messaging and get a reference to the service
 export const messaging = async () => {
     if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
-        // Registra o Service Worker de forma direta e robusta
         if ('serviceWorker' in navigator) {
-            const swUrl = `/firebase-messaging-sw.js`;
+            // Passa a configuração do Firebase de forma segura para o Service Worker
+            // através de um query parameter. Isso evita hardcoding de chaves no SW.
+            const firebaseConfigParams = encodeURIComponent(JSON.stringify(firebaseConfig));
+            const swUrl = `/firebase-messaging-sw.js?firebaseConfig=${firebaseConfigParams}`;
             
             try {
+                // REGISTRO DO SERVICE WORKER. Ocorre antes de qualquer tentativa de obter o token.
                 const registration = await navigator.serviceWorker.register(swUrl);
                 console.log('Service Worker registration successful with scope: ', registration.scope);
             } catch (err) {
-                console.log('Service Worker registration failed: ', err);
+                console.error('Service Worker registration failed: ', err);
             }
         }
         
         const supported = await isSupported();
+        // A obtenção do token (getToken) é feita posteriormente no componente NotificationPermission,
+        // garantindo que o registro do SW já tenha ocorrido.
         return supported ? getMessaging(app) : null;
     }
     return null;

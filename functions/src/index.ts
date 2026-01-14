@@ -619,8 +619,7 @@ export const dailyFinancialCheckup = onSchedule({
           let userData = userDoc.data();
           const userDocRef = db.collection("users").doc(userId);
           
-           // Helper function to send notifications
-          const sendNotification = async (messageText: string, suggestions: string[]) => {
+           const sendNotification = async (messageText: string, suggestions: string[]) => {
               const chatBatch = db.batch();
               const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
               chatBatch.set(newChatDocRef, { 
@@ -638,9 +637,8 @@ export const dailyFinancialCheckup = onSchedule({
                       data: {
                           title: 'FinanceFlow - Alerta Financeiro',
                           body: messageText,
-                          url: '/dashboard' // URL para abrir ao clicar
+                          url: '/dashboard'
                       },
-                      // Configuração específica para APNs (iOS) para garantir a exibição
                       apns: {
                         payload: {
                           aps: {
@@ -657,7 +655,6 @@ export const dailyFinancialCheckup = onSchedule({
                   };
                   try {
                       const response = await admin.messaging().sendEachForMulticast(messagePayload);
-                      // Opcional: Lógica para limpar tokens inválidos
                       const tokensToRemove: string[] = [];
                       response.responses.forEach((result, index) => {
                         if (!result.success) {
@@ -672,7 +669,6 @@ export const dailyFinancialCheckup = onSchedule({
                           fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
                         });
                       }
-
                   } catch (error) {
                       console.error('Erro ao enviar notificação push:', error);
                   }
