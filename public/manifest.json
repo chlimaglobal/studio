@@ -4,8 +4,8 @@
   "description": "Sua plataforma de controle financeiro para casais e indivíduos.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#E8EAF6",
-  "theme_color": "#3F51B5",
+  "background_color": "#212121",
+  "theme_color": "#FFB33E",
   "icons": [
     {
       "src": "/icon-192x192.png",

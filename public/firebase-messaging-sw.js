@@ -1,64 +1,73 @@
-// Importar os scripts do Firebase para compatibilidade.
-// Usamos uma versão recente e estável do SDK v9 em modo de compatibilidade.
-importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js");
+// Importa os scripts de compatibilidade do Firebase para garantir o funcionamento em todos os cenários
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-// As credenciais do Firebase serão buscadas dinamicamente.
-// Não é seguro deixá-las hardcoded aqui.
-const urlParams = new URLSearchParams(location.search);
-const firebaseConfig = {
-    apiKey: urlParams.get("apiKey"),
-    authDomain: urlParams.get("authDomain"),
-    projectId: urlParams.get("projectId"),
-    storageBucket: urlParams.get("storageBucket"),
-    messagingSenderId: urlParams.get("messagingSenderId"),
-    appId: urlParams.get("appId"),
-};
+// O Service Worker é inicializado dinamicamente pelo script do cliente que passa a configuração
+// de forma segura através dos parâmetros da URL.
+// Isso evita a exposição de chaves de API no arquivo público.
+self.addEventListener('fetch', event => {
+  try {
+    const url = new URL(event.request.url);
+    if (url.pathname === '/firebase-messaging-sw.js' && url.searchParams.has('firebaseConfig')) {
+      const firebaseConfig = JSON.parse(url.searchParams.get('firebaseConfig'));
+      // Inicializa o Firebase apenas se ainda não foi inicializado
+      if (firebase.apps.length === 0) {
+          firebase.initializeApp(firebaseConfig);
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao inicializar Firebase no Service Worker:', e);
+  }
+});
 
-// Inicializa o app Firebase no Service Worker
-firebase.initializeApp(firebaseConfig);
 
+// Obtém a instância de mensagens
 const messaging = firebase.messaging();
 
-// Handler para mensagens recebidas em segundo plano.
-// Este é o ponto crucial para o funcionamento com o app fechado.
+// Manipulador para mensagens recebidas quando o app está em segundo plano ou fechado
 messaging.onBackgroundMessage((payload) => {
-  console.log(
-    "[firebase-messaging-sw.js] Received background message ",
-    payload
-  );
+  console.log("[firebase-messaging-sw.js] Mensagem recebida em segundo plano: ", payload);
 
-  // Extrai o título e o corpo do campo 'data', não de 'notification'.
-  // Isto é OBRIGATÓRIO para compatibilidade com iOS Web Push.
+  // Valida a existência do payload 'data'
+  if (!payload.data) {
+    console.error("Payload 'data' não encontrado na notificação.");
+    return;
+  }
+
+  // Constrói a notificação a partir do payload 'data' para compatibilidade total (incluindo iOS)
   const notificationTitle = payload.data.title;
   const notificationOptions = {
     body: payload.data.body,
-    icon: "/icon-192x192.png", // Ícone da notificação
+    icon: payload.data.icon || "/icon-192x192.png", // Ícone padrão
     data: {
       url: payload.data.url || '/' // URL para abrir ao clicar na notificação
     }
   };
 
-  // Exibe a notificação manualmente, garantindo controle total.
+  // Exibe a notificação
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Adiciona um listener para o clique na notificação
+// Manipulador para o evento de clique na notificação
 self.addEventListener('notificationclick', (event) => {
+  // Fecha a notificação
   event.notification.close();
+
   const urlToOpen = event.notification.data.url || '/';
   
+  // Procura por uma janela/aba do app que já esteja aberta para focá-la
   event.waitUntil(
     clients.matchAll({
       type: 'window',
+      includeUncontrolled: true
     }).then((clientList) => {
-      // Se um cliente (aba/janela) já estiver aberto, foca nele.
       for (const client of clientList) {
+        // Se encontrar uma aba com a mesma URL, foca nela
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
         }
       }
-      // Se não, abre uma nova janela.
+      // Se nenhuma aba estiver aberta, abre uma nova
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
