@@ -633,15 +633,40 @@ export const dailyFinancialCheckup = onSchedule({
               await chatBatch.commit();
 
               if (userData?.fcmTokens && Array.isArray(userData.fcmTokens) && userData.fcmTokens.length > 0) {
-                  const message = {
-                      notification: {
+                  const messagePayload = {
+                      tokens: userData.fcmTokens,
+                      data: {
                           title: 'FinanceFlow - Alerta Financeiro',
                           body: messageText,
+                          url: '/dashboard' // URL para abrir ao clicar
                       },
-                      tokens: userData.fcmTokens,
+                      // Configuração específica para APNs (iOS) para garantir a exibição
+                      apns: {
+                        payload: {
+                          aps: {
+                            'content-available': 1,
+                          },
+                        },
+                      },
                   };
                   try {
-                      await admin.messaging().sendEachForMulticast(message);
+                      const response = await admin.messaging().sendEachForMulticast(messagePayload);
+                      // Opcional: Lógica para limpar tokens inválidos
+                      const tokensToRemove: string[] = [];
+                      response.responses.forEach((result, index) => {
+                        if (!result.success) {
+                          const error = result.error;
+                          if (error && (error.code === 'messaging/invalid-registration-token' || error.code === 'messaging/registration-token-not-registered')) {
+                            tokensToRemove.push(userData.fcmTokens[index]);
+                          }
+                        }
+                      });
+                      if (tokensToRemove.length > 0) {
+                        await userDocRef.update({
+                          fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
+                        });
+                      }
+
                   } catch (error) {
                       console.error('Erro ao enviar notificação push:', error);
                   }
@@ -743,6 +768,3 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
-
-
-
