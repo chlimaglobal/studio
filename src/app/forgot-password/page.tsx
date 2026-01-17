@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -9,10 +10,8 @@ import { useState } from 'react';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-
-// 🔥 Firebase
 import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
-import { app } from '@/lib/firebase'; // garante que está usando sua instância correta
+import { app } from '@/lib/firebase';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -33,33 +32,50 @@ export default function ForgotPasswordPage() {
         title: 'Link enviado!',
         description: 'Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
       });
-
-      setIsLoading(false);
-
-      // Mantemos o redirecionamento para consistência da simulação
-      router.push('/reset-password');
+      
+      // We don't redirect automatically to allow the user to read the success message.
+      // The user will click the link in their email.
+      // router.push('/reset-password'); // This might not be desirable UX
 
     } catch (error: any) {
-      setIsLoading(false);
+      console.error('[AUTH ERROR]', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack,
+      });
 
       let message = 'Erro ao enviar link. Tente novamente.';
-
-      // Tratamento mais humano e profissional
-      if (error.code === 'auth/invalid-email') {
-        message = 'O e-mail informado é inválido.';
+      switch (error.code) {
+        case 'auth/invalid-email':
+          message = 'O e-mail informado é inválido.';
+          break;
+        case 'auth/user-not-found':
+          // For security, don't reveal if a user exists. The success message already does this.
+          message = 'Se este e-mail estiver cadastrado, você receberá um link em breve.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Muitas tentativas. Por favor, tente novamente em alguns minutos.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Falha de rede. Verifique sua conexão com a internet.';
+          break;
       }
+      
+      // In the case of user-not-found, we show a success-like toast to prevent user enumeration.
       if (error.code === 'auth/user-not-found') {
-        message = 'Nenhuma conta encontrada com este e-mail.';
+          toast({
+            title: 'Verifique seu e-mail',
+            description: message,
+        });
+      } else {
+         toast({
+            title: 'Atenção',
+            description: message,
+            variant: 'destructive',
+        });
       }
-      if (error.code === 'auth/too-many-requests') {
-        message = 'Muitas tentativas. Tente novamente em alguns minutos.';
-      }
-
-      toast({
-        title: 'Atenção',
-        description: message,
-        variant: 'destructive',
-      });
+    } finally {
+        setIsLoading(false);
     }
   };
 

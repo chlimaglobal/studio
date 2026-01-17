@@ -45,7 +45,6 @@ export default function LoginPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   
   useEffect(() => {
-    // Check for remembered email on component mount
     if (typeof window !== 'undefined') {
         const rememberedEmail = localStorage.getItem('rememberedEmail');
         if (rememberedEmail) {
@@ -55,7 +54,6 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Redirect if user is already logged in
   useEffect(() => {
     if (!isAuthLoading && user) {
       router.replace('/dashboard');
@@ -68,7 +66,6 @@ export default function LoginPage() {
     } else {
         localStorage.removeItem('rememberedEmail');
     }
-    // Store user info for biometrics and settings page
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
   };
@@ -83,10 +80,33 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         await handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
+        console.error('[AUTH ERROR]', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+        });
+
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
-        // Check if it's a Firebase Auth error
-        if (error.code && typeof error.code === 'string' && error.code.startsWith('auth/')) {
-            errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
+        if (error.code) {
+            switch (error.code) {
+                case 'auth/invalid-credential':
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'O formato do e-mail é inválido.';
+                    break;
+                case 'auth/too-many-requests':
+                     errorMessage = 'Acesso bloqueado temporariamente devido a muitas tentativas. Tente novamente mais tarde.';
+                     break;
+                case 'auth/network-request-failed':
+                    errorMessage = 'Falha de rede. Verifique sua conexão com a internet.';
+                    break;
+                default:
+                    errorMessage = 'Não foi possível fazer login. Por favor, tente novamente.';
+                    break;
+            }
         }
         
         toast({
