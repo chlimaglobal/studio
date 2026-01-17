@@ -83,10 +83,9 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         await handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
-        const errorCode = error.code;
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
-        
-        if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {
+        // Check if it's a Firebase Auth error
+        if (error.code && typeof error.code === 'string' && error.code.startsWith('auth/')) {
             errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
         }
         
