@@ -477,6 +477,16 @@ export const luminaChat = createGenkitCallable(luminaChatFlow);
 // Original Firebase Functions (v2 Syntax)
 // -----------------
 
+export const handleUserLogin = onCall(functionOptions, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    }
+    // This function can be expanded later for tasks like updating a 'lastLogin' timestamp.
+    // For now, it just confirms the user is logged in on the backend.
+    console.log(`User login event processed for UID: ${request.auth.uid}`);
+    return { success: true, message: "Login event processed." };
+});
+
 export const sendPartnerInvite = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     
@@ -732,5 +742,3 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
-
-    

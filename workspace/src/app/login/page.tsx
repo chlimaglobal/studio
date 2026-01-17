@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -93,14 +94,28 @@ export default function LoginPage() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         await handleSuccessfulLogin(userCredential.user);
     } catch (error: any) {
-        const errorCode = error.code;
+        console.error('[LOGIN ERROR]', {
+            code: error.code,
+            message: error.message,
+        });
+
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
-        
-        if (errorCode === 'auth/invalid-credential') {
-            errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados e tente novamente.';
+        if (error.code) {
+            switch (error.code) {
+                case 'auth/invalid-credential':
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                    errorMessage = 'E-mail ou senha incorretos. Por favor, verifique seus dados.';
+                    break;
+                case 'functions/not-found':
+                    errorMessage = 'O serviço de autenticação está temporariamente indisponível. Tente mais tarde.';
+                    break;
+                default:
+                    errorMessage = 'Não foi possível fazer login. Por favor, tente novamente.';
+                    break;
+            }
         }
         
-        console.error("Login Error:", error);
         toast({
           variant: 'destructive',
           title: 'Falha no Login',
