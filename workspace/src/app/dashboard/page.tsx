@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -22,9 +23,8 @@ import { allInvestmentCategories } from '@/lib/types';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
 import { FeatureAnnouncement } from '@/components/feature-announcement';
 import UpcomingBills from '@/components/upcoming-bills';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { db } from '@/lib/firebase';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
 import { useCoupleStore } from '@/hooks/use-couple-store';
 import { PendingInviteCard } from '@/components/couple/PendingInviteCard';
@@ -327,7 +327,6 @@ export default function DashboardPage() {
         
         const checkStatus = async () => {
             try {
-                const functions = getFunctions(getApp());
                 const checkDashboardStatus = httpsCallable(functions, 'checkDashboardStatus');
                 await checkDashboardStatus();
             } catch (error) {

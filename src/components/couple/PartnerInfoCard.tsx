@@ -16,8 +16,8 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '@/components/providers/app-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +42,6 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(app, 'us-central1');
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       
       const result = await disconnectPartnerCallable();

@@ -113,7 +113,7 @@ export function useLumina() {
 
 // PROVIDER COMPONENTS
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -400,21 +400,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function ClientProviders({ children }: { children: React.ReactNode }) {
-  return (
-      <SubscriptionProvider>
-        <CoupleProvider>
-          <TransactionsProvider>
-            <LuminaProvider>
-                {children}
-            </LuminaProvider>
-          </TransactionsProvider>
-        </CoupleProvider>
-      </SubscriptionProvider>
-  );
-}
-
-
 export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider 
@@ -423,14 +408,28 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <ClientProviders>
-              {children}
-              <Toaster />
-            </ClientProviders>
-          </AuthProvider>
+            <AuthProvider>
+                <ClientProviders>
+                    {children}
+                </ClientProviders>
+            </AuthProvider>
         </ThemeProvider>
     );
+}
+
+export function ClientProviders({ children }: { children: React.ReactNode }) {
+  return (
+      <SubscriptionProvider>
+        <CoupleProvider>
+          <TransactionsProvider>
+            <LuminaProvider>
+                {children}
+                <Toaster />
+            </LuminaProvider>
+          </TransactionsProvider>
+        </CoupleProvider>
+      </SubscriptionProvider>
+  );
 }
 
 export { useCoupleStore };

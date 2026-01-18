@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,8 +27,8 @@ import React from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { useAuth } from '@/components/client-providers';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 const AddDependentFormSchema = z.object({
   name: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -42,6 +43,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<z.infer<typeof AddDependentFormSchema>>({
     resolver: zodResolver(AddDependentFormSchema),
@@ -61,23 +63,19 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         return;
     }
     
+    setIsLoading(true);
     try {
-        const functions = getFunctions(getApp()); // Get functions instance on the client
         const sendDependentInviteCallable = httpsCallable(functions, 'sendDependentInvite');
         const result = await sendDependentInviteCallable({
-            name: values.name,
-            email: values.email,
-            inviterUid: user.uid,
-            inviterName: user.displayName,
+            dependentName: values.name,
+            dependentEmail: values.email,
         });
 
-        const resultData = result.data as { success: boolean, message: string, inviteToken?: string, error?: string };
+        const resultData = (result.data as any)?.data as { success: boolean, message: string, inviteToken?: string, error?: string };
 
         if (resultData.success) {
-            // Construct the invitation link
             const inviteLink = `${window.location.origin}/signup?inviteToken=${resultData.inviteToken}`;
             
-            // Show a toast with the link and copy button
             toast({
                 title: 'Convite Criado!',
                 description: (
@@ -91,7 +89,7 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
                         </div>
                     </div>
                 ),
-                duration: 15000, // Keep toast open longer
+                duration: 15000, 
             });
 
             form.reset();
@@ -101,13 +99,14 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
         }
 
     } catch (error) {
-        console.error("Failed to send dependent invite:", error);
         const errorMessage = (error instanceof Error) ? error.message : "Não foi possível enviar o convite. Tente novamente.";
          toast({
             variant: 'destructive',
             title: 'Falha no Envio',
             description: errorMessage,
         });
+    } finally {
+        setIsLoading(false);
     }
   }
 
@@ -151,8 +150,8 @@ export function AddDependentDialog({ children }: AddDependentDialogProps) {
             />
             <DialogFooter>
               <Button variant="outline" type="button" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Gerar Link de Convite
               </Button>
             </DialogFooter>

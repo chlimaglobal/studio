@@ -10,8 +10,8 @@ import { useState } from 'react';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -23,8 +23,6 @@ export default function ForgotPasswordPage() {
     event.preventDefault();
     setIsLoading(true);
 
-    const auth = getAuth(app);
-
     try {
       await sendPasswordResetEmail(auth, email);
 
@@ -33,10 +31,6 @@ export default function ForgotPasswordPage() {
         description: 'Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha.',
       });
       
-      // We don't redirect automatically to allow the user to read the success message.
-      // The user will click the link in their email.
-      // router.push('/reset-password'); // This might not be desirable UX
-
     } catch (error: any) {
       console.error('[AUTH ERROR]', {
         code: error.code,

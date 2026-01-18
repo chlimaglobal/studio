@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -7,9 +8,8 @@ import { Loader2, Mail, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function PendingInvitePage() {
   const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -44,7 +44,6 @@ export default function PendingInvitePage() {
 
     setIsActionLoading(true);
     try {
-      const functions = getFunctions(getApp());
       const cancelCallable = httpsCallable(functions, 'cancelPartnerInvite');
 
       const result = await cancelCallable({ inviteId: invite.id });

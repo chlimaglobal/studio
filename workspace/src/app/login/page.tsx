@@ -12,10 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
+import { auth, functions } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '@/components/client-providers';
 
 const Logo = () => (
@@ -75,7 +74,6 @@ export default function LoginPage() {
     localStorage.setItem('userEmail', loggedInUser.email || '');
     
     try {
-        const functions = getFunctions(getApp());
         const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
         await handleUserLogin();
     } catch (error) {
@@ -87,7 +85,6 @@ export default function LoginPage() {
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    const auth = getAuth(app);
 
     try {
         await setPersistence(auth, browserLocalPersistence);
@@ -128,7 +125,6 @@ export default function LoginPage() {
   
   const handleBiometricLogin = async () => {
     setIsBiometricLoading(true);
-    const auth = getAuth(app);
     try {
         await setPersistence(auth, browserLocalPersistence);
         const credentialId = localStorage.getItem('webauthn-credential-id');
@@ -183,7 +179,6 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
         await setPersistence(auth, browserLocalPersistence);

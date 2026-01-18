@@ -17,36 +17,20 @@ const firebaseConfig = {
   measurementId: "G-EW74L3HEX7",
 };
 
-// Validação para garantir que as configurações essenciais não estão vazias
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  console.error("Firebase config is incomplete. Check your .env file.");
-}
+// Initialize Firebase
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-
+// Export service instances
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
-export { app };
+export { app }; // Also export app itself
 
+// Messaging is special and should only be initialized on the client
 export const messaging = async () => {
-    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
-        if ('serviceWorker' in navigator) {
-            const firebaseConfigParams = encodeURIComponent(JSON.stringify(firebaseConfig));
-            const swUrl = `/firebase-messaging-sw.js?firebaseConfig=${firebaseConfigParams}`;
-            
-            try {
-                const registration = await navigator.serviceWorker.register(swUrl);
-                console.log('Service Worker registration successful with scope: ', registration.scope);
-            } catch (err) {
-                console.error('Service Worker registration failed: ', err);
-            }
-        }
-        
-        const supported = await isSupported();
-        return supported ? getMessaging(app) : null;
+    if (typeof window !== 'undefined' && (await isSupported())) {
+        return getMessaging(app);
     }
     return null;
 };

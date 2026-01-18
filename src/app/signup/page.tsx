@@ -10,8 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { app, db } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
 import { initializeUser } from '@/lib/storage';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -45,7 +45,6 @@ function SignUpPageContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const auth = getAuth(app);
 
   useEffect(() => {
     async function prefillFromInvite() {

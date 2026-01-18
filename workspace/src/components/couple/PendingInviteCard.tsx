@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -14,8 +15,8 @@ import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useAuth } from '../client-providers';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 interface PendingInviteCardProps {}
 
@@ -35,7 +36,6 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     else functionName = 'cancelPartnerInvite';
 
     try {
-      const functions = getFunctions(getApp());
       const callable = httpsCallable(functions, functionName);
       const result = await callable({ inviteId: invite.id });
       const data = result.data as { success: boolean; message: string; error?: string };

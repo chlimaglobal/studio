@@ -5,9 +5,8 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getMessaging, isSupported } from "firebase/messaging";
 import { getFunctions } from 'firebase/functions';
+import { getStorage } from 'firebase/storage';
 
-
-// ---- CONFIG DO SEU PROJETO FIREBASE ----
 const firebaseConfig = {
   apiKey: "AIzaSyD7H3wU8pB8pH-xmTxJhUZCsPa-PP_L0cY",
   authDomain: "financeflow-we0in.firebaseapp.com",
@@ -18,21 +17,20 @@ const firebaseConfig = {
   measurementId: "G-EW74L3HEX7",
 };
 
-// ---- INICIALIZAÇÃO SEGURA ----
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ---- SERVICES ----
+// Export service instances
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app, 'us-central1'); // Specify region for consistency
-export { app }; // Exportando a instância do app
+export const functions = getFunctions(app, 'us-central1');
+export const storage = getStorage(app);
+export { app }; // Also export app itself
 
-
-// Initialize Firebase Cloud Messaging and get a reference to the service
+// Messaging is special and should only be initialized on the client
 export const messaging = async () => {
-    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
-        const supported = await isSupported();
-        return supported ? getMessaging(app) : null;
+    if (typeof window !== 'undefined' && (await isSupported())) {
+        return getMessaging(app);
     }
     return null;
 };

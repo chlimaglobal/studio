@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import type { LuminaChatInput, LuminaChatOutput } from '@/types';
 
 
@@ -53,7 +53,6 @@ export async function POST(req: NextRequest) {
       user: validatedBody.user,
     };
     
-    const functions = getFunctions(app, 'us-central1');
     const luminaChatCallable = httpsCallable<LuminaChatInput, { data: LuminaChatOutput }>(functions, 'luminaChat');
     
     const result = await luminaChatCallable(functionInput);

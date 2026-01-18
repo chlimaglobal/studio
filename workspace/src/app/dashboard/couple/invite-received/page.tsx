@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -8,9 +9,8 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function InviteReceivedPage() {
     const { invite, status, isLoading: isStoreLoading } = useCoupleStore();
@@ -35,8 +35,6 @@ export default function InviteReceivedPage() {
         setIsActionLoading(true);
 
         try {
-            const functions = getFunctions(getApp());
-
             // ✅ Correção: função correta para recusar convite recebido
             const callableFunctionName =
                 action === 'accept'

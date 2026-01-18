@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -15,8 +16,8 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 import {
   AlertDialog,
@@ -42,7 +43,6 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(getApp());
       const disconnectPartnerCallable = httpsCallable(functions, 'disconnectPartner');
       const result = await disconnectPartnerCallable();
 

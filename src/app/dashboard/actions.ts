@@ -1,8 +1,8 @@
 
 'use server';
 
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import type { 
     CategorizeTransactionInput,
     CategorizeTransactionOutput,
@@ -27,7 +27,6 @@ import type {
 
 async function callFirebaseFunction<I, O>(functionName: string, data: I): Promise<O> {
     try {
-        const functions = getFunctions(app, 'us-central1');
         const callable = httpsCallable<I, { data: O }>(functions, functionName);
         const result = await callable(data);
         return result.data.data;
@@ -86,5 +85,3 @@ export async function runGoalMediation(input: MediateGoalsInput): Promise<Mediat
 export async function runImageExtraction(input: ExtractFromImageInput): Promise<ExtractFromImageOutput> {
     return callFirebaseFunction<ExtractFromImageInput, ExtractFromImageOutput>('runImageExtraction', input);
 }
-
-    

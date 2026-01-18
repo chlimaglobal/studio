@@ -12,9 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { base64UrlToBuffer } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { getAuth, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, UserCredential, setPersistence, browserLocalPersistence, User } from 'firebase/auth';
+import { auth, functions } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/app-providers';
+import { httpsCallable } from 'firebase/functions';
 
 const Logo = () => (
     <div className="p-4 inline-block">
@@ -61,24 +62,25 @@ export default function LoginPage() {
   }, [user, isAuthLoading, router]);
 
   const handleSuccessfulLogin = async (loggedInUser: User) => {
-    console.log('[LOGIN_FLOW] Step 1: handleSuccessfulLogin started.');
     if (rememberMe) {
-        console.log('[LOGIN_FLOW] Step 2: Setting remembered email.');
         localStorage.setItem('rememberedEmail', loggedInUser.email || '');
     } else {
-        console.log('[LOGIN_FLOW] Step 2: Removing remembered email.');
         localStorage.removeItem('rememberedEmail');
     }
-    console.log('[LOGIN_FLOW] Step 3: Setting user info in localStorage.');
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
-    console.log('[LOGIN_FLOW] Step 4: handleSuccessfulLogin finished.');
+    
+    try {
+        const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
+        await handleUserLogin();
+    } catch (error) {
+        console.warn('Could not run handleUserLogin trigger:', error);
+    }
   };
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    const auth = getAuth(app);
 
     try {
         await setPersistence(auth, browserLocalPersistence);
@@ -106,6 +108,9 @@ export default function LoginPage() {
                 case 'auth/network-request-failed':
                     errorMessage = 'Falha de rede. Verifique sua conexão com a internet.';
                     break;
+                case 'functions/not-found':
+                    errorMessage = 'O serviço de autenticação está temporariamente indisponível. Tente mais tarde.';
+                    break;
                 default:
                     errorMessage = `Não foi possível fazer login. (Código: ${error.code})`;
                     break;
@@ -124,7 +129,6 @@ export default function LoginPage() {
   
   const handleBiometricLogin = async () => {
     setIsBiometricLoading(true);
-    const auth = getAuth(app);
     try {
         await setPersistence(auth, browserLocalPersistence);
         const credentialId = localStorage.getItem('webauthn-credential-id');
@@ -180,7 +184,6 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
-    const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     try {
         await setPersistence(auth, browserLocalPersistence);

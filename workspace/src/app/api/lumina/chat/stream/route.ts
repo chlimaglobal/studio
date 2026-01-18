@@ -2,8 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { StreamData, StreamingTextResponse } from 'ai';
 import { z } from 'zod';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 import type { LuminaChatInput, LuminaChatOutput } from '@/lib/definitions';
 
 
@@ -45,12 +45,11 @@ export async function POST(req: NextRequest) {
       userQuery: input.userQuery || input.messages?.[input.messages.length - 1]?.content || '',
     };
     
-    const functions = getFunctions(app, 'us-central1');
     const luminaChatCallable = httpsCallable<LuminaChatInput, LuminaChatOutput>(functions, 'luminaChat');
     
     const result = await luminaChatCallable(validatedInput);
     
-    // The callable function now returns the data directly (no double 'data' wrapper)
+    // The callable function's result for v2 functions is directly in result.data
     const luminaResponse = result.data;
 
     const stream = new ReadableStream({

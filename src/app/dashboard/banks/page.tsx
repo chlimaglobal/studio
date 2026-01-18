@@ -15,8 +15,8 @@ import { accountTypeLabels } from '@/types';
 import { InviteDialog } from '@/components/invite-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase'; 
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase'; 
 
 
 const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }) => {
@@ -38,7 +38,6 @@ const AcceptInviteCard = ({ onInviteAccepted }: { onInviteAccepted: () => void }
 
         setIsLoading(true);
         try {
-            const functions = getFunctions(app, 'us-central1');
             const acceptInvite = httpsCallable(functions, 'acceptInviteCode');
             const result = await acceptInvite({ code: code.toUpperCase() });
 

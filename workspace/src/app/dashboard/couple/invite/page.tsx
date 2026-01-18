@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,9 +17,8 @@ import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/client-providers';
 import { useRouter } from 'next/navigation';
-
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { getApp } from 'firebase/app';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function InvitePartnerPage() {
   const { toast } = useToast();
@@ -42,7 +42,6 @@ export default function InvitePartnerPage() {
     setIsLoading(true);
 
     try {
-      const functions = getFunctions(getApp());
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
 
       const result = await sendInviteCallable({
