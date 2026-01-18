@@ -61,13 +61,18 @@ export default function LoginPage() {
   }, [user, isAuthLoading, router]);
 
   const handleSuccessfulLogin = async (loggedInUser: User) => {
+    console.log('[LOGIN_FLOW] Step 1: handleSuccessfulLogin started.');
     if (rememberMe) {
+        console.log('[LOGIN_FLOW] Step 2: Setting remembered email.');
         localStorage.setItem('rememberedEmail', loggedInUser.email || '');
     } else {
+        console.log('[LOGIN_FLOW] Step 2: Removing remembered email.');
         localStorage.removeItem('rememberedEmail');
     }
+    console.log('[LOGIN_FLOW] Step 3: Setting user info in localStorage.');
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
+    console.log('[LOGIN_FLOW] Step 4: handleSuccessfulLogin finished.');
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -78,22 +83,14 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // ETAPA 1: ISOLAMENTO DO ERRO
-        console.log('AUTH OK', userCredential.user.uid);
-        // A chamada para a função problemática foi comentada para teste.
-        // await handleSuccessfulLogin(userCredential.user);
-        router.replace('/dashboard'); // Redireciona imediatamente para provar que a autenticação funcionou.
+        await handleSuccessfulLogin(userCredential.user);
+        router.replace('/dashboard');
 
     } catch (error: any) {
-        console.error('[AUTH ERROR]', {
-            code: error.code,
-            message: error.message,
-            stack: error.stack,
-        });
+        console.error('[AUTH ERROR]', error);
 
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
-        if (error.code) {
+        if (error && error.code) {
             switch (error.code) {
                 case 'auth/invalid-credential':
                 case 'auth/user-not-found':
@@ -110,7 +107,7 @@ export default function LoginPage() {
                     errorMessage = 'Falha de rede. Verifique sua conexão com a internet.';
                     break;
                 default:
-                    errorMessage = 'Não foi possível fazer login. Por favor, tente novamente.';
+                    errorMessage = `Não foi possível fazer login. (Código: ${error.code})`;
                     break;
             }
         }
@@ -159,9 +156,7 @@ export default function LoginPage() {
         if (credential) {
             toast({ title: 'Login Biométrico Bem-Sucedido!', description: 'Redirecionando para o painel...' });
              if (auth.currentUser) {
-                // ETAPA 1: ISOLAMENTO DO ERRO
-                console.log('AUTH OK (Biometric)', auth.currentUser.uid);
-                // await handleSuccessfulLogin(auth.currentUser);
+                await handleSuccessfulLogin(auth.currentUser);
                 router.replace('/dashboard');
              } else {
                  toast({ variant: 'destructive', title: 'Sessão Expirada', description: 'Por favor, faça login com e-mail e senha novamente.' });
@@ -190,9 +185,7 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithPopup(auth, provider);
-        // ETAPA 1: ISOLAMENTO DO ERRO
-        console.log('AUTH OK (Google)', userCredential.user.uid);
-        // await handleSuccessfulLogin(userCredential.user);
+        await handleSuccessfulLogin(userCredential.user);
         router.replace('/dashboard');
     } catch (error) {
          toast({
