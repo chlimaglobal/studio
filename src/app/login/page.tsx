@@ -78,7 +78,13 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        await handleSuccessfulLogin(userCredential.user);
+        
+        // ETAPA 1: ISOLAMENTO DO ERRO
+        console.log('AUTH OK', userCredential.user.uid);
+        // A chamada para a função problemática foi comentada para teste.
+        // await handleSuccessfulLogin(userCredential.user);
+        router.replace('/dashboard'); // Redireciona imediatamente para provar que a autenticação funcionou.
+
     } catch (error: any) {
         console.error('[AUTH ERROR]', {
             code: error.code,
@@ -153,7 +159,10 @@ export default function LoginPage() {
         if (credential) {
             toast({ title: 'Login Biométrico Bem-Sucedido!', description: 'Redirecionando para o painel...' });
              if (auth.currentUser) {
-                await handleSuccessfulLogin(auth.currentUser);
+                // ETAPA 1: ISOLAMENTO DO ERRO
+                console.log('AUTH OK (Biometric)', auth.currentUser.uid);
+                // await handleSuccessfulLogin(auth.currentUser);
+                router.replace('/dashboard');
              } else {
                  toast({ variant: 'destructive', title: 'Sessão Expirada', description: 'Por favor, faça login com e-mail e senha novamente.' });
              }
@@ -181,7 +190,10 @@ export default function LoginPage() {
     try {
         await setPersistence(auth, browserLocalPersistence);
         const userCredential = await signInWithPopup(auth, provider);
-        await handleSuccessfulLogin(userCredential.user);
+        // ETAPA 1: ISOLAMENTO DO ERRO
+        console.log('AUTH OK (Google)', userCredential.user.uid);
+        // await handleSuccessfulLogin(userCredential.user);
+        router.replace('/dashboard');
     } catch (error) {
          toast({
             variant: 'destructive',
