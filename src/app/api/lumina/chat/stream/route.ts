@@ -57,6 +57,8 @@ export async function POST(req: NextRequest) {
     
     const result = await luminaChatCallable(functionInput);
     
+    // The callable function's result for v2 functions is in result.data
+    // And our wrapper adds another 'data' property
     const luminaResponse = result.data.data;
 
     const stream = new ReadableStream({

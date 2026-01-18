@@ -1,5 +1,9 @@
 import { z } from "genkit";
-import { ai } from 'genkit';
+import { ai, genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+import { firebase } from '@genkit-ai/firebase';
+import { defineSecret } from "firebase-functions/params";
+import { HttpsError } from "firebase-functions/v2/https";
 
 // Schemas
 import {
@@ -9,17 +13,41 @@ import {
   GetSimpleFinancialSummaryOutputSchema,
 } from "../types";
 
+// Secrets and lazy initialization for Genkit, similar to index.ts
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+let aiInstance: any;
+
+function getAI() {
+    if (!aiInstance) {
+        try {
+            genkit({
+                plugins: [
+                    firebase(),
+                    googleAI({ apiKey: geminiApiKey.value() }),
+                ],
+                enableTracingAndMetrics: true,
+            });
+            aiInstance = ai;
+        } catch(e) {
+            console.error("CRITICAL: Genkit initialization failed in alexa-flows.", e);
+            throw new HttpsError('internal', 'AI service initialization failed.');
+        }
+    }
+    return aiInstance;
+}
+
+
 /**
  * Flow: alexaExtractTransactionFlow
  * Extrai UMA transação financeira a partir do texto falado
  */
-export const alexaExtractTransactionFlow = ai.defineFlow(
+export const alexaExtractTransactionFlow = getAI().defineFlow(
   {
     name: "alexaExtractTransactionFlow",
     inputSchema: AlexaExtractTransactionInputSchema,
     outputSchema: AlexaExtractTransactionOutputSchema,
   },
-  async (input) => {
+  async (input: z.infer<typeof AlexaExtractTransactionInputSchema>) => {
     const prompt = `
       Você é a Lúmina, uma assistente financeira inteligente.
       Sua tarefa é extrair UMA ÚNICA TRANSAÇÃO FINANCEIRA a partir de um texto falado.
@@ -31,7 +59,7 @@ export const alexaExtractTransactionFlow = ai.defineFlow(
       Texto: ${input.text}
     `;
 
-    const result = await ai.generate({
+    const result = await getAI().generate({
       prompt,
       model: 'gemini-1.5-flash',
       output: { format: "json", schema: AlexaExtractTransactionOutputSchema },
@@ -45,13 +73,13 @@ export const alexaExtractTransactionFlow = ai.defineFlow(
  * Flow: getSimpleFinancialSummaryFlow
  * Gera um resumo financeiro curto e amigável para a Alexa
  */
-export const getSimpleFinancialSummaryFlow = ai.defineFlow(
+export const getSimpleFinancialSummaryFlow = getAI().defineFlow(
   {
     name: "getSimpleFinancialSummaryFlow",
     inputSchema: GetSimpleFinancialSummaryInputSchema,
     outputSchema: GetSimpleFinancialSummaryOutputSchema,
   },
-  async (input) => {
+  async (input: z.infer<typeof GetSimpleFinancialSummaryInputSchema>) => {
     const prompt = `
       Você é a Lúmina. Gere um resumo financeiro CURTO e amigável para a Alexa.
       Dados:
@@ -61,7 +89,7 @@ export const getSimpleFinancialSummaryFlow = ai.defineFlow(
       - Período: ${input.period}
     `;
 
-    const result = await ai.generate({ model: 'gemini-1.5-flash', prompt });
+    const result = await getAI().generate({ model: 'gemini-1.5-flash', prompt });
 
     return { summary: result.text ?? "Não consegui gerar o resumo." };
   }

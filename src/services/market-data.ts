@@ -1,4 +1,5 @@
 
+
 export type FinancialData = {
     selicRate: number;
     ipcaRate: number;
@@ -11,9 +12,6 @@ export type FinancialData = {
  * @returns A promise that resolves to the financial data.
  */
 export async function getFinancialMarketData(): Promise<FinancialData> {
-    // Simulated API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     // Return realistic, hardcoded values
     return {
         selicRate: 10.50, // Example SELIC rate in percentage
