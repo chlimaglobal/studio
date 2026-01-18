@@ -1,3 +1,4 @@
+
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
@@ -8,12 +9,13 @@ import { getFunctions } from 'firebase/functions';
 
 // ---- CONFIG DO SEU PROJETO FIREBASE ----
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyD7H3wU8pB8pH-xmTxJhUZCsPa-PP_L0cY",
+  authDomain: "financeflow-we0in.firebaseapp.com",
+  projectId: "financeflow-we0in",
+  storageBucket: "financeflow-we0in.appspot.com",
+  messagingSenderId: "123511329863",
+  appId: "1:123511329863:web:a81c91b72098fa668d8d62",
+  measurementId: "G-EW74L3HEX7",
 };
 
 // ---- INICIALIZAÇÃO SEGURA ----
