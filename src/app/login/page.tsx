@@ -69,13 +69,6 @@ export default function LoginPage() {
     }
     localStorage.setItem('userName', loggedInUser.displayName || '');
     localStorage.setItem('userEmail', loggedInUser.email || '');
-    
-    try {
-        const handleUserLogin = httpsCallable(functions, 'handleUserLogin');
-        await handleUserLogin();
-    } catch (error) {
-        console.warn('Could not run handleUserLogin trigger:', error);
-    }
   };
 
   const handleLogin = async (event: React.FormEvent) => {
@@ -89,7 +82,11 @@ export default function LoginPage() {
         router.replace('/dashboard');
 
     } catch (error: any) {
-        console.error('[AUTH ERROR]', error);
+        console.error('[AUTH ERROR]', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+        });
 
         let errorMessage = 'Ocorreu um erro inesperado. Verifique sua conexão e tente novamente.';
         if (error && error.code) {

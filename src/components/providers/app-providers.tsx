@@ -2,8 +2,8 @@
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { app, functions } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '@/lib/firebase'; // Correct: Import the initialized auth instance
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   addStoredTransaction, 
@@ -13,10 +13,9 @@ import {
   onUserSubscriptionUpdate, 
   updateStoredTransaction,
   onChatUpdate, 
-  getPartnerData,
   onCoupleChatUpdate,
   addCoupleChatMessage,
-  onUserUpdate // Import the new function
+  onUserUpdate
 } from '@/lib/storage';
 import { Toaster } from "@/components/ui/toaster";
 import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
@@ -24,8 +23,6 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
-import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
 import { useCoupleStore, initializeCoupleStore } from '@/hooks/use-couple-store';
 
 // 1. Auth Context
@@ -118,12 +115,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const auth = getAuth(app);
-    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
-        initializeCoupleStore(user); // Initialize couple store ONLY after auth is confirmed
+        initializeCoupleStore(user);
         setUser(user);
       } else {
         setUser(null);
@@ -203,50 +198,42 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
   const { viewMode, partnerData } = useViewMode();
   const { coupleLink } = useCoupleStore();
 
-  // This effect now handles fetching transactions for one or both users
   useEffect(() => {
     if (!user?.uid) {
       setTransactions([]);
       setIsLoading(false);
-      return () => {}; // Return empty cleanup function
+      return () => {};
     }
 
     setIsLoading(true);
     let userTransactions: Transaction[] = [];
     let partnerTransactions: Transaction[] = [];
 
-    // Always subscribe to the logged-in user's transactions
     const unsubUser = onTransactionsUpdate(user.uid, (newTxs) => {
       userTransactions = newTxs;
-      // If in separate mode, or no partner, just show user's transactions
       if (viewMode === 'separate' || !partnerData?.uid) {
         setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       } else {
-        // In 'together' mode, combine with partner's (if available)
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       }
     });
 
     let unsubPartner: (() => void) | null = null;
-    // If in 'together' mode and a partner exists, also subscribe to their transactions
     if (viewMode === 'together' && partnerData?.uid) {
       unsubPartner = onTransactionsUpdate(partnerData.uid, (newTxs) => {
         partnerTransactions = newTxs;
-        // Combine with user's transactions
         setTransactions([...userTransactions, ...partnerTransactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         setIsLoading(false);
       });
     } else {
-        // If not in 'together' mode, clear partner transactions
         partnerTransactions = [];
         if(viewMode === 'separate') {
             setTransactions(userTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         }
     }
 
-    // Cleanup function
     return () => {
       unsubUser();
       if (unsubPartner) {
@@ -356,7 +343,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const { isSubscribed } = useSubscription();
     const { viewMode, coupleLink } = useCoupleStore();
     const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
-    let lastMessageTimestamp: Date | null = null; // Use a simple variable, not a ref
 
     useEffect(() => {
         if (pathname === '/dashboard/lumina') {
@@ -402,24 +388,6 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-function ClientProviders({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <SubscriptionProvider>
-        <CoupleProvider>
-          <TransactionsProvider>
-            <LuminaProvider>
-                {children}
-                <Toaster />
-            </LuminaProvider>
-          </TransactionsProvider>
-        </CoupleProvider>
-      </SubscriptionProvider>
-    </AuthProvider>
-  );
-}
-
-
 export function AppProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider 
@@ -428,9 +396,18 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
-          <ClientProviders>
-            {children}
-          </ClientProviders>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <CoupleProvider>
+                <TransactionsProvider>
+                  <LuminaProvider>
+                      {children}
+                      <Toaster />
+                  </LuminaProvider>
+                </TransactionsProvider>
+              </CoupleProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
         </ThemeProvider>
     );
 }

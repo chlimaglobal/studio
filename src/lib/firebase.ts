@@ -3,7 +3,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getMessaging, isSupported } from "firebase/messaging";
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
@@ -17,20 +16,14 @@ const firebaseConfig = {
   measurementId: "G-EW74L3HEX7",
 };
 
-// Initialize Firebase
+// Initialize Firebase App (Singleton Pattern)
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Export service instances
+// Export initialized services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 export const storage = getStorage(app);
-export { app }; // Also export app itself
 
-// Messaging is special and should only be initialized on the client
-export const messaging = async () => {
-    if (typeof window !== 'undefined' && (await isSupported())) {
-        return getMessaging(app);
-    }
-    return null;
-};
+// Export the app itself for use in client-side messaging initialization
+export { app };
