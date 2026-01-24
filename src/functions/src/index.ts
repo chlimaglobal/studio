@@ -417,21 +417,29 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
         throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
-    const isPremium = async () => {
-        if (request.auth?.token.email === 'digitalacademyoficiall@gmail.com') return true;
-        const userDoc = await db.collection('users').doc(request.auth!.uid).get();
-        const subStatus = userDoc.data()?.stripeSubscriptionStatus;
-        return subStatus === 'active' || subStatus === 'trialing';
-    };
+    // 1. Check for Admin status first. Admins bypass all subsequent checks.
+    const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
+    if (isAdmin) {
+      // Proceed directly to running the flow for admins
+    } else {
+        // 2. For non-admins, check if the flow is a core free feature.
+        const coreFreeFlows = new Set([
+            'categorizeTransactionFlow',
+            'extractTransactionFromTextFlow',
+        ]);
+        
+        if (coreFreeFlows.has(flow.name)) {
+            // Proceed directly if it's a free flow
+        } else {
+            // 3. For all other flows, perform the premium subscription check.
+            const userDoc = await db.collection('users').doc(request.auth.uid).get();
+            const subStatus = userDoc.data()?.stripeSubscriptionStatus;
+            const isPremiumUser = subStatus === 'active' || subStatus === 'trialing';
 
-    const premiumFlows = new Set([
-      'generateFinancialAnalysisFlow', 'extractFromFileFlow', 'analyzeInvestorProfileFlow', 
-      'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow',
-      'extractMultipleTransactionsFlow'
-    ]);
-
-    if (premiumFlows.has(flow.name) && !(await isPremium())) {
-        throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+            if (!isPremiumUser) {
+                throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+            }
+        }
     }
     
     try {
@@ -463,6 +471,14 @@ export const luminaChat = createGenkitCallable(luminaChatFlow);
 // -----------------
 // Original Firebase Functions (v2 Syntax)
 // -----------------
+
+export const handleUserLogin = onCall(functionOptions, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    }
+    console.log(`User login event processed for UID: ${request.auth.uid}`);
+    return { data: { success: true, message: "Login event processed." } };
+});
 
 export const sendPartnerInvite = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
@@ -619,8 +635,7 @@ export const dailyFinancialCheckup = onSchedule({
           let userData = userDoc.data();
           const userDocRef = db.collection("users").doc(userId);
           
-           // Helper function to send notifications
-          const sendNotification = async (messageText: string, suggestions: string[]) => {
+           const sendNotification = async (messageText: string, suggestions: string[]) => {
               const chatBatch = db.batch();
               const newChatDocRef = db.collection(`users/${userId}/chat`).doc();
               chatBatch.set(newChatDocRef, { 
@@ -638,20 +653,24 @@ export const dailyFinancialCheckup = onSchedule({
                       data: {
                           title: 'FinanceFlow - Alerta Financeiro',
                           body: messageText,
-                          url: '/dashboard' // URL para abrir ao clicar
+                          url: '/dashboard'
                       },
-                      // Configuração específica para APNs (iOS) para garantir a entrega
                       apns: {
                         payload: {
                           aps: {
                             'content-available': 1,
+                             alert: {
+                                title: 'FinanceFlow - Alerta Financeiro',
+                                body: messageText,
+                             },
+                             badge: 1,
+                             sound: 'default'
                           },
                         },
                       },
                   };
                   try {
                       const response = await admin.messaging().sendEachForMulticast(messagePayload);
-                      // Opcional: Lógica para limpar tokens inválidos
                       const tokensToRemove: string[] = [];
                       response.responses.forEach((result, index) => {
                         if (!result.success) {
@@ -666,7 +685,6 @@ export const dailyFinancialCheckup = onSchedule({
                           fcmTokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove)
                         });
                       }
-
                   } catch (error) {
                       console.error('Erro ao enviar notificação push:', error);
                   }
