@@ -2,8 +2,8 @@
 'use client';
 
 import { ThemeProvider } from '@/components/theme-provider';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth, functions } from '@/lib/firebase';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { app, functions } from '@/lib/firebase';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   addStoredTransaction, 
@@ -16,10 +16,12 @@ import {
   getPartnerData,
   onCoupleChatUpdate,
   addCoupleChatMessage,
-  onUserUpdate // Import the new function
+  onUserUpdate,
+  updateTransactionCategory
 } from '@/lib/storage';
+import { getCategorySuggestion } from '@/app/dashboard/actions';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple, TransactionCategory } from '@/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -118,6 +120,8 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const auth = getAuth(app);
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await initializeUser(user);
@@ -276,7 +280,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     if (isBatch) setIsBatchProcessing(true);
 
     try {
-        await addStoredTransaction(transactionsToAdd, user.uid);
+        const newTransactionsInfo = await addStoredTransaction(transactionsToAdd, user.uid);
 
         if (!isBatch) {
             const trx = transactionsToAdd[0];
@@ -296,6 +300,24 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             });
              playSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
         }
+
+        // Fire-and-forget AI enhancement
+        newTransactionsInfo.forEach(txInfo => {
+            if (!txInfo.category || txInfo.category === 'Outros') {
+                (async () => {
+                    try {
+                        const suggestion = await getCategorySuggestion({ description: txInfo.description });
+                        if (suggestion.category && suggestion.category !== 'Outros') {
+                            await updateTransactionCategory(user.uid, txInfo.id, suggestion.category);
+                        }
+                    } catch (e) {
+                        // Fail silently as per user's requirement
+                        console.warn('Post-transaction AI categorization failed:', e);
+                    }
+                })();
+            }
+        });
+
 
     } catch (error) {
         console.error("Failed to save transaction(s):", error);
@@ -400,7 +422,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+export function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
         <ThemeProvider 
           attribute="class"
@@ -408,28 +430,20 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
           storageKey="vite-ui-theme"
           disableTransitionOnChange
         >
-            <AuthProvider>
-                <ClientProviders>
-                    {children}
-                </ClientProviders>
-            </AuthProvider>
+          <AuthProvider>
+            <SubscriptionProvider>
+              <CoupleProvider>
+                <TransactionsProvider>
+                  <LuminaProvider>
+                      {children}
+                      <Toaster />
+                  </LuminaProvider>
+                </TransactionsProvider>
+              </CoupleProvider>
+            </SubscriptionProvider>
+          </AuthProvider>
         </ThemeProvider>
-    );
-}
-
-export function ClientProviders({ children }: { children: React.ReactNode }) {
-  return (
-      <SubscriptionProvider>
-        <CoupleProvider>
-          <TransactionsProvider>
-            <LuminaProvider>
-                {children}
-                <Toaster />
-            </LuminaProvider>
-          </TransactionsProvider>
-        </CoupleProvider>
-      </SubscriptionProvider>
-  );
+    )
 }
 
 export { useCoupleStore };

@@ -231,7 +231,6 @@ function SingleTransactionForm() {
     const { toast } = useToast();
     const { addTransaction, updateTransaction, transactions, isBatchProcessing } = useTransactions();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
-    const suggestionTimeoutRef = React.useRef<NodeJS.Timeout>();
     const { user } = useAuth();
     const [cards, setCards] = useState<CardType[]>([]);
 
@@ -326,24 +325,6 @@ function SingleTransactionForm() {
             setIsSuggesting(false);
         }
     }, [form, toast]);
-
-
-    useEffect(() => {
-        if (suggestionTimeoutRef.current) {
-            clearTimeout(suggestionTimeoutRef.current);
-        }
-        // Only auto-suggest for new transactions where the category hasn't been manually set yet
-        if (watchedDescription && !isEditing && !form.formState.dirtyFields.category) {
-            suggestionTimeoutRef.current = setTimeout(() => {
-                handleAiCategorize(watchedDescription);
-            }, 1000); // 1s debounce
-        }
-        return () => {
-            if (suggestionTimeoutRef.current) {
-                clearTimeout(suggestionTimeoutRef.current);
-            }
-        };
-    }, [watchedDescription, isEditing, form.formState.dirtyFields.category, handleAiCategorize]);
 
     useEffect(() => {
         if (watchedType === 'income') {

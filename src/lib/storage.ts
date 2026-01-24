@@ -2,7 +2,7 @@
 import { db, app } from './firebase';
 import { collection, addDoc, onSnapshot, query, Timestamp, doc, deleteDoc, setDoc, getDoc, updateDoc, getDocs, orderBy, arrayUnion, DocumentReference, writeBatch, limit, startAfter, QueryDocumentSnapshot, DocumentData, where } from "firebase/firestore";
 import { TransactionFormSchema } from '@/types';
-import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser, Goal, AddGoalFormSchema, Commission, EditCommissionFormSchema, AddCommissionFormSchema, Card, AddCardFormSchema } from '@/types';
+import type { Transaction, Budget, ChatMessage, Account, AddAccountFormSchema, UserStatus, AppUser, Goal, AddGoalFormSchema, Commission, EditCommissionFormSchema, AddCommissionFormSchema, Card, AddCardFormSchema, TransactionCategory } from '@/types';
 import { z } from 'zod';
 import { User } from 'firebase/auth';
 import { addMonths } from 'date-fns';
@@ -169,10 +169,14 @@ export function onTransactionsUpdate(userId: string, callback: (transactions: Tr
   return unsubscribe;
 }
 
-export async function addStoredTransaction(transactions: z.infer<typeof TransactionFormSchema>[], userId: string) {
+export async function addStoredTransaction(
+    transactions: z.infer<typeof TransactionFormSchema>[], 
+    userId: string
+): Promise<{ id: string; description: string; category?: TransactionCategory }[]> {
     if (!userId) throw new Error("User not authenticated");
 
     const batch = writeBatch(db);
+    const newTransactionsInfo: { id: string; description: string; category?: TransactionCategory }[] = [];
 
     for (const data of transactions) {
         const installments = data.installments ? parseInt(data.installments, 10) : 0;
@@ -183,6 +187,7 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
             const originalDocId = doc(collection(db, 'users', userId, 'transactions')).id;
 
             for (let i = 0; i < installments; i++) {
+                const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
                 const installmentDate = addMonths(new Date(data.date), i);
                 const transactionData = {
                     ...data,
@@ -197,10 +202,11 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
                 };
                 // @ts-ignore
                 delete transactionData.installments;
-                const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
                 batch.set(newDocRef, cleanDataForFirestore(transactionData));
+                newTransactionsInfo.push({ id: newDocRef.id, description: data.description, category: data.category });
             }
         } else {
+            const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
             const transactionData = {
                 ...data,
                 amount: data.amount,
@@ -208,11 +214,18 @@ export async function addStoredTransaction(transactions: z.infer<typeof Transact
                 dueDate: data.dueDate ? Timestamp.fromDate(new Date(data.dueDate)) : undefined,
                 ownerId: userId,
             };
-            const newDocRef = doc(collection(db, 'users', userId, 'transactions'));
             batch.set(newDocRef, cleanDataForFirestore(transactionData));
+            newTransactionsInfo.push({ id: newDocRef.id, description: data.description, category: data.category });
         }
     }
     await batch.commit();
+    return newTransactionsInfo;
+}
+
+export async function updateTransactionCategory(userId: string, transactionId: string, category: TransactionCategory) {
+    if (!userId) throw new Error("User not authenticated");
+    const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
+    await updateDoc(transactionRef, { category });
 }
 
 
