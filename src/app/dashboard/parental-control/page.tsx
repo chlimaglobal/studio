@@ -49,7 +49,7 @@ export default function ParentalControlPage() {
   const [dependents, setDependents] = useState<AppUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   useEffect(() => {
     if (!user || (!isSubscribed && !isAdmin)) {

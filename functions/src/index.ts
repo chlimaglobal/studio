@@ -417,7 +417,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
         throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
-    const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = request.auth.token.email === 'digitalacademyoficiall@gmail.com';
     if (isAdmin) {
       // Admin bypass: Proceed directly to running the flow.
     } else {

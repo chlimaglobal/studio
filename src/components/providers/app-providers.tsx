@@ -142,7 +142,7 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     useEffect(() => {
         if (isAdmin) {
@@ -362,7 +362,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
     const { viewMode, coupleLink } = useCoupleStore();
-    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     useEffect(() => {
         if (pathname === '/dashboard/lumina') {

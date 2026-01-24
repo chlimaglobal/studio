@@ -47,7 +47,7 @@ export default function ImportPage() {
   const [extractedData, setExtractedData] = useState<ExtractFromFileOutput['transactions']>([]);
   const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
   const { user } = useAuth();
-  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   const handleFileButtonClick = () => {
     fileInputRef.current?.click();

@@ -68,7 +68,7 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const router = useRouter();
 
-  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   const transactionsHash = useMemo(() => {
     return JSON.stringify(allTransactions.map(t => t.id).sort());

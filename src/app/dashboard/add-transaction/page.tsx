@@ -143,7 +143,7 @@ function MultipleTransactionsForm() {
     const { addTransaction, isBatchProcessing } = useTransactions();
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { user } = useAuth();
-    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const { toast } = useToast();
     const [text, setText] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -233,7 +233,7 @@ function SingleTransactionForm() {
     const [isSuggesting, setIsSuggesting] = React.useState(false);
     const { user } = useAuth();
     const { isSubscribed } = useSubscription();
-    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
     const [cards, setCards] = useState<CardType[]>([]);
 
 
@@ -843,5 +843,3 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
-
-    
