@@ -417,21 +417,27 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
         throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
-    const isPremium = async () => {
-        if (request.auth?.token.email === 'digitalacademyoficial@gmail.com') return true;
-        const userDoc = await db.collection('users').doc(request.auth!.uid).get();
-        const subStatus = userDoc.data()?.stripeSubscriptionStatus;
-        return subStatus === 'active' || subStatus === 'trialing';
-    };
-
-    const premiumFlows = new Set([
-      'generateFinancialAnalysisFlow', 'extractFromFileFlow', 'analyzeInvestorProfileFlow', 
-      'calculateSavingsGoalFlow', 'mediateGoalsFlow', 'extractFromImageFlow', 'luminaChatFlow',
-      'extractMultipleTransactionsFlow'
+    // Core free flows that should never be blocked by a premium check.
+    const coreFreeFlows = new Set([
+        'categorizeTransactionFlow',
+        'extractTransactionFromTextFlow',
     ]);
 
-    if (premiumFlows.has(flow.name) && !(await isPremium())) {
-        throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+    // If the flow is a core free feature, bypass all premium checks.
+    if (coreFreeFlows.has(flow.name)) {
+        // Proceed directly to running the flow
+    } else {
+        // For all other flows, perform the premium check.
+        const isPremium = async () => {
+            if (request.auth?.token.email === 'digitalacademyoficial@gmail.com') return true;
+            const userDoc = await db.collection('users').doc(request.auth!.uid).get();
+            const subStatus = userDoc.data()?.stripeSubscriptionStatus;
+            return subStatus === 'active' || subStatus === 'trialing';
+        };
+
+        if (!(await isPremium())) {
+            throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+        }
     }
     
     try {
@@ -778,5 +784,3 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
-
-    

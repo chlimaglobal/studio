@@ -35,7 +35,8 @@ async function callFirebaseFunction<I, O>(functionName: string, data: I): Promis
         console.error(`Error calling Firebase function '${functionName}':`, error.code, error.message);
 
         if (error.code === 'functions/permission-denied') {
-            throw new Error(`Assinatura Premium necessária para este recurso.`);
+            // Propagate a specific, identifiable error message for the client to handle
+            throw new Error(`PREMIUM_FEATURE_ERROR: ${error.message}`);
         }
         if (error.code === 'functions/unauthenticated') {
             throw new Error('Autenticação necessária. Por favor, faça login novamente.');

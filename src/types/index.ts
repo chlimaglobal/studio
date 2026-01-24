@@ -132,7 +132,7 @@ export const ExtractFromFileInputSchema = z.object({
 });
 export type ExtractFromFileInput = z.infer<typeof ExtractFromFileInputSchema>;
 
-export const ExtractedTransactionSchema = z.object({
+const ExtractedTransactionSchema = z.object({
     date: z.string().describe("The transaction date in YYYY-MM-DD format."),
     description: z.string().describe("The description of the transaction."),
     amount: z.number().describe("The numerical value of the transaction. For expenses, this should be a positive number."),
@@ -141,7 +141,6 @@ export const ExtractedTransactionSchema = z.object({
     paymentMethod: z.enum(['one-time', 'installments', 'pix']).optional().describe("The payment method, if it can be inferred (e.g., from '10x de R$20')."),
     installments: z.string().optional().describe("The number of installments, if the payment is 'installments'."),
 });
-export type ExtractedTransaction = z.infer<typeof ExtractedTransactionSchema>;
 
 export const ExtractFromFileOutputSchema = z.object({
   transactions: z.array(ExtractedTransactionSchema).describe('A list of transactions extracted from the file.'),
@@ -243,7 +242,6 @@ export const ChatMessageSchema = z.object({
   authorId: z.string().optional(),
   authorName: z.string().optional(),
   authorPhotoUrl: z.string().optional(),
-  transactionToConfirm: ExtractedTransactionSchema.optional().nullable(),
 });
 
 // Type for client-side state, which includes a JS Date object and an optional ID
@@ -394,7 +392,6 @@ export const ExtractTransactionInputSchema = z.object({
 export type ExtractTransactionInput = z.infer<typeof ExtractTransactionInputSchema>;
 
 export const ExtractTransactionOutputSchema = ExtractedTransactionSchema;
-export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSchema>;
 
 
 // Types for Multiple Transaction Extraction
@@ -529,4 +526,61 @@ export const GetSimpleFinancialSummaryOutputSchema = z.object({
 });
 export type GetSimpleFinancialSummaryOutput = z.infer<typeof GetSimpleFinancialSummaryOutputSchema>;
 
-    
+// Types for Card management
+export const AddCardFormSchema = z.object({
+  name: z.string().min(2, 'O apelido deve ter pelo menos 2 caracteres.'),
+  brand: z.enum(cardBrands, { required_error: 'Selecione a bandeira do cartão.' }),
+  closingDay: z.number().min(1).max(31),
+  dueDay: z.number().min(1).max(31),
+});
+export type Card = z.infer<typeof AddCardFormSchema> & { id: string };
+
+// Types for Goals
+export const AddGoalFormSchema = z.object({
+  name: z.string().min(2, "O nome da meta deve ter pelo menos 2 caracteres."),
+  targetAmount: z.union([z.string(), z.number()]).transform((val) => Number(String(val).replace('.', '').replace(',', '.'))),
+  currentAmount: z.union([z.string(), z.number()]).transform((val) => Number(String(val).replace('.', '').replace(',', '.'))),
+  deadline: z.date({ required_error: "Por favor, selecione um prazo." }),
+  icon: z.enum(iconNames, { required_error: "Por favor, selecione um ícone." }),
+});
+
+export const EditGoalFormSchema = AddGoalFormSchema;
+
+export type Goal = {
+  id: string;
+} & z.infer<typeof AddGoalFormSchema>;
+
+
+// Types for Commissions
+export const AddCommissionFormSchema = z.object({
+  description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres."),
+  amount: positiveNumberTransformer,
+  client: z.string().optional(),
+  date: z.date({ required_error: "Por favor, selecione uma data." }),
+  status: z.enum(['pending', 'received']),
+});
+
+export const EditCommissionFormSchema = z.object({
+  description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres."),
+  amount: z.string().min(1, "O valor é obrigatório."),
+  client: z.string().optional(),
+  date: z.date({ required_error: "Por favor, selecione uma data." }),
+});
+
+export type Commission = {
+  id: string;
+} & z.infer<typeof AddCommissionFormSchema>;
+
+export type NotificationSettings = {
+    dailySummary: boolean;
+    futureIncome: boolean;
+    futurePayments: boolean;
+    sync: boolean;
+    promos: boolean;
+    goalsMet: boolean;
+    spendingLimits: boolean;
+    goalReminders: boolean;
+    spendingReminders: boolean;
+    invoiceDue: boolean;
+    invoiceClosed: boolean;
+};

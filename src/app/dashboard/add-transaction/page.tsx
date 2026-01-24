@@ -143,7 +143,7 @@ function MultipleTransactionsForm() {
     const { addTransaction, isBatchProcessing } = useTransactions();
     const { isSubscribed, isLoading: isSubscriptionLoading } = useSubscription();
     const { user } = useAuth();
-    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
     const { toast } = useToast();
     const [text, setText] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -252,11 +252,11 @@ function SingleTransactionForm() {
             if (tx) {
                 return {
                     description: tx.description || '',
-                    amount: String(tx.amount) || '',
+                    amount: String(tx.amount).replace('.', ',') || '',
                     date: new Date(tx.date),
                     dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined,
                     type: tx.type || 'expense',
-                    category: tx.category || '',
+                    category: tx.category || 'Outros',
                     paid: tx.paid ?? true,
                     paymentMethod: tx.paymentMethod || 'one-time',
                     installments: tx.totalInstallments ? String(tx.totalInstallments) : '',
@@ -277,7 +277,7 @@ function SingleTransactionForm() {
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
-            category: (searchParams.get('category') as TransactionCategory) || '',
+            category: (searchParams.get('category') as TransactionCategory) || 'Outros',
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
             installments: searchParams.get('installments') || '',
@@ -318,8 +318,10 @@ function SingleTransactionForm() {
                     description: `Categorizamos isso como "${category}".`,
                 });
             }
-        } catch (e) {
-            console.error("Lumina suggestion failed:", e);
+        } catch (e: any) {
+            // Fail silently. The AI suggestion is an enhancement, not a requirement.
+            // Don't show a disruptive error to the user.
+            console.warn("Lumina suggestion failed:", e.message);
         } finally {
             setIsSuggesting(false);
         }
