@@ -31,7 +31,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { onCardsUpdate } from '@/lib/storage';
-import { Card as CardType } from '@/lib/card-types';
+import { Card as CardType } from '@/types';
 import { getCategorySuggestion, extractMultipleTransactions } from '../actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -248,35 +248,45 @@ function SingleTransactionForm() {
 
     const initialValues = useMemo(() => {
         if (isEditing) {
-            const transactionToEdit = transactions.find(t => t.id === transactionId);
-            if (transactionToEdit) {
+            const tx = transactions.find(t => t.id === transactionId);
+            if (tx) {
                 return {
-                    ...transactionToEdit,
-                    date: new Date(transactionToEdit.date),
-                    dueDate: transactionToEdit.dueDate ? new Date(transactionToEdit.dueDate) : undefined,
-                    amount: transactionToEdit.amount,
-                    installments: transactionToEdit.totalInstallments ? String(transactionToEdit.totalInstallments) : '',
-                    hideFromReports: transactionToEdit.hideFromReports || false,
+                    description: tx.description || '',
+                    amount: String(tx.amount) || '',
+                    date: new Date(tx.date),
+                    dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined,
+                    type: tx.type || 'expense',
+                    category: tx.category || '',
+                    paid: tx.paid ?? true,
+                    paymentMethod: tx.paymentMethod || 'one-time',
+                    installments: tx.totalInstallments ? String(tx.totalInstallments) : '',
+                    recurrence: tx.recurrence || '',
+                    observations: tx.observations || '',
+                    institution: tx.institution || '',
+                    hideFromReports: tx.hideFromReports || false,
+                    creditCard: tx.creditCard || '',
+                    cardBrand: tx.cardBrand || '',
                 };
             }
         }
-        // Values from query params (e.g., from voice command) or defaults
+        // New transaction
         const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
-            amount: amountFromParams ? parseFloat(amountFromParams) : undefined,
+            amount: amountFromParams || '',
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
-            category: (searchParams.get('category') as TransactionCategory) || undefined,
+            category: (searchParams.get('category') as TransactionCategory) || '',
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
             installments: searchParams.get('installments') || '',
+            recurrence: (searchParams.get('recurrence') as any) || '',
             observations: searchParams.get('observations') || '',
             institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
             creditCard: searchParams.get('creditCard') || '',
-            cardBrand: searchParams.get('cardBrand') as CardType['brand'] | undefined,
+            cardBrand: (searchParams.get('cardBrand') as CardType['brand']) || '',
         };
     }, [isEditing, transactionId, transactions, searchParams]);
 
