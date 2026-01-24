@@ -232,6 +232,8 @@ function SingleTransactionForm() {
     const { addTransaction, updateTransaction, transactions, isBatchProcessing } = useTransactions();
     const [isSuggesting, setIsSuggesting] = React.useState(false);
     const { user } = useAuth();
+    const { isSubscribed } = useSubscription();
+    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
     const [cards, setCards] = useState<CardType[]>([]);
 
 
@@ -251,8 +253,8 @@ function SingleTransactionForm() {
             if (tx) {
                 return {
                     description: tx.description || '',
-                    amount: String(tx.amount).replace('.', ',') || '',
-                    date: new Date(tx.date),
+                    amount: String(tx.amount || '').replace('.', ',') || '',
+                    date: tx.date ? new Date(tx.date) : new Date(),
                     dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined,
                     type: tx.type || 'expense',
                     category: tx.category || 'Outros',
@@ -268,7 +270,7 @@ function SingleTransactionForm() {
                 };
             }
         }
-        // New transaction
+        // New transaction with proper fallbacks
         const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
@@ -306,6 +308,14 @@ function SingleTransactionForm() {
     const watchedPaid = form.watch('paid');
 
     const handleAiCategorize = useCallback(async (description: string) => {
+        if (!isSubscribed && !isAdmin) {
+            toast({
+                title: 'Recurso Premium',
+                description: 'A sugestão de categoria com IA é um recurso para assinantes.',
+            });
+            return;
+        }
+
         if (!description) return;
         setIsSuggesting(true);
         try {
@@ -318,13 +328,13 @@ function SingleTransactionForm() {
                 });
             }
         } catch (e: any) {
-            // Fail silently. The AI suggestion is an enhancement, not a requirement.
-            // Don't show a disruptive error to the user.
+            // Error is already handled by the action wrapper, which will show a toast.
+            // No need to show another one here. We just log for debugging.
             console.warn("Lumina suggestion failed:", e.message);
         } finally {
             setIsSuggesting(false);
         }
-    }, [form, toast]);
+    }, [form, toast, isSubscribed, isAdmin]);
 
     useEffect(() => {
         if (watchedType === 'income') {
@@ -833,3 +843,5 @@ export default function AddTransactionPage() {
         </Suspense>
     )
 }
+
+    
