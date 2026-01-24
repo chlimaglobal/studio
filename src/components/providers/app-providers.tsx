@@ -15,10 +15,12 @@ import {
   onChatUpdate, 
   onCoupleChatUpdate,
   addCoupleChatMessage,
-  onUserUpdate
+  onUserUpdate,
+  updateTransactionCategory
 } from '@/lib/storage';
+import { getCategorySuggestion } from '@/app/dashboard/actions';
 import { Toaster } from "@/components/ui/toaster";
-import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple } from '@/types';
+import type { Transaction, TransactionFormSchema, ChatMessage, AppUser, Couple, TransactionCategory } from '@/types';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/utils';
@@ -140,7 +142,7 @@ function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
 
     useEffect(() => {
         if (isAdmin) {
@@ -265,7 +267,7 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
     if (isBatch) setIsBatchProcessing(true);
 
     try {
-        await addStoredTransaction(transactionsToAdd, user.uid);
+        const newTransactionsInfo = await addStoredTransaction(transactionsToAdd, user.uid);
 
         if (!isBatch) {
             const trx = transactionsToAdd[0];
@@ -285,6 +287,24 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
             });
              playSound(localStorage.getItem('incomeSound') || 'cash-register.mp3');
         }
+
+        // Fire-and-forget AI enhancement
+        newTransactionsInfo.forEach(txInfo => {
+            if (!txInfo.category || txInfo.category === 'Outros') {
+                (async () => {
+                    try {
+                        const suggestion = await getCategorySuggestion({ description: txInfo.description });
+                        if (suggestion.category && suggestion.category !== 'Outros') {
+                            await updateTransactionCategory(user.uid, txInfo.id, suggestion.category);
+                        }
+                    } catch (e) {
+                        // Fail silently as per user's requirement
+                        console.warn('Post-transaction AI categorization failed:', e);
+                    }
+                })();
+            }
+        });
+
 
     } catch (error) {
         console.error("Failed to save transaction(s):", error);
@@ -342,7 +362,7 @@ function LuminaProvider({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const { isSubscribed } = useSubscription();
     const { viewMode, coupleLink } = useCoupleStore();
-    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
 
     useEffect(() => {
         if (pathname === '/dashboard/lumina') {

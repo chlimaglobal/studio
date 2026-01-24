@@ -111,7 +111,7 @@ export default function InvestmentsPage() {
     const { transactions, isLoading: isLoadingTransactions } = useTransactions();
     const { isSubscribed, isLoading: isLoadingSubscription } = useSubscription();
     const { user } = useAuth();
-    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
 
     const investmentData = useMemo(() => {
         const investmentTransactions = transactions.filter(t => allInvestmentCategories.has(t.category));
