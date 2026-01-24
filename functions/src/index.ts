@@ -418,7 +418,7 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     }
     
     const isPremium = async () => {
-        if (request.auth?.token.email === 'digitalacademyoficiall@gmail.com') return true;
+        if (request.auth?.token.email === 'digitalacademyoficial@gmail.com') return true;
         const userDoc = await db.collection('users').doc(request.auth!.uid).get();
         const subStatus = userDoc.data()?.stripeSubscriptionStatus;
         return subStatus === 'active' || subStatus === 'trialing';
@@ -778,3 +778,5 @@ export const dailyFinancialCheckup = onSchedule({
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
+
+    
