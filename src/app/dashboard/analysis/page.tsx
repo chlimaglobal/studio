@@ -68,7 +68,7 @@ export default function AnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const router = useRouter();
 
-  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
 
   const transactionsHash = useMemo(() => {
     return JSON.stringify(allTransactions.map(t => t.id).sort());
@@ -130,7 +130,11 @@ export default function AnalysisPage() {
   }
 
   if (!isSubscribed && !isAdmin) {
-    return <PremiumBlocker />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <PremiumBlocker />
+      </div>
+    );
   }
 
 

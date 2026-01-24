@@ -417,23 +417,20 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
         throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
-    // Core free flows that should never be blocked by a premium check.
-    const coreFreeFlows = new Set([
-        'categorizeTransactionFlow',
-        'extractTransactionFromTextFlow',
-    ]);
-
-    // If the flow is a core free feature, bypass all premium checks.
-    if (coreFreeFlows.has(flow.name)) {
-        // Proceed directly to running the flow
+    const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
+    if (isAdmin) {
+      // Admin bypass: Proceed directly to running the flow.
     } else {
-        // For all other flows, check for Admin status first. Admins bypass all subsequent checks.
-        const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
-        if (isAdmin) {
-            // Proceed directly to running the flow for admins
+        const coreFreeFlows = new Set([
+            'categorizeTransactionFlow',
+            'extractTransactionFromTextFlow',
+        ]);
+        
+        if (coreFreeFlows.has(flow.name)) {
+            // Free feature bypass: Proceed if the flow is in the free list.
         } else {
-            // For non-admins, perform the premium subscription check.
-            const userDoc = await db.collection('users').doc(request.auth!.uid).get();
+            // Premium Check: For all other flows, perform the subscription check.
+            const userDoc = await db.collection('users').doc(request.auth.uid).get();
             const subStatus = userDoc.data()?.stripeSubscriptionStatus;
             const isPremiumUser = subStatus === 'active' || subStatus === 'trialing';
 
