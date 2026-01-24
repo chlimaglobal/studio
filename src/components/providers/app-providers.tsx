@@ -306,14 +306,16 @@ function TransactionsProvider({ children }: { children: React.ReactNode }) {
         });
 
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to save transaction(s):", error);
+        const code = error.code || 'UNKNOWN';
+        const message = error.message || 'An unknown error occurred.';
         toast({
             variant: 'destructive',
             title: 'Erro ao Salvar Transação',
-            description: "Não foi possível salvar as transações no banco de dados. Tente novamente.",
+            description: `Não foi possível salvar. (Causa: ${code})`,
+            duration: 10000,
         });
-        throw error;
     } finally {
         if (isBatch) setIsBatchProcessing(false);
     }
