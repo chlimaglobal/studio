@@ -427,16 +427,19 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
     if (coreFreeFlows.has(flow.name)) {
         // Proceed directly to running the flow
     } else {
-        // For all other flows, perform the premium check.
-        const isPremium = async () => {
-            if (request.auth?.token.email === 'digitalacademyoficial@gmail.com') return true;
+        // For all other flows, check for Admin status first. Admins bypass all subsequent checks.
+        const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
+        if (isAdmin) {
+            // Proceed directly to running the flow for admins
+        } else {
+            // For non-admins, perform the premium subscription check.
             const userDoc = await db.collection('users').doc(request.auth!.uid).get();
             const subStatus = userDoc.data()?.stripeSubscriptionStatus;
-            return subStatus === 'active' || subStatus === 'trialing';
-        };
+            const isPremiumUser = subStatus === 'active' || subStatus === 'trialing';
 
-        if (!(await isPremium())) {
-            throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+            if (!isPremiumUser) {
+                throw new HttpsError('permission-denied', 'Assinatura Premium necessária para este recurso.');
+            }
         }
     }
     
