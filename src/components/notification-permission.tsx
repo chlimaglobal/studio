@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { app } from '@/lib/firebase'; // Import the initialized app
-import { getMessaging, getToken, isSupported } from 'firebase/messaging';
+import { getToken } from 'firebase/messaging';
 import { useAuth } from '@/components/providers/app-providers';
 import { saveFcmToken } from '@/lib/storage';
+import { getFirebaseMessaging } from '@/lib/firebase-messaging';
 
 export function NotificationPermission() {
   const { user } = useAuth();
@@ -13,14 +13,12 @@ export function NotificationPermission() {
     if (!user) return;
 
     async function requestPermissionAndGetToken() {
-      // Check for browser support first
-      const supported = await isSupported();
-      if (!supported) {
+      // The helper function already handles browser support checks
+      const messagingInstance = await getFirebaseMessaging();
+      if (!messagingInstance) {
         console.log('Firebase Messaging is not supported in this browser.');
         return;
       }
-      
-      const messagingInstance = getMessaging(app);
         
       try {
         const permission = await Notification.requestPermission();
