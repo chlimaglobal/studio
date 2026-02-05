@@ -15,10 +15,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/providers/app-providers';
+import { useAuth } from '@/components/client-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
-import { useCoupleStore } from '@/hooks/use-couple-store';
 import { useRouter } from 'next/navigation';
 
 interface InvitePartnerDialogProps {
@@ -49,12 +48,12 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
     try {
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
-
+      
       const result = await sendInviteCallable({
         partnerEmail: email,
         senderName: user.displayName || 'Usuário',
       });
-
+      
       const data = result.data as {
         success: boolean;
         message: string;
@@ -69,20 +68,18 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
         onOpenChange(false);
         setEmail('');
-        router.push('/dashboard/couple'); // Redirect to main couple page to show pending status
+        router.push('/dashboard/couple');
       } else {
-        throw new Error(data.error || 'Ocorreu um erro desconhecido.');
+        throw new Error(data.error || 'Erro desconhecido.');
       }
-
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
         description:
           error.message ||
-          'Não foi possível enviar o convite. Verifique se o usuário com este e-mail já existe.',
+          'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.',
       });
-      
     } finally {
       setIsLoading(false);
     }
