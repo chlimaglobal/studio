@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -18,9 +17,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/app-providers';
 import { getAllUserDataForBackup, saveFcmToken } from '@/lib/storage';
 import Link from 'next/link';
-import { messaging } from '@/lib/firebase';
 import { getToken } from 'firebase/messaging';
 import type { NotificationSettings } from '@/types';
+import { getFirebaseMessaging } from '@/lib/firebase-messaging';
 
 
 const incomeSounds = [
@@ -372,7 +371,7 @@ export default function SettingsPage() {
   };
 
   const handleRequestPermission = async () => {
-    if (notificationStatus === 'granted' || typeof window === 'undefined' || !('Notification' in window)) {
+    if (notificationStatus === 'granted' || typeof window === 'undefined') {
       return;
     }
   
@@ -388,7 +387,7 @@ export default function SettingsPage() {
         });
   
         // Get FCM Token and save it
-        const fcm = await messaging();
+        const fcm = await getFirebaseMessaging();
         if (fcm && user) {
           const fcmToken = await getToken(fcm, { vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY });
           if (fcmToken) {
