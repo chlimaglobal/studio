@@ -1,20 +1,9 @@
-
-import nextPWA from '@ducanh2912/next-pwa';
-
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
 
-  experimental: {
-    turbo: false, // 🔴 DESATIVA TURBOPACK
-  },
+const nextConfig = {
+  // Your Next.js configuration options can go here.
+  // The 'experimental.turbo' flag has been removed as it is no longer
+  // a valid option in this version of Next.js.
 };
 
-const withPWA = nextPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-});
-
-export default withPWA(nextConfig);
+export default nextConfig;
