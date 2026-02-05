@@ -2,7 +2,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import DashboardHeader from '@/components/dashboard-header';
 import { ChevronDown, ChevronLeft, ChevronRight, TrendingUp, BarChart2, Sparkles, DollarSign, Loader2, AlertCircle, ShieldAlert, Home, AlertTriangle } from 'lucide-react';
 import FinancialChart from '@/components/financial-chart';
 import { subMonths, format, addMonths, startOfMonth, endOfMonth, eachMonthOfInterval, isFuture } from 'date-fns';
@@ -47,9 +46,10 @@ type BudgetItem = {
 };
 
 const EMPTY_TIPS: GenerateFinancialAnalysisOutput = {
-  healthStatus: 'Atenção', // Default safe value
-  diagnosis: '',         // Default safe value
+  healthStatus: 'Atenção',
+  diagnosis: '',
   suggestions: [],
+  trendAnalysis: undefined,
 };
 
 const AiTipsCard = () => {
@@ -217,14 +217,14 @@ const BudgetAlertsCard = ({ budgetItems, isPrivacyMode }: { budgetItems: BudgetI
 
 const DashboardLoadingSkeleton = () => (
     <div className="space-y-6">
-        <DashboardHeader isPrivacyMode={false} onTogglePrivacyMode={() => {}} />
         <Skeleton className="h-24 w-full" />
         <div className="flex items-center justify-center gap-2">
             <Skeleton className="h-8 w-8" />
             <Skeleton className="h-8 w-28" />
             <Skeleton className="h-8 w-8" />
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
             <Skeleton className="h-20 w-full" />
@@ -341,21 +341,21 @@ export default function DashboardPage() {
     }, [user, router]);
     
     useEffect(() => {
-        // We need to read from localstorage in a useEffect to avoid SSR issues.
+        const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
+        setIsPrivacyMode(storedPrivacyMode);
+        
         const storedCostString = localStorage.getItem('manualCostOfLiving');
         if (storedCostString) {
             const parsedCost = parseFloat(storedCostString.replace(',', '.'));
             setManualCostOfLiving(isNaN(parsedCost) ? null : parsedCost);
         } else {
-             // If not set in localStorage, check the user's document in Firestore
-            if (user) {
+             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
                 getDoc(userDocRef).then(docSnap => {
                     if (docSnap.exists()) {
                         const userData = docSnap.data();
                         if (userData.manualCostOfLiving) {
                             setManualCostOfLiving(userData.manualCostOfLiving);
-                            // Also save it to localStorage for consistency
                             localStorage.setItem('manualCostOfLiving', String(userData.manualCostOfLiving));
                         }
                     }
@@ -363,17 +363,6 @@ export default function DashboardPage() {
             }
         }
     }, [user]);
-
-    useEffect(() => {
-        const storedPrivacyMode = localStorage.getItem('privacyMode') === 'true';
-        setIsPrivacyMode(storedPrivacyMode);
-    }, []);
-
-    const handleTogglePrivacyMode = () => {
-        const newMode = !isPrivacyMode;
-        setIsPrivacyMode(newMode);
-        localStorage.setItem('privacyMode', String(newMode));
-    };
 
     const handlePrevMonth = () => {
         setCurrentMonth(subMonths(currentMonth, 1));
@@ -459,9 +448,7 @@ export default function DashboardPage() {
         
         const userName = user.displayName?.split(' ')[0] || 'Usuário';
 
-        // Logic for negative balance alert
         const checkNegativeBalance = async () => {
-            // Check based on the *previous* month's final balance
             const lastMonth = subMonths(new Date(), 1);
             const lastMonthKey = format(lastMonth, 'MM/yy');
             const lastMonthData = chartData.find(d => d.date === lastMonthKey);
@@ -471,7 +458,6 @@ export default function DashboardPage() {
                 const mostExpensiveCategory = categorySpending.length > 0 ? categorySpending[0].name : 'seus gastos em geral';
                 const gastoCritico = categorySpending.length > 0 ? formatCurrency(categorySpending[0].value) : 'acima do esperado';
                 const impacto = ((summary.despesas / summary.recebidos) * 100) || 100;
-
 
                 const messageText = `🚨 Alerta de meta: você saiu do plano
 
@@ -500,13 +486,10 @@ Correção:
         return <DashboardLoadingSkeleton />;
     }
 
-
   return (
-    <div className="flex flex-col items-center">
-      <div className="w-full max-w-4xl space-y-5">
+    <div className="w-full space-y-5">
         <OnboardingGuide />
         <FeatureAnnouncement />
-        <DashboardHeader isPrivacyMode={isPrivacyMode} onTogglePrivacyMode={handleTogglePrivacyMode} />
 
         <NotificationPermission />
 
@@ -613,7 +596,6 @@ Correção:
           </div>
           
         </div>
-      </div>
     </div>
   );
 }
