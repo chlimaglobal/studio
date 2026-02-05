@@ -47,108 +47,105 @@ type BudgetItem = {
 };
 
 const AiTipsCard = () => {
-    const { transactions, isBatchProcessing } = useTransactions();
-    const { isSubscribed } = useSubscription();
-    const { user } = useAuth();
-    const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [userName, setUserName] = useState('');
-    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
-  
-    const transactionsHash = useMemo(() => {
-      return JSON.stringify(transactions.map(t => t.id).sort());
-    }, [transactions]);
-  
-    const getTips = useCallback(async () => {
-      if (isBatchProcessing || (!isSubscribed && !isAdmin)) {
-        setTips(null);
-        return;
-      }
-  
-      setIsLoading(true);
-  
-      const storedName = localStorage.getItem('userName') || 'Usuário';
-      setUserName(storedName.split(' ')[0]);
-  
-      const cachedAnalysis = localStorage.getItem('financialAnalysis');
-      const cachedHash = localStorage.getItem('financialAnalysisHash');
-  
-      if (cachedAnalysis && cachedHash === transactionsHash) {
+  const { transactions } = useTransactions();
+  const { isSubscribed } = useSubscription();
+  const { user } = useAuth();
+  const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+
+  const transactionsHash = useMemo(() => {
+    return JSON.stringify(transactions.map(t => t.id).sort());
+  }, [transactions]);
+
+
+  const getTips = useCallback(async () => {
+    if (!isSubscribed && !isAdmin) {
+      setTips(null);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    const storedName = localStorage.getItem('userName') || 'Usuário';
+    setUserName(storedName.split(' ')[0]);
+
+    const cachedAnalysis = localStorage.getItem('financialAnalysis');
+    const cachedHash = localStorage.getItem('financialAnalysisHash');
+
+    if (cachedAnalysis && cachedHash === transactionsHash) {
         setTips(JSON.parse(cachedAnalysis));
         setIsLoading(false);
         return;
-      }
-  
-      const operationalTransactions = transactions.filter(
-        t => !allInvestmentCategories.has(t.category) && !t.hideFromReports
-      );
-  
-      if (operationalTransactions.length > 2) {
-        const result = await runAnalysis({ transactions: operationalTransactions });
-  
-        if ((result as any)?.__premiumRequired) {
-          setTips(null);
-          setIsLoading(false);
-          return;
+    }
+
+    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+
+    if (operationalTransactions.length > 2) {
+        try {
+            const result = await runAnalysis({ transactions: operationalTransactions });
+            setTips(result);
+            localStorage.setItem('financialAnalysis', JSON.stringify(result));
+            localStorage.setItem('financialAnalysisHash', transactionsHash);
+        } catch (error) {
+            console.error("Failed to fetch AI tips:", error);
+            setTips(null);
         }
-  
-        setTips(result);
-        localStorage.setItem('financialAnalysis', JSON.stringify(result));
-        localStorage.setItem('financialAnalysisHash', transactionsHash);
-      } else {
+    } else {
         setTips(null);
         localStorage.removeItem('financialAnalysis');
         localStorage.removeItem('financialAnalysisHash');
-      }
-  
-      setIsLoading(false);
-    }, [transactions, transactionsHash, isBatchProcessing, isSubscribed, isAdmin]);
-  
-    useEffect(() => {
-      getTips();
-  
-      const updateUsername = () => {
-        const storedName = localStorage.getItem('userName') || 'Usuário';
-        setUserName(storedName.split(' ')[0]);
-      };
-  
-      window.addEventListener('storage', updateUsername);
-      return () => window.removeEventListener('storage', updateUsername);
-    }, [getTips]);
-  
-    if (isLoading || !tips || tips.suggestions.length === 0) {
-      return null;
     }
-  
-    return (
-      <Card className="bg-secondary/50 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Dicas da Lúmina
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm">
-          <p className="text-muted-foreground">
-            {userName}, veja um ponto de atenção nos seus gastos este mês:
-          </p>
-  
-          {tips.suggestions.slice(0, 1).map((tip, index) => (
-            <div key={index} className="p-3 rounded-lg bg-background/50">
-              <p className="font-semibold">{tip.split(':')[0]}:</p>
-              <p className="text-muted-foreground text-xs">{tip.split(':')[1]}</p>
+    setIsLoading(false);
+  }, [transactions, transactionsHash, isSubscribed, isAdmin]);
+
+
+  useEffect(() => {
+    getTips();
+    
+    // Add listener for username changes
+    const updateUsername = () => {
+       const storedName = localStorage.getItem('userName') || 'Usuário';
+       setUserName(storedName.split(' ')[0]);
+    }
+    window.addEventListener('storage', updateUsername);
+
+    return () => window.removeEventListener('storage', updateUsername);
+
+  }, [getTips]);
+
+
+  if (isLoading || !tips || tips.suggestions.length === 0) {
+    return null; // Don't show card if loading, no tips, or error
+  }
+
+  return (
+    <Card className="bg-secondary/50 border-primary/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className="h-5 w-5 text-primary" />
+          Dicas da Lúmina
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p className="text-muted-foreground">
+          {userName}, veja um ponto de atenção nos seus gastos este mês:
+        </p>
+        {tips.suggestions.slice(0, 1).map((tip, index) => (
+             <div key={index} className="p-3 rounded-lg bg-background/50">
+                <p className='font-semibold'>{tip.split(':')[0]}:</p>
+                <p className="text-muted-foreground text-xs">{tip.split(':')[1]}</p>
             </div>
-          ))}
-  
-          <Link href="/dashboard/analysis">
-            <Button variant="link" className="p-0 h-auto text-primary">
-              Ver análise completa
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  };
+        ))}
+        <Link href="/dashboard/analysis" passHref>
+          <Button variant="link" className="p-0 h-auto text-primary">Ver análise completa</Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+};
 
 const BudgetCard = ({ budgetItems, isPrivacyMode }: { budgetItems: BudgetItem[], isPrivacyMode: boolean }) => {
     if (budgetItems.length === 0) {
@@ -272,6 +269,7 @@ interface ChartDataPoint {
 const generateChartData = (transactions: Transaction[], currentMonth: Date): ChartDataPoint[] => {
     const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
     
+    // Create a 6-month interval: 3 months past, current month, 2 months future
     const startDate = startOfMonth(subMonths(currentMonth, 3));
     const endDate = endOfMonth(addMonths(currentMonth, 2));
     const monthInterval = eachMonthOfInterval({ start: startDate, end: endDate });
@@ -280,6 +278,7 @@ const generateChartData = (transactions: Transaction[], currentMonth: Date): Cha
         const monthEnd = endOfMonth(monthStart);
         const monthKey = format(monthStart, 'MM/yy', { locale: ptBR });
 
+        // Only calculate for past and current months
         if (isFuture(monthStart) && monthStart.getMonth() !== new Date().getMonth()) {
             return {
                 date: monthKey,
@@ -332,6 +331,7 @@ export default function DashboardPage() {
     const router = useRouter();
 
 
+    // Call the checkDashboardStatus function when the component mounts
     useEffect(() => {
         if (!user || !user.uid) return;
         
@@ -350,6 +350,7 @@ export default function DashboardPage() {
         if (user) {
             const unsub = onUserStatusUpdate(user.uid, (status) => {
                  setUserStatus(status);
+                 // Check if user is dependent
                  if (status?.isDependent) {
                      router.replace('/dashboard/dependent');
                  }
@@ -359,11 +360,13 @@ export default function DashboardPage() {
     }, [user, router]);
     
     useEffect(() => {
+        // We need to read from localstorage in a useEffect to avoid SSR issues.
         const storedCostString = localStorage.getItem('manualCostOfLiving');
         if (storedCostString) {
             const parsedCost = parseFloat(storedCostString.replace(',', '.'));
             setManualCostOfLiving(isNaN(parsedCost) ? null : parsedCost);
         } else {
+             // If not set in localStorage, check the user's document in Firestore
             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
                 getDoc(userDocRef).then(docSnap => {
@@ -371,6 +374,7 @@ export default function DashboardPage() {
                         const userData = docSnap.data();
                         if (userData.manualCostOfLiving) {
                             setManualCostOfLiving(userData.manualCostOfLiving);
+                            // Also save it to localStorage for consistency
                             localStorage.setItem('manualCostOfLiving', String(userData.manualCostOfLiving));
                         }
                     }
@@ -474,7 +478,9 @@ export default function DashboardPage() {
         
         const userName = user.displayName?.split(' ')[0] || 'Usuário';
 
+        // Logic for negative balance alert
         const checkNegativeBalance = async () => {
+            // Check based on the *previous* month's final balance
             const lastMonth = subMonths(new Date(), 1);
             const lastMonthKey = format(lastMonth, 'MM/yy');
             const lastMonthData = chartData.find(d => d.date === lastMonthKey);
@@ -486,15 +492,15 @@ export default function DashboardPage() {
                 const impacto = ((summary.despesas / summary.recebidos) * 100) || 100;
 
 
-                const messageText = \`🚨 Alerta de meta: você saiu do plano
+                const messageText = `🚨 Alerta de meta: você saiu do plano
 
-• Gasto crítico detectado: \${gastoCritico} em \${mostExpensiveCategory}
-• Impacto na meta: performance em \${impacto.toFixed(0)}%
+• Gasto crítico detectado: ${gastoCritico} em ${mostExpensiveCategory}
+• Impacto na meta: performance em ${impacto.toFixed(0)}%
 • Se continuar assim, você não atinge a meta
 
 Correção:
-1) Reduzir os gastos com \${mostExpensiveCategory}
-2) Evitar compras não essenciais nos próximos dias\`;
+1) Reduzir os gastos com ${mostExpensiveCategory}
+2) Evitar compras não essenciais nos próximos dias`;
                 
                 await addChatMessage(user.uid, {
                     role: 'lumina',
