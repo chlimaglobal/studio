@@ -14,7 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { runAnalysis } from './actions';
 import Link from 'next/link';
 import { formatCurrency, cn, calculateMovingAverageCostOfLiving } from '@/lib/utils';
-import { useTransactions, useAuth, useSubscription } from '@/components/client-providers';
+import { useTransactions, useAuth, useSubscription } from '@/components/providers/app-providers';
 import { NotificationPermission } from '@/components/notification-permission';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onBudgetsUpdate, getDoc, doc, updateUserStatus, addChatMessage, onUserStatusUpdate } from '@/lib/storage';
@@ -54,7 +54,7 @@ const AiTipsCard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userName, setUserName] = useState('');
 
-  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
+  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
 
   const transactionsHash = useMemo(() => {
     return JSON.stringify(transactions.map(t => t.id).sort());
@@ -503,7 +503,7 @@ Correção:
 2) Evitar compras não essenciais nos próximos dias`;
                 
                 await addChatMessage(user.uid, {
-                    role: 'lumina',
+                    role: 'alerta',
                     text: messageText,
                     authorName: "Lúmina"
                 });
