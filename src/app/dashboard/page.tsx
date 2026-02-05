@@ -46,79 +46,60 @@ type BudgetItem = {
     progress: number;
 };
 
+const EMPTY_TIPS: GenerateFinancialAnalysisOutput = {
+  healthStatus: 'Atenção', // Default safe value
+  diagnosis: '',         // Default safe value
+  suggestions: [],
+};
+
 const AiTipsCard = () => {
-  const { transactions } = useTransactions();
+  const { transactions, isBatchProcessing } = useTransactions();
   const { isSubscribed } = useSubscription();
   const { user } = useAuth();
-  const [tips, setTips] = useState<GenerateFinancialAnalysisOutput | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userName, setUserName] = useState('');
 
-  const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+  const [tips, setTips] = useState<GenerateFinancialAnalysisOutput>(EMPTY_TIPS);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const transactionsHash = useMemo(() => {
-    return JSON.stringify(transactions.map(t => t.id).sort());
-  }, [transactions]);
-
+  const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
   const getTips = useCallback(async () => {
-    if (!isSubscribed && !isAdmin) {
-      setTips(null);
-      setIsLoading(false);
+    // 🚫 bloqueio premium
+    if (isBatchProcessing || (!isSubscribed && !isAdmin)) {
+      setTips(EMPTY_TIPS);
       return;
     }
-    
+
     setIsLoading(true);
-    const storedName = localStorage.getItem('userName') || 'Usuário';
-    setUserName(storedName.split(' ')[0]);
 
-    const cachedAnalysis = localStorage.getItem('financialAnalysis');
-    const cachedHash = localStorage.getItem('financialAnalysisHash');
-
-    if (cachedAnalysis && cachedHash === transactionsHash) {
-        setTips(JSON.parse(cachedAnalysis));
-        setIsLoading(false);
-        return;
+    try {
+      // 🔐 enquanto não há backend/IA, mantemos estado seguro
+      const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
+      if (operationalTransactions.length > 2) {
+        const result = await runAnalysis({ transactions: operationalTransactions });
+        setTips(result || EMPTY_TIPS); // Normalize a resposta
+      } else {
+        setTips(EMPTY_TIPS);
+      }
+    } catch (error) {
+      console.error('Erro ao gerar dicas:', error);
+      setTips(EMPTY_TIPS);
+    } finally {
+      setIsLoading(false);
     }
-
-    const operationalTransactions = transactions.filter(t => !allInvestmentCategories.has(t.category) && !t.hideFromReports);
-
-    if (operationalTransactions.length > 2) {
-        try {
-            const result = await runAnalysis({ transactions: operationalTransactions });
-            setTips(result);
-            localStorage.setItem('financialAnalysis', JSON.stringify(result));
-            localStorage.setItem('financialAnalysisHash', transactionsHash);
-        } catch (error) {
-            console.error("Failed to fetch AI tips:", error);
-            setTips(null);
-        }
-    } else {
-        setTips(null);
-        localStorage.removeItem('financialAnalysis');
-        localStorage.removeItem('financialAnalysisHash');
-    }
-    setIsLoading(false);
-  }, [transactions, transactionsHash, isSubscribed, isAdmin]);
-
+  }, [isBatchProcessing, isSubscribed, isAdmin, transactions]);
 
   useEffect(() => {
     getTips();
-    
-    // Add listener for username changes
-    const updateUsername = () => {
-       const storedName = localStorage.getItem('userName') || 'Usuário';
-       setUserName(storedName.split(' ')[0]);
-    }
-    window.addEventListener('storage', updateUsername);
-
-    return () => window.removeEventListener('storage', updateUsername);
-
   }, [getTips]);
 
-
-  if (isLoading || !tips || tips.suggestions.length === 0) {
-    return null; // Don't show card if loading, no tips, or error
+  // 🛡️ blindagem TOTAL
+  if (
+    isLoading ||
+    !tips ||
+    !Array.isArray(tips.suggestions) ||
+    tips.suggestions.length === 0
+  ) {
+    return null;
   }
 
   return (
@@ -129,18 +110,18 @@ const AiTipsCard = () => {
           Dicas da Lúmina
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 text-sm">
-        <p className="text-muted-foreground">
-          {userName}, veja um ponto de atenção nos seus gastos este mês:
+      <CardContent className="space-y-2">
+         <p className="text-sm text-muted-foreground">
+          {user?.displayName?.split(' ')[0] || 'Usuário'}, veja um ponto de atenção:
         </p>
-        {tips.suggestions.slice(0, 1).map((tip, index) => (
+         {tips.suggestions.slice(0, 1).map((tip, index) => (
              <div key={index} className="p-3 rounded-lg bg-background/50">
                 <p className='font-semibold'>{tip.split(':')[0]}:</p>
                 <p className="text-muted-foreground text-xs">{tip.split(':')[1]}</p>
             </div>
         ))}
         <Link href="/dashboard/analysis" passHref>
-          <Button variant="link" className="p-0 h-auto text-primary">Ver análise completa</Button>
+          <Button variant="link" className="p-0 h-auto text-primary text-sm">Ver análise completa</Button>
         </Link>
       </CardContent>
     </Card>
