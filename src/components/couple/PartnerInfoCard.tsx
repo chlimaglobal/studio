@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -52,22 +51,23 @@ export function PartnerInfoCard() {
         error?: string;
       };
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: 'Sucesso!',
           description: data.message || 'Vocês foram desvinculados.',
         });
       } else {
-        throw new Error(data.error || 'Erro desconhecido.');
+        throw new Error(data?.error || 'Erro desconhecido.');
       }
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Não foi possível desvincular seu parceiro(a). Tente novamente.';
       toast({
         variant: 'destructive',
         title: 'Erro ao Desvincular',
-        description:
-          error.message ||
-          'Não foi possível desvincular seu parceiro(a). Tente novamente.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -101,19 +101,19 @@ export function PartnerInfoCard() {
 
       <CardContent className="flex flex-col items-center gap-4 text-center">
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 border-2 border-border">
+          <Avatar className="h-16 w-16 border-2 border-border" aria-label={`Avatar de ${user?.displayName}`}>
             <AvatarImage src={user?.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {user?.displayName?.charAt(0).toUpperCase()}
+              {(user?.displayName?.charAt(0) ?? 'U').toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <Heart className="h-6 w-6 text-muted-foreground" />
 
-          <Avatar className="h-16 w-16 border-2 border-border">
+          <Avatar className="h-16 w-16 border-2 border-border" aria-label={`Avatar de ${partner.displayName}`}>
             <AvatarImage src={partner.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {partner.displayName?.charAt(0).toUpperCase()}
+              {(partner.displayName?.charAt(0) ?? 'P').toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </div>
