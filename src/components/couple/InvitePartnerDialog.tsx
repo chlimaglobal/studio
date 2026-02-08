@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -15,15 +14,20 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '../client-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { z } from 'zod';
 
 interface InvitePartnerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const InviteSchema = z.object({
+  email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
+});
 
 export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogProps) {
   const [email, setEmail] = useState('');
@@ -35,11 +39,21 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const validation = InviteSchema.safeParse({ email });
+    if (!validation.success) {
+      toast({
+        variant: 'destructive',
+        title: 'E-mail inválido',
+        description: validation.error.errors[0].message,
+      });
+      return;
+    }
+
     if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Erro',
-        description: 'Você precisa estar logado.',
+        title: 'Erro de Autenticação',
+        description: 'Você precisa estar logado para enviar um convite.',
       });
       return;
     }
@@ -50,7 +64,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
       const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
       
       const result = await sendInviteCallable({
-        partnerEmail: email,
+        partnerEmail: validation.data.email,
         senderName: user.displayName || 'Usuário',
       });
       
@@ -70,15 +84,17 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         setEmail('');
         router.push('/dashboard/couple');
       } else {
-        throw new Error(data.error || 'Erro desconhecido.');
+        throw new Error(data.error || 'Ocorreu um erro desconhecido ao enviar o convite.');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : 'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.';
+        
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
-        description:
-          error.message ||
-          'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
