@@ -1,9 +1,10 @@
 import { z } from "genkit";
-import { ai, genkit } from 'genkit';
+import { ai, genkit, type Genkit } from 'genkit';  // Adicionei type Genkit para tipagem
 import { googleAI } from '@genkit-ai/google-genai';
 import { firebase } from '@genkit-ai/firebase';
 import { defineSecret } from "firebase-functions/params";
 import { HttpsError } from "firebase-functions/v2/https";
+import { logger } from "firebase-functions/logger";  // Adicionei para logs melhores
 
 // Schemas
 import {
@@ -15,11 +16,12 @@ import {
 
 // Secrets and lazy initialization for Genkit, similar to index.ts
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
-let aiInstance: any;
+let aiInstance: Genkit | undefined;  // Tipado como Genkit | undefined
 
-function getAI() {
+function getAI(): Genkit {
     if (!aiInstance) {
         try {
+            logger.info("Inicializando Genkit AI...");  // Log de init
             genkit({
                 plugins: [
                     firebase(),
@@ -28,14 +30,13 @@ function getAI() {
                 enableTracingAndMetrics: true,
             });
             aiInstance = ai;
-        } catch(e) {
-            console.error("CRITICAL: Genkit initialization failed in alexa-flows.", e);
+        } catch (e) {
+            logger.error("CRITICAL: Genkit initialization failed in alexa-flows.", e);  // Log com logger
             throw new HttpsError('internal', 'AI service initialization failed.');
         }
     }
     return aiInstance;
 }
-
 
 /**
  * Flow: alexaExtractTransactionFlow
@@ -81,16 +82,21 @@ export const getSimpleFinancialSummaryFlow = getAI().defineFlow(
   },
   async (input: z.infer<typeof GetSimpleFinancialSummaryInputSchema>) => {
     const prompt = `
-      Você é a Lúmina. Gere um resumo financeiro CURTO e amigável para a Alexa.
+      Você é a Lúmina. Gere um resumo financeiro CURTO (máx 2 frases) e amigável para o período de ${input.period}.
+      Inclua totais de receitas, despesas e saldo.
+      Use linguagem conversacional.
       Dados:
-      - Receitas: ${input.totalIncome}
-      - Despesas: ${input.totalExpense}
-      - Saldo: ${input.balance}
-      - Período: ${input.period}
+      - Receitas: R$ ${input.totalIncome.toFixed(2)}
+      - Despesas: R$ ${input.totalExpense.toFixed(2)}
+      - Saldo: R$ ${input.balance.toFixed(2)}
     `;
 
-    const result = await getAI().generate({ model: 'gemini-1.5-flash', prompt });
+    const result = await getAI().generate({
+      prompt,
+      model: 'gemini-1.5-flash',
+      output: { format: "json", schema: GetSimpleFinancialSummaryOutputSchema },  // Adicionado para consistência
+    });
 
-    return { summary: result.text ?? "Não consegui gerar o resumo." };
+    return { summary: result.output.summary ?? "Não consegui gerar o resumo." };  // Ajustado para usar output.summary se schema aplicado
   }
 );

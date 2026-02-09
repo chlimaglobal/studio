@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '../client-providers';
+import { useAuth } from '@/components/providers/client-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -127,6 +128,7 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                aria-label="E-mail do parceiro"
               />
             </div>
           </div>
