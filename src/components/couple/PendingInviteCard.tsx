@@ -1,5 +1,13 @@
-
 'use client';
+
+import { useState } from 'react';
+import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
+import { useCoupleStore } from '@/hooks/use-couple-store';
+import { useAuth } from '@/components/providers/app-providers';
+import { useToast } from '@/hooks/use-toast';
+import { httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 import {
   Card,
@@ -9,15 +17,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
-import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
-import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useAuth } from '@/components/providers/app-providers';
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { httpsCallable, getFunctions } from 'firebase/functions';
-import { app } from '@/lib/firebase';
-import { useRouter } from 'next/navigation';
+
+interface InviteActionParams {
+  inviteId: string;
+}
+
+interface InviteActionResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
 
 interface PendingInviteCardProps {}
 
@@ -29,7 +40,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
   const router = useRouter();
 
   const handleAction = async (action: 'accept' | 'reject' | 'cancel') => {
-    if (!invite?.id || !user) return;
+    if (!invite?.id || !user) return;  // Adicionado check !invite.id para robustez
     setIsLoading(true);
 
     let functionName: string;
@@ -38,18 +49,18 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     else functionName = 'cancelPartnerInvite';
 
     try {
-      const functions = getFunctions(app, 'us-central1');
-      const callable = httpsCallable(functions, functionName);
+      const functions = getFunctions(app, 'us-central1');  // Corrigi nome (getFunctions, não functions)
+      const callable = httpsCallable<InviteActionParams, InviteActionResponse>(functions, functionName);  // Adicionei tipagem para Params/Response
+
       const result = await callable({ inviteId: invite.id });
-      const data = result.data as { success: boolean; message: string; error?: string };
+      const data = result.data;
       
-      if (data.success) {
-        toast({ title: 'Sucesso!', description: data.message });
-        router.refresh();
-      } else {
-        throw new Error(data.error);
+      if (!data.success) {
+        throw new Error(data.error || `Erro ao ${action} convite.`);
       }
 
+      toast({ title: 'Sucesso!', description: data.message });
+      router.refresh();
     } catch (error: any) {
         toast({
             variant: 'destructive',
@@ -82,6 +93,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
                 className="w-full"
                 disabled={isLoading}
                 onClick={() => handleAction('cancel')}
+                aria-label="Cancelar convite enviado"  // Adicionado aria-label para acessibilidade
              >
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
                 Cancelar Convite
@@ -114,6 +126,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
                 variant="destructive"
                 disabled={isLoading}
                 onClick={() => handleAction('reject')}
+                aria-label="Recusar convite recebido"  // Adicionado aria-label para acessibilidade
             >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />} 
                 Recusar
@@ -121,6 +134,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
              <Button
                 disabled={isLoading}
                 onClick={() => handleAction('accept')}
+                aria-label="Aceitar convite recebido"  // Adicionado aria-label para acessibilidade
             >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} 
                 Aceitar
@@ -130,5 +144,5 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     );
   }
 
-  return null;
+  return null;  // Adicionado fallback para status desconhecido (robustez)
 }

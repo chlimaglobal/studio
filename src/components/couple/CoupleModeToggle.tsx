@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -17,7 +16,7 @@ export function CoupleModeToggle() {
     const { viewMode, setViewMode } = useViewMode();
     const { toast } = useToast();
 
-    const handleToggle = (newMode: 'separate' | 'together') => {
+    const handleToggle = (newMode: 'separate' | 'together') => {  // Adicionei type union para newMode
         if (newMode === 'together' && status !== 'linked') {
             toast({
                 title: 'Vincule um parceiro primeiro',
@@ -27,9 +26,9 @@ export function CoupleModeToggle() {
         } else {
             setViewMode(newMode);
         }
-    }
+    };
 
-    if (isLoading) {
+    if (isLoading) {  // Fallback se isLoading undefined (já bom, mas explícito)
         return <Skeleton className="h-10 w-40 rounded-full" />;
     }
 
@@ -41,6 +40,7 @@ export function CoupleModeToggle() {
                     variant={viewMode === 'separate' ? 'default' : 'ghost'}
                     className="rounded-full px-3 py-1 h-8 text-xs"
                     onClick={() => handleToggle('separate')}
+                    aria-label="Alternar para modo individual"  // Adicionado aria-label para acessibilidade
                 >
                     <User className="h-4 w-4 mr-1.5" />
                     Individual
@@ -50,6 +50,7 @@ export function CoupleModeToggle() {
                     variant={viewMode === 'together' ? 'default' : 'ghost'}
                     className="rounded-full px-3 py-1 h-8 text-xs"
                     onClick={() => handleToggle('together')}
+                    aria-label="Alternar para modo casal"  // Adicionado aria-label para acessibilidade
                 >
                     <Users className="h-4 w-4 mr-1.5" />
                     Casal

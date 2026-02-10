@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -15,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -26,6 +25,17 @@ interface InvitePartnerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface SendInviteParams {
+  partnerEmail: string;
+  senderName: string;
+}
+
+interface SendInviteResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
 const InviteSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
 });
@@ -34,11 +44,19 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isAuthLoading) {
+      toast({
+        title: 'Carregando autenticação',
+        description: 'Aguarde enquanto verificamos seu login.',
+      });
+      return;
+    }
 
     const validation = InviteSchema.safeParse({ email });
     if (!validation.success) {
@@ -62,18 +80,14 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+      const sendInviteCallable = httpsCallable<SendInviteParams, { data: SendInviteResponse }>(functions, 'sendPartnerInvite');
       
       const result = await sendInviteCallable({
-        partnerEmail: validation.data.email,
+        partnerEmail: email,
         senderName: user.displayName || 'Usuário',
       });
       
-      const data = result.data as {
-        success: boolean;
-        message: string;
-        error?: string;
-      };
+      const data = result.data.data;
 
       if (data.success) {
         toast({
@@ -83,19 +97,17 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
         onOpenChange(false);
         setEmail('');
-        router.push('/dashboard/couple');
+        router.push('/dashboard/couple/pending');
       } else {
-        throw new Error(data.error || 'Ocorreu um erro desconhecido ao enviar o convite.');
+        throw new Error(data.error || 'Erro desconhecido.');
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.';
-        
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
-        description: errorMessage,
+        description:
+          error.message ||
+          'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.',
       });
     } finally {
       setIsLoading(false);
@@ -134,8 +146,13 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
           </div>
 
           <DialogFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading || isAuthLoading}
+              title={isAuthLoading ? "Carregando autenticação..." : undefined}
+            >
+              {(isLoading || isAuthLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enviar Convite
             </Button>
           </DialogFooter>
