@@ -1,14 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { Loader2, Heart, UserX } from 'lucide-react';
-
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useAuth } from '@/components/client-providers';
-import { useToast } from '@/hooks/use-toast';
-import { functions } from '@/lib/firebase';
-
 import {
   Card,
   CardContent,
@@ -17,10 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-
+import { Loader2, Heart, UserX } from 'lucide-react';
+import { useAuth } from '@/components/client-providers';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,11 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
-interface DisconnectPartnerResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
+interface DisconnectResponse {
+    success: boolean;
+    message?: string;
+    error?: string;
 }
 
 export function PartnerInfoCard() {
@@ -46,14 +42,17 @@ export function PartnerInfoCard() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDisconnect = async () => {
-    if (!user || isLoading) return;
+    if (!user) return;
 
     setIsLoading(true);
 
     try {
-      const disconnectPartner = httpsCallable<void, { data: DisconnectPartnerResponse }>(functions, 'disconnectPartner');
+      const functions = getFunctions(app, 'us-central1');
+      const disconnectPartner = httpsCallable(functions, 'disconnectPartner');
+      
       const result = await disconnectPartner();
-      const data = result.data.data;
+      
+      const data = result.data as DisconnectResponse;
 
       if (!data || !data.success) {
         throw new Error(data?.error || 'Erro desconhecido ao desvincular.');
@@ -63,16 +62,16 @@ export function PartnerInfoCard() {
         title: 'Sucesso!',
         description: data.message || 'Vocês foram desvinculados.',
       });
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : 'Não foi possível desvincular seu parceiro(a).';
+      
+    } catch (error: unknown) {
+      console.error('Disconnect error:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro ao desvincular o parceiro.';
 
       toast({
         variant: 'destructive',
-        title: 'Erro ao desvincular',
-        description: message,
+        title: 'Erro ao Desvincular',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -109,7 +108,7 @@ export function PartnerInfoCard() {
           <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do usuário">
             <AvatarImage src={user?.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {user?.displayName?.charAt(0)?.toUpperCase() ?? 'U'}
+              {user?.displayName?.charAt(0).toUpperCase() ?? 'U'}
             </AvatarFallback>
           </Avatar>
 
@@ -118,7 +117,7 @@ export function PartnerInfoCard() {
           <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do parceiro">
             <AvatarImage src={partner.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {partner.displayName?.charAt(0)?.toUpperCase() ?? 'P'}
+              {partner.displayName?.charAt(0).toUpperCase() ?? 'P'}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -136,26 +135,21 @@ export function PartnerInfoCard() {
               className="w-full"
               disabled={isLoading}
             >
-              <UserX className="mr-2 h-4 w-4" />
-              Desvincular
+              <UserX className="mr-2 h-4 w-4" /> Desvincular
             </Button>
           </AlertDialogTrigger>
 
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                Desvincular Parceiro(a)?
-              </AlertDialogTitle>
+              <AlertDialogTitle>Desvincular Parceiro(a)?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta ação removerá o acesso compartilhado. Suas transações
-                permanecerão separadas.
+                permanecerão separadas. Você poderá se conectar novamente no futuro.
               </AlertDialogDescription>
             </AlertDialogHeader>
 
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isLoading}>
-                Cancelar
-              </AlertDialogCancel>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
 
               <AlertDialogAction
                 onClick={handleDisconnect}

@@ -25,12 +25,6 @@ interface InvitePartnerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface SendInviteResponse {
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
 const InviteSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
 });
@@ -47,8 +41,8 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
 
     if (isAuthLoading) {
       toast({
-        title: 'Carregando autenticação',
-        description: 'Aguarde enquanto verificamos seu login.',
+        title: 'Aguarde',
+        description: 'Verificando autenticação...',
       });
       return;
     }
@@ -66,8 +60,8 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Erro de Autenticação',
-        description: 'Você precisa estar logado para enviar um convite.',
+        title: 'Erro',
+        description: 'Você precisa estar logado.',
       });
       return;
     }
@@ -75,16 +69,17 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
+      const functions = getFunctions(app, 'us-central1');
+      const sendPartnerInvite = httpsCallable(functions, 'sendPartnerInvite');
       
-      const result = await sendInviteCallable({
+      const result = await sendPartnerInvite({
         partnerEmail: email,
         senderName: user.displayName || 'Usuário',
       });
       
-      const data: SendInviteResponse = result.data as SendInviteResponse;
+      const data = result.data as { success: boolean, message: string, error?: string };
 
-      if (data.success) {
+      if (data && data.success) {
         toast({
           title: 'Sucesso!',
           description: data.message,
@@ -94,23 +89,13 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         setEmail('');
         router.push('/dashboard/couple/pending');
       } else {
-        throw new Error(data.error || 'Falha desconhecida no servidor.');
+        throw new Error(data?.error || 'Erro desconhecido ao enviar o convite.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Invite error:', error);
-
-      let errorMessage = 'Erro desconhecido ao enviar convite.';
-
-      if (error.code === 'internal') {
-        errorMessage = 'Erro interno no servidor. Tente novamente.';
-      } else if (error.code === 'unavailable') {
-        errorMessage = 'Serviço indisponível. Tente mais tarde.';
-      } else if (error.code === 'permission-denied') {
-        errorMessage = 'Sem permissão para enviar convites.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+      
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro inesperado. Tente novamente.';
+      
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
@@ -146,18 +131,14 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading || isAuthLoading}
                 aria-label="E-mail do parceiro"
-                disabled={isLoading}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || isAuthLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading || isAuthLoading}>
               {(isLoading || isAuthLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enviar Convite
             </Button>
