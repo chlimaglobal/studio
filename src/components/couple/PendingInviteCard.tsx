@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { Mail, UserPlus, X, Loader2 } from 'lucide-react';
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useAuth } from '@/components/providers/app-providers';
+import { useAuth } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
+import { functions } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -40,7 +40,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
   const router = useRouter();
 
   const handleAction = async (action: 'accept' | 'reject' | 'cancel') => {
-    if (!invite?.id || !user) return;  // Adicionado check !invite.id para robustez
+    if (!invite?.id || !user) return;
     setIsLoading(true);
 
     let functionName: string;
@@ -49,9 +49,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     else functionName = 'cancelPartnerInvite';
 
     try {
-      const functions = getFunctions(app, 'us-central1');  // Corrigi nome (getFunctions, não functions)
-      const callable = httpsCallable<InviteActionParams, InviteActionResponse>(functions, functionName);  // Adicionei tipagem para Params/Response
-
+      const callable = httpsCallable<InviteActionParams, InviteActionResponse>(functions, functionName);
       const result = await callable({ inviteId: invite.id });
       const data = result.data;
       
@@ -74,7 +72,6 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
 
   if (!invite || status === 'linked') return null;
 
-  // --- Case: YOU sent the invite ---
   if (status === 'pending_sent') {
     return (
       <Card className="max-w-md mx-auto bg-secondary">
@@ -93,7 +90,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
                 className="w-full"
                 disabled={isLoading}
                 onClick={() => handleAction('cancel')}
-                aria-label="Cancelar convite enviado"  // Adicionado aria-label para acessibilidade
+                aria-label="Cancelar convite enviado"
              >
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
                 Cancelar Convite
@@ -103,7 +100,6 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     );
   }
 
-  // --- Case: YOU received the invite ---
   if (status === 'pending_received') {
     return (
       <Card className="max-w-md mx-auto">
@@ -126,7 +122,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
                 variant="destructive"
                 disabled={isLoading}
                 onClick={() => handleAction('reject')}
-                aria-label="Recusar convite recebido"  // Adicionado aria-label para acessibilidade
+                aria-label="Recusar convite recebido"
             >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />} 
                 Recusar
@@ -134,7 +130,7 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
              <Button
                 disabled={isLoading}
                 onClick={() => handleAction('accept')}
-                aria-label="Aceitar convite recebido"  // Adicionado aria-label para acessibilidade
+                aria-label="Aceitar convite recebido"
             >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} 
                 Aceitar
@@ -144,5 +140,5 @@ export function PendingInviteCard(props: PendingInviteCardProps) {
     );
   }
 
-  return null;  // Adicionado fallback para status desconhecido (robustez)
+  return null;
 }

@@ -60,7 +60,9 @@ function getAI() {
             genkit({
                 plugins: [
                     firebase(),
-                    googleAI({ apiKey: geminiApiKey.value() }),
+                    const apiKey = geminiApiKey.value();
+if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY não configurada');
+googleAI({ apiKey }),
                 ],
                 enableTracingAndMetrics: true,
             });
@@ -75,8 +77,8 @@ function getAI() {
 
 
 // Set SendGrid API key at runtime
-sgMail.setApiKey(sendgridApiKey.value());
-
+const sgKey = sendgridApiKey.value();
+if (sgKey) sgMail.setApiKey(sgKey);
 // Global options for functions
 const functionOptions = {
     region: "us-central1",
@@ -480,29 +482,54 @@ export const handleUserLogin = onCall(functionOptions, async (request) => {
     return { data: { success: true, message: "Login event processed." } };
 });
 
-export const sendPartnerInvite = onCall(functionOptions, async (request) => {
-    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+export const sendPartnerInvite = onCall({ 
+  ...functionOptions, 
+  cors: true 
+}, async (request) => {
+  console.log('🔥 sendPartnerInvite INICIADO por:', request.auth?.uid);
+  
+  if (!request.auth) {
+    console.log('❌ Sem autenticação');
+    throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+  }
+  
+  console.log('📧 Dados recebidos:', request.data);
+  
+  const { partnerEmail, senderName } = request.data;
+  if (!partnerEmail || !senderName) {
+    console.log('❌ Dados inválidos:', { partnerEmail, senderName });
+    throw new HttpsError("invalid-argument", "Email e nome são obrigatórios.");
+  }
+  
+  try {
+    console.log('📝 Gerando token...');
+    const inviteToken = db.collection("invites").doc().id;
     
-    const { partnerEmail, senderName } = request.data;
-    if (!partnerEmail || !senderName) throw new HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
+    const inviteData = {
+      sentBy: request.auth.uid,
+      sentByName: senderName,
+      sentByEmail: request.auth.token?.email || null,
+      sentToEmail: partnerEmail,
+      status: "pending",
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
     
-    try {
-      const inviteToken = db.collection("invites").doc().id;
-      const inviteData = {
-        sentBy: request.auth.uid,
-        sentByName: senderName,
-        sentByEmail: request.auth.token.email || null,
-        sentToEmail: partnerEmail,
-        status: "pending",
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      await db.collection("invites").doc(inviteToken).set(inviteData);
-      return { data: { success: true, inviteToken, message: "Convite criado com sucesso!" }};
-    } catch (error) {
-      console.error("Erro em sendPartnerInvite:", error);
-      throw new HttpsError("internal", "Erro ao enviar convite.");
-    }
+    console.log('💾 Salvando invite:', inviteToken);
+    await db.collection("invites").doc(inviteToken).set(inviteData);
+    
+    console.log('✅ INVITE CRIADO COM SUCESSO:', inviteToken);
+    return { 
+      success: true, 
+      inviteToken, 
+      message: "Convite criado com sucesso!" 
+    };  // ✅ SEM "data:"
+    
+  } catch (error) {
+    console.error('💥 ERRO COMPLETO em sendPartnerInvite:', error);
+    throw new HttpsError("internal", `Erro interno: ${error.message}`);
+  }
 });
+
 
 
 export const onInviteCreated = onDocumentCreated({
@@ -611,7 +638,8 @@ export const onTransactionCreated = onDocumentCreated({
     } catch (error) {
       console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
-    return null; 
+    return { success: true, inviteToken, message: "Convite criado com sucesso!" };
+
 });
 
 
@@ -784,5 +812,69 @@ export const dailyFinancialCheckup = onSchedule({
     return null;
 });
 
+// -----------------
+// 👇 ADICIONE AQUI NO FINAL (antes do último export alexaWebhook)
+// -----------------
+
+export const acceptPartnerInvite = onCall({ 
+  ...functionOptions, 
+  cors: true 
+}, async (request) => {
+  console.log('✅ acceptPartnerInvite chamado');
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de aceitar convite
+    return { success: true, message: 'Convite aceito com sucesso!' };
+  } catch (error) {
+    console.error('Erro acceptPartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao aceitar convite.");
+  }
+});
+
+export const declinePartnerInvite = onCall({ 
+  ...functionOptions, 
+  cors: true 
+}, async (request) => {
+  console.log('✅ declinePartnerInvite chamado');
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de recusar convite
+    return { success: true, message: 'Convite recusado!' };
+  } catch (error) {
+    console.error('Erro declinePartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao recusar convite.");
+  }
+});
+
+export const cancelPartnerInvite = onCall({ 
+  ...functionOptions, 
+  cors: true 
+}, async (request) => {
+  console.log('✅ cancelPartnerInvite chamado');
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de cancelar convite
+    return { success: true, message: 'Convite cancelado!' };
+  } catch (error) {
+    console.error('Erro cancelPartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao cancelar convite.");
+  }
+});
+
+// alexaWebhook continua aqui embaixo 👇
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
+
+

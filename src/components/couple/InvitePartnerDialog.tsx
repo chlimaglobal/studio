@@ -14,20 +14,15 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/components/providers/app-providers';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { useAuth } from '@/components/client-providers';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 
 interface InvitePartnerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface SendInviteParams {
-  partnerEmail: string;
-  senderName: string;
 }
 
 interface SendInviteResponse {
@@ -80,14 +75,14 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
     setIsLoading(true);
 
     try {
-      const sendInviteCallable = httpsCallable<SendInviteParams, { data: SendInviteResponse }>(functions, 'sendPartnerInvite');
+      const sendInviteCallable = httpsCallable(functions, 'sendPartnerInvite');
       
       const result = await sendInviteCallable({
         partnerEmail: email,
         senderName: user.displayName || 'Usuário',
       });
       
-      const data = result.data.data;
+      const data: SendInviteResponse = result.data as SendInviteResponse;
 
       if (data.success) {
         toast({
@@ -99,15 +94,27 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
         setEmail('');
         router.push('/dashboard/couple/pending');
       } else {
-        throw new Error(data.error || 'Erro desconhecido.');
+        throw new Error(data.error || 'Falha desconhecida no servidor.');
       }
     } catch (error: any) {
+      console.error('Invite error:', error);
+
+      let errorMessage = 'Erro desconhecido ao enviar convite.';
+
+      if (error.code === 'internal') {
+        errorMessage = 'Erro interno no servidor. Tente novamente.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Serviço indisponível. Tente mais tarde.';
+      } else if (error.code === 'permission-denied') {
+        errorMessage = 'Sem permissão para enviar convites.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         variant: 'destructive',
         title: 'Erro ao Enviar Convite',
-        description:
-          error.message ||
-          'Não foi possível enviar o convite. Verifique se o e-mail existe e pertence a um usuário.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -130,7 +137,6 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
               <Label htmlFor="email" className="text-right">
                 E-mail
               </Label>
-
               <Input
                 id="email"
                 name="email"
@@ -141,16 +147,16 @@ export function InvitePartnerDialog({ open, onOpenChange }: InvitePartnerDialogP
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 aria-label="E-mail do parceiro"
+                disabled={isLoading}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading || isAuthLoading}
-              title={isAuthLoading ? "Carregando autenticação..." : undefined}
             >
               {(isLoading || isAuthLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enviar Convite

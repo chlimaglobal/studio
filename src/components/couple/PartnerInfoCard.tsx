@@ -5,7 +5,7 @@ import { httpsCallable } from 'firebase/functions';
 import { Loader2, Heart, UserX } from 'lucide-react';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { functions } from '@/lib/firebase';
 
@@ -51,10 +51,9 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const disconnectPartner = httpsCallable<void, DisconnectPartnerResponse>(functions, 'disconnectPartner');  // Corrigi tipagem: retorna diretamente Response, não {data: Response}
-
+      const disconnectPartner = httpsCallable<void, { data: DisconnectPartnerResponse }>(functions, 'disconnectPartner');
       const result = await disconnectPartner();
-      const data = result.data;  // Corrigi acesso: result.data, não result.data.data
+      const data = result.data.data;
 
       if (!data || !data.success) {
         throw new Error(data?.error || 'Erro desconhecido ao desvincular.');
@@ -110,7 +109,7 @@ export function PartnerInfoCard() {
           <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do usuário">
             <AvatarImage src={user?.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {user?.displayName?.charAt(0)?.toUpperCase() ?? 'U'}  {/* Corrigi fallback: ?? 'U' para evitar charAt em undefined */}
+              {user?.displayName?.charAt(0)?.toUpperCase() ?? 'U'}
             </AvatarFallback>
           </Avatar>
 
@@ -119,7 +118,7 @@ export function PartnerInfoCard() {
           <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do parceiro">
             <AvatarImage src={partner.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {partner.displayName?.charAt(0)?.toUpperCase() ?? 'P'}  {/* Corrigi fallback similar: ?? 'P' */}
+              {partner.displayName?.charAt(0)?.toUpperCase() ?? 'P'}
             </AvatarFallback>
           </Avatar>
         </div>

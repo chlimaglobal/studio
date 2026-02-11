@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -16,7 +15,6 @@ import { Loader2, Heart, UserX } from 'lucide-react';
 import { useAuth } from '../client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +26,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { getFunctions, httpsCallable } from 'firebase/functions';  // ✅ ADICIONADO
+import { app } from '@/lib/firebase';  // ✅ ADICIONADO
 
 export function PartnerInfoCard() {
   const { user } = useAuth();
@@ -41,29 +41,13 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
-      const token = await user.getIdToken();
-      const functionUrl = `https://us-central1-${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.cloudfunctions.net/disconnectPartner`;
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ data: {} }) // Send empty data object if required by function
-      });
-
-      const result = await response.json();
+      // ✅ httpsCallable - MÉTODO CORRETO para onCall functions
+      const functions = getFunctions(app, 'us-central1');
+      const disconnectPartner = httpsCallable(functions, 'disconnectPartner');
       
-      if (!response.ok) {
-        throw new Error(result.error || 'Falha na comunicação com o servidor.');
-      }
-
-      const data = result.data as {
-        success: boolean;
-        message?: string;
-        error?: string;
-      };
+      const result = await disconnectPartner();
+      
+      const data = result.data;
 
       if (data.success) {
         toast({
@@ -73,14 +57,23 @@ export function PartnerInfoCard() {
       } else {
         throw new Error(data.error || 'Erro desconhecido.');
       }
-
     } catch (error: any) {
+      console.error('Disconnect error:', error);
+      
+      let errorMessage = 'Erro ao desvincular parceiro.';
+      
+      if (error.code === 'functions/permission-denied') {
+        errorMessage = 'Sem permissão para desvincular.';
+      } else if (error.code === 'functions/not-found') {
+        errorMessage = 'Nenhum parceiro encontrado.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         variant: 'destructive',
         title: 'Erro ao Desvincular',
-        description:
-          error.message ||
-          'Não foi possível desvincular seu parceiro(a). Tente novamente.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -177,5 +170,3 @@ export function PartnerInfoCard() {
     </Card>
   );
 }
-
-    
