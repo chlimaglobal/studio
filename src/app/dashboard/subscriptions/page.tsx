@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useTransactions } from '@/components/providers/client-providers';
+import { useTransactions } from '@/components/client-providers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Repeat, PlusCircle, CalendarCheck, DollarSign, Edit, Trash2 } from 'lucide-react';
