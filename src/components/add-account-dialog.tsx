@@ -28,7 +28,7 @@ import React from 'react';
 import { AddAccountFormSchema, accountTypes, accountTypeLabels } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { useAuth } from '@/components/providers/client-providers';
+import { useAuth } from '@/components/client-providers';
 import { addStoredAccount } from '@/lib/storage';
 
 type AddAccountDialogProps = {
