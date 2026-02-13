@@ -35,14 +35,14 @@ import type { Transaction } from '@/types';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { useTransactions, useAuth, useViewMode } from '@/components/client-providers';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Pencil, Landmark, MoreVertical } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'firebase/auth';
 import { brandNames } from '@/types';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 
 interface TransactionsTableProps {

@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { onCardsUpdate } from '@/lib/storage';
 import { Card as CardType } from '@/types';
-import { getCategorySuggestion, extractMultipleTransactions } from '../actions';
+import { getCategorySuggestion, extractMultipleTransactions } from '@/app/dashboard/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import Link from 'next/link';

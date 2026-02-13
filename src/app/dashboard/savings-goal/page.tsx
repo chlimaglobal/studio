@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransactions, useAuth, useSubscription } from '@/components/providers/app-providers';
 import { formatCurrency } from '@/lib/utils';
 import Link from 'next/link';
-import { runSavingsGoalCalculation } from '../actions';
+import { runSavingsGoalCalculation } from '@/app/dashboard/actions';
 import type { SavingsGoalOutput } from '@/types';
 import { allInvestmentCategories } from '@/types';
 
@@ -98,7 +98,7 @@ export default function SavingsGoalPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<SavingsGoalOutput | null>(null);
 
-    const isAdmin = user?.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = user?.email === 'digitalacademyoficiall@gmail.com';
 
     const handleAnalysis = async () => {
         setIsLoading(true);

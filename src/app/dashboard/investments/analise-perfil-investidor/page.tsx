@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { runInvestorProfileAnalysis } from '../../actions';
+import { runInvestorProfileAnalysis } from '@/app/dashboard/actions';
 
 // Placeholder para as perguntas do questionário
 const questions = [

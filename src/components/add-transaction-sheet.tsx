@@ -27,14 +27,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { CalendarIcon, Sparkles, AlertTriangle, Repeat } from 'lucide-react';
 import { TransactionFormSchema, categoryData } from '@/types';
 import React from 'react';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar } from './ui/calendar';
+import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Switch } from './ui/switch';
+import { Switch } from '@/components/ui/switch';
 import { useTransactions } from '@/components/providers/app-providers';
 
 type AddTransactionSheetProps = {

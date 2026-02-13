@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Mic, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
-import { AudioInputDialog } from './audio-transaction-dialog';
+import { AudioInputDialog } from '@/components/audio-transaction-dialog';
 import type { TransactionFormSchema } from '@/types';
 import { z } from 'zod';
 import { usePathname, useRouter } from 'next/navigation';

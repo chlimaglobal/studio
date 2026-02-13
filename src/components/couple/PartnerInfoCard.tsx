@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -26,14 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '@/lib/firebase';
-
-interface DisconnectResponse {
-    success: boolean;
-    message?: string;
-    error?: string;
-}
+import { getFunctions, httpsCallable } from 'firebase/functions';  // ✅ ADICIONADO
+import { app } from '@/lib/firebase';  // ✅ ADICIONADO
 
 export function PartnerInfoCard() {
   const { user } = useAuth();
@@ -47,26 +42,34 @@ export function PartnerInfoCard() {
     setIsLoading(true);
 
     try {
+      // ✅ httpsCallable - MÉTODO CORRETO para onCall functions
       const functions = getFunctions(app, 'us-central1');
       const disconnectPartner = httpsCallable(functions, 'disconnectPartner');
       
       const result = await disconnectPartner();
       
-      const data = result.data as DisconnectResponse;
+      const data = result.data;
 
-      if (!data || !data.success) {
-        throw new Error(data?.error || 'Erro desconhecido ao desvincular.');
+      if (data.success) {
+        toast({
+          title: 'Sucesso!',
+          description: data.message || 'Vocês foram desvinculados.',
+        });
+      } else {
+        throw new Error(data.error || 'Erro desconhecido.');
       }
-
-      toast({
-        title: 'Sucesso!',
-        description: data.message || 'Vocês foram desvinculados.',
-      });
-      
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Disconnect error:', error);
       
-      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro ao desvincular o parceiro.';
+      let errorMessage = 'Erro ao desvincular parceiro.';
+      
+      if (error.code === 'functions/permission-denied') {
+        errorMessage = 'Sem permissão para desvincular.';
+      } else if (error.code === 'functions/not-found') {
+        errorMessage = 'Nenhum parceiro encontrado.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
       toast({
         variant: 'destructive',
@@ -105,19 +108,19 @@ export function PartnerInfoCard() {
 
       <CardContent className="flex flex-col items-center gap-4 text-center">
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do usuário">
+          <Avatar className="h-16 w-16 border-2 border-border">
             <AvatarImage src={user?.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {user?.displayName?.charAt(0).toUpperCase() ?? 'U'}
+              {user?.displayName?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <Heart className="h-6 w-6 text-muted-foreground" />
 
-          <Avatar className="h-16 w-16 border-2 border-border" aria-label="Avatar do parceiro">
+          <Avatar className="h-16 w-16 border-2 border-border">
             <AvatarImage src={partner.photoURL || undefined} />
             <AvatarFallback className="text-xl">
-              {partner.displayName?.charAt(0).toUpperCase() ?? 'P'}
+              {partner.displayName?.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </div>

@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Mic, Loader2, AlertTriangle, Square } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from './ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
 
@@ -198,5 +198,3 @@ export function AudioInputDialog({ open, onOpenChange, onTranscript, children }:
     </Dialog>
   );
 }
-
-    

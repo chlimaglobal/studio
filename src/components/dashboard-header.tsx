@@ -22,10 +22,10 @@ import { useTransactions, useAuth } from '@/components/providers/app-providers';
 import Link from 'next/link';
 import { getAuth, signOut } from 'firebase/auth';
 import { allInvestmentCategories } from '@/types';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import Image from 'next/image';
-import { CoupleModeToggle } from './couple/CoupleModeToggle';
+import { CoupleModeToggle } from '@/components/couple/CoupleModeToggle';
 
 
 const Logo = () => (

@@ -5,10 +5,10 @@ import { User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useCoupleStore } from '@/hooks/use-couple-store';
-import { InvitePartnerDialog } from './InvitePartnerDialog';
+import { InvitePartnerDialog } from '@/components/couple/InvitePartnerDialog';
 import { useViewMode } from '@/components/providers/app-providers';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function CoupleModeToggle() {
     const [isInviteOpen, setInviteOpen] = useState(false);

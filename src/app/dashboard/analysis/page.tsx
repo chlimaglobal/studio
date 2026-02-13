@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { runAnalysis } from '../actions';
+import { runAnalysis } from '@/app/dashboard/actions';
 
 const PremiumBlocker = () => (
     <Card className="text-center">
