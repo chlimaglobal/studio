@@ -125,6 +125,21 @@ export type Transaction = {
   hideFromReports?: boolean;
 };
 
+// Types for Budget
+export const BudgetSchema = z.object({
+  Supermercado: z.number().optional(),
+  Casa: z.number().optional(),
+  Pet: z.number().optional(),
+  Farmácia: z.number().optional(),
+  Restaurante: z.number().optional(),
+  Entretenimento: z.number().optional(),
+  Fitness: z.number().optional(),
+  Educação: z.number().optional(),
+  Outros: z.number().optional(),
+});
+export type Budget = z.infer<typeof BudgetSchema>;
+
+
 // Base Schemas
 export const CategorizeTransactionInputSchema = z.object({
   description: z.string().describe('The description of the transaction.'),
