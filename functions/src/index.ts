@@ -57,10 +57,13 @@ let aiInstance: any;
 function getAI() {
     if (!aiInstance) {
         try {
+            const apiKey = geminiApiKey.value();
+            if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY não configurada');
+            
             genkit({
                 plugins: [
                     firebase(),
-                    googleAI({ apiKey: geminiApiKey.value() }),
+                    googleAI({ apiKey }),
                 ],
                 enableTracingAndMetrics: true,
             });
@@ -75,7 +78,8 @@ function getAI() {
 
 
 // Set SendGrid API key at runtime
-sgMail.setApiKey(sendgridApiKey.value());
+const sgKey = sendgridApiKey.value();
+if (sgKey) sgMail.setApiKey(sgKey);
 
 // Global options for functions
 const functionOptions = {
@@ -571,7 +575,7 @@ export const onTransactionCreated = onDocumentCreated({
     region: functionOptions.region,
 }, async (event) => {
     const snap = event.data;
-    if (!snap) return;
+    if (!snap) return null;
 
     const { userId } = event.params;
     const userDocRef = db.doc(`users/${userId}`);
@@ -781,6 +785,52 @@ export const dailyFinancialCheckup = onSchedule({
     }
     return null;
 });
+
+export const acceptPartnerInvite = onCall(functionOptions, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de aceitar convite
+    return { data: { success: true, message: 'Convite aceito com sucesso!' }};
+  } catch (error) {
+    console.error('Erro acceptPartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao aceitar convite.");
+  }
+});
+
+export const declinePartnerInvite = onCall(functionOptions, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de recusar convite
+    return { data: { success: true, message: 'Convite recusado!' }};
+  } catch (error) {
+    console.error('Erro declinePartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao recusar convite.");
+  }
+});
+
+export const cancelPartnerInvite = onCall(functionOptions, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
+  
+  const { inviteId } = request.data;
+  if (!inviteId) throw new HttpsError("invalid-argument", "inviteId obrigatório.");
+  
+  try {
+    // TODO: lógica real de cancelar convite
+    return { data: { success: true, message: 'Convite cancelado!' }};
+  } catch (error) {
+    console.error('Erro cancelPartnerInvite:', error);
+    throw new HttpsError("internal", "Erro ao cancelar convite.");
+  }
+});
+
 
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;

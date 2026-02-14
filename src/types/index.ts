@@ -169,10 +169,11 @@ export type ExtractTransactionOutput = z.infer<typeof ExtractTransactionOutputSc
 export const ExtractMultipleTransactionsInputSchema = z.object({
   text: z.string().describe('A block of text where each line is a transaction.'),
 });
+export type ExtractMultipleTransactionsInput = z.infer<typeof ExtractMultipleTransactionsInputSchema>;
+
 export const ExtractMultipleTransactionsOutputSchema = z.object({
   transactions: z.array(ExtractTransactionOutputSchema),
 });
-export type ExtractMultipleTransactionsInput = z.infer<typeof ExtractMultipleTransactionsInputSchema>;
 export type ExtractMultipleTransactionsOutput = z.infer<typeof ExtractMultipleTransactionsOutputSchema>;
 
 const TrendAnalysisSchema = z.object({
@@ -384,6 +385,7 @@ export const AddCardFormSchema = z.object({
   closingDay: z.number().min(1).max(31),
   dueDay: z.number().min(1).max(31),
 });
+export type AddCardFormSchema = z.infer<typeof AddCardFormSchema>;
 export type Card = z.infer<typeof AddCardFormSchema> & { id: string };
 
 // Types for Goals
@@ -410,6 +412,7 @@ export const AddCommissionFormSchema = z.object({
   date: z.date({ required_error: "Por favor, selecione uma data." }),
   status: z.enum(['pending', 'received']),
 });
+export type AddCommissionFormSchema = z.infer<typeof AddCommissionFormSchema>;
 
 export const EditCommissionFormSchema = z.object({
   description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres."),
@@ -481,6 +484,7 @@ export const AddAccountFormSchema = z.object({
   type: z.enum(accountTypes, { required_error: 'Selecione um tipo de conta.' }),
   initialBalance: z.coerce.number().default(0),
 });
+export type AddAccountFormSchema = z.infer<typeof AddAccountFormSchema>;
 
 export type Account = {
   id: string;
