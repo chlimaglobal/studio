@@ -9,6 +9,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // STATIC EXPORT - SAI DO APP HOSTING BUGADO
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true
+  }
 };
 
 export default nextConfig;
