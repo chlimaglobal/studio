@@ -27,8 +27,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { getFunctions, httpsCallable } from 'firebase/functions';  // ✅ ADICIONADO
-import { app } from '@/lib/firebase';  // ✅ ADICIONADO
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 export function PartnerInfoCard() {
   const { user } = useAuth();
