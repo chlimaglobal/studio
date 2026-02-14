@@ -19,7 +19,10 @@ const NewsTicker: React.FC = () => {
       try {
         const response = await fetch('/api/news');
         if (!response.ok) {
-          throw new Error('Failed to fetch news');
+          // Log a warning instead of throwing an error to avoid the Next.js error overlay.
+          console.warn(`Failed to fetch news, ticker will be hidden. Status: ${response.status}`);
+          setError('Failed to fetch news.'); // Set error state to hide the component.
+          return;
         }
         const data = await response.json();
         
@@ -29,7 +32,6 @@ const NewsTicker: React.FC = () => {
           // If the API returns an error message in the body
           if(data.error) {
             console.warn('News API error:', data.error);
-            setError(null); // Silently fail on the UI
           }
           setNews([]);
         }
