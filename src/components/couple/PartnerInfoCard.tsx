@@ -48,7 +48,7 @@ export function PartnerInfoCard() {
       
       const result = await disconnectPartner();
       
-      const data = result.data;
+      const data = result.data as { success: boolean, message?: string, error?: string };
 
       if (data.success) {
         toast({
