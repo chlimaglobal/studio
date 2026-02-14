@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const functionInput: LuminaChatInput = {
       chatHistory: validatedBody.messages || [],
       userQuery: validatedBody.userQuery || validatedBody.messages?.[validatedBody.messages.length - 1]?.content || '',
-      allTransactions: validatedBody.allTransactions,
+      allTransactions: validatedBody.allTransactions || [],
       imageBase64: validatedBody.imageBase64,
       audioText: validatedBody.audioText,
       isCoupleMode: validatedBody.isCoupleMode,
