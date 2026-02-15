@@ -57,12 +57,13 @@ let aiInstance: any;
 function getAI() {
     if (!aiInstance) {
         try {
+            const apiKey = geminiApiKey.value();
+            if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY não configurada');
+            
             genkit({
                 plugins: [
                     firebase(),
-                    const apiKey = geminiApiKey.value();
-if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY não configurada');
-googleAI({ apiKey }),
+                    googleAI({ apiKey }),
                 ],
                 enableTracingAndMetrics: true,
             });
@@ -79,6 +80,7 @@ googleAI({ apiKey }),
 // Set SendGrid API key at runtime
 const sgKey = sendgridApiKey.value();
 if (sgKey) sgMail.setApiKey(sgKey);
+
 // Global options for functions
 const functionOptions = {
     region: "us-central1",
@@ -419,21 +421,19 @@ const createGenkitCallable = <I, O>(flow: Flow<I, O>) => {
         throw new HttpsError('unauthenticated', 'Autenticação necessária.');
     }
     
-    // 1. Check for Admin status first. Admins bypass all subsequent checks.
-    const isAdmin = request.auth.token.email === 'digitalacademyoficial@gmail.com';
+    const isAdmin = request.auth.token.email === 'digitalacademyoficiall@gmail.com';
     if (isAdmin) {
-      // Proceed directly to running the flow for admins
+      // Admin bypass: Proceed directly to running the flow.
     } else {
-        // 2. For non-admins, check if the flow is a core free feature.
         const coreFreeFlows = new Set([
             'categorizeTransactionFlow',
             'extractTransactionFromTextFlow',
         ]);
         
         if (coreFreeFlows.has(flow.name)) {
-            // Proceed directly if it's a free flow
+            // Free feature bypass: Proceed if the flow is in the free list.
         } else {
-            // 3. For all other flows, perform the premium subscription check.
+            // Premium Check: For all other flows, perform the subscription check.
             const userDoc = await db.collection('users').doc(request.auth.uid).get();
             const subStatus = userDoc.data()?.stripeSubscriptionStatus;
             const isPremiumUser = subStatus === 'active' || subStatus === 'trialing';
@@ -464,7 +464,7 @@ export const extractMultipleTransactions = createGenkitCallable(extractMultipleT
 export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createGenkitCallable(analyzeInvestorProfileFlow);
-export const runSavingsGoalCalculation = createGenkitCallable(calculateSavingsGoalFlow);
+export const runSavingsGoalCalculation = createGenkitCallable(calculateSavingsGoalCalculation);
 export const runGoalMediation = createGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createGenkitCallable(extractFromImageFlow);
 export const luminaChat = createGenkitCallable(luminaChatFlow);
@@ -482,54 +482,29 @@ export const handleUserLogin = onCall(functionOptions, async (request) => {
     return { data: { success: true, message: "Login event processed." } };
 });
 
-export const sendPartnerInvite = onCall({ 
-  ...functionOptions, 
-  cors: true 
-}, async (request) => {
-  console.log('🔥 sendPartnerInvite INICIADO por:', request.auth?.uid);
-  
-  if (!request.auth) {
-    console.log('❌ Sem autenticação');
-    throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-  }
-  
-  console.log('📧 Dados recebidos:', request.data);
-  
-  const { partnerEmail, senderName } = request.data;
-  if (!partnerEmail || !senderName) {
-    console.log('❌ Dados inválidos:', { partnerEmail, senderName });
-    throw new HttpsError("invalid-argument", "Email e nome são obrigatórios.");
-  }
-  
-  try {
-    console.log('📝 Gerando token...');
-    const inviteToken = db.collection("invites").doc().id;
+export const sendPartnerInvite = onCall(functionOptions, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     
-    const inviteData = {
-      sentBy: request.auth.uid,
-      sentByName: senderName,
-      sentByEmail: request.auth.token?.email || null,
-      sentToEmail: partnerEmail,
-      status: "pending",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+    const { partnerEmail, senderName } = request.data;
+    if (!partnerEmail || !senderName) throw new HttpsError("invalid-argument", "Parâmetros inválidos ao enviar convite.");
     
-    console.log('💾 Salvando invite:', inviteToken);
-    await db.collection("invites").doc(inviteToken).set(inviteData);
-    
-    console.log('✅ INVITE CRIADO COM SUCESSO:', inviteToken);
-    return { 
-      success: true, 
-      inviteToken, 
-      message: "Convite criado com sucesso!" 
-    };  // ✅ SEM "data:"
-    
-  } catch (error) {
-    console.error('💥 ERRO COMPLETO em sendPartnerInvite:', error);
-    throw new HttpsError("internal", `Erro interno: ${error.message}`);
-  }
+    try {
+      const inviteToken = db.collection("invites").doc().id;
+      const inviteData = {
+        sentBy: request.auth.uid,
+        sentByName: senderName,
+        sentByEmail: request.auth.token.email || null,
+        sentToEmail: partnerEmail,
+        status: "pending",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      await db.collection("invites").doc(inviteToken).set(inviteData);
+      return { data: { success: true, inviteToken, message: "Convite criado com sucesso!" } };
+    } catch (error) {
+      console.error("Erro em sendPartnerInvite:", error);
+      throw new HttpsError("internal", "Erro ao enviar convite.");
+    }
 });
-
 
 
 export const onInviteCreated = onDocumentCreated({
@@ -600,7 +575,7 @@ export const onTransactionCreated = onDocumentCreated({
     region: functionOptions.region,
 }, async (event) => {
     const snap = event.data;
-    if (!snap) return;
+    if (!snap) return null;
 
     const { userId } = event.params;
     const userDocRef = db.doc(`users/${userId}`);
@@ -638,8 +613,7 @@ export const onTransactionCreated = onDocumentCreated({
     } catch (error) {
       console.error(`Erro em onTransactionCreated para usuário ${userId}:`, error);
     }
-    return { success: true, inviteToken, message: "Convite criado com sucesso!" };
-
+    return null; 
 });
 
 
@@ -812,15 +786,7 @@ export const dailyFinancialCheckup = onSchedule({
     return null;
 });
 
-// -----------------
-// 👇 ADICIONE AQUI NO FINAL (antes do último export alexaWebhook)
-// -----------------
-
-export const acceptPartnerInvite = onCall({ 
-  ...functionOptions, 
-  cors: true 
-}, async (request) => {
-  console.log('✅ acceptPartnerInvite chamado');
+export const acceptPartnerInvite = onCall(functionOptions, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
   
   const { inviteId } = request.data;
@@ -828,18 +794,14 @@ export const acceptPartnerInvite = onCall({
   
   try {
     // TODO: lógica real de aceitar convite
-    return { success: true, message: 'Convite aceito com sucesso!' };
+    return { data: { success: true, message: 'Convite aceito com sucesso!' } };
   } catch (error) {
     console.error('Erro acceptPartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao aceitar convite.");
   }
 });
 
-export const declinePartnerInvite = onCall({ 
-  ...functionOptions, 
-  cors: true 
-}, async (request) => {
-  console.log('✅ declinePartnerInvite chamado');
+export const declinePartnerInvite = onCall(functionOptions, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
   
   const { inviteId } = request.data;
@@ -847,18 +809,14 @@ export const declinePartnerInvite = onCall({
   
   try {
     // TODO: lógica real de recusar convite
-    return { success: true, message: 'Convite recusado!' };
+    return { data: { success: true, message: 'Convite recusado!' } };
   } catch (error) {
     console.error('Erro declinePartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao recusar convite.");
   }
 });
 
-export const cancelPartnerInvite = onCall({ 
-  ...functionOptions, 
-  cors: true 
-}, async (request) => {
-  console.log('✅ cancelPartnerInvite chamado');
+export const cancelPartnerInvite = onCall(functionOptions, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Autenticação necessária.");
   
   const { inviteId } = request.data;
@@ -866,15 +824,13 @@ export const cancelPartnerInvite = onCall({
   
   try {
     // TODO: lógica real de cancelar convite
-    return { success: true, message: 'Convite cancelado!' };
+    return { data: { success: true, message: 'Convite cancelado!' } };
   } catch (error) {
     console.error('Erro cancelPartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao cancelar convite.");
   }
 });
 
-// alexaWebhook continua aqui embaixo 👇
+
 // Export the v1 handler for Alexa, as it uses a different signature
 export const alexaWebhook = alexaWebhookV1;
-
-

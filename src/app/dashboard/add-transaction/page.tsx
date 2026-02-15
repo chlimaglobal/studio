@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +18,7 @@ import { TransactionFormSchema, type TransactionCategory, transactionCategories,
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { format, parse } from 'date-fns'; // Adicionei parse para date BR
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
@@ -253,7 +252,7 @@ function SingleTransactionForm() {
             if (tx) {
                 return {
                     description: tx.description || '',
-                    amount: String(tx.amount || '').replace('.', ',') || '',
+                    amount: Number(tx.amount) || 0,
                     date: tx.date ? new Date(tx.date) : new Date(),
                     dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined,
                     type: tx.type || 'expense',
@@ -261,12 +260,12 @@ function SingleTransactionForm() {
                     paid: tx.paid ?? true,
                     paymentMethod: tx.paymentMethod || 'one-time',
                     installments: tx.totalInstallments ? String(tx.totalInstallments) : '',
-                    recurrence: tx.recurrence || '',
+                    recurrence: tx.recurrence || undefined,
                     observations: tx.observations || '',
                     institution: tx.institution || '',
                     hideFromReports: tx.hideFromReports || false,
                     creditCard: tx.creditCard || '',
-                    cardBrand: tx.cardBrand || '',
+                    cardBrand: tx.cardBrand || undefined,
                 };
             }
         }
@@ -274,7 +273,7 @@ function SingleTransactionForm() {
         const amountFromParams = searchParams.get('amount');
         return {
             description: searchParams.get('description') || '',
-            amount: amountFromParams || '',
+            amount: amountFromParams ? Number(amountFromParams) : 0,
             date: searchParams.get('date') ? new Date(searchParams.get('date')!) : new Date(),
             dueDate: undefined,
             type: (searchParams.get('type') as 'income' | 'expense') || 'expense',
@@ -282,12 +281,12 @@ function SingleTransactionForm() {
             paid: searchParams.get('paid') ? searchParams.get('paid') === 'true' : true,
             paymentMethod: (searchParams.get('paymentMethod') as any) || 'one-time',
             installments: searchParams.get('installments') || '',
-            recurrence: (searchParams.get('recurrence') as any) || '',
+            recurrence: (searchParams.get('recurrence') as 'weekly' | 'monthly' | 'quarterly' | 'annually') || undefined,
             observations: searchParams.get('observations') || '',
             institution: searchParams.get('institution') || '',
             hideFromReports: searchParams.get('hideFromReports') ? searchParams.get('hideFromReports') === 'true' : false,
             creditCard: searchParams.get('creditCard') || '',
-            cardBrand: (searchParams.get('cardBrand') as CardType['brand']) || '',
+            cardBrand: (searchParams.get('cardBrand') as CardType['brand']) || undefined,
         };
     }, [isEditing, transactionId, transactions, searchParams]);
 
@@ -320,16 +319,14 @@ function SingleTransactionForm() {
         setIsSuggesting(true);
         try {
             const { category } = await getCategorySuggestion({description});
-            if (category && transactionCategories.includes(category)) {
-                form.setValue('category', category, { shouldValidate: true });
+            if (category && transactionCategories.includes(category as TransactionCategory)) {
+                form.setValue('category', category as TransactionCategory, { shouldValidate: true });
                 toast({
                     title: 'Sugestão da Lúmina',
                     description: `Categorizamos isso como "${category}".`,
                 });
             }
         } catch (e: any) {
-            // Error is already handled by the action wrapper, which will show a toast.
-            // No need to show another one here. We just log for debugging.
             console.warn("Lumina suggestion failed:", e.message);
         } finally {
             setIsSuggesting(false);
@@ -359,7 +356,6 @@ function SingleTransactionForm() {
             }
             router.back();
         } catch (error) {
-            // Error toast is handled in the context, so we just log here
             console.error("Failed to submit transaction:", error);
         }
     }
