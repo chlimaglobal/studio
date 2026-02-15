@@ -1,6 +1,6 @@
 import { run } from 'genkit';
 import { DocumentData } from 'firebase-admin/firestore';
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../flows/alexa-flows';
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
 import { logger } from 'firebase-functions/logger';  // Adicionado para logs melhores (integra com Cloud Logging)
 import { startOfMonth, endOfMonth } from 'date-fns';  // Adicionado para filtro por data (instale date-fns)
 
@@ -64,7 +64,7 @@ export async function getSummaryFromSpeech(
     const balance = totalIncome - totalExpense;
 
     try {
-        const result = await run<SummaryResult>(getSimpleFinancialSummaryFlow, {  // Tipado return
+        const result = await run(getSimpleFinancialSummaryFlow, {
             totalIncome,
             totalExpense,
             balance,
