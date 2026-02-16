@@ -34,13 +34,13 @@ import {
     LuminaChatInputSchema,
     LuminaChatOutputSchema,
     ExtractMultipleTransactionsInputSchema,
-    ExtractMultipleTransactionsOutputSchema,
+    ExtractMultipleTransactionsOutputSchema
 } from './types';
 import { LUMINA_BASE_PROMPT, LUMINA_DIAGNOSTIC_PROMPT, LUMINA_VOICE_COMMAND_PROMPT, LUMINA_SPEECH_SYNTHESIS_PROMPT } from './prompts/luminaBasePrompt';
 import { transactionCategories } from './types';
 import { getFinancialMarketData } from './services/market-data';
 import { LUMINA_GOALS_SYSTEM_PROMPT } from './prompts/luminaGoalsPrompt';
-import { alexaWebhook as alexaWebhookV1 } from './alexa';
+import { alexaWebhook } from './alexa';
 
 // Define Secrets for v2
 const sendgridApiKey = defineSecret("SENDGRID_API_KEY");
@@ -832,5 +832,5 @@ export const cancelPartnerInvite = onCall(functionOptions, async (request) => {
 });
 
 
-// Export the v1 handler for Alexa, as it uses a different signature
-export const alexaWebhook = alexaWebhookV1;
+// Exporta a função da Alexa como um ponto de entrada de nível superior.
+export { alexaWebhook };
