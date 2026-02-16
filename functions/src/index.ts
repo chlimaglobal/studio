@@ -54,7 +54,7 @@ export const db = admin.firestore();
 
 // Lazy initialization for Genkit to access secrets at runtime
 let aiInstance: any;
-function getAI() {
+export function getAI() {
     if (!aiInstance) {
         try {
             const apiKey = geminiApiKey.value();
