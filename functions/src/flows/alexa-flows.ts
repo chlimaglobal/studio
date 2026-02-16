@@ -1,40 +1,11 @@
-import { genkit, defineFlow, ai } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
-import { firebase } from '@genkit-ai/firebase';
-import { HttpsError } from 'firebase-functions/v2/https';
-import { defineSecret } from "firebase-functions/params";
-
+import { defineFlow } from 'genkit';
 import {
   AlexaExtractTransactionInputSchema,
   AlexaExtractTransactionOutputSchema,
   GetSimpleFinancialSummaryInputSchema,
   GetSimpleFinancialSummaryOutputSchema,
 } from '../types';
-
-// This is a self-contained initializer to avoid circular dependencies.
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
-let aiInstance: any;
-function getAI() {
-    if (!aiInstance) {
-        try {
-            const apiKey = geminiApiKey.value();
-            if (!apiKey) throw new HttpsError('internal', 'GEMINI_API_KEY não configurada');
-            
-            genkit({
-                plugins: [
-                    firebase(),
-                    googleAI({ apiKey }),
-                ],
-                enableTracingAndMetrics: true,
-            });
-            aiInstance = ai;
-        } catch(e) {
-            console.error("CRITICAL: Genkit initialization failed for Alexa Flow.", e);
-            throw new HttpsError('internal', 'AI service initialization failed for Alexa Flow.');
-        }
-    }
-    return aiInstance;
-}
+import { getAI } from '../index';
 
 
 export const alexaExtractTransactionFlow = defineFlow(
