@@ -37,7 +37,11 @@
   ],
   "exclude": [
     "node_modules",
-    "functions",
     "workspace"
+  ],
+  "references": [
+    {
+      "path": "./functions"
+    }
   ]
 }
