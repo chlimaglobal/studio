@@ -1,6 +1,6 @@
 import { run } from 'genkit';
 import { DocumentData } from 'firebase-admin/firestore';
-import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../index';
+import { alexaExtractTransactionFlow, getSimpleFinancialSummaryFlow } from '../flows/alexa-flows';
 import { logger } from 'firebase-functions/logger';  // Adicionado para logs melhores (integra com Cloud Logging)
 import { startOfMonth, endOfMonth } from 'date-fns';  // Adicionado para filtro por data (instale date-fns)
 
