@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { useRouter } from 'next/navigation';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';

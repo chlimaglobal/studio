@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import {
     Stethoscope, Smile, FlaskConical, Pill, Drama, Trees, Beer, Film, PartyPopper,
     Swords, Landmark, CreditCard, Banknote, BookOpen, GraduationCap, School,
     Percent, Library, TrendingUp, Dog, Shirt, Plane, SprayCan, Hand, Briefcase, Gift,
-    PiggyBank, LineChart, AreaChart, CandlestickChart, Fuel, Baby, Stroller
+    PiggyBank, LineChart, AreaChart, CandlestickChart, Fuel, Baby
 } from 'lucide-react';
 import Link from 'next/link';
 

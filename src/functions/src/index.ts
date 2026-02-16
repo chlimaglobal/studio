@@ -1,4 +1,3 @@
-
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
@@ -54,7 +53,7 @@ export const db = admin.firestore();
 
 // Lazy initialization for Genkit to access secrets at runtime
 let aiInstance: any;
-function getAI() {
+export function getAI() {  // ← ADICIONADO "export" AQUI
     if (!aiInstance) {
         try {
             const apiKey = geminiApiKey.value();
@@ -464,7 +463,7 @@ export const extractMultipleTransactions = createGenkitCallable(extractMultipleT
 export const runAnalysis = createGenkitCallable(generateFinancialAnalysisFlow);
 export const runFileExtraction = createGenkitCallable(extractFromFileFlow);
 export const runInvestorProfileAnalysis = createGenkitCallable(analyzeInvestorProfileFlow);
-export const runSavingsGoalCalculation = createGenkitCallable(calculateSavingsGoalCalculation);
+export const runSavingsGoalCalculation = createGenkitCallable(calculateSavingsGoalFlow);  // ← CORRIGIDO
 export const runGoalMediation = createGenkitCallable(mediateGoalsFlow);
 export const runImageExtraction = createGenkitCallable(extractFromImageFlow);
 export const luminaChat = createGenkitCallable(luminaChatFlow);
@@ -479,7 +478,7 @@ export const handleUserLogin = onCall(functionOptions, async (request) => {
         throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
     console.log(`User login event processed for UID: ${request.auth.uid}`);
-    return { data: { success: true, message: "Login event processed." } };
+    return { success: true, message: "Login event processed." };  // ← SEM WRAPPER EXTRA
 });
 
 export const sendPartnerInvite = onCall(functionOptions, async (request) => {
@@ -499,7 +498,7 @@ export const sendPartnerInvite = onCall(functionOptions, async (request) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       };
       await db.collection("invites").doc(inviteToken).set(inviteData);
-      return { data: { success: true, inviteToken, message: "Convite criado com sucesso!" } };
+      return { success: true, inviteToken, message: "Convite criado com sucesso!" };  // ← SEM WRAPPER EXTRA
     } catch (error) {
       console.error("Erro em sendPartnerInvite:", error);
       throw new HttpsError("internal", "Erro ao enviar convite.");
@@ -555,7 +554,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
       if (partnerId) batch.update(db.collection("users").doc(partnerId), { coupleId: admin.firestore.FieldValue.delete(), memberIds: [partnerId] });
       batch.delete(coupleDocRef);
       await batch.commit();
-      return { data: { success: true, message: "Desvinculação concluída." } };
+      return { success: true, message: "Desvinculação concluída." };  // ← SEM WRAPPER EXTRA
     } catch (error) {
       console.error("Erro ao desvincular parceiro:", error);
       if (error instanceof HttpsError) throw error;
@@ -566,7 +565,7 @@ export const disconnectPartner = onCall(functionOptions, async (request) => {
 
 export const checkDashboardStatus = onCall(functionOptions, async (request) => {
     if (!request.auth) throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
-    return { data: { success: true, message: "Verificação concluída." } };
+    return { success: true, message: "Verificação concluída." };  // ← SEM WRAPPER EXTRA
   }
 );
 
@@ -794,7 +793,7 @@ export const acceptPartnerInvite = onCall(functionOptions, async (request) => {
   
   try {
     // TODO: lógica real de aceitar convite
-    return { data: { success: true, message: 'Convite aceito com sucesso!' } };
+    return { success: true, message: 'Convite aceito com sucesso!' };  // ← SEM WRAPPER EXTRA
   } catch (error) {
     console.error('Erro acceptPartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao aceitar convite.");
@@ -809,7 +808,7 @@ export const declinePartnerInvite = onCall(functionOptions, async (request) => {
   
   try {
     // TODO: lógica real de recusar convite
-    return { data: { success: true, message: 'Convite recusado!' } };
+    return { success: true, message: 'Convite recusado!' };  // ← SEM WRAPPER EXTRA
   } catch (error) {
     console.error('Erro declinePartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao recusar convite.");
@@ -824,7 +823,7 @@ export const cancelPartnerInvite = onCall(functionOptions, async (request) => {
   
   try {
     // TODO: lógica real de cancelar convite
-    return { data: { success: true, message: 'Convite cancelado!' } };
+    return { success: true, message: 'Convite cancelado!' };  // ← SEM WRAPPER EXTRA
   } catch (error) {
     console.error('Erro cancelPartnerInvite:', error);
     throw new HttpsError("internal", "Erro ao cancelar convite.");

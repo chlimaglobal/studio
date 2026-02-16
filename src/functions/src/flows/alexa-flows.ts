@@ -1,65 +1,80 @@
-
-import { z } from "genkit";
+import { defineFlow } from 'genkit';
+import { HttpsError } from 'firebase-functions/v2/https';
 import {
   AlexaExtractTransactionInputSchema,
   AlexaExtractTransactionOutputSchema,
   GetSimpleFinancialSummaryInputSchema,
   GetSimpleFinancialSummaryOutputSchema,
-} from "../types";
+} from './types';
+import { getAI } from './index';
 
 /**
- * Retorna uma função de fluxo para extrair uma transação da Alexa.
- * @param ai - A instância do Genkit AI.
+ * Flow para extrair uma transação da Alexa.
+ * Segue EXATAMENTE o padrão do index.ts.
  */
-export const alexaExtractTransactionFlow = (ai: any) => ai.defineFlow(
+export const alexaExtractTransactionFlow = defineFlow(
   {
-    name: "alexaExtractTransactionFlow",
+    name: 'alexaExtractTransactionFlow',
     inputSchema: AlexaExtractTransactionInputSchema,
     outputSchema: AlexaExtractTransactionOutputSchema,
   },
-  async (input: z.infer<typeof AlexaExtractTransactionInputSchema>) => {
-    const prompt = `
-      Você é a Lúmina, uma assistente financeira inteligente.
-      Sua tarefa é extrair UMA ÚNICA TRANSAÇÃO FINANCEIRA a partir de um texto falado.
-      REGRAS:
-      1. Extraia apenas UMA transação.
-      2. Se nenhuma transação válida for encontrada, retorne null.
-      3. O resultado DEVE seguir EXATAMENTE o schema fornecido.
-      4. A data deve ser a data atual se não for especificada.
-      Texto: ${input.text}
-    `;
+  async (input) => {
+    const ai = getAI();
+    
+    const prompt = `Você é a Lúmina, uma assistente financeira inteligente.
+Sua tarefa é extrair UMA ÚNICA TRANSAÇÃO FINANCEIRA a partir de um texto falado.
+
+REGRAS:
+1. Extraia apenas UMA transação.
+2. Se nenhuma transação válida for encontrada, retorne null.
+3. O resultado DEVE seguir EXATAMENTE o schema fornecido.
+4. A data deve ser a data atual se não for especificada.
+
+Texto: ${input.text}
+`;
 
     const result = await ai.generate({
+      model: 'gemini-1.5-flash',
       prompt,
-      output: { format: "json", schema: AlexaExtractTransactionOutputSchema },
+      output: { format: 'json', schema: AlexaExtractTransactionOutputSchema },
     });
 
-    return result.output;
+    const output = result.output;
+    if (!output) throw new HttpsError('internal', 'A Lúmina não conseguiu extrair a transação.');
+    return output;
   }
 );
 
 /**
- * Retorna uma função de fluxo para gerar um resumo financeiro para a Alexa.
- * @param ai - A instância do Genkit AI.
+ * Flow para gerar um resumo financeiro simples para a Alexa.
+ * Segue EXATAMENTE o padrão do index.ts.
  */
-export const getSimpleFinancialSummaryFlow = (ai: any) => ai.defineFlow(
+export const getSimpleFinancialSummaryFlow = defineFlow(
   {
-    name: "getSimpleFinancialSummaryFlow",
+    name: 'getSimpleFinancialSummaryFlow',
     inputSchema: GetSimpleFinancialSummaryInputSchema,
     outputSchema: GetSimpleFinancialSummaryOutputSchema,
   },
-  async (input: z.infer<typeof GetSimpleFinancialSummaryInputSchema>) => {
-    const prompt = `
-      Você é a Lúmina. Gere um resumo financeiro CURTO e amigável para a Alexa.
-      Dados:
-      - Receitas: ${input.totalIncome}
-      - Despesas: ${input.totalExpense}
-      - Saldo: ${input.balance}
-      - Período: ${input.period}
-    `;
+  async (input) => {
+    const ai = getAI();
+    
+    const prompt = `Você é a Lúmina, uma assistente financeira amigável.
+Gere um resumo financeiro CURTO (máximo 2 frases) e amigável para a Alexa.
 
-    const result = await ai.generate({ prompt });
+Dados do usuário:
+- Receitas totais: R$ ${input.totalIncome.toFixed(2)}
+- Despesas totais: R$ ${input.totalExpense.toFixed(2)}
+- Saldo atual: R$ ${input.balance.toFixed(2)}
+- Período: ${input.period}
 
-    return { summary: result.text ?? "Não consegui gerar o resumo." };
+Seja objetiva e use uma linguagem natural para áudio.
+`;
+
+    const result = await ai.generate({
+      model: 'gemini-1.5-flash',
+      prompt,
+    });
+
+    return { summary: result.text || 'Não consegui gerar o resumo.' };
   }
 );

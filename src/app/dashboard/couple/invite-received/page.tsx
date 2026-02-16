@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useCoupleStore } from '@/hooks/use-couple-store';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, UserPlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { useRouter } from 'next/navigation';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
@@ -94,7 +93,7 @@ export default function InviteReceivedPage() {
 
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
-                        Ao aceitar, vocês poderão compartilhar transações, orçamentos e análises no “Modo Casal”.
+                        Ao aceitar, vocês poderão compartilhar transações, orçamentos e análises no "Modo Casal".
                     </p>
                 </CardContent>
 

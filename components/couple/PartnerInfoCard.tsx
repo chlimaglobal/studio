@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Loader2, Heart, UserX } from 'lucide-react';
-import { useAuth } from '@/components/client-providers';
+import { useAuth } from '@/components/providers/app-providers';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import {
@@ -26,8 +26,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { getFunctions, httpsCallable } from 'firebase/functions';  // ✅ ADICIONADO
-import { app } from '@/lib/firebase';  // ✅ ADICIONADO
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 export function PartnerInfoCard() {
   const { user } = useAuth();

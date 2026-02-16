@@ -1,9 +1,9 @@
-import * as functions from 'firebase-functions';
-import { logger } from 'firebase-functions/logger';  // Adicionado para logs melhores
-import { HttpsError } from 'firebase-functions/v2/https';  // Para erros padronizados
+import { onRequest } from "firebase-functions/v2/https";
+import { logger } from 'firebase-functions/logger';
+import { HttpsError } from 'firebase-functions/v2/https';
 import { extractTransactionFromSpeech, getSummaryFromSpeech } from './services/alexa-ai-client';
 import { db } from './index';
-import { subMonths } from 'date-fns';  // Adicionado para filtro por data (instale date-fns)
+import { subMonths } from 'date-fns';
 
 // Helper to get User ID from Alexa's accessToken (melhorado com simulação segura)
 async function getUserIdFromAccessToken(accessToken: string | undefined): Promise<string | null> {
@@ -23,7 +23,7 @@ async function checkSubscription(userId: string): Promise<boolean> {
   return userDoc.exists && userDoc.data()?.subscriptionActive === true;
 }
 
-export const alexaWebhook = functions.https.onRequest(async (req, res) => {
+export const alexaWebhook = onRequest({ region: "us-central1" }, async (req, res) => {
   try {
     // Validação de payload (adicionada para robustez)
     if (!req.body || !req.body.request) {
@@ -59,7 +59,16 @@ export const alexaWebhook = functions.https.onRequest(async (req, res) => {
     // Verificação de assinatura para intents pagos (adicionada)
     if (requestType === 'IntentRequest' && !await checkSubscription(userId!)) {
       speechText = "Essa funcionalidade requer assinatura ativa no FinanceFlow. Acesse o app para assinar.";
-      res.json({...});  // Mesma resposta padrão
+      res.json({
+        version: '1.0',
+        response: {
+            outputSpeech: {
+                type: 'PlainText',
+                text: speechText,
+            },
+            shouldEndSession: true,
+        },
+      });
       return;
     }
 
