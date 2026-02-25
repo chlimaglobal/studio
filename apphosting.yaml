@@ -1,0 +1,19 @@
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_APIKEY
+    value: AIzaSyC5d98JbKWbtkXyFKQui2baPdVmdgRbzas
+    availability: [BUILD_AND_RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECTID
+    value: financeflow-we0in
+    availability: [BUILD_AND_RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTHDOMAIN
+    value: financeflow-we0in.firebaseapp.com
+    availability: [BUILD_AND_RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: financeflow-we0in.appspot.com
+    availability: [BUILD_AND_RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDERID
+    value: "123511329863"
+    availability: [BUILD_AND_RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APPID
+    value: "1:123511329863:web:a81c91b72098fa668d8d62"
+    availability: [BUILD_AND_RUNTIME]
