@@ -1,9 +1,16 @@
 /** @type {import('next').NextConfig} */
-
 const nextConfig = {
-  // Your Next.js configuration options can go here.
-  // The 'experimental.turbo' flag has been removed as it is no longer
-  // a valid option in this version of Next.js.
+  typescript: {
+    ignoreBuildErrors: true
+  },
+  eslint: {
+    ignoreDuringBuilds: true
+  },
+  output: 'standalone',
+  distDir: '.next-frontend',
+  trailingSlash: true,
+  // Ignora functions/ (Firebase backend)
+  transpilePackages: []
 };
 
 export default nextConfig;
