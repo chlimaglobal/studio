@@ -14,18 +14,25 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  // Se não usa measurementId, deixe comentado:
+  // measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   // Se você usa Realtime Database, adicione:
   // databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
 };
 
 // Validação mais completa (opcional, mas útil em produção)
-const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'] as const;
-for (const key of requiredKeys) {
-  if (!firebaseConfig[key]) {
+const requiredVars = {
+  apiKey: 'NEXT_PUBLIC_FIREBASE_API_KEY',
+  authDomain: 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  projectId: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  appId: 'NEXT_PUBLIC_FIREBASE_APP_ID',
+} as const;
+
+for (const [key, envName] of Object.entries(requiredVars)) {
+  if (!firebaseConfig[key as keyof typeof firebaseConfig]) {
     throw new Error(
-      `Firebase config incompleta: variável NEXT_PUBLIC_FIREBASE_${key.toUpperCase()} não definida. ` +
-      'Verifique .env.local ou environment variables no Firebase App Hosting.'
+      `Firebase config incompleta: variável ${envName} não definida. ` +
+        'Verifique .env.local ou environment variables no Firebase App Hosting.'
     );
   }
 }
