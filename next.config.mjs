@@ -8,9 +8,9 @@ const nextConfig = {
   },
   output: 'standalone',
   distDir: '.next-frontend',
-  trailingSlash: false, // ✅ Firebase App Hosting prefere false
+  trailingSlash: true,  // ✅ Firebase App Hosting ESPERA true
   
-  // ✅ FIX Firebase SDK warning (encoding/node-fetch)
+  // ✅ FIX Firebase warning (só webpack, sem experimental)
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -19,13 +19,8 @@ const nextConfig = {
     return config;
   },
   
-  // ✅ Mantém Firebase SDK fora do bundle do browser
-  experimental: {
-    serverComponentsExternalPackages: ['firebase', '@firebase/auth', '@firebase/firestore'],
-  },
-  
   images: {
-    unoptimized: true  // ✅ Necessário pro Firebase
+    unoptimized: true
   }
 };
 
